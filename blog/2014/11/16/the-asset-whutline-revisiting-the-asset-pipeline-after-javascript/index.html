@@ -1,0 +1,286 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>The Asset WHUTline?: Revisiting the Asset Pipeline After JavaScript - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="Two weeks ago, I was introduced to the Asset Pipeline. I didn&rsquo;t really think much of it at first, and part of me even assumed that I&rsquo;d &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2014/11/16/the-asset-whutline-revisiting-the-asset-pipeline-after-javascript">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">The Asset WHUTline?: Revisiting the Asset Pipeline After JavaScript</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-11-16T23:14:13-05:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:14 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p> Two weeks ago, I was introduced to the Asset Pipeline. I didn&rsquo;t really think much of it at first, and part of me even assumed that I&rsquo;d never really have to see it again. It was a little like going out on a pretty forgettable first date &ndash; nothing particularly intriguing about the whole thing, but it somehow leaves you feeling kind of confused and generally rather perplexed.</p>
+
+<p>But here&rsquo;s the thing: I <em>did</em> see the Asset Pipeline again. And boy was it awkward. After learning JavaScript this week and brushing up on my Rails, I realized that I&rsquo;m going to run into the Asset Pipeline at some point or another, so I might as well get to know it a little better. Here&rsquo;s a little refresher just in case you haven&rsquo;t seen the Asset Pipeline in awhile, either.</p>
+
+<!-- more -->
+
+
+<h2>Why bother?</h2>
+
+<p>Once upon a time, before Rails 3.0, anytime you wanted to include a JavaScript or CSS file in your application, you had to manually do it by including either a <code>&lt;script&gt;</code> or a <code>&lt;link&gt;</code> tag, like so:</p>
+
+<p><code>&lt;script src="jquery.js" type="text/javascript"&gt;&lt;/script&gt;</code><br>
+<code>&lt;link href="custom.css" rel="stylesheet" type="text/css"/&gt;</code></p>
+
+<p>Imagine doing that for every single file in your application. Are you in pain yet? Yeah, me too.</p>
+
+<p>Now imagine being able to create as many JavaScript and CSS files as your heart desired, <em>and</em> being able to include all of them together in one single, long concatenated file that would be delivered whenver the browser makes a page request.</p>
+
+<p>Guess what? That&rsquo;s exactly what the Asset Pipeline does. Ultimately, the goal of the Asset Pipeline is to make your life as a programmer that much easier by helping you organize your JavaScript and CSS files (which, let&rsquo;s face it, you are going to <em>have</em> to use):</p>
+
+<blockquote><p>&ldquo;I think empty folder and empty files are two of the pivotal innovations in Rails that has encouraged us to write clean applications since the framework appeared. And I think this is true because when you have a place for everything and everything is in it&rsquo;s place, things feel nice.&rdquo;</p></blockquote>
+
+<p>&ndash; David Heinemeier Hansson, <a href="https://www.youtube.com/watch?v=cGdCI2HhfAU"><em>RailsConf 2011</em></a></p>
+
+<h2>Explain me some pipeline</h2>
+
+<p>The Asset Pipeline functions within three main directories:</p>
+
+<ol>
+<li>The <code>app/assets</code> directory: for files that are owned by the application &amp; specific to the current project (such as custom images, JavaScript files or stylesheets).</li>
+<li>The <code>lib/assets</code> directory: for assets for your own libraries&#8217; code.</li>
+<li>The <code>vendor/assets</code> directory: for external libraries that are owned by someone else (for example, JavaScript plugins or CSS frameworks).</li>
+</ol>
+
+
+<p>Within your <code>assets</code> directory are two subdirectories: <code>app/assets/javascripts/</code> and <code>app/assets/stylesheets/</code>. The Asset Pipeline compiles any JavaScript and CSS files that you add to these folders and automatically adds them to every page of your application.</p>
+
+<p>Within these folders are <em>manifests</em>, which, in the case of your CSS files, would be included as part of the default application layout in the <code>app/assets/stylesheets/application.css.scss</code> directory. A manifest ses directives to provide the exact order and list of files that should be concatenated and included in the single CSS file that is delivered to the browser.</p>
+
+<h2>So&hellip;what exactly is a directive, again?</h2>
+
+<p>Directives are nothing more than directions of which files to grab and glob together. You can find them in the comments at the top of any manifest, you can find something that looks like <code>*= require_tree</code>.</p>
+
+<p>The most basic directive is <code>require</code>, which will concatenate the content of the specified file only once into the final packaged asset (called the &ldquo;bundle&rdquo;).</p>
+
+<p>Another common directive is <code>include</code>, which is similar to <code>require</code>, except that if it reads the same file more than once, it will insert it into the bundle again.</p>
+
+<p>Other directives like <code>require_self</code>, <code>require_directory</code>, and <code>*= require_tree</code>are useful in grabbing the current file (such as the manifest file), a specified directory, or the current directory plus its subdirectories.</p>
+
+<p>Directives are always are processed in the order that they are read in the file, with <code>require_tree</code> being the one exception to this rule.</p>
+
+<h2>Help me help you (or just use a helper method)</h2>
+
+<p>The Asset Pipeline has helper methods to make your life a little easier. Two of the most common helper methods are the <code>stylesheet_link_tag</code> and <code>javascript_include_tag</code>, which can be used to add CSS &amp; JavaScript to any page of your application.</p>
+
+<p>Another useful method is <code>link_to</code>, which can replace the anchor <code>&lt;a&gt;</code> tags while linking to other parts of your application. This method takes two parameters: the string displayed as the anchor text for the link, and the route:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">&lt;</span><span class="n">ul</span> <span class="n">class</span><span class="o">=</span><span class="s2">&quot;nav&quot;</span><span class="o">&gt;</span>
+</span><span class='line'>  <span class="o">&lt;</span><span class="n">li</span><span class="o">&gt;&lt;</span><span class="sx">%= link_to &#39;Super Cute Kittens&#39;, kittens_path %&gt;&lt;/li&gt;</span>
+</span><span class='line'><span class="sx">  &lt;%=</span> <span class="n">render</span> <span class="s1">&#39;layouts/navigation_links&#39;</span> <span class="sx">%&gt;</span>
+</span><span class='line'><span class="sx">&lt;/ul&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This helper method is pretty awesome because it allows you name a route and then target all of your link locations to your <code>routes.rb</code> file. This is particuarly great you&rsquo;re moving your website from say, <code>www.cats.com</code> to a new and improved dynamic website that follows RESTful conventions, like maybe <code>www.supercutekittens.com</code>. Imagine having to create absolute URLs for every single link on that website! Ok, don&rsquo;t panic, you don&rsquo;t have to.</p>
+
+<h2>Protip:</h2>
+
+<p>When you generate a scaffold or a controller(<code>rails g scaffold</code> or <code>rails g controller</code>), Rails also generates a JavaScript/CoffeeScript file and a CSS/SCSS file for that controller! This means that when I make my CatsController, Rails will also add a new file at <code>app/assets/javascripts/cats.js.coffee</code> and another at <code>app/assets/stylesheets/cats.css.scss</code>.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Keeping your assets in their proper place will make you a happier and more organized programmer.</li>
+<li>The Asset Pipeline will make your application perform better. Remember that it&rsquo;s easier (and faster) for your browser to request one large file from the server, rather than a ton of small ones.</li>
+<li>Other things to look into: <a href="http://guides.rubyonrails.org/asset_pipeline.html#what-is-fingerprinting-and-why-should-i-care-questionmark">Fingerprinting</a>, which makes the name of a file dependent purely on its content. When the file contents change, the filename also changes.</li>
+<li>The Asset Pipeline is magical, yet <em>super</em> difficult to learn. You probably won&rsquo;t understand everything all at once. But hopefully you feel a less confused than this little guy. He&rsquo;s clearly had too much pipeline for one day:</li>
+</ul>
+
+
+<blockquote class="twitter-tweet tw-align-center" lang="en"><p>So, I met the asset pipeline today&#8230; <a href="http://t.co/gU43HTzmF6">pic.twitter.com/gU43HTzmF6</a></p>&mdash; Vaidehi Joshi (@VaidehiJoshi) <a href="https://twitter.com/VaidehiJoshi/status/529693995661021184">November 4, 2014</a></blockquote>
+
+
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2014-11-16T23:14:13-05:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:14 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/flatiron/'>flatiron</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2014/11/16/the-asset-whutline-revisiting-the-asset-pipeline-after-javascript/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2014/11/16/the-asset-whutline-revisiting-the-asset-pipeline-after-javascript/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/10/30/have-you-met-your-controller-yet/" title="Previous Post: Have you met your controller yet?">&laquo; Have you met your controller yet?</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/11/16/the-asset-whutline-revisiting-the-asset-pipeline-after-javascript/">The Asset WHUTline?: Revisiting the Asset Pipeline After JavaScript</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/30/have-you-met-your-controller-yet/">Have You Met Your Controller Yet?</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/16/class-inheritance/">Class Inheritance</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
