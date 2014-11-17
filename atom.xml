@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2014-11-17T02:06:54-05:00</updated>
+  <updated>2014-11-17T07:55:18-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -55,17 +55,17 @@
 
 <p>Within your <code>assets</code> directory are two subdirectories: <code>app/assets/javascripts/</code> and <code>app/assets/stylesheets/</code>. The Asset Pipeline compiles any JavaScript and CSS files that you add to these folders and automatically adds them to every page of your application.</p>
 
-<p>Within these folders are <em>manifests</em>, which, in the case of your CSS files, would be included as part of the default application layout in the <code>app/assets/stylesheets/application.css.scss</code> directory. A manifest ses directives to provide the exact order and list of files that should be concatenated and included in the single CSS file that is delivered to the browser.</p>
+<p>Within these folders are <em>manifests</em>, which, in the case of your CSS files, would be included as part of the default application layout in the <code>app/assets/stylesheets/application.css.scss</code> directory. A manifest sets directives to provide the exact order and list of files that should be concatenated and included in the single CSS file that is delivered to the browser.</p>
 
 <h2>So&hellip;what exactly is a directive, again?</h2>
 
-<p>Directives are nothing more than directions of which files to grab and glob together. You can find them in the comments at the top of any manifest, you can find something that looks like <code>*= require_tree</code>.</p>
+<p>Directives are nothing more than directions of which files to grab and glob together. In the comments at the top of any manifest, you can find something that looks like <code>*= require_tree</code>, which is a directory that includes the current directory plus its subdirectories.</p>
 
 <p>The most basic directive is <code>require</code>, which will concatenate the content of the specified file only once into the final packaged asset (called the &ldquo;bundle&rdquo;).</p>
 
 <p>Another common directive is <code>include</code>, which is similar to <code>require</code>, except that if it reads the same file more than once, it will insert it into the bundle again.</p>
 
-<p>Other directives like <code>require_self</code>, <code>require_directory</code>, and <code>*= require_tree</code>are useful in grabbing the current file (such as the manifest file), a specified directory, or the current directory plus its subdirectories.</p>
+<p>Other directives like <code>require_self</code> and <code>require_directory</code> are useful in grabbing the current file (such as the manifest file), a specified directory.</p>
 
 <p>Directives are always are processed in the order that they are read in the file, with <code>require_tree</code> being the one exception to this rule.</p>
 
