@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2014-11-17T09:02:26-05:00</updated>
+  <updated>2014-11-19T09:26:48-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,50 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[How Programming Makes You a Better Writer]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2014/11/19/how-programming-makes-you-a-better-writer/"/>
+    <updated>2014-11-19T08:08:47-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2014/11/19/how-programming-makes-you-a-better-writer</id>
+    <content type="html"><![CDATA[<p>When I was in my terrible twos, my mom walked in on me writing all over the white walls of our living room with a pencil. I didn&rsquo;t even know how to write, much less <em>what</em> to write. But apparently, even as a toddler, I knew that writing was exactly what I wanted to do. (Side note: when my dad got home, he made me erase everything I&rsquo;d written. But I digress.)</p>
+
+<p>Suffice it to say that writing has always been the medium of choice when it comes to expressing myself. So when I set aside my literary pen eight weeks ago to learn how to code at <a href="http://www.flatironschool.com/">The Flatiron School</a>, I did it with a heavy heart. I knew I&rsquo;d be learning how to build amazing things with the powerful tools that programming gives you, but I also assumed that I&rsquo;d be abandoning my one true passion.</p>
+
+<p>But I&rsquo;ve learned two important things since then: first, you probably shouldn&rsquo;t assume things randomly. Second, and more seriously, writing and coding are far more similar than they are different. And I&rsquo;ve realized that coding has not only made me a better writer &ndash; it has also made me a better person.</p>
+
+<!-- more -->
+
+
+<p>Writing is unanimously thought of as a communicative art form, something that is unrestricted and free-flowing, which can overcome you and at any given moment and in that moment, you have to surrender yourself to that creative genius within. Programming&rsquo;s reputation, on the other hand, is far more rigid, dependent on logic, discipline, and structure. But as someone who is now trying to inhabit both of these worlds, I can tell you that writing also depends on order and coherence just as much as programming relies on creative flow, clarity, and communication. Ultimately, writing is just as much a puzzle as programming is a narrative.</p>
+
+<h2>Intuition</h2>
+
+<p>Words and code both depend on intuition. As you write, you have to be honest with yourself about why you make certain creative choices: does your favorite character really add anything significant to your narrative? Is your narrator&rsquo;s voice believable? Does the reader even want to keep reading after your opening paragraph?</p>
+
+<p>The questions that programmers ask themselves aren&rsquo;t too different. Does this method do more than one thing? Can I encapsulate and abstract this function somewhere in my code to avoid repeating myself? Does this functionality even belong in my application&rsquo;s controller? And perhaps the most important question of all: can anyone else <em>understand</em> my code?</p>
+
+<p>Writers and programmers don&rsquo;t just have to become comfortable with their art forms: they have to truly understand every aspect of them. Programmers internalize their code and what it does in the same way that writers embody their self-created literary worlds. While at first you may not be able to put your finger on what&rsquo;s missing from a piece of writing, the more you write, the better you get at articulating what makes a piece of writing work. Similarly, as a programmer, you don&rsquo;t initially make the most educated guesses as to where a bug in your code might be, or what kinds of methods belong in a certain class. But the more you code, the better your intuition becomes, and the better you get programming.</p>
+
+<h2>Discipline</h2>
+
+<p>One of the best parts of programming is that you can easily get instant feedback. Write your code, and you can immediately run it and see what works and what breaks. But more often than not, your code is broken and you are constantly working to fix it. This takes a tremendous amount of discipline.</p>
+
+<p>Computer programming forces you to constantly evaluate (and then reevaluate) your creative choices. You have to work through problems methodically, and work towards creating a framework and structure that furthers the functionality of your application. But the thing is, the programming concept of &ldquo;Make it work, make it right, make it fast,&rdquo; attributed to <a href="http://c2.com/cgi/wiki?MakeItWorkMakeItRightMakeItFast">Kent Beck</a>, applies just as much to code in a text editor as it does to words on a page.</p>
+
+<p>If you want to be a good writer, you have to be able to structure your stories and revisit your writing in various drafts. Strong writing is never created in the first draft; it requires a shit ton of work. Every single writer will tell you that the one of the hardest parts of their job is rewriting, editing, and then rewriting again. And just as programmers refactor their code, writers &ldquo;refactor&rdquo; their narratives, striving to eliminate superfluous words and unnecessary paragraphs. And the most prolific programmers and prophetic writers get to where they are because they are incredibly disciplined when it comes to their craft.</p>
+
+<h2>Empathy</h2>
+
+<p>Writers create for their readers. Programmers create for their users. Neither of them allows for complete solitude, and both of them force you to put yourself in someone else&rsquo;s shoes. Writers have to empathize with their characters in order to make them believable and reliable for their readers. Programmers have to not only think about how their users experience an application, but also the readability of their code when it comes to other developers joining a project. In both cases, there&rsquo;s very little room to be selfish.</p>
+
+<p>You also learn to be kinder to yourself in the process. Writing and programming are equally hard, sometimes in the exact same way. In fact, all artistic endeavours are physically, mentally, and emotionally exhausting. But then again, isn&rsquo;t that supposed to be the case? You&rsquo;re creating something out of nothing &ndash; adding something to the universe that didn&rsquo;t already exist before <em>you</em> created it.</p>
+
+<p>Code is a living, breathing piece of art. When you build and ship an application, it&rsquo;s (hopefully) consumed by users around the world, all the time. You&rsquo;re never really done creating your art. Words are not that different. You put yourself into your writing and release it out into the world, just as you&rsquo;d deploy an applicaiton, for all the world to see.</p>
+
+<p>The idea of <a href="http://www.paulgraham.com/hp.html">hackers as artists</a> isn&rsquo;t a new one. The real question is, what about them is similar &ndash; and what can we learn about the creative process to become the best writers and programmers that we can be?</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[The Asset WHUTline?: Revisiting the Asset Pipeline After JavaScript]]></title>
