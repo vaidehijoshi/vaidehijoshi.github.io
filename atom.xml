@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2014-11-19T09:26:48-05:00</updated>
+  <updated>2014-12-01T08:56:40-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,54 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[So You Wanna Ship Some Software, Eh?]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2014/11/30/so-you-wanna-ship-some-software-eh/"/>
+    <updated>2014-11-30T18:05:55-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2014/11/30/so-you-wanna-ship-some-software-eh</id>
+    <content type="html"><![CDATA[<p>Disheveled hair. Bags under your eyes. Hermit-like tendencies. Suffice it to say, project mode can do a <em>lot</em> of things to a person. It&rsquo;s the first time you&rsquo;re on your own, and the feeling of &ldquo;sink or swim&rdquo; will, inevitably, hit you in the face at some point or another.</p>
+
+<p>But, project mode also teaches you a lot about what it means to focus and ship software. And it doesn&rsquo;t really matter that you&rsquo;ve only been coding for 9 weeks and that your application has only four models and that you&rsquo;re missing a ton of <code>&lt;div&gt;</code> tags. Why? Because the mistakes you make in your first application are ones that you&rsquo;ll never make again. So, inspired by <a href="http://blakedeboer.ghost.io/recent-lessons-learned/">Blake&rsquo;s post on lessons learned</a> from building a web application, here are a few things I learned in the process of shipping my first piece of software:</p>
+
+<!-- more -->
+
+
+<h2>1. Build something you actually care about</h2>
+
+<p>This seems obvious, but it&rsquo;s worth repeating: don&rsquo;t choose a project or problem that you think other people would find interesting &ndash; choose something that <em>you</em> genuinely find interesting. If you aren&rsquo;t invested in the question that you&rsquo;re trying to answer, it&rsquo;s going to be evident in the product and demo. On the other hand, if you really care about what you&rsquo;re building, your passion will not only come through in your product and presentation, but will filter down and get other people excited about what you&rsquo;re building. It&rsquo;s also important to remember that <em>you</em>, more than anyone else, are going to have to look at your data and code; you might as well pick something you won&rsquo;t mind looking at for hours at a time, days on end.</p>
+
+<h2>2. Ignore the OCD impulses, leave styling for later</h2>
+
+<p>Possibly the biggest mistake we made while building our app was trying to make it look better before it was really done. We tried to implement some styling not only before we had picked a theme, but worse: before we actually knew what information we&rsquo;d ultimately end up displaying to our users. All in all, we probably wasted 6-10 hours collectively, all in a futile attempt to make a broken application look prettier. When the time finally came to actually style our application, a lot of time went in trying to reformulate our CSS to make it work with the theme that we chose. So, no matter how much it gnaws at you, leave the styling, design, and UX stuff until your application is fully-functional and, most importantly, <em>finished</em>.</p>
+
+<h2>3. Set small goals &amp; short time limits</h2>
+
+<p>One of the things that our group did quite well was building out one feature at a time and adding functionality to our application bit by bit. We did a good job of writing out and prioritizing the different kinds of functionality and types of features we could tackle in a given day. But it was much tougher to learn how much time to spend on actually building a feature out. A few days into project mode, we started setting time limits for ourselves, both individually and as a team. One person could only spend so much time working on a problem before opening it up to the group, and as a group, we could only debug a problem for so long before outsourcing to a TA or classmate. This minimized the number of hours we spent staring our screens without knowing which direction to go in next. With small, progressive goals to work towards and short spurts of time to complete them in, we were as a whole, far more productive.</p>
+
+<h2>4. Do what you don&rsquo;t know</h2>
+
+<p>I have this fear of routes. Correction: I <em>had</em> a fear of routes. How did I stop being scared of routing and that silly little <code>routes.rb</code> file? I forced myself to map out the routes with my group and take the lead in actually programming them out in our application.</p>
+
+<p>While I coded, my project partner Joe (who&rsquo;s a super skilled router) helped me debug our routes, and made sure to explain why we were routing certain things in a specific way. And when we got to the CSS and styling, he took over the wheel while I helped him navigate the grid column framework in Bootstrap. This ended up being a super symbiotic relationship, because we both worked on the exact topics we knew that we were weak in, and both became better programmers in the process.</p>
+
+<h2>5. Version control: &lsquo;Nuff said.</h2>
+
+<p>If you&rsquo;re rusty on merging branches, making a commit, or merging conflicts, use project mode as an opportunity to conquer your git fears and learn as much as you can. Version control is awesome. It will probably (read: definitely) save you at some point in your project.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Build first, design later.</li>
+<li>Write code that you care about.</li>
+<li>Practice what you don&rsquo;t already know.</li>
+<li>For the love of God, commit yo shit!</li>
+</ul>
+
+
+<p><img src="http://www.explainxkcd.com/wiki/images/d/de/git_commit.png" alt="git commit comic" style="display: block; margin-left: auto; margin-right: auto;"></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[How Programming Makes You a Better Writer]]></title>
@@ -27,7 +75,7 @@
 <!-- more -->
 
 
-<p>Writing is unanimously thought of as a communicative art form, something that is unrestricted and free-flowing, which can overcome you and at any given moment and in that moment, you have to surrender yourself to that creative genius within. Programming&rsquo;s reputation, on the other hand, is far more rigid, dependent on logic, discipline, and structure. But as someone who is now trying to inhabit both of these worlds, I can tell you that writing also depends on order and coherence just as much as programming relies on creative flow, clarity, and communication. Ultimately, writing is just as much a puzzle as programming is a narrative.</p>
+<p>Writing is unanimously thought of as a communicative art form, something that is unrestricted and free-flowing, which can overcome you at any given moment; and when you&rsquo;re in that moment, you have to surrender yourself to that creative genius within. Programming&rsquo;s reputation, on the other hand, is far more rigid, dependent on logic, discipline, and structure. But as someone who is now trying to inhabit both of these worlds, I can tell you that writing also depends on order and coherence just as much as programming relies on creative flow, clarity, and communication. Ultimately, writing is just as much a puzzle as programming is a narrative.</p>
 
 <h2>Intuition</h2>
 
