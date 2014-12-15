@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Flatiron | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/flatiron/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2014-12-01T08:56:40-05:00</updated>
+  <updated>2014-12-14T23:12:13-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,125 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[To Understand Recursion, You Must First Understand Recursion]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2014/12/14/to-understand-recursion-you-must-first-understand-recursion/"/>
+    <updated>2014-12-14T22:32:29-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2014/12/14/to-understand-recursion-you-must-first-understand-recursion</id>
+    <content type="html"><![CDATA[<p><img src="http://xkcdsw.com/content/img/1105.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>Recursion is kind of like the cloud &ndash; it&rsquo;s hard to explain and you might not ever see it, but it definitely is a thing. Yet we deal directly with recursion more than we may realize.</p>
+
+<p><strong><em>Recursion</em></strong> is the process of repating a procedure or action. In Ruby, we put all of our procedures inside of a method, and we use loops to repeat those procedures again and again. So, if we have methods and loops, what&rsquo;s the need for recursion?</p>
+
+<p>Well, as Rubyists, we&rsquo;re pretty lucky to work with a language that&rsquo;s intuitive and human-friendly. We like to read and write code that&rsquo;s actually comprehensive and (ideally) can be understood and appreciated by programmers and non-programmers alike. It turns out that recursion is a big part of that. It can make our code more readable and can even help it run faster.</p>
+
+<!-- more -->
+
+
+<h2>Functionally Recursive Babushkas</h2>
+
+<p>In Ruby, we use recursion when we call a method from within itself. Sometimes, when you&rsquo;re within the scope of a method, you want to repeat the same action again from inside of it. Functional recursion achieves exactly that goal.</p>
+
+<p>One of the best metaphors for recursion that I&rsquo;ve heard comes from my friend and <a href="http://jimmykuruvilla.github.io/">fellow classmate, Jimmy</a>. He explained recursion as a set of nested Russian matryoshka (aka babushka) dolls:</p>
+
+<p><img src="http://www.russia-ex.com/images/blog/Matryoshka-Dolls-1.jpg" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>These dolls work in a pretty interesting way. Within each one, there is another doll that is exactly the same. You have multiple copies of the same doll, each within another, until eventually, you get to the smallest doll.</p>
+
+<p>In the programming context, the smallest doll is your <strong>base case</strong>. The base case is imperative when it comes to utilizing recursion. It&rsquo;s how you tell your recursive method when to <em>stop</em> calling itself from inside of itself.</p>
+
+<p>Imagine what would happen if you didn&rsquo;t have a final doll to end with &ndash; you&rsquo;d just keep going and going and going until, eventually, your head would probably explode:</p>
+
+<iframe src="//giphy.com/embed/MrZTFRJ8F4n6" width="480" height="641" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Or, more likely, you&rsquo;d be stuck in something like an infinite loop, and you&rsquo;d eventually use more memory than whatever was available to you in the stack, ending up with an error like <code>SystemStackError: stack level too deep</code> or <code>Stack overflow!</code>.</p>
+
+<p>These kinds of errors are good reminders of how dangerous recursion can be. But don&rsquo;t let that dissuade you! Recursion can also be pretty powerful, especially if you want to repeat a function multiple times.</p>
+
+<h2>Recursion, Rinse, Repeat</h2>
+
+<p>A classic example for explaining recursion is calculating factorials. Just in case you need a refresher: a factorial is the product of an integer and all the integers below it, up to the number 1. The factorial of 4 would be written out as: <code>4 * 3 * 2 * 1</code>, or <code>24</code>.</p>
+
+<p>Now, we could very easily write this using a <code>while</code> loop:</p>
+
+<pre><code class="ruby">def factorial(num)
+  factorial_count = 1
+  while num &gt; 0
+    factorial_count *= num
+    num -= 1
+  end 
+  puts factorial_count
+end
+</code></pre>
+
+<p>But let&rsquo;s look at this code for a second. What exactly happens when our compiler runs this code? Well, a lot of stuff.</p>
+
+<ol>
+<li>First, it has to keep track of our counter, since we only ever want to calculate a factorial down to the number 1.</li>
+<li>Then, it checks that the number being passed in as a parameter (for example, <code>num = 7</code>), is greater than 0.</li>
+<li>If <code>num</code> is greater than 0, it will multiply <code>num</code> by the counter.</li>
+<li>Then, it will decrease the counter by 1.</li>
+<li>Finally, it repeats steps 1-4 again until <code>num = 0</code>, in which case it will and finally break out of the <code>while</code> loop.</li>
+</ol>
+
+
+<p>Okay. <strong>WHUT?!</strong> This seems like a lot of stuff to keep track of. And that <code>factorial_count</code> variable is pretty weird and counter-intuitive (pun <em>totally</em> intended). And if we were calculating the factorials for a larger numbr &ndash; say 70, instead of 7 &ndash; this would be a lot of logic to keep track of and repeat over and over.</p>
+
+<p>Let&rsquo;s rethink this problem for a second. What we actually want to do is find the factorials of all the numbers smaller than 7 and greater than 1, and then just multiply them together. In fact, all we really want to do is repeat the same procedure of multiplication.</p>
+
+<p>Instead of using a loop, we could write a method that takes in a single argument <code>num</code>, and actually use that same method to replicate the process of multiplication. That might look something like this:</p>
+
+<pre><code class="ruby">def factorial(num)
+  if (0..1).include?(num)
+    return 1
+  end
+  num * factorial(num - 1)
+end
+</code></pre>
+
+<p>There&rsquo;s something pretty interesting happening here. If we pass in the number 7 as our parameter for <code>num</code>, our compiler does the following:</p>
+
+<ol>
+<li>First, it immediately jumps past the <code>if</code> statement.</li>
+<li>Next, it multiplies 7 by <code>factorial(6)</code></li>
+<li>Then, inside of the <code>factorial(6)</code> method, it circumvents the <code>if</code> statement again, and multiplies 6 by <code>factorial(5)</code>.</li>
+<li>Eventually, when it hits the <code>if</code> statement, it returns 1.</li>
+</ol>
+
+
+<p>Here&rsquo;s a visualization of what this looks like:</p>
+
+<pre><code class="ruby">factorial(7) = 7 * factorial(6)
+             = 7 * 6 * factorial(5)
+             = 7 * 6 * 5 * factorial(4)
+             = 7 * 6 * 5 * 4 * factorial(3)
+             = 7 * 6 * 5 * 4 * 3 * factorial(2)
+             = 7 * 6 * 5 * 4 * 3 * 2 * factorial(1)
+             = 7 * 6 * 5 * 4 * 3 * 2 * 1
+             = 5040
+</code></pre>
+
+<p>Does the Russian doll metaphor make a bit more sense now? Here are our seven dolls, each one nested within another. And our base case is 1, which is where our nesting and recursive function actually ends, helping us avoid a stack overflow error.</p>
+
+<p>I think that the best part of this code, though, is that it&rsquo;s a <em>lot</em> easier to read. There&rsquo;s no counter, no loop, no incrementation. Just one clean and crisp method that you can use as many times as needed after defining it only once. And, if you think about it, the visual representation of the compiler&rsquo;s actions mimics exactly how a real human would write out and solve a factorial problem.</p>
+
+<p>One of the most difficult aspects of programming is picking the right tool for a job. Sometimes, that tool might be recursion and make your job easier. Other times, it might be the completely wrong choice and infinitely complicate your life. But, the more that you code and get comfortable with recursion, the better you&rsquo;ll be at recognizing when to bust out the recursive wrench out of your toolbelt.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li><em>Recursion</em> is the process of calling a method or function from within itself.</li>
+<li>Functional recursion <strong>must</strong> have a <em>base case</em> in order to avoid stack overflow errors.</li>
+<li>Still curious? Check out <a href="http://vimeo.com/24716767">this video</a>, which introduces Ruby recursion in great depth.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[So You Wanna Ship Some Software, Eh?]]></title>
@@ -283,175 +402,6 @@ end
 <li>Your Controller does a lot of stuff for you without you even realizing it. To make the most of its magical powers, learn as much as you can about its conventions.</li>
 <li>Play around with the <code>render</code> method to understand when it can be used and for what purposes.</li>
 <li>Get to know your Controller. I&rsquo;m telling you: it will be the beginning of a beautiful friendship.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Class Inheritance]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance/"/>
-    <updated>2014-10-16T21:00:34-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance</id>
-    <content type="html"><![CDATA[<p>Confession time: I&rsquo;m kind of in love with object-oriented programming.</p>
-
-<p>I should probably clarify that I don&rsquo;t always understand OOP, and I sometimes even confuse myself for no good reason whenever the topic of &ldquo;self&rdquo; comes up. But hey, every relationship has its ups and downs, and I&rsquo;ve only really been committed to this one for the past week or so.</p>
-
-<p>OOP is easy to understand mostly because of its strong connection to real life &ndash; everything is an object, all objects have properties/traits/characteristics, so on and so forth. But dealing with multiple <em>types</em> of objects across different types of <em>classes</em> gets real tricky, <em>real</em> fast. This especially holds true when it comes to class inheritance.</p>
-
-<!-- more -->
-
-
-<h2>WTF is inheritence?</h2>
-
-<p>Inheritence in object-oriented programming is pretty much exactly what it sounds like: when one class <strong>inherits</strong> the properties of another class, just like how you inherit traits from your parents (even if you might wish otherwise).</p>
-
-<p>Okay, maybe an example here will help:</p>
-
-<p>Imagine that you have a class called <code>BakedStuff</code>, which includes all the baked goods your heart could ever desire. Every instance (every <em>object</em>) of this <code>BakedStuff</code> class has a <code>name</code>, baking <code>time</code>, and <code>baking_temperature</code>, which we&rsquo;ll set to default at 375 degrees.</p>
-
-<p>And for good measure, let&rsquo;s also throw in a little method in there called <code>bake_for</code>, which is just going to return a string that will tell us how much time to bake our treats for, and at what temperature.</p>
-
-<pre><code class="ruby">class BakedStuff
-
-  attr_reader :name, :time, :baking_temperature
-
-  def initialize(name, time, baking_temperature=375)
-    @name = name
-    @time = time
-    @baking_temperature = baking_temperature
-  end
-
-  def bake_for
-    "To make #{name}, bake for #{time} at #{baking_temperature} degrees fahrenheit."
-  end
-
-end
-</code></pre>
-
-<p>Nothing <em>too</em> complicated about it, right?</p>
-
-<p>Now I can create an actual object and pass in the correct parameters. I can even ask the cake how long I should bake it for, which would look something like this:</p>
-
-<pre><code class="ruby">cake = BakedStuff.new("cake", "30 min")
-puts cake.bake_for
-</code></pre>
-
-<p>would output: <code>To make cake, bake for 30 min at 375 degrees fahrenheit.</code></p>
-
-<p>Awesome. I love cake. But you know what I like even more than cake? Cookies! Just like in my first class, I want to make a new <code>Cookie</code> class, which will also have a name, time, baking temperature, and <code>bake_for</code> method. Now, I could theoretically rewrite all of my code from the <code>BakedStuff</code> class, but then I&rsquo;d have less time to bake and I&rsquo;m also pretty sure that goes against the whole &ldquo;DRY&rdquo; concept in Ruby.</p>
-
-<p>What I <em>could</em> do is have my new <code>Cookie</code> class <em>inherit</em> everything from my <code>BakedStuff</code> class, since I want all my new instances of <code>Cookie</code> to share the same methods as my <code>BakedStuff</code> class.</p>
-
-<p>Let me try it:</p>
-
-<pre><code class="ruby">
-class Cookie &lt; BakedStuff
-  attr_reader :cookies_made
-
-  def initialize(name, cookies_made, baking_temperature=375)
-    super
-    @time = "20 min"
-    @cookies_made = cookies_made
-  end
-
-  def bake_for
-    super + " This recipe will yield #{cookies_made} cookies."
-  end
-
-end
-</code></pre>
-
-<p>Whoa! New code!</p>
-
-<ul>
-<li>That <code>&lt;</code> sign is what we use to dennote inheritence. All it means is that my <code>Cookie</code> class is now <em>inheriting</em> all the methods from my <code>BakedStuff</code> class.</li>
-<li>Notice that this class has some additional features, including a new instance method which sets the <code>cookies_made</code>.</li>
-<li>But wait, what&rsquo;s that <code>super</code> thing doing in there??</li>
-</ul>
-
-
-<h2>WHUT is <code>super</code>?</h2>
-
-<p>The <code>super</code> keyword in Ruby is, well, pretty super. Okay, okay, what it <em>really</em> does is allow you to call methods up the &ldquo;inheritence heirarchy&rdquo;, which means that you can use methods that were perviously defined in classes that this class now inherits from.</p>
-
-<p>In fact, <code>super</code> is what allows me to pull down everything from my <code>initialize</code> and <code>bake_for</code> methods in my parent class, which in this case is my <code>BakedStuff</code> class. You&rsquo;ll also notice that I&rsquo;ve reassigned my <code>@time</code> variable to equal 20 minutes, and that I&rsquo;ve added a string interpolation into my <code>bake_for</code> method. And I didn&rsquo;t have to retype any of the code from my parent class in the process!</p>
-
-<p>Let&rsquo;s look at what an object of the Cookie class could look like:
-<code>ruby
-cookies = Cookie.new("cookies", 15, 400)
-puts cookies.bake_for
-</code></p>
-
-<p>would output: <code>To make cookies, bake for 20 min at 400 degrees fahrenheit. This recipe will yield 15 cookies.</code></p>
-
-<p>Okay, one last example. Let&rsquo;s say that my favorite kind of cookie is a Snickerdoodle. I want it to inherit from its parent class, <code>Cookie</code>, but I also want to jazz the <code>Snickerdoodle</code> class up a little bit. I&rsquo;m going to change its <code>bake_for</code> method and make a little counter that will tell me exactly how many snickerdoodles I&rsquo;ve got left.</p>
-
-<p>This would look something like:</p>
-
-<pre><code class="ruby">class Snickerdoodle &lt; Cookie
-  def initialize(name, baking_temperature=375)
-    super
-    @time = "25 min"
-  end
-
-  def bake_for
-    while cookies_made &gt; 0
-    puts "There's only #{@cookies_made} snickerdoodles left!"
-    @cookies_made = cookies_made.to_i - 1
-    end
-  end
-
-end
-</code></pre>
-
-<p>Now let me actually create a batch of snickerdoodles:
-<code>ruby
-snickerdoodle = Snickerdoodle.new("snickerdoodles", 10)
-puts snickerdoodle.bake_for
-</code></p>
-
-<p>which outputs:
-<code>
-There's only 10 snickerdoodles left!
-There's only 9 snickerdoodles left!
-There's only 8 snickerdoodles left!
-There's only 7 snickerdoodles left!
-There's only 6 snickerdoodles left!
-There's only 5 snickerdoodles left!
-There's only 4 snickerdoodles left!
-There's only 3 snickerdoodles left!
-There's only 2 snickerdoodles left!
-There's only 1 snickerdoodles left!
-</code></p>
-
-<p>Now for the tricky part. What do you think will happen if I create a new batch of cookies in my <code>Cookie</code> class? Do you think I&rsquo;ll get a cookie counter? Do you think my <code>Cookie</code> class will be affected by my <code>Snickerdoodle</code> class? Let&rsquo;s try it and see:
-<code>
-chocolate_chip_cookie = Cookie.new("chocolate chip cookies", 24)
-puts chocolate_chip_cookie.bake_for
-</code></p>
-
-<p>which outputs: <code>To make chocolate chip cookies, bake for 20 min at 375 degrees fahrenheit. This recipe will yield 24 cookies.</code></p>
-
-<p>And what about if I create a new pie?
-<code>
-pie = BakedStuff.new("pie", "45 min", 450)
-puts pie.bake_for
-</code>
-outputs: <code>To make pie, bake for 45 min at 450 degrees fahrenheit.</code></p>
-
-<p>Interesting. It doesn&rsquo;t seem to matter at all that I changed my <code>Cookie</code> class &ndash; <code>BakedStuff</code> stayed the same. And all the edits I made to my <code>Snickerdoodle</code> class didn&rsquo;t fall up to my <code>Cookie</code> class, either. That&rsquo;s because inheritance only works in one direction, from the parent class, down to its children.</p>
-
-<p>I should also mention that <code>super</code> didn&rsquo;t change my parent classes either; all it did was bring the already-created methods from my parent classes down to its children. It&rsquo;s actually passing all the arguments to the parent class&#8217; method.</p>
-
-<p>Finally, it&rsquo;s crucial to remember that a class can only inherit from one class at a time. Something like <code>Snickerdoodle &lt; Cookie &lt; BakedStuff</code> would have raised an error. Also, remember that instance variables have nothing to do with class inheritance, since they are not defined by the class itself!</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>Class inheritance is an incredibly powerful tool. Use it.</li>
-<li>The <code>super</code> keyword can save you a ton of time. Remember that it only works with methods of a class, and <em>not</em> instance variables. Read more about it <a href="http://rubylearning.com/satishtalim/ruby_inheritance.html">here</a> and <a href="http://rubylearning.com/satishtalim/ruby_overriding_methods.html">here</a></li>
-<li>Cookies just make everything better (just in case it wasn&rsquo;t obvious already).</li>
 </ul>
 
 ]]></content>

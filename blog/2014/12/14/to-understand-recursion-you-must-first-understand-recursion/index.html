@@ -1,0 +1,339 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>To Understand Recursion, You Must First Understand Recursion - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="Recursion is kind of like the cloud &ndash; it&rsquo;s hard to explain and you might not ever see it, but it definitely is a thing. Yet we deal &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2014/12/14/to-understand-recursion-you-must-first-understand-recursion">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">To Understand Recursion, You Must First Understand Recursion</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-14T22:32:29-05:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:32 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><img src="http://xkcdsw.com/content/img/1105.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>Recursion is kind of like the cloud &ndash; it&rsquo;s hard to explain and you might not ever see it, but it definitely is a thing. Yet we deal directly with recursion more than we may realize.</p>
+
+<p><strong><em>Recursion</em></strong> is the process of repating a procedure or action. In Ruby, we put all of our procedures inside of a method, and we use loops to repeat those procedures again and again. So, if we have methods and loops, what&rsquo;s the need for recursion?</p>
+
+<p>Well, as Rubyists, we&rsquo;re pretty lucky to work with a language that&rsquo;s intuitive and human-friendly. We like to read and write code that&rsquo;s actually comprehensive and (ideally) can be understood and appreciated by programmers and non-programmers alike. It turns out that recursion is a big part of that. It can make our code more readable and can even help it run faster.</p>
+
+<!-- more -->
+
+
+<h2>Functionally Recursive Babushkas</h2>
+
+<p>In Ruby, we use recursion when we call a method from within itself. Sometimes, when you&rsquo;re within the scope of a method, you want to repeat the same action again from inside of it. Functional recursion achieves exactly that goal.</p>
+
+<p>One of the best metaphors for recursion that I&rsquo;ve heard comes from my friend and <a href="http://jimmykuruvilla.github.io/">fellow classmate, Jimmy</a>. He explained recursion as a set of nested Russian matryoshka (aka babushka) dolls:</p>
+
+<p><img src="http://www.russia-ex.com/images/blog/Matryoshka-Dolls-1.jpg" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>These dolls work in a pretty interesting way. Within each one, there is another doll that is exactly the same. You have multiple copies of the same doll, each within another, until eventually, you get to the smallest doll.</p>
+
+<p>In the programming context, the smallest doll is your <strong>base case</strong>. The base case is imperative when it comes to utilizing recursion. It&rsquo;s how you tell your recursive method when to <em>stop</em> calling itself from inside of itself.</p>
+
+<p>Imagine what would happen if you didn&rsquo;t have a final doll to end with &ndash; you&rsquo;d just keep going and going and going until, eventually, your head would probably explode:</p>
+
+<iframe src="//giphy.com/embed/MrZTFRJ8F4n6" width="480" height="641" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Or, more likely, you&rsquo;d be stuck in something like an infinite loop, and you&rsquo;d eventually use more memory than whatever was available to you in the stack, ending up with an error like <code>SystemStackError: stack level too deep</code> or <code>Stack overflow!</code>.</p>
+
+<p>These kinds of errors are good reminders of how dangerous recursion can be. But don&rsquo;t let that dissuade you! Recursion can also be pretty powerful, especially if you want to repeat a function multiple times.</p>
+
+<h2>Recursion, Rinse, Repeat</h2>
+
+<p>A classic example for explaining recursion is calculating factorials. Just in case you need a refresher: a factorial is the product of an integer and all the integers below it, up to the number 1. The factorial of 4 would be written out as: <code>4 * 3 * 2 * 1</code>, or <code>24</code>.</p>
+
+<p>Now, we could very easily write this using a <code>while</code> loop:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">factorial</span><span class="p">(</span><span class="n">num</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">factorial_count</span> <span class="o">=</span> <span class="mi">1</span>
+</span><span class='line'>  <span class="k">while</span> <span class="n">num</span> <span class="o">&gt;</span> <span class="mi">0</span>
+</span><span class='line'>    <span class="n">factorial_count</span> <span class="o">*=</span> <span class="n">num</span>
+</span><span class='line'>    <span class="n">num</span> <span class="o">-=</span> <span class="mi">1</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>  <span class="nb">puts</span> <span class="n">factorial_count</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>But let&rsquo;s look at this code for a second. What exactly happens when our compiler runs this code? Well, a lot of stuff.</p>
+
+<ol>
+<li>First, it has to keep track of our counter, since we only ever want to calculate a factorial down to the number 1.</li>
+<li>Then, it checks that the number being passed in as a parameter (for example, <code>num = 7</code>), is greater than 0.</li>
+<li>If <code>num</code> is greater than 0, it will multiply <code>num</code> by the counter.</li>
+<li>Then, it will decrease the counter by 1.</li>
+<li>Finally, it repeats steps 1-4 again until <code>num = 0</code>, in which case it will and finally break out of the <code>while</code> loop.</li>
+</ol>
+
+
+<p>Okay. <strong>WHUT?!</strong> This seems like a lot of stuff to keep track of. And that <code>factorial_count</code> variable is pretty weird and counter-intuitive (pun <em>totally</em> intended). And if we were calculating the factorials for a larger numbr &ndash; say 70, instead of 7 &ndash; this would be a lot of logic to keep track of and repeat over and over.</p>
+
+<p>Let&rsquo;s rethink this problem for a second. What we actually want to do is find the factorials of all the numbers smaller than 7 and greater than 1, and then just multiply them together. In fact, all we really want to do is repeat the same procedure of multiplication.</p>
+
+<p>Instead of using a loop, we could write a method that takes in a single argument <code>num</code>, and actually use that same method to replicate the process of multiplication. That might look something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">factorial</span><span class="p">(</span><span class="n">num</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="n">.</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">include?</span><span class="p">(</span><span class="n">num</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">return</span> <span class="mi">1</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>  <span class="n">num</span> <span class="o">*</span> <span class="n">factorial</span><span class="p">(</span><span class="n">num</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>There&rsquo;s something pretty interesting happening here. If we pass in the number 7 as our parameter for <code>num</code>, our compiler does the following:</p>
+
+<ol>
+<li>First, it immediately jumps past the <code>if</code> statement.</li>
+<li>Next, it multiplies 7 by <code>factorial(6)</code></li>
+<li>Then, inside of the <code>factorial(6)</code> method, it circumvents the <code>if</code> statement again, and multiplies 6 by <code>factorial(5)</code>.</li>
+<li>Eventually, when it hits the <code>if</code> statement, it returns 1.</li>
+</ol>
+
+
+<p>Here&rsquo;s a visualization of what this looks like:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">factorial</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span> <span class="o">=</span> <span class="mi">7</span> <span class="o">*</span> <span class="n">factorial</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
+</span><span class='line'>             <span class="o">=</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">6</span> <span class="o">*</span> <span class="n">factorial</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+</span><span class='line'>             <span class="o">=</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">6</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">factorial</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+</span><span class='line'>             <span class="o">=</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">6</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">factorial</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+</span><span class='line'>             <span class="o">=</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">6</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">factorial</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</span><span class='line'>             <span class="o">=</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">6</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">factorial</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span><span class='line'>             <span class="o">=</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">6</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">1</span>
+</span><span class='line'>             <span class="o">=</span> <span class="mi">5040</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Does the Russian doll metaphor make a bit more sense now? Here are our seven dolls, each one nested within another. And our base case is 1, which is where our nesting and recursive function actually ends, helping us avoid a stack overflow error.</p>
+
+<p>I think that the best part of this code, though, is that it&rsquo;s a <em>lot</em> easier to read. There&rsquo;s no counter, no loop, no incrementation. Just one clean and crisp method that you can use as many times as needed after defining it only once. And, if you think about it, the visual representation of the compiler&rsquo;s actions mimics exactly how a real human would write out and solve a factorial problem.</p>
+
+<p>One of the most difficult aspects of programming is picking the right tool for a job. Sometimes, that tool might be recursion and make your job easier. Other times, it might be the completely wrong choice and infinitely complicate your life. But, the more that you code and get comfortable with recursion, the better you&rsquo;ll be at recognizing when to bust out the recursive wrench out of your toolbelt.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li><em>Recursion</em> is the process of calling a method or function from within itself.</li>
+<li>Functional recursion <strong>must</strong> have a <em>base case</em> in order to avoid stack overflow errors.</li>
+<li>Still curious? Check out <a href="http://vimeo.com/24716767">this video</a>, which introduces Ruby recursion in great depth.</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2014-12-14T22:32:29-05:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:32 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/flatiron/'>flatiron</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2014/12/14/to-understand-recursion-you-must-first-understand-recursion/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2014/12/14/to-understand-recursion-you-must-first-understand-recursion/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/11/30/so-you-wanna-ship-some-software-eh/" title="Previous Post: So You Wanna Ship Some Software, Eh?">&laquo; So You Wanna Ship Some Software, Eh?</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/12/14/to-understand-recursion-you-must-first-understand-recursion/">To Understand Recursion, You Must First Understand Recursion</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/11/30/so-you-wanna-ship-some-software-eh/">So You Wanna Ship Some Software, Eh?</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/11/19/how-programming-makes-you-a-better-writer/">How Programming Makes You a Better Writer</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/11/16/the-asset-whutline-revisiting-the-asset-pipeline-after-javascript/">The Asset WHUTline?: Revisiting the Asset Pipeline After JavaScript</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/30/have-you-met-your-controller-yet/">Have You Met Your Controller Yet?</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
