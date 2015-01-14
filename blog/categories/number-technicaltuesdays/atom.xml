@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-01-13T23:03:32-05:00</updated>
+  <updated>2015-01-13T23:24:36-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -126,136 +126,6 @@ end
 <p>As lovely as this looks, it&rsquo;s also important to keep in mind that this is an advanced topic and not always necessary. Only use decorators if they&rsquo;ll actually clean up your code and be helpful.</p>
 
 <p>And on that note, there&rsquo;s only one thing left to do: Get tidying, kids!</p>
-
-<iframe src="//giphy.com/embed/s90QFDMh0RAIg" width="480" height="269" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>Using a decorator isn&rsquo;t always the right answer. Make sure you&rsquo;re comfortable with the MVC framework and that you really need to use a decorator before you go about implementing one.</li>
-<li>If you want a more in-depth introduction to presenters and decorators, check out <a href="https://www.youtube.com/watch?v=xf7i44HJ_1o">this RailsConf presentation by Mike Moore</a>.</li>
-<li>If this is still confusing, read more code examples; there are lots of <a href="http://robots.thoughtbot.com/evaluating-alternative-decorator-implementations-in">really</a> <a href="https://bibwild.wordpress.com/2012/12/19/the-simplest-rails-decorator-implementation-that-just-might-work/">good</a> <a href="http://robots.thoughtbot.com/tidy-views-and-beyond-with-decorators">blog</a> <a href="http://johnotander.com/rails/2014/03/07/decorators-on-rails/">posts</a> that implement decorators.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Tidying Up Those Views: Rails Decorators]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/01/13/tidying-up-those-views-rails-decorators/"/>
-    <updated>2015-01-13T15:39:11-05:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/01/13/tidying-up-those-views-rails-decorators</id>
-    <content type="html"><![CDATA[<p>Last week, I had my first full-day technical interview. It was a thrilling experience, and so much more fun than I expected. Part of that was because I viewed the whole experience not as an evaluation, but rather an opportunity to learn as much as I could from experienced developers. I also knew that, irrespective of whether I did well or not, I&rsquo;d learn some new technologies and tricks. And boy, was that the truth.</p>
-
-<p>I left the interview with a long list of things I&rsquo;d never heard of (<em>why hello, blog posts for the next five Tuesdays!</em>), one of which included the use of decorators in Rails. I was actually kind of surprised that I had never encountered decorators while building my own Rails apps, but it turns out that these are actually pretty advanced topics and there&rsquo;s a good amount of <a href="https://bibwild.wordpress.com/2012/12/19/the-simplest-rails-decorator-implementation-that-just-might-work/">debate on how and when to use decorators</a>, and <a href="http://thepugautomatic.com/2014/03/draper/">whether or not they&rsquo;re actually useful</a>.</p>
-
-<p>But hey, none these discussions apply or make any sense unless you know <em>what</em> a decorator actually is. So, let&rsquo;s find out!</p>
-
-<!-- more -->
-
-
-<p></p>
-
-<p>It&rsquo;s a well-known fact that your Rails model should be fat, and your controllers should be skinny. But what about your views? Well, there are varying schools of thought on the MVC framework and how it should function. Steve Klabnik <a href="http://blog.steveklabnik.com/posts/2011-12-30-active-record-considered-harmful">argued that views should have no logic</a>, stating that otherwise &ldquo;They&rsquo;re hard to test, they&rsquo;re hard to read, and it&rsquo;s not just a slippery slope, but a steep one. Things go downhill rapidly.&rdquo;</p>
-
-<p>I really liked the way that John Otander described how views should function in <a href="http://johnotander.com/rails/2014/03/07/decorators-on-rails/">his blog post on decorators</a>:</p>
-
-<blockquote><p>&ldquo;Your views should be stupid. I like to use the analogy that views should read similarly to a shopping list. There shouldn&rsquo;t be any complexity or logic.&rdquo;</p></blockquote>
-
-<p>I decided to look back at <a href="https://flatiron-cabbie.herokuapp.com/">Cabbie</a>, one of my first projects, and check out the shape of my own views. This app basically was a review system (think Yelp) for New York City cab drivers. We had models such as Users, Drivers, Reviews, etc.</p>
-
-<p>Here&rsquo;s a taste of what our driver show page looked like:
-&#8220;`</p>
-
-<div class="driver-info">
-  <%= @driver.medallion_number %>
-    <% if @driver.medallion_number.length == 4 %>
-      Medallion Number: <%= @driver.medallion_number %>
-    <% else %>
-      License Number: <%= @driver.medallion_number %>
-  <% end %>
-</div>
-
-
-<p>&#8220;`</p>
-
-<iframe src="//giphy.com/embed/jrK9MW7x3GkOk" width="480" height="199" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>UGH.
-WHUT.
-WHY.
-EW.</p>
-
-<p>This is one tiny little snippet of code, but imagine many more conditionals and much more logic in this view, and you get the idea. Not a pretty picture.</p>
-
-<p>A couple things seemed problematic about this code.</p>
-
-<ol>
-<li>The first problem was that the view had to do the logic of figuring out whether a driver had a four-digit medallion number (NYC taxi) or a longer medallion number (an Uber driver). How could we fix this? Well, we could abstract this into a method in the class.</li>
-<li>The second problem: why is it the <code>Driver</code> object&rsquo;s job to keep track of this? Do we really need a helper method in this case? All we really need this logic for is in rendering the view. We could make it its own class that inherits from the Driver class, maybe?</li>
-<li>Ok, the third problem: we know what we want &ndash; a <code>Driver</code> object that has some special functionality when it comes to presenting it in the view. But how do we get it? We want to extend the behavior of the <code>Driver</code> class purely for decorative purposes. Sounds like a job for a <strong>decorator</strong>!</li>
-</ol>
-
-
-<p>So, what is a decorator, you might ask? Well, firstly, it&rsquo;s actually known as the <strong>decorator pattern</strong>. An aspect of object-oriented programming, decorators allow you to add functionality to an object, but also retains all the other methods that belong to that object&rsquo;s class. It&rsquo;s a great tool to use when you want to implement and/or encapsulate certain methods that are only used in the view, and yet still have access to all the other properties of that object.</p>
-
-<p>The best way to learn what a decorator does is to try and use it yourself and see what happens. I implemented my decorator on my Cabbie app, using the <a href="https://github.com/drapergem/draper">Draper gem</a>. Make sure you add it to your Gemfile: <code>gem 'draper'</code>.</p>
-
-<p>Next, you&rsquo;ll want to generate the decorator for whatever object you want to &lsquo;decorate&rsquo;. In my case, I wanted to implement it on the driver object, so I typed <code>rails generate decorator Driver</code> into my terminal.</p>
-
-<p>Next, add <code>.decorate</code> to your object in the appropriate controller. Here&rsquo;s how I did it in my <code>DriversController</code>:</p>
-
-<pre><code class="ruby">class DriversController &lt; ApplicationController
-
-  def show
-    @driver = Driver.find(params[:id]).decorate
-  end
-
-  def search
-    @driver = Driver.find_by(:medallion_number =&gt; params[:medallion_number].upcase).decorate
-  end
-
-end
-</code></pre>
-
-<p>After generating your decorator, you&rsquo;ll notice that there&rsquo;s a new directory in your <code>/app</code> file called <code>decorators</code>. Nothing to be scared of here: it&rsquo;s just a class that inherits from the Draper Decorator gem. Here&rsquo;s where you&rsquo;ll add any additonal functionality you want your &lsquo;decorated&rsquo; object to have.</p>
-
-<p>In my case, I wanted to abstract away the Driver&rsquo;s medallion/license number away and encapsulate it into a method. I created an <code>id_number</code> method in my decorator file:</p>
-
-<pre><code class="ruby">class DriverDecorator &lt; Draper::Decorator
-  delegate_all
-
-  def id_number
-    if medallion_number.length == 4
-      "Medallion Number: #{medallion_number}"
-    else
-      "License Number: #{medallion_number}"
-    end
-  end
-
-end
-</code></pre>
-
-<p>Okay, you still with me? Here&rsquo;s the satisfying part. Cut out all that ridiculous erb from your view &ndash; we don&rsquo;t need that anymore! Instead, we&rsquo;ll just call on the decorator method that we wrote for exactly this purpose. Ready? Okay.</p>
-
-<p>Let&rsquo;s do this:</p>
-
-<p>&#8220;`</p>
-
-<div class="driver-info">
-  <%= @driver.id_number %>
-</div>
-
-
-<p>&#8220;`</p>
-
-<p>LOOK AT THAT, KIDS. No iterations. No <code>if</code>/<code>elsif</code>/<code>end</code> keywords. One method, being called on exactly one object. No logic at all. You can read this and know exactly what we&rsquo;re trying to render. <em>Beautiful</em>.</p>
-
-<p>As lovely as this looks, it&rsquo;s also important to keep in mind that this is an advanced topic and not always necessary. Only use decorators if they&rsquo;ll actually clean up your code and be helpful.</p>
-
-<p>And on that note, there&rsquo;s only one thing left to say: Get tidying, kids!</p>
 
 <iframe src="//giphy.com/embed/s90QFDMh0RAIg" width="480" height="269" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
