@@ -138,9 +138,13 @@
 
 <p>The setInterval method is great and all, until you hit an infinite loop and your code runs forever and ever and ever and &ndash; you get the idea. This method on its own doesn&rsquo;t do much more than loop by default. But, when it&rsquo;s combined with its twin method <strong>clearInterval()</strong>, which &ndash; you guessed it &ndash; clears the function at a certain interval, you it can acutally be quite handy.</p>
 
-<p>So, how does clearInterval work? Well, it takes just one parameter: the function that you want to clear. This is important for remember for two reasons:
-* 1. You have to save your setInterval method to a variable
-* 2. This variable must be accessible (in scope) by the clearInterval method</p>
+<p>So, how does clearInterval work? Well, it takes just one parameter: the function that you want to clear. This is important for remember for two reasons:</p>
+
+<ol>
+<li>You have to save your setInterval method to a variable</li>
+<li>This variable must be accessible (in scope) by the clearInterval method</li>
+</ol>
+
 
 <p>A clearInterval method might look something like <code>clearInterval(func)</code>, where <code>var func = setInterval(functionYouWantToRun(), 1000)</code>.</p>
 
@@ -167,10 +171,14 @@
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>I saved my function to variable called <code>newYearCountdown</code>, and then passed that variable in as a parameter to my clearInterval method, which will only fire when the <code>counter</code> variable is set to zero. When <code>var counter</code> is set to zero, a couple things will happen:
-* 1. The string <code>HAPPY NEW YEAR!!</code> will be logged to the console
-* 2. The clearInterval method will execute
-* 3. The setInterval method will stop running</p>
+<p>I saved my function to variable called <code>newYearCountdown</code>, and then passed that variable in as a parameter to my clearInterval method, which will only fire when the <code>counter</code> variable is set to zero. When <code>var counter</code> is set to zero, a couple things will happen:</p>
+
+<ol>
+<li>The string <code>HAPPY NEW YEAR!!</code> will be logged to the console</li>
+<li>The clearInterval method will execute</li>
+<li>The setInterval method will stop running</li>
+</ol>
+
 
 <p>And this is what will be printed out:</p>
 
@@ -260,6 +268,8 @@
         <a class="basic-alignment left" href="/blog/2014/12/14/to-understand-recursion-you-must-first-understand-recursion/" title="Previous Post: To understand recursion, you must first understand recursion">&laquo; To understand recursion, you must first understand recursion</a>
       
       
+        <a class="basic-alignment right" href="/blog/2015/01/13/tidying-up-those-views-rails-decorators/" title="Next Post: Tidying Up Those Views: Rails Decorators">Tidying Up Those Views: Rails Decorators &raquo;</a>
+      
     </p>
   </footer>
 </article>
@@ -273,6 +283,14 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/01/13/tidying-up-those-views-using-decorators-in-rails/">Tidying Up Those Views: Using Decorators in Rails</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/01/13/tidying-up-those-views-rails-decorators/">Tidying Up Those Views: Rails Decorators</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/01/06/the-final-countdown-using-javascripts-setinterval-plus-clearinterval-methods/">The Final Countdown: Using JavaScript&#8217;s setInterval + clearInterval Methods</a>
       </li>
     
@@ -282,14 +300,6 @@
     
       <li class="post">
         <a href="/blog/2014/11/30/so-you-wanna-ship-some-software-eh/">So You Wanna Ship Some Software, Eh?</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/11/19/how-programming-makes-you-a-better-writer/">How Programming Makes You a Better Writer</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/11/16/the-asset-whutline-revisiting-the-asset-pipeline-after-javascript/">The Asset WHUTline?: Revisiting the Asset Pipeline After JavaScript</a>
       </li>
     
   </ul>

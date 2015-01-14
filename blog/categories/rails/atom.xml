@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 
-  <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
-  <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
+  <title><![CDATA[Category: Rails | Words and Code]]></title>
+  <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
   <updated>2015-01-13T23:03:32-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
@@ -266,122 +266,6 @@ end
 <li>Using a decorator isn&rsquo;t always the right answer. Make sure you&rsquo;re comfortable with the MVC framework and that you really need to use a decorator before you go about implementing one.</li>
 <li>If you want a more in-depth introduction to presenters and decorators, check out <a href="https://www.youtube.com/watch?v=xf7i44HJ_1o">this RailsConf presentation by Mike Moore</a>.</li>
 <li>If this is still confusing, read more code examples; there are lots of <a href="http://robots.thoughtbot.com/evaluating-alternative-decorator-implementations-in">really</a> <a href="https://bibwild.wordpress.com/2012/12/19/the-simplest-rails-decorator-implementation-that-just-might-work/">good</a> <a href="http://robots.thoughtbot.com/tidy-views-and-beyond-with-decorators">blog</a> <a href="http://johnotander.com/rails/2014/03/07/decorators-on-rails/">posts</a> that implement decorators.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[The Final Countdown: Using JavaScript's setInterval + clearInterval Methods]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/01/06/the-final-countdown-using-javascripts-setinterval-plus-clearinterval-methods/"/>
-    <updated>2015-01-06T16:30:53-05:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/01/06/the-final-countdown-using-javascripts-setinterval-plus-clearinterval-methods</id>
-    <content type="html"><![CDATA[<p>It&rsquo;s a brand new year, and with that comes a renewed sense of self. Also: a rather lengthy todo list. Enter <strong>#technicaltuesdays</strong>, or my attempt at beefing up my technical chops by posting a blog post every week &mdash; specifically on Tuesdays, in case it wasn&rsquo;t obvious. (Sorry, Thursday, you were a close second, but you just didn&rsquo;t make the cut.)</p>
-
-<p>So, what&rsquo;s on the menu this week? JavaScript! New year = new me, you guys. Actually, some of my technical interviews have been a bit JavaScript-heavy, so I&rsquo;ve been stepping up my curly bracket game.</p>
-
-<p>In honor of the new year, I wanted to use JavaScript to create a quick &ldquo;New Year&rsquo;s Countdown&rdquo; function. Suffice it to say, <em>it was neither quick nor easy</em>. But I learned about two cool timing events in JavaScript &ndash; <strong>setInterval</strong> and <strong>clearInterval</strong> &ndash; and now you can learn about them, too!</p>
-
-<!-- more -->
-
-
-<p></p>
-
-<h2>setInterval()</h2>
-
-<p>Okay, so what exactly was my goal with this function? I wanted to it to countdown from 10 to 1 and then print out &ldquo;Happy New Year!&rdquo;. JavaScript has a couple different time events, but the trick is figuring out which one works best for your purposes.</p>
-
-<p>I first started off trying to use the setTimeout() method, which waits a certain amount of time before executing the function that you pass it as a parameter. I was stuck for a long time trying to figure out how to get my code to execute again after every second. I quickly realized that this method wasn&rsquo;t the best tool for the job.</p>
-
-<p>Luckily, one method did just the trick: <strong>setInterval()</strong>. The setInterval method executes a function that you pass in as a parameter at a deteremined interval. The interval is also a parameter, and is passed in as milliseconds. <em>Protip: 1000 milliseconds = 1 second</em>. A generic setInterval method might look something like <code>setInterval(functionYouWantToRun(), 1000)</code>.</p>
-
-<p>This was perfect for my countdown function, which needed to do the same thing &ndash; namely, count down from ten to zero &ndash; every one second.</p>
-
-<p>Here&rsquo;s what my function looked like in the first iteration:
-<code>javascript
-var counter = 10;
-setInterval(function(){
-  console.log(counter);
-  counter--
-  if (counter === 0) {
-    console.log("HAPPY NEW YEAR!!");
-  }
-}, 1000);
-</code></p>
-
-<p>I first created a <code>counter</code> variable, which I logged to the console, and then decremented by one each time the function ran. I passed in the two parameters that setInterval requires: a function to execute (in my case, an anonymous, unnamed function), and an interval at which it should be executed (every one second). I also added a conditional to log &ldquo;Happy New Year!&rdquo; once the counter hit zero.</p>
-
-<p>So, did it work? YES! But also, NO. This code <em>does</em> count down from 10, and prints out &ldquo;HAPPY NEW YEAR!!&rdquo; when it hits zero. But now, there was another problem: it just WOULD. NOT. STOP.</p>
-
-<p><img src="http://i.imgur.com/tGznKSo.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<h2>Make it stop!! Or, clearInterval()</h2>
-
-<p>The setInterval method is great and all, until you hit an infinite loop and your code runs forever and ever and ever and &ndash; you get the idea. This method on its own doesn&rsquo;t do much more than loop by default. But, when it&rsquo;s combined with its twin method <strong>clearInterval()</strong>, which &ndash; you guessed it &ndash; clears the function at a certain interval, you it can acutally be quite handy.</p>
-
-<p>So, how does clearInterval work? Well, it takes just one parameter: the function that you want to clear. This is important for remember for two reasons:</p>
-
-<ol>
-<li>You have to save your setInterval method to a variable</li>
-<li>This variable must be accessible (in scope) by the clearInterval method</li>
-</ol>
-
-
-<p>A clearInterval method might look something like <code>clearInterval(func)</code>, where <code>var func = setInterval(functionYouWantToRun(), 1000)</code>.</p>
-
-<p>Here&rsquo;s what the second iteration of my function looked like:
-<code>javascript
-var counter = 10;
-var newYearCountdown = setInterval(function(){
-  console.log(counter);
-  counter--
-  if (counter === 0) {
-    console.log("HAPPY NEW YEAR!!");
-    clearInterval(newYearCountdown);
-  }
-}, 1000);
-</code></p>
-
-<p>I saved my function to variable called <code>newYearCountdown</code>, and then passed that variable in as a parameter to my clearInterval method, which will only fire when the <code>counter</code> variable is set to zero. When <code>var counter</code> is set to zero, a couple things will happen:</p>
-
-<ol>
-<li>The string <code>HAPPY NEW YEAR!!</code> will be logged to the console</li>
-<li>The clearInterval method will execute</li>
-<li>The setInterval method will stop running</li>
-</ol>
-
-
-<p>And this is what will be printed out:
-<code>
-10
-9
-8
-7
-6
-5
-4
-3
-2
-1
-HAPPY NEW YEAR!!
-</code></p>
-
-<iframe src="//giphy.com/embed/7tE1zKt2AwOsM" width="480" height="192" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Maybe my next blog post should be figuring out how to change that gif from &ldquo;2012&rdquo; to &ldquo;2015&rdquo;&hellip;</p>
-
-<p>Hope you had a wonderful New Year&rsquo;s! Here&rsquo;s to 2015 and many more Technical Tuesdays! (I hope.)</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <strong>setInterval</strong> method takes a function to execute and a interval in milliseconds.</li>
-<li>The <strong>clearInterval</strong> method takes an in-scope variable which points to the setInterval method.</li>
-<li>Both of these timing events work together as a pair.</li>
-<li>Want to read more about timing events in JavaScript? Check out setInterval + clearInterval&rsquo;s cousins, <a href="http://javascript.info/tutorial/settimeout-setinterval">setTimeout and clearTimeout</a>.</li>
 </ul>
 
 ]]></content>

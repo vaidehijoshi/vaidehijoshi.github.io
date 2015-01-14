@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Javascript | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/javascript/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-01-06T16:55:16-05:00</updated>
+  <updated>2015-01-13T23:03:32-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -61,9 +61,13 @@ setInterval(function(){
 
 <p>The setInterval method is great and all, until you hit an infinite loop and your code runs forever and ever and ever and &ndash; you get the idea. This method on its own doesn&rsquo;t do much more than loop by default. But, when it&rsquo;s combined with its twin method <strong>clearInterval()</strong>, which &ndash; you guessed it &ndash; clears the function at a certain interval, you it can acutally be quite handy.</p>
 
-<p>So, how does clearInterval work? Well, it takes just one parameter: the function that you want to clear. This is important for remember for two reasons:
-* 1. You have to save your setInterval method to a variable
-* 2. This variable must be accessible (in scope) by the clearInterval method</p>
+<p>So, how does clearInterval work? Well, it takes just one parameter: the function that you want to clear. This is important for remember for two reasons:</p>
+
+<ol>
+<li>You have to save your setInterval method to a variable</li>
+<li>This variable must be accessible (in scope) by the clearInterval method</li>
+</ol>
+
 
 <p>A clearInterval method might look something like <code>clearInterval(func)</code>, where <code>var func = setInterval(functionYouWantToRun(), 1000)</code>.</p>
 
@@ -80,10 +84,14 @@ var newYearCountdown = setInterval(function(){
 }, 1000);
 </code></p>
 
-<p>I saved my function to variable called <code>newYearCountdown</code>, and then passed that variable in as a parameter to my clearInterval method, which will only fire when the <code>counter</code> variable is set to zero. When <code>var counter</code> is set to zero, a couple things will happen:
-* 1. The string <code>HAPPY NEW YEAR!!</code> will be logged to the console
-* 2. The clearInterval method will execute
-* 3. The setInterval method will stop running</p>
+<p>I saved my function to variable called <code>newYearCountdown</code>, and then passed that variable in as a parameter to my clearInterval method, which will only fire when the <code>counter</code> variable is set to zero. When <code>var counter</code> is set to zero, a couple things will happen:</p>
+
+<ol>
+<li>The string <code>HAPPY NEW YEAR!!</code> will be logged to the console</li>
+<li>The clearInterval method will execute</li>
+<li>The setInterval method will stop running</li>
+</ol>
+
 
 <p>And this is what will be printed out:
 <code>
