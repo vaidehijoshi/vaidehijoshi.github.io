@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Flatiron | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/flatiron/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-01-21T15:33:07-05:00</updated>
+  <updated>2015-01-23T16:38:14-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,66 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[The Fog Creek Fellowship: Lessons in Fearlessness and Fortitude]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/01/23/the-fog-creek-fellowship-lessons-in-fearlessness-and-fortitude/"/>
+    <updated>2015-01-23T14:04:16-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/01/23/the-fog-creek-fellowship-lessons-in-fearlessness-and-fortitude</id>
+    <content type="html"><![CDATA[<p>There are a lot of scary things out there. To start, there are lions and tigers and bears. But if you go a bit below the surface, that&rsquo;s where you&rsquo;ll hit the dark stuff &ndash; the kind of stuff that I was forced to confront when I started as a student at <a href="http://www.flatironschool.com">The Flatiron School</a>.</p>
+
+<p>Sure, learning how to program is really hard &ndash; it&rsquo;s not just learning another language, it&rsquo;s learning an entirely new way to think. But, working on code is far easier than working on yourself. My twelve weeks at The Flatiron School pushed me to deal with some tough thoughts, most of which had always lurked in the skeleton closets of my mind: <em>I don&rsquo;t know if I can do this. I&rsquo;m not cut out for this. I&rsquo;m not prepared. I&rsquo;m not smart enough. I won&rsquo;t fit in. I can&rsquo;t undersand. I won&rsquo;t understand.</em></p>
+
+<p>Most of us have all had these thoughts at some point in our lives, regardless of what we look like or what we do for a living. Some of us have stopped dead in our tracks, sometimes unable to move beyond them at all. But learning to code meant dealing with these fears on a daily basis; at some point, I just stopped listening to them entirely.</p>
+
+<!-- more -->
+
+
+<h2>The Fog Creek Fellowship</h2>
+
+<p>Before I learned to code, I was a writer and a teacher. In other words, I had no background in computer science or software developement. Now, it&rsquo;s already pretty terrifying to enter a new field in which you have no experience. But it gets <a href="http://thinkprogress.org/economy/2013/09/10/2599491/women-stem/">even more frightening</a> when you realize that only 25% of the industry is female and that 71% of your coworkers are white. All these facts combined can be fairly paralyzing &ndash; it&rsquo;s no wonder, then, that so many women and minorities choose not to enter STEM fields.</p>
+
+<p>After graduating from Flatiron, I found myself facing an entirely new sea of questions: <em>Am I prepared for all these technical interviews? How do I negotiate a salary? What offer should I accept? What&rsquo;s the best job for me? Do I want to be the only woman in an all-male tech team?</em> Luckily, I didn&rsquo;t have to swim through this alone. Instead, I had a support system gliding along beside me the entire way: <a href="http://blog.fogcreek.com/announcing-the-fog-creek-fellowship/">The Fog Creek Fellowship</a>.</p>
+
+<p>Forged through a partnership with the Flatiron School, the fellowship is dedicated to creating a more diverse and welcoming tech community by nurturing a select group of female Flatiron graduates as they look for their first programming jobs. Fellows are paired with a Fog Creek, Trello, or StackExchange developer &ndash; who just so happen to be some of the best coders in the country &ndash; and have the opportunity to create long-lasting relationships through pair programming sessions, interview prep, and technical talks.</p>
+
+<blockquote class="twitter-tweet tw-align-center" lang="en"><p>Class two began today! <a href="http://t.co/LUaRwAnLUW">http://t.co/LUaRwAnLUW</a> &amp; the list of additional companies getting involved is so inspiring! <a href="http://t.co/hFaCy5HUlg">pic.twitter.com/hFaCy5HUlg</a></p>&mdash; Elizabeth Hall (@Liz_Hall1) <a href="https://twitter.com/Liz_Hall1/status/552204196016312320">January 5, 2015</a></blockquote>
+
+
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+<h2>Fearlessness</h2>
+
+<p>I wasn&rsquo;t sure what to expect when I started the fellowship. Thankfully, my <a href="https://twitter.com/ianthehenry">phenomenal mentor Ian</a> was full of ideas. Thinking back on it now, I realize that all of our mentors helped us to confront the things that we were the most uncomfortable (read: afraid) of.</p>
+
+<p>A lot of us didn&rsquo;t understand a lot of the computer science concepts that were coming up in technical interviews, so the mentors took the time to review tougher technical topics, and encouraged us to always speak up if ever we were confused.</p>
+
+<blockquote class="twitter-tweet tw-align-center" lang="en"><p>Trello devs taking a break from making <a href="https://twitter.com/trello">@trello</a> awesome to help some <a href="https://twitter.com/FlatironSchool">@FlatironSchool</a> devs be more awesome <a href="https://twitter.com/hashtag/fogcreek?src=hash">#fogcreek</a> <a href="http://t.co/bS2iTQfpRm">pic.twitter.com/bS2iTQfpRm</a></p>&mdash; Michael Pryor (@michaelpryor) <a href="https://twitter.com/michaelpryor/status/555807419214102528">January 15, 2015</a></blockquote>
+
+
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+<p><br></p>
+
+<p>I always wanted to learn more about Objective C and iOS, so my mentor and I built a simple iPhone app that implemented the New York Times API and showed the top stories of the day. It was undoubtedly hard, but everything that&rsquo;s new and different always is. Ian helped me face my doubts head on, and nudged me to be unafraid of making mistakes or being wrong.</p>
+
+<p>All the mentors and mentees hung out together, ate lunch, and talked tech and non-tech topics. And when I was trying to choose between a few different offers, they helped me talk through what I wanted out of my job, and which position would make me happy. We talked about everything from what we wanted our careers to look like in five years, to the pipeline problem for women in tech.</p>
+
+<h2>Fortitude</h2>
+
+<p>It takes a great deal of grit and strength of mind to endure and accept obstacles that come your way. To be a woman in technology, you need ample amounts of fortitude. There&rsquo;s really no other way to put it: <a href="http://www.payscale.com/career-news/2014/12/what-it's-really-like-for-women-in-tech">it&rsquo;s</a> <a href="http://www.washingtonpost.com/blogs/on-leadership/wp/2015/01/20/the-women-who-make-it-in-tech/">hard</a> to be a <a href="http://www.geekwire.com/2015/commentary-bring-binders-full-women-tech-must-get-page/">woman</a> in <a href="http://thinkprogress.org/economy/2013/09/10/2599491/women-stem/">tech</a>. It&rsquo;s hard to be <a href="http://www.theverge.com/2015/1/20/7856467/airbnb-diversity-report-gender-race-interactive-chart">a person of color</a> in tech. But the only way that we can begin to change the reality of the situation is by bringing in more women and minorities into the industry.</p>
+
+<p>Granted, the solution to the problem might come in different shades for various people. Whether that means creating relationships based on trust and openness (such as the ones that we had with our mentors), or providing the resources to build confidence (like technical talks or interview prep), they&rsquo;re all steps in the right direction. If enough people follow suit, the industry will soon have an entirely new generation of developers and engineers, each of whom will pay it forward.</p>
+
+<p>From my own personal experience at Fog Creek Software, I can definitely vouch for the simplicity of a safe, welcoming space for women. If you&rsquo;re wondering how you can change the industry, I&rsquo;d say that this is a good way to start. I suppose that it&rsquo;s a simple thing, really, but it makes a world of difference. Both Fog Creek and the Flatiron School are communities that acknowledge a problem and then proceed to create an environment that mirrors a world that we want to one day live in.</p>
+
+<p>I&rsquo;d consider myself one of the lucky few who has been a part of this incremental change. The Flatiron School and the Fog Creek Fellowship opened so many doors for me &ndash; doors that I know I could have never opened on my own. As I take my first step and start a new job as a developer, I&rsquo;m realizing that the fellowship isn&rsquo;t really over. It&rsquo;s just that my role in it is changing. Soon, it&rsquo;ll be my turn to help open the very same doors for someone else.</p>
+
+<p>Hopefully, she&rsquo;ll be even more fearless than me.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[To Understand Recursion, You Must First Understand Recursion]]></title>
@@ -318,91 +378,6 @@ end
 <script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
 
 
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Have You Met Your Controller Yet?]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2014/10/30/have-you-met-your-controller-yet/"/>
-    <updated>2014-10-30T23:28:43-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2014/10/30/have-you-met-your-controller-yet</id>
-    <content type="html"><![CDATA[<p>Controllers: we all have &lsquo;em. Sure, they put the C in MVC, but how much do we really <em>know</em> about these mysterious creatures? Probably not a lot. Don&rsquo;t you wish you could just look your Controller in the eye and be all, &ldquo;Hey dude, what <em>are</em> you?&rdquo; Well, you can. All you have to do is just poke around a bit in your code.</p>
-
-<p>Let&rsquo;s start with what we <em>do</em> know. Given the MVC orientation of Rails, we already know that the Controller acts as a kind of mediator, intercepting messages between the client and the server, and passing information between the model and view. But ultimately, Controllers are nothing more than Ruby classes (that inherit from ActionController::Base) with class methods called &ldquo; actions&rdquo;, which are simply meant to render a template for the user to see. But don&rsquo;t mistake them as simple chunks of code; there are also some pretty amazing things that Controllers can do.</p>
-
-<!-- more -->
-
-
-<h2>1. Controllers can have empty actions and STILL work.</h2>
-
-<p>Okay, time to break the ice. Let&rsquo;s get to know our Controllers. Below is some generic code for a Controller for a guacamole app. First off is my main ApplicationController, which becomes a parent class for my GuacController to inherit from:</p>
-
-<pre><code class="ruby">
-class ApplicationController &lt; ActionController::Base
-end
-
-
-class GuacController &lt; ApplicationController
-  def index
-    render
-  end
-end
-</code></pre>
-
-<p>See that <code>render()</code> method? All it does is render the default template for the current controller and action. And since I&rsquo;m in the index action of the GuacController, this code would render the template <code>app/views/guac/index.html.erb</code></p>
-
-<p>But what would happen if I had an empty <code>index</code> method?</p>
-
-<pre><code class="ruby">class GuacController &lt; ApplicationController
-  def index
-  end
-end
-</code></pre>
-
-<p>This would also render <code>app/views/guac/index.html.erb</code>. But&hellip;why? Well, the cool thing about Controllers is that they will call <code>render</code> by default, even if the action (in this case, <code>index</code>) doesn&rsquo;t call the <code>render</code> method explicitly. In fact, every single Controller action already has the render method implicitly within it!</p>
-
-<p>And you know what&rsquo;s really crazy? This code would <em>also</em> render the same index page:</p>
-
-<pre><code class="ruby">class GuacController &lt; ApplicationController
-end
-</code></pre>
-
-<p>When Rails gets a request for the <code>index</code> action and sees that there&rsquo;s no such action in the GuacController, it assumes that if there <em>were</em> an <code>index</code> action, it would render <code>app/views/guac/index.html.erb</code>. So that&rsquo;s exactly what it does, even though you haven&rsquo;t even given it the code to do so explicitly.</p>
-
-<p>Obie Fernandez explains why exactly this works in his book, <em>The Rails 4 Way</em>:</p>
-
-<blockquote><p>&ldquo;The goal of the typical controller action is to render a view template—that is, to fill out the template and hand the results, usually an HTML document, back to the server for delivery to the client. Oddly—at least it might strike you as a bit odd, though not illogical—you don’t actually need to define a controller action, as long as you’ve got a template that matches the action name.&rdquo;</p></blockquote>
-
-<h2>2. Controllers can render almost anything:</h2>
-
-<p>Even though the <code>render</code> method is implicit and doesn&rsquo;t actually ever have to be written out by you, the programmer, it can actually be quite a handy little tool. You can use this method within a Controller action if you want it to render something <em>other</em> than its default template. For example, I could tell my GuacController to render any other file in my <code>app/views</code> directory by just using the <code>render</code> method.</p>
-
-<p>This is useful for two different reasons:</p>
-
-<ul>
-<li><p>You can render another action&rsquo;s template:
-⋅⋅*For example, my <code>create</code> action in my GuacController could have something like <code>render action:'new'</code>, which would render my <code>app/views/guac/new.html.erb</code>. This could be super awesome if a new instance of <code>@guac</code> hadn&rsquo;t been saved.</p></li>
-<li><p>You can render a different template entirely:
-⋅⋅*If I was out of guac and I wanted my guac index page to actually render the template for my salsa index, I could explicitly render it by putting the following code in the <code>index</code> action of my GuacController: <code>render template:'/salsa/index.html.haml'</code>. Of course, this doesn&rsquo;t really answer the question of where all my guacamole went, but that&rsquo;s neither here nor there.</p></li>
-</ul>
-
-
-<h2>3. Controllers are all for Convention over Configuration:</h2>
-
-<p>Because of naming conventions for Controllers, if I have a Guac Controller, Rails assumes that there is a class called GuacController saved as a file <code>guac_controller.rb</code> in my <code>app/controllers</code> directory. It will also look for corresponding view templates for my GuacController in <code>app/views/guac</code>, and it will take the output of these views and save them as <code>guac.html.erb</code>.</p>
-
-<p>Basically, your Controller makes a lot of assumptions whenver it gets a single web request. But, this also means that <em>you</em> can  anticipate how your Controller might react by simply understanding what your Controller already knows and assumes about your code.</p>
-
-<p>I guess what I&rsquo;m trying to say is&hellip;get to know each other.</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>Your Controller does a lot of stuff for you without you even realizing it. To make the most of its magical powers, learn as much as you can about its conventions.</li>
-<li>Play around with the <code>render</code> method to understand when it can be used and for what purposes.</li>
-<li>Get to know your Controller. I&rsquo;m telling you: it will be the beginning of a beautiful friendship.</li>
-</ul>
 
 ]]></content>
   </entry>
