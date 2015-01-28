@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rails | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-01-23T16:38:14-05:00</updated>
+  <updated>2015-01-27T21:17:34-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,88 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Embrace Your Inner Paranoia: Using Acts_as_paranoid]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/01/27/embrace-your-inner-paranoia-use-acts-as-paranoid/"/>
+    <updated>2015-01-27T19:36:16-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/01/27/embrace-your-inner-paranoia-use-acts-as-paranoid</id>
+    <content type="html"><![CDATA[<p>Yesterday, I started my very first job as a software engineer! It&rsquo;s been super exciting, slightly terrifying, and sometimes overwhelming. I think one of the trickiest parts of starting as a new engineer at a company is the onboarding process.</p>
+
+<p>It might seem kind of scary, but if you think about it, it&rsquo;s actually pretty fun. You get to dive down a rabbit hole and look at production code that you didn&rsquo;t write. It&rsquo;s getting a new puzzle that you haven&rsquo;t solved yet: you try to figure out how one thing connects to another, where modules and methods exist, how things are namespaced, not to mention learning about new frameworks and gems. I feel like I&rsquo;m entering into new dimensions and travelling through a space-time continuum or something. This also might be attributed to the fact that I&rsquo;ve been  listening exclusively to the <a href="https://www.youtube.com/watch?v=YOWSTtXxf9s">Interstellar soundtrack</a> for the past two days, but whatever &ndash; you get the point.</p>
+
+<p>My favorite part of the onboarding process is how much I&rsquo;ve been learning. Every new class or module definition brings a new piece of the puzzle that I&rsquo;ve never seen before, but can&rsquo;t wait to learn about. It&rsquo;s kind of crazy that I get paid to read and learn all day, every day &ndash; that&rsquo;s the dream, right?</p>
+
+<p>Anyways, all of this is to say that I&rsquo;ve found and learned about some cool stuff! For example this little ditty: <code>acts_as_paranoid</code>. I saw this in a class definition and my first thought was literally: <em>Damn, that&rsquo;s a great name for a validation!</em> But as it turns out, it&rsquo;s not actually a validation &ndash; it&rsquo;s Rails magic!</p>
+
+<!-- more -->
+
+
+<h2>Start acting paranoid!</h2>
+
+<p>Okay, I lied: <code>acts_as_paranoid</code> not actually <em>magic</em> &ndash; it&rsquo;s a Rails ActiveRecord plugin. But it&rsquo;s still pretty magical, you guys! So, what does it do? Well, it helps you be less paranoid about deleting stuff by accident (hence the name). Essentially, <code>acts_as_paranoid</code> allows you to make soft deletes in Rails. That means that it gives you the flexibility to delete an object without actually deleting it from the database.</p>
+
+<iframe src="//giphy.com/embed/VpbctjT9VrALS" width="480" height="260" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Does this sound like black magic yet? Just wait, you&rsquo;re about to see some real magic.</p>
+
+<h2>So&hellip;how do I starting acting paranoid?</h2>
+
+<p>In my example, I&rsquo;ll be implementing <code>acts_as_paranoid</code> on some <code>Book</code> objects in my eCommerce bookstore app. Using <code>acts_as_paranoid</code> is relatively simple. You can break it down into two simple steps:</p>
+
+<p>First, add <code>acts_as_paranoid</code> to your class definition:
+<code>ruby
+class Book &lt; ActiveRecord::Base
+  acts_as_paranoid
+end
+</code></p>
+
+<p>Then, add a column to the database for that class called <code>deleted_at</code>, which is set to a <code>datetime</code> format:
+<code>ruby
+class AddDatetimeToBooks &lt; ActiveRecord::Migration
+  def change
+    add_column :books, :deleted_at, :datetime
+  end
+end
+</code></p>
+
+<h2>Ok, I&rsquo;m getting paranoid now &ndash; how does this work?</h2>
+
+<p>So, we have another column in our <code>Books</code> table that has a <code>deleted_at</code> column with a type of <code>:datetime</code>. Now, this is where the magic happens: the <code>acts_as_paranoid</code> plugin actually <em>overrides</em> ActiveRecord&rsquo;s <code>find</code>, <code>count</code>, and <code>destroy</code> methods. So now when we call the <code>destroy</code> method on a <code>Book</code> object, instead of actually deleting the object, the object&rsquo;s <code>deleted_at</code> field will be set to the current date and time.</p>
+
+<p>And, if we call the <code>find</code> method on all of our <code>Book</code> objects, the one we just &ldquo;deleted&rdquo; won&rsquo;t show up! Instead, only the objects that <em>don&rsquo;t</em> have a value in their <code>deleted_at</code> column will render.</p>
+
+<p>So, calling <code>@book.destroy</code> doesn&rsquo;t delete a row from the database; it actually just updates the row by giving a datetime to the object&rsquo;s <code>deleted_at</code> field. If you&rsquo;re into SQL queries, this is what&rsquo;s going on:</p>
+
+<p><code>UPDATE books SET deleted_at = '2015-01-27 19:36:16' WHERE (id = 50)</code></p>
+
+<p>The <code>Book</code> object with an id of <code>50</code> isn&rsquo;t <em>actually</em> deleted from the database, even though it will appear so in all of our views, and to our users/admins.</p>
+
+<h2>But who needs soft deletes, anyways?</h2>
+
+<p>I actually didn&rsquo;t realize the use case for soft deletes at first. But it turns out that they are incredibly helpful when building out large, more complicated Rails applications.</p>
+
+<p>It&rsquo;s important to remember that Ruby is an object-oriented programming language. Any object that has an association with another object inherently relies upon it. In my bookstore app example, a <code>Book</code> object would belong to a <code>Order</code> object, and also be associated with a <code>User</code> object of some sort. If you think about the appliation on a broader, less granular level, you might realize that deleting any given <code>Book</code> object could actually have serious repercussions.</p>
+
+<p>For example, you might want to see a <code>Book</code> object that was ordered in the past, even if that <code>Book</code> has since been deleted from a store. Perhaps you want to view the details of a <code>Shipment</code> object, even if that shipment was cancelled. Or, you might want to see an order that was placed by a <code>User</code> who may have deactivated their account months ago.</p>
+
+<p>The <code>acts_as_paranoid</code> plugin helps you access all of this information, without keeping you up at night, wondering whether you deleted the wrong row from the database. Because honestly, who has time for that? Not this kitty, for sure:</p>
+
+<p><img src="https://idp05.files.wordpress.com/2008/03/paranoid-cat.jpg" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>acts_as_paranoid</code> plugin modifies ActiveRecord methods and allows you to implement soft deletes on your Ruby objects. Just remember to include it in your class definition and add a <code>deleted_at</code> column to your migration, with a type of <code>datetime</code>.</li>
+<li>Want to see another example of disabling records using <code>acts_as_paranoid</code>? Check out <a href="https://www.safaribooksonline.com/library/view/rails-cookbook/0596527314/ch14s11.html">this blog post</a>.</li>
+<li>To read more about <code>acts_as_paranoid</code> and its many caveats, check out <a href="https://github.com/ActsAsParanoid/acts_as_paranoid/">the easy-to-follow documentation</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Tidying Up Those Views: Using Decorators in Rails]]></title>
