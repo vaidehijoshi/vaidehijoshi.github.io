@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-01-27T21:17:34-05:00</updated>
+  <updated>2015-02-02T23:10:44-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,206 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[When Enough Is Enough: How to Know When to Use Enums]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/02/03/when-enough-is-enough-how-to-know-when-to-use-enums/"/>
+    <updated>2015-02-03T08:32:19-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/02/03/when-enough-is-enough-how-to-know-when-to-use-enums</id>
+    <content type="html"><![CDATA[<p>NERD ALERT: I love databases. God, they&rsquo;re just <em>fantastic</em>. Few things give me as much joy as an empty whiteboard and a couple of intricate join tables that need to be sketched out. But there&rsquo;s also an art to understanding how to handle data &ndash; particularly when you have a shit ton of it.</p>
+
+<p>The main issue people run into with data is first, how to go about storing it, and second, how to go about getting it when you actually need it! This doesn&rsquo;t sound super complicated though, right? <em>Wrong</em>. Databases grow vertically, not horizontally, and they grow hella fast. At a certain point, the way that you go about storing your data ends up <em>directly impacting</em> how you go about retrieving it!</p>
+
+<p>Many Rubyists write different helper methods to do their querying for them. But this is Rails Land, which means that we have <del>black</del> Rails magic at our disposal. And with the advent of Rails 4.1, that magic now has a name: <strong>enum</strong>.</p>
+
+<!-- more -->
+
+
+<h2>Get Yo Enum On</h2>
+
+<p>When Rails 4.1 was released less than a year ago, it came out with a bunch of new features. One of those was <strong>ActiveRecord enums</strong>, which essentially cut out a lot of methods and superfluous code.</p>
+
+<p>ActiveRecord enums allow you to manipulate the attributes of an ActiveRecord object in Rails such that an attribute&rsquo;s values map to <em>integers</em> in the database (as opposed to strings), and yet can also be <em>queried by name</em>. If all this sounds kind of crazy to you, that&rsquo;s because it is! Enums are pretty cool because they have the flexibility of a string, but the speed and efficiency of an integer. You can look up values in a huge database using an integer, but you can also update and add attributes as string. Oh &ndash; you also get a bunch of methods for FREE!</p>
+
+<iframe src="//giphy.com/embed/eYieKG19ZuaR2" width="480" height="338" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>So how does this magic work, exactly? I thought you&rsquo;d never ask!</p>
+
+<h2>Multiple Columns?! Ain&rsquo;t Nobody Got Time For That!</h2>
+
+<p>To demonstrate how to implement ActiveRecord enums, I&rsquo;ll continue using <a href="http://vaidehijoshi.github.io/blog/2015/01/27/embrace-your-inner-paranoia-use-acts-as-paranoid/">last week&rsquo;s ecommerce bookstore app</a> as my example. So, I have these <code>Book</code> objects in my store, and I want to keep track of what their status is: either <code>in stock</code>, <code>out of stock</code>, or <code>ordered</code>. For the sake of simplicity, we&rsquo;ll pretend that I&rsquo;m not a super sophisticated bookseller, so I don&rsquo;t have a lot of <code>Book</code>s, and therefore each <code>Book</code> object can only ever have one of these three states.</p>
+
+<p>I might first start off by having three different columns to represent each of these states:
+<code>ruby
+class AddStatusesToBooks &lt; ActiveRecord::Migration
+  def change
+    add_column :books, :in_stock?, :boolean
+    add_column :books, :out_of_stock?, :boolean
+    add_column :books, :ordered?, :boolean
+  end
+end
+</code>
+But this seems kind of&hellip;ridiculous. I&rsquo;m always going to have <em>two empty columns</em>. This code has me all like:</p>
+
+<iframe src="//giphy.com/embed/zrdUjl6N99nLq" width="480" height="380" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Alternatively, I could combine all of these columns into one and use some helper methods that return boolean values when I call them on an instance of a <code>Book</code>:
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Book</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">in_stock?</span>
+</span><span class='line'>    <span class="nb">self</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="p">;</span><span class="k">in</span> <span class="n">stock</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span>
+</span><span class='line'>  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  def out_of_stock?</span>
+</span><span class='line'><span class="sr">    self.status == &amp;lsquo;out of stock&amp;rsquo;</span>
+</span><span class='line'><span class="sr">  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">def</span> <span class="nf">ordered?</span>
+</span><span class='line'>    <span class="nb">self</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="p">;</span><span class="n">ordered</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+Well, now I have one column, so that&rsquo;s better. But this is still so repetitive, ugly, and inefficient. Don&rsquo;t worry, it&rsquo;s about to get real good.</p>
+
+<h2>Query Your Little Heart Out</h2>
+
+<p>Implementing enum is pretty simple. First, add the macro to your class:
+<code>ruby
+class Book &lt; ActiveRecord::Base
+  enum status: [:in_stock, :out_of_stock, :ordered]
+end
+</code>
+You&rsquo;ll notice that I have my <code>status</code> attribute categorized into my three different options. The fact that they look like symbols in an array is no mistake &ndash; each of these symbols is actually associated with its index. So <code>in_stock</code> will be referenced by its index number <code>0</code>, <code>out_of_stock</code> by <code>1</code>, and <code>ordered</code> by <code>2</code>.</p>
+
+<p>Next, add a column to your migration that will allow ActiveRecord enum to carry out your queries:
+<code>ruby
+class AddStatusToBooks &lt; ActiveRecord::Migration
+  def change
+    add_column :books, :status, :integer, default: 0
+  end
+end
+</code>
+I want all my <code>Book</code> objects to default to an <code>in_stock</code> status when they are created, so I added a <code>default: 0</code> to my column. Adding a default is always a good way to keep your code defensive.</p>
+
+<p>Now if I want to create a <code>Book</code> object and check its status:
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">book</span> <span class="o">=</span> <span class="no">Book</span><span class="o">.</span><span class="n">create</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;book.status&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;=&gt;</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">in_stock</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;book.out_of_stock?&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;=&gt;</span> <span class="kp">false</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;book.status = :ordered</span>
+</span><span class='line'><span class="sr">book.ordered! #updates the object</span>
+</span><span class='line'><span class="sr">book.ordered?&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;=&gt;</span> <span class="kp">true</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;book.status?&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;=&gt;</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">ordered</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;book.out_of_stock&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;=&gt;</span> <span class="c1">#&amp;lt;ActiveRecord::Relation []&gt;&lt;/h1&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="no">Go</span> <span class="n">ahead</span> <span class="ow">and</span> <span class="n">scroll</span> <span class="n">up</span> <span class="k">if</span> <span class="n">you</span> <span class="n">don</span><span class="s1">&#39;t believe me -- I promise I didn&#39;</span><span class="n">t</span> <span class="n">make</span> <span class="n">any</span> <span class="n">of</span> <span class="n">these</span> <span class="nb">methods</span><span class="o">!</span> <span class="no">Enum</span> <span class="n">gave</span> <span class="n">them</span> <span class="n">to</span> <span class="n">me</span><span class="p">,</span> <span class="no">FO</span> <span class="no">FREE</span><span class="o">.</span> <span class="no">So</span> <span class="n">what</span><span class="s1">&#39;s actually going on here? Well, not much more than ActiveRecord mapping the integer corresponding to the indexes of the symbols we provided in the enum macro array.</span>
+</span><span class='line'>
+</span><span class='line'><span class="s1">Our database has only one column storing all this information: `status`. That column has rows that are all either `1`, `2`, or `3`. ActiveRecord pulls the actual symbols that correspond to these array indexes, and returns them, simeltaneously creating an `in_stock`, `out_of_stock`, and `ordered` scope. And the icing on the cake: all the helper methods that are immediately generated for us in the process!</span>
+</span><span class='line'>
+</span><span class='line'><span class="s1">## Tips and Tricks</span>
+</span><span class='line'>
+</span><span class='line'><span class="s1">Enums give you a lot of flexiblity. For example, I played around with the `in_stock` scope of my `Book` object to create a specific class method that would order the top three newest books added to my inventory:</span>
+</span><span class='line'><span class="s1">`scope :newest_stock, -&amp;gt; (limit: 3) { in_stock.order(&#39;</span><span class="n">date</span> <span class="no">DESC</span><span class="err">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="n">limit</span><span class="p">)</span> <span class="p">}</span><span class="sb">`</span>
+</span><span class='line'>
+</span><span class='line'><span class="sb">Another thing to remember is that you *cannot* use the same names for different enums of the same class:</span>
+</span><span class='line'><span class="sb">&lt;/code&gt;&lt;/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sb">&lt;p&gt;class Book &amp;lt; ActiveRecord::Base</span>
+</span><span class='line'><span class="sb">  enum status: [ :ordered ]</span>
+</span><span class='line'><span class="sb">  enum inventory: [ :ordered ]</span>
+</span><span class='line'><span class="sb">end</span>
+</span></code></pre></td></tr></table></div></figure>
+Definitely <strong>don&rsquo;t</strong> do this &ndash; this will raise an ActiveRecord error!</p>
+
+<p>A huge upside to using enums is their contribution to your application&rsquo;s speed and performance. It&rsquo;s a <a href="http://dev.mysql.com/doc/refman/5.1/en/storage-requirements.html">well-known fact</a> that it&rsquo;s much chepaer to store data as an integer in memory, rather than as a string value. Enums take advantage of that, yet allow you to use all the ActiveRecord methods you know and love.</p>
+
+<p>So, you can have your human-readable and fun-to-program code without sacrificing any of the speed and performance that you need to save and access your information. I guess dreams really do come true.</p>
+
+<iframe src="//giphy.com/embed/aCu2aFhWKR84M" width="480" height="198" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The ActiveRecord enum feature allows you compose a single complex state on your models, and can help avoid using multiple boolean value columns to check the status of different objects.</li>
+<li>There are a bunch more resources out there, so make sure <a href="http://brewhouse.io/blog/2013/12/17/whats-new-in-rails-4-1.html">you</a> <a href="http://richonrails.com/articles/active-record-enums-in-ruby-on-rails-4-1">check</a> <a href="https://hackhands.com/ruby-on-enums-queries-and-rails-4-1/">them</a> <a href="http://robots.thoughtbot.com/whats-new-in-edge-rails-active-record-enum">all</a> <a hef="http://dev.mikamai.com/post/82355998967/rails-4-1-activerecord-enums">out</a>.</li>
+<li>Check out the enum <a href="http://edgeguides.rubyonrails.org/4_1_release_notes.html#active-record-enums">release notes</a> and <a href="http://api.rubyonrails.org/v4.1.0/classes/ActiveRecord/Enum.html">documentation</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Embrace Your Inner Paranoia: Using Acts_as_paranoid]]></title>
