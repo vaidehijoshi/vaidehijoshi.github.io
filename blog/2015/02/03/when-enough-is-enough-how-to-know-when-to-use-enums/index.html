@@ -244,11 +244,11 @@
 
 <p>Go ahead and scroll up if you don&rsquo;t believe me &ndash; I promise I didn&rsquo;t make any of these methods! Enum gave them to me, FO FREE. So what&rsquo;s actually going on here? Well, not much more than ActiveRecord mapping the integer corresponding to the indexes of the symbols we provided in the enum macro array.</p>
 
-<p>Our database has only one column storing all this information: <code>status</code>. That column has rows that are all either <code>1</code>, <code>2</code>, or <code>3</code>. ActiveRecord pulls the actual symbols that correspond to these array indexes, and returns them, simeltaneously creating an <code>in_stock</code>, <code>out_of_stock</code>, and <code>ordered</code> scope. And the icing on the cake: all the helper methods that are immediately generated for us in the process!</p>
+<p>Our database has only one column storing all this information: <code>status</code>. That column has rows that are all either <code>1</code>, <code>2</code>, or <code>3</code>. ActiveRecord pulls the actual symbols that correspond to these array indexes, and returns them, simultaneously creating an <code>in_stock</code>, <code>out_of_stock</code>, and <code>ordered</code> scope. And the icing on the cake: all the helper methods that are immediately generated for us in the process!</p>
 
 <h2>Tips and Tricks</h2>
 
-<p>Enums give you a lot of flexiblity. For example, I played around with the <code>in_stock</code> scope of my <code>Book</code> object to create a specific class method that would order the top three newest books added to my inventory:
+<p>Enums give you a lot of flexibility. For example, I played around with the <code>in_stock</code> scope of my <code>Book</code> object to create a specific class method that would order the top three newest books added to my inventory:
 <code>scope :newest_stock, -&gt; (limit: 3) { in_stock.order('date DESC').limit(limit) }</code></p>
 
 <p>Another thing to remember is that you <em>cannot</em> use the same names for different enums of the same class:</p>
@@ -266,7 +266,7 @@
 
 <p>Definitely <strong>don&rsquo;t</strong> do this &ndash; this will raise an ActiveRecord error!</p>
 
-<p>A huge upside to using enums is their contribution to your application&rsquo;s speed and performance. It&rsquo;s a <a href="http://dev.mysql.com/doc/refman/5.1/en/storage-requirements.html">well-known fact</a> that it&rsquo;s much chepaer to store data as an integer in memory, rather than as a string value. Enums take advantage of that, yet allow you to use all the ActiveRecord methods you know and love.</p>
+<p>A huge upside to using enums is their contribution to your application&rsquo;s speed and performance. It&rsquo;s a <a href="http://dev.mysql.com/doc/refman/5.1/en/storage-requirements.html">well-known fact</a> that it&rsquo;s much cheaper to store data as an integer in memory, rather than as a string value. Enums take advantage of that, yet allow you to use all the ActiveRecord methods you know and love.</p>
 
 <p>So, you can have your human-readable and fun-to-program code without sacrificing any of the speed and performance that you need to save and access your information. I guess dreams really do come true.</p>
 
@@ -322,6 +322,8 @@
         <a class="basic-alignment left" href="/blog/2015/01/27/embrace-your-inner-paranoia-use-acts-as-paranoid/" title="Previous Post: Embrace Your Inner Paranoia: using acts_as_paranoid">&laquo; Embrace Your Inner Paranoia: using acts_as_paranoid</a>
       
       
+        <a class="basic-alignment right" href="/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/" title="Next Post: Money Makes The World Go Round: Using Money-Rails and BigDecimal">Money Makes The World Go Round: Using Money-Rails and BigDecimal &raquo;</a>
+      
     </p>
   </footer>
 </article>
@@ -333,6 +335,10 @@
     <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/">Money Makes the World Go Round: Using Money-Rails and BigDecimal</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/02/03/when-enough-is-enough-how-to-know-when-to-use-enums/">When Enough Is Enough: How to Know When to Use Enums</a>
@@ -348,10 +354,6 @@
     
       <li class="post">
         <a href="/blog/2015/01/20/implementing-rem-in-css-or-how-to-be-a-shiny-happy-developer/">Implementing REM in CSS (or, How to Be a Shiny Happy Developer)</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/01/13/tidying-up-those-views-using-decorators-in-rails/">Tidying Up Those Views: Using Decorators in Rails</a>
       </li>
     
   </ul>

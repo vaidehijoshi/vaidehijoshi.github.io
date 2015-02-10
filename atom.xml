@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-02-02T23:10:44-05:00</updated>
+  <updated>2015-02-09T23:03:49-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,195 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Money Makes the World Go Round: Using Money-Rails and BigDecimal]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/"/>
+    <updated>2015-02-10T08:07:09-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal</id>
+    <content type="html"><![CDATA[<p><img src="http://s3-ec.buzzfed.com/static/enhanced/webdr02/2013/3/26/12/enhanced-buzz-19756-1364314697-15.jpg" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>Mo money, mo problems. This is especially the case when you&rsquo;re a new developer trying to onboard onto a huge eCommerce Rails application.</p>
+
+<p>No, but really - money is such a pain in the ass to deal with as a programmer. So much logic and detail goes into accpeting a payment, processing a transaction, checking an order&rsquo;s status&hellip;and don&rsquo;t even get me <em>started</em> on shipping &ndash; seriously, I&rsquo;m saving the entire concept of shipping for another blog post.</p>
+
+<p>But, at some point or another, you have to deal with other people&rsquo;s money. And you have to try and not screw it up, because apparently people really don&rsquo;t like that. So, how do you handle all those dolla dolla bills? Yup, you guessed it: with the <strong>money-rails library</strong> and Ruby&rsquo;s <strong>BigDecimal object</strong>.</p>
+
+<!-- more -->
+
+
+<h2>Get Dat Dough: Implementing Money-Rails</h2>
+
+<p>Including the money-rails library is fairly simple: add <code>gem 'money-rails'</code> to your Gemfile and then <code>bundle</code> in your console.</p>
+
+<p>But what exactly <em>is</em> this library, and how do you effectively use it? Well, that&rsquo;s another thing entirely.</p>
+
+<p>The most important thing to note is that the <code>money-rails</code> library provides integration of the <code>money</code> gem for Rails applications. So, before you go around throwing about your dough every which way, here are a few things about the <code>money</code> gem to keep in mind:</p>
+
+<ol>
+<li>It gives you a <code>Money</code> class, and instances of this class (<code>Money</code> objects) contain all the information about a certain <em>amount</em> of money.  Provides a Money class which encapsulates all information about an certain amount of money, such as its value and its currency.</li>
+<li>It provides you with a <code>Money::Currency</code> class, which contains all the information about a certain monetary unit. Instances of this class are how we will represent different currencies.</li>
+<li>It includes APIs to exchange one kind of currency into another.</li>
+<li>It represents money in <code>Integer</code> values, not <code>Float</code>, in order to avoid rounding errors.</li>
+</ol>
+
+
+<p>This last one is important, so try to remember it &ndash; we&rsquo;re going to come back to this in a bit.</p>
+
+<h2>Make It Rain!</h2>
+
+<p>Ok, time to get rich: let&rsquo;s make ourselves some money. Instantiating a <code>Money</code> object isn&rsquo;t too hard; simply create a new instance and pass it an amount and a currency:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">five_bucks</span> <span class="o">=</span> <span class="no">Money</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="s2">&quot;USD&quot;</span><span class="p">)</span>  <span class="c1">#=&gt; $5.00 USD</span>
+</span><span class='line'><span class="n">five_bucks</span><span class="o">.</span><span class="n">cents</span>     <span class="c1">#=&gt; 500</span>
+</span><span class='line'><span class="n">five_bucks</span><span class="o">.</span><span class="n">currency</span>  <span class="c1">#=&gt; Currency.new(&quot;USD&quot;)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Notice that the amount must be passed in as cents, while the currency must be passed in as either a <code>String</code> or a <code>Money::Currency</code> object.</p>
+
+<p>Money usually means math, so let&rsquo;s do some:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">my_money</span> <span class="o">=</span> <span class="no">Money</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="mi">3000</span><span class="p">,</span> <span class="s2">&quot;USD&quot;</span><span class="p">)</span>
+</span><span class='line'><span class="n">your_money</span> <span class="o">=</span> <span class="no">Money</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="mi">1500</span><span class="p">,</span> <span class="s2">&quot;USD&quot;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">my_money</span> <span class="o">+</span> <span class="n">your_money</span> <span class="o">==</span> <span class="no">Money</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="mi">4500</span><span class="p">,</span> <span class="s2">&quot;USD&quot;</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>You can also use the <code>parse</code> method, which takes in a symbol and number in a string format, and returns a <code>Money</code> object with the correct currency type:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Money</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s2">&quot;£60&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="no">Money</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="mi">60</span><span class="p">,</span> <span class="s2">&quot;GBP&quot;</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In addition to comparing currencies, you can create an access them as objects:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">currency</span> <span class="o">=</span> <span class="no">Money</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="mi">60</span><span class="p">,</span> <span class="s2">&quot;GBP&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">currency</span> <span class="c1">#=&gt; &quot;£60.00 GBP&quot;</span>
+</span><span class='line'><span class="n">currency</span><span class="o">.</span><span class="n">iso_code</span> <span class="c1">#=&gt; &quot;GBP&quot;</span>
+</span><span class='line'><span class="n">currency</span><span class="o">.</span><span class="n">name</span>     <span class="c1">#=&gt; &quot;British Pound&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>You can access any information of a currency (which is, again, just a <code>Money</code> object), including its <code>name</code>, <code>iso_code</code>, <code>symbol</code>, and <code>delimiter</code>. And if you want to create a new currency, you&rsquo;d simply need to pass in the values as a hash into the <code>register</code> class method. There&rsquo;s also the <code>default_currency</code> class method, which does exactly what you think it does, and an <code>exchange_to</code> method, which can be super handy if you ever want to sell your products&hellip;well, basically anywhere.</p>
+
+<p>So. You can make money now. Like, actually <em>create</em> it. Do you feel like a god yet? Okay good. Hold onto that feeling, because it&rsquo;s about to get a little more complicated.</p>
+
+<iframe src="//giphy.com/embed/jUNAEqdvpQCcM" width="480" height="239" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>BigDecimal: Not Just Any Ol&#8217; Number</h2>
+
+<p>When I was first playing around with this gem, I was much like you: young, naive, thoroughly amused by the fact that I could play with money in my console with (mostly) no consequences. And then I saw this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1">#&lt;BigDecimal:7fbd6eab87f8,&#39;0.8E1&#39;,9(36)&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><em>Um. What? Is that an association? An object? Is it even Ruby?</em></p>
+
+<p>The answer to my questions were no, yes, and absolutely. Actually, that little guy up there is my new friend, <code>BigDecimal</code>. And by the time you finish reading this post, I think you&rsquo;re going to like him, too.</p>
+
+<p>Okay, time for a quick exercise! Open up irb and type in: <code>1.01 - 1.00</code></p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="mi">2</span><span class="o">.</span><span class="mi">1</span><span class="o">.</span><span class="mi">2</span> <span class="p">:</span><span class="mo">001</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="o">.</span><span class="mo">01</span> <span class="o">-</span> <span class="mi">1</span><span class="o">.</span><span class="mo">00</span>
+</span><span class='line'> <span class="o">=&gt;</span> <span class="mi">0</span><span class="o">.</span><span class="mo">01000000000000000</span><span class="mi">9</span>
+</span><span class='line'><span class="mi">2</span><span class="o">.</span><span class="mi">1</span><span class="o">.</span><span class="mi">2</span> <span class="p">:</span><span class="mo">002</span> <span class="o">&gt;</span> <span class="n">n</span> <span class="o">=</span> <span class="n">_</span>
+</span><span class='line'> <span class="o">=&gt;</span> <span class="mi">0</span><span class="o">.</span><span class="mo">01000000000000000</span><span class="mi">9</span>
+</span><span class='line'><span class="mi">2</span><span class="o">.</span><span class="mi">1</span><span class="o">.</span><span class="mi">2</span> <span class="p">:</span><span class="mo">003</span> <span class="o">&gt;</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="o">.</span><span class="mo">01</span>
+</span><span class='line'> <span class="o">=&gt;</span> <span class="kp">true</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Wait&hellip;Ruby thinks that the difference between <code>1.01</code> and <code>1.00</code> is greater than <code>0.01</code>? OH SHIT. DID WE BREAK RUBY?!</p>
+
+<p>Nope, nope we did not. But, we <em>did</em> just discover the one true flaw of Ruby <code>Float</code>, which is that they can&rsquo;t store decimals very precisely. Apparently, the reason for this</a> is that floats are stored in a binary number format, which means that there&rsquo;s a lot of conversion from binary to decimal going on under the hood.</p>
+
+<p>This probably doesn&rsquo;t seem all that important, but here&rsquo;s the thing: people really don&rsquo;t like it when you take their money. And when you use floats, you may very well be rounding up in cases when you really shouldn&rsquo;t be, which would result in some sort of numerical error.</p>
+
+<p>Enter our new buddy, <code>BigDecimal</code>. We can do the exact same calculation with this object, but without the arbitrary rounding! If we try it out in irb, we&rsquo;ll get the number that we were originally expecting:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="mi">2</span><span class="o">.</span><span class="mi">1</span><span class="o">.</span><span class="mi">2</span> <span class="p">:</span><span class="mo">005</span> <span class="o">&gt;</span> <span class="no">BigDecimal</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s2">&quot;1.01&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="no">BigDecimal</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s2">&quot;1.00&quot;</span><span class="p">)</span>
+</span><span class='line'> <span class="o">=&gt;</span> <span class="c1">#&lt;BigDecimal:7fee2add1560,&#39;0.1E-1&#39;,9(27)&gt; </span>
+</span><span class='line'><span class="mi">2</span><span class="o">.</span><span class="mi">1</span><span class="o">.</span><span class="mi">2</span> <span class="p">:</span><span class="mo">006</span> <span class="o">&gt;</span> <span class="n">n</span> <span class="o">=</span> <span class="n">_</span>
+</span><span class='line'> <span class="o">=&gt;</span> <span class="c1">#&lt;BigDecimal:7fee2add1560,&#39;0.1E-1&#39;,9(27)&gt; </span>
+</span><span class='line'><span class="mi">2</span><span class="o">.</span><span class="mi">1</span><span class="o">.</span><span class="mi">2</span> <span class="p">:</span><span class="mo">007</span> <span class="o">&gt;</span> <span class="n">n</span><span class="o">.</span><span class="n">to_f</span>
+</span><span class='line'> <span class="o">=&gt;</span> <span class="mi">0</span><span class="o">.</span><span class="mo">01</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If you remember scientific notation from middle school, then you&rsquo;ll notice what&rsquo;s going on in <code>0.1E-1</code>, and how that converts to <code>0.01</code> when we called the <code>to_f</code> method on it. This takes more time, but it is far more accurate &ndash; something that&rsquo;s pretty important when it comes to the monies.</p>
+
+<p>Remember earlier in the post when I told you to remember that the <code>money</code> gem uses <code>Integer</code> but not <code>Float</code>? Well, it also uses <code>BigDecimal</code> objects, for the same exact reason that we just discovered on our own.</p>
+
+<h2>What Is Standard Cannot Be Core</h2>
+
+<p>If your first reaction to reading this post was opening up irb and trying to make your own <code>BigDecimal</code> object, then you most certainly encountered this error:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">♥</span> <span class="n">irb</span>
+</span><span class='line'><span class="mi">2</span><span class="o">.</span><span class="mi">1</span><span class="o">.</span><span class="mi">2</span> <span class="p">:</span><span class="mo">001</span> <span class="o">&gt;</span> <span class="no">BigDecimal</span><span class="o">.</span><span class="n">new</span>
+</span><span class='line'><span class="ss">NameError</span><span class="p">:</span> <span class="n">uninitialized</span> <span class="n">constant</span> <span class="no">BigDecimal</span>
+</span><span class='line'>  <span class="n">from</span> <span class="p">(</span><span class="n">irb</span><span class="p">):</span><span class="mi">1</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Before you freak out, let me assure you that I did not lie to you &ndash; <code>BigDecimal</code> most surely is a real thing. But it&rsquo;s not a core thing. What I mean by that is, <code>BigDecimal</code> is not part of the Ruby Core Library; it&rsquo;s actually part of the Ruby Standard Library.</p>
+
+<p>If you&rsquo;re thinking to yourself, <em>Whut?! Ruby has two different libraries?</em>, you&rsquo;d be right. But even though both deal with Ruby objects, there&rsquo;s a fundamental difference between the two.</p>
+
+<p>The <a href="http://www.ruby-doc.org/core-2.2.0/">Ruby Core Library</a> is what you use every day, including basic objects such as <code>String</code>, <code>Integer</code>, <code>Float</code>, <code>Array</code>, <code>Hash</code>, and many others. On the other hand, the objects in the <a href="http://www.ruby-doc.org/stdlib-2.2.0/">Ruby Standard Library</a> may seem a little less familiar. Unlike the Core Library, objects from the Standard Library have to be explicitly required. <code>BigDecimal</code> objects are part of the Standard Library, as are <code>Abbrev</code>, <code>Logger</code>, and <code>Matrix</code> objects.</p>
+
+<p>The Standard Library is an extension of the Ruby language. You will always have access to the Core Library, but if you want to use an objec that exists outside of the Core Library, you&rsquo;ll need to specifically require it. So, if you want to play with <code>BigDecimal</code> in the console or use it in your application, you&rsquo;ll have to type this in to have access to the object: <code>require 'bigdecimal'</code>.</p>
+
+<h2>More Bang For Your Buck</h2>
+
+<p>When I first started reading about <code>BigDecimal</code>, I wondered why I had never run into this type of object before. How could I have missed it entirely? As a beginner, it may not sense to use this type of Ruby object at all, and it may very well slow you down. In fact, I think floats are the default object in use for a reason: they&rsquo;re much cheaper to use in memory, and can convert, lookup, and do arithmetic much faster than <code>BigDecimal</code>. Calculations on <code>BigDecimal</code> objects are much slower because they are objects, which take up <em>far</em> more space and memory. However, if you&rsquo;re actually dealing with currency values &ndash; building an ecommerce application, for example &ndash; <code>BigDecimal</code> still seems to be a clear winner to me.</p>
+
+<p>The <code>money</code> gem and <code>money-rails</code> library provide a lot of flexibility when it comes to handling money in your application mostly because they create <code>Money</code> objects. I&rsquo;m a huge fan of object-oriented programming, and these libraries allow you to manipulate and access your currency with far more ease than if they were stored as simple integers, or even floats.</p>
+
+<p>However, these resources are only the tip of the iceberg when it comes to dealing with money in your Rails application. Another awesome library is <a href="https://github.com/RubyMoney/monetize">monetize</a>, which allows you to convert different types of Ruby objects into <code>Money</code> objects. Once you get the basic structure and namespacing of these libraries, learning about new ones will be a piece of cake. Pretty soon, you&rsquo;ll be breaking the bank with all your knowledge about using money in Rails. Maybe you&rsquo;ll even end up like this guy:</p>
+
+<iframe src="//giphy.com/embed/3Jhdg8Qro5kMo" width="480" height="295" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>money-rails</code> library allows you to create <code>Money</code> objects, including different currencies. Ruby <code>BigDecimal</code> objects round more accurately and are more precise than <code>Float</code> objects, making them more preferable when working with money.</li>
+<li>Read more about the methods available to <code>BigDecimal</code> objects in the <a href="http://www.ruby-doc.org/stdlib-2.2.0/libdoc/bigdecimal/rdoc/index.html">Ruby documentation</a>, and check out all the cool stuff that the <code>money</code> gem can do over on <a href="http://rubymoney.github.io/money/">their website</a>.</li>
+<li>Want to know more about what makes floats weird? Read <a href="http://www.rails-troubles.com/2011/12/ruby-float-quirks.html">this blog post</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[When Enough Is Enough: How to Know When to Use Enums]]></title>
@@ -176,11 +365,11 @@
 
 <p>Go ahead and scroll up if you don&rsquo;t believe me &ndash; I promise I didn&rsquo;t make any of these methods! Enum gave them to me, FO FREE. So what&rsquo;s actually going on here? Well, not much more than ActiveRecord mapping the integer corresponding to the indexes of the symbols we provided in the enum macro array.</p>
 
-<p>Our database has only one column storing all this information: <code>status</code>. That column has rows that are all either <code>1</code>, <code>2</code>, or <code>3</code>. ActiveRecord pulls the actual symbols that correspond to these array indexes, and returns them, simeltaneously creating an <code>in_stock</code>, <code>out_of_stock</code>, and <code>ordered</code> scope. And the icing on the cake: all the helper methods that are immediately generated for us in the process!</p>
+<p>Our database has only one column storing all this information: <code>status</code>. That column has rows that are all either <code>1</code>, <code>2</code>, or <code>3</code>. ActiveRecord pulls the actual symbols that correspond to these array indexes, and returns them, simultaneously creating an <code>in_stock</code>, <code>out_of_stock</code>, and <code>ordered</code> scope. And the icing on the cake: all the helper methods that are immediately generated for us in the process!</p>
 
 <h2>Tips and Tricks</h2>
 
-<p>Enums give you a lot of flexiblity. For example, I played around with the <code>in_stock</code> scope of my <code>Book</code> object to create a specific class method that would order the top three newest books added to my inventory:
+<p>Enums give you a lot of flexibility. For example, I played around with the <code>in_stock</code> scope of my <code>Book</code> object to create a specific class method that would order the top three newest books added to my inventory:
 <code>scope :newest_stock, -&gt; (limit: 3) { in_stock.order('date DESC').limit(limit) }</code></p>
 
 <p>Another thing to remember is that you <em>cannot</em> use the same names for different enums of the same class:</p>
@@ -198,7 +387,7 @@
 
 <p>Definitely <strong>don&rsquo;t</strong> do this &ndash; this will raise an ActiveRecord error!</p>
 
-<p>A huge upside to using enums is their contribution to your application&rsquo;s speed and performance. It&rsquo;s a <a href="http://dev.mysql.com/doc/refman/5.1/en/storage-requirements.html">well-known fact</a> that it&rsquo;s much chepaer to store data as an integer in memory, rather than as a string value. Enums take advantage of that, yet allow you to use all the ActiveRecord methods you know and love.</p>
+<p>A huge upside to using enums is their contribution to your application&rsquo;s speed and performance. It&rsquo;s a <a href="http://dev.mysql.com/doc/refman/5.1/en/storage-requirements.html">well-known fact</a> that it&rsquo;s much cheaper to store data as an integer in memory, rather than as a string value. Enums take advantage of that, yet allow you to use all the ActiveRecord methods you know and love.</p>
 
 <p>So, you can have your human-readable and fun-to-program code without sacrificing any of the speed and performance that you need to save and access your information. I guess dreams really do come true.</p>
 
