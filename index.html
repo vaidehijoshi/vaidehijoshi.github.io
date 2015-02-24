@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="No matter where you&rsquo;re from, what programming language you prefer, or which JavaScript framework you&rsquo;re committed to, I think you&rsquo; &hellip;">
+  <meta name="description" content="This blog post is part of a series on Class Inheritence. Read Part 1 here. I recently stumbled upon this line of code that totally floored me. I mean &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,70 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/02/24/singletons-and-eigens-oh-my-or-class-inheritance-part-2/">Singletons and Eigens, Oh My! (or, Class Inheritance: Part 2)</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-02-24T08:13:49-05:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:13 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><em>This blog post is part of a series on Class Inheritence. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance/">here</a>.</em></p>
+
+<p>I recently stumbled upon this line of code that totally floored me. I mean, I had to drop everything I was doing and do some serious Googling, my friends. Well, that and also I asked my fellow developers at work who are far more seasoned programmers than me.</p>
+
+<p>Now, I&rsquo;m going to share this line of code with you, but you&rsquo;ve got to try not to totally freak out if you haven&rsquo;t seen it before. Are you ready? Ok, here we go:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">SomeObject</span>
+</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">some_method</span>
+</span><span class='line'>      <span class="s2">&quot;A string returned by some_method.&quot;</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Are you with me? Did you make it past the second line? Do I need to call an ambulance? Well, if your reaction was anything like mine, you saw <code>class &lt;&lt; self</code> and experienced something akin to an aneurysm.</p>
+
+<iframe src="//giphy.com/embed/ds8khI25lsR3y" width="480" height="255" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Ok, let&rsquo;s agree on one thing right here, right now: everything in Ruby is an object. No matter how crazy it&rsquo;s about to get, just remember that. In fact, it&rsquo;s worth repeating again: <em>Everything in Ruby is an object &ndash; <strong>even a class</strong>.</em></p>
+
+<p>Got it? Okay, now let&rsquo;s figure what the hell that code means, exactly.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/02/24/singletons-and-eigens-oh-my-or-class-inheritance-part-2/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -423,42 +487,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/11/30/so-you-wanna-ship-some-software-eh/">So You Wanna Ship Some Software, Eh?</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-11-30T18:05:55-05:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:05 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Disheveled hair. Bags under your eyes. Hermit-like tendencies. Suffice it to say, project mode can do a <em>lot</em> of things to a person. It&rsquo;s the first time you&rsquo;re on your own, and the feeling of &ldquo;sink or swim&rdquo; will, inevitably, hit you in the face at some point or another.</p>
-
-<p>But, project mode also teaches you a lot about what it means to focus and ship software. And it doesn&rsquo;t really matter that you&rsquo;ve only been coding for 9 weeks and that your application has only four models and that you&rsquo;re missing a ton of <code>&lt;div&gt;</code> tags. Why? Because the mistakes you make in your first application are ones that you&rsquo;ll never make again. So, inspired by <a href="http://blakedeboer.ghost.io/recent-lessons-learned/">Blake&rsquo;s post on lessons learned</a> from building a web application, here are a few things I learned in the process of shipping my first piece of software:</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2014/11/30/so-you-wanna-ship-some-software-eh/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -474,6 +502,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/02/24/singletons-and-eigens-oh-my-or-class-inheritance-part-2/">Singletons and Eigens, Oh My! (or, Class Inheritance: Part 2)</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/02/17/time-the-black-sheep-of-the-programming-family/">Time: The Black Sheep of the Programming Family</a>
       </li>
     
@@ -487,10 +519,6 @@
     
       <li class="post">
         <a href="/blog/2015/01/27/embrace-your-inner-paranoia-use-acts-as-paranoid/">Embrace Your Inner Paranoia: Using Acts_as_paranoid</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/01/23/the-fog-creek-fellowship-lessons-in-fearlessness-and-fortitude/">The Fog Creek Fellowship: Lessons in Fearlessness and Fortitude</a>
       </li>
     
   </ul>

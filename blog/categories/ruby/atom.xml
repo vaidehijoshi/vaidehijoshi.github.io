@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Ruby | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-02-16T20:58:04-05:00</updated>
+  <updated>2015-02-23T22:23:36-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,217 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Singletons and Eigens, Oh My! (or, Class Inheritance: Part 2)]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/02/24/singletons-and-eigens-oh-my-or-class-inheritance-part-2/"/>
+    <updated>2015-02-24T08:13:49-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/02/24/singletons-and-eigens-oh-my-or-class-inheritance-part-2</id>
+    <content type="html"><![CDATA[<p><em>This blog post is part of a series on Class Inheritence. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance/">here</a>.</em></p>
+
+<p>I recently stumbled upon this line of code that totally floored me. I mean, I had to drop everything I was doing and do some serious Googling, my friends. Well, that and also I asked my fellow developers at work who are far more seasoned programmers than me.</p>
+
+<p>Now, I&rsquo;m going to share this line of code with you, but you&rsquo;ve got to try not to totally freak out if you haven&rsquo;t seen it before. Are you ready? Ok, here we go:</p>
+
+<pre><code class="ruby">class SomeObject
+  class &lt;&lt; self
+    def some_method
+      "A string returned by some_method."
+    end
+  end
+end
+</code></pre>
+
+<p>Are you with me? Did you make it past the second line? Do I need to call an ambulance? Well, if your reaction was anything like mine, you saw <code>class &lt;&lt; self</code> and experienced something akin to an aneurysm.</p>
+
+<iframe src="//giphy.com/embed/ds8khI25lsR3y" width="480" height="255" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Ok, let&rsquo;s agree on one thing right here, right now: everything in Ruby is an object. No matter how crazy it&rsquo;s about to get, just remember that. In fact, it&rsquo;s worth repeating again: <em>Everything in Ruby is an object &ndash; <strong>even a class</strong>.</em></p>
+
+<p>Got it? Okay, now let&rsquo;s figure what the hell that code means, exactly.</p>
+
+<!-- more -->
+
+
+<h2>Class Methods, Because Your Instances Should Never Be Too Greedy</h2>
+
+<p>In order to understand the meaning behind <code>class &lt;&lt; self</code>, we first need to understand the <code>&lt;&lt; self</code> sytax. Let&rsquo;s recap a couple basics about class inheritance first:</p>
+
+<ol>
+<li>Classes can have two different types of methods: class methods, which can be called on a <code>Class</code> object, and instance methods, which can only be called on <em>instances</em> of a <code>Class</code> object.</li>
+<li>There are multiple ways to create class methods:</li>
+</ol>
+
+
+<p>You can use <code>self</code> as the receiver of a method within a class, which is probably the most common way of defining a class method:
+<code>ruby
+class Book
+  def self.type
+    "paperback"
+  end
+end
+</code>
+You can also define a method on the class name (for example, class <code>Book</code>), which implies that the entire <code>Class Book</code> object can receive the <code>type</code> method:
+<code>ruby
+def Book.type
+  "paperback"
+end
+</code>
+But, you can also do this:
+<code>ruby
+class &lt;&lt; Book
+  def type
+    "paperback"
+  end
+end
+</code>
+And &ndash; wait for it &ndash; this:
+<code>ruby
+class Book
+  class &lt;&lt; self
+    def type
+      "paperback"
+    end
+  end
+end
+</code></p>
+
+<p>Okay, so that funky <code>class &lt;&lt; self</code> syntax is just another way of defining a class method? But&hellip;but how?</p>
+
+<h2>One Method To Rule Them All</h2>
+
+<p>So, we know that class methods are a good place to put all the behavior and functionality of <em>all instances</em> of that class. If you want all instances of your <code>Book</code> objects to have a title and an author, you&rsquo;d want that behavior to be put into the <code>Book</code> class, since all instances of Book will inherit from their parent class.</p>
+
+<p>But, what if you wanted a particular instance of a <code>Book</code> to have a specific kind of functionality. Well, you definitely wouldn&rsquo;t want to define a method on the class, because it&rsquo;s only a particular instance that you care about. So why not define a method on that particular instance, then?</p>
+
+<pre><code class="ruby">great_gatsby = Book.new
+charlottes_web = Book.new
+
+def charlottes_web.wilbur
+  "Some Pig"
+end
+
+charlottes_web.type
+# =&gt; "paperback"
+
+charlottes_web.wilbur
+# =&gt; "Some Pig"
+
+great_gatsby.type
+# =&gt; "paperback"
+
+great_gatsby.wilbur
+# =&gt; NoMethodError: undefined method `wilbur' for #&lt;Book:0x007fc8ebb01bc8&gt;
+</code></pre>
+
+<p>At first glance, nothing here seems all that weird, right? Both the books have access to the <code>type</code> class method, which we defined earlier, while only the <code>charlottes_web</code> <code>Book</code> object has access to the <code>wilbur</code> method. Ruby seems to know that the <code>wilbur</code> method is scoped only to this instance, but it also knows that this instance has other methods &ndash; class methods &ndash; that are also accessible to it. But how is this actually possible?</p>
+
+<p>Well, the answer is for two reasons: <strong>singleton methods</strong> and Ruby&rsquo;s <strong>method lookup chain</strong>.</p>
+
+<p>Singleton methods are methods defined on an object itself, rather than on an object&rsquo;s class. Ruby&rsquo;s method <a href="http://madebydna.com/images/posts/object_method_lookup.gif">lookup chain</a> is pretty intricate:</p>
+
+<p><img src="http://madebydna.com/images/posts/object_method_lookup.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>An object inherits from its class, and its class can inherit from many more objects, which will then inherit from <code>Object</code>, which inherits from the great grandma of all objects in Ruby: <code>BasicObject</code>. Remember: <em>everything in Ruby is an object &ndash; even a class.</em></p>
+
+<p>So at this point, you&rsquo;re probably wondering what this has to do with class methods. Well, a lot, actually.</p>
+
+<h2>A Class Of One&rsquo;s Own</h2>
+
+<p>We can create all the singleton methods we want, but where do they all go? Not in the <code>Book</code> class, that&rsquo;s for sure. So where do we put them, exactly?</p>
+
+<p>It turns out, an object&rsquo;s singleton methods all go into their own neat little class called an <strong>eigenclass</strong>, which is just another name for a singleton class. The word &ldquo;eigen&rdquo; comes from a German term meaning &ldquo;one&rsquo;s very own&rdquo;. I personally like to call it an eigenclass because it minimizes confusion between singleton methods and classes. Also, throwing down terms like <em>eigenclass</em> make you sound like a total badass.</p>
+
+<p>Here&rsquo;s the cool thing about eigenclasses: they&rsquo;re totally hidden. I should warn you though, the thing that makes them cool is the very same thing that makes them complicated. Because they&rsquo;re hidden and anonymous, you obviously can&rsquo;t see them and so it&rsquo;s hard to figure out where in the method lookup path they are. Here&rsquo;s the trick, though: whenever you open up an eigenclass, you shift up the original class.</p>
+
+<iframe src="//giphy.com/embed/jXMtxrFs292so" width="480" height="202" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>In my book example, the <code>charlottes_web</code> object inherits from the <code>Book</code> class. But when I created the <code>wilbur</code> method, I opened up the object&rsquo;s eigenclass, and shifted up the original <code>Book</code> class. Now, the <code>charlottes_web</code> object inherits from its eigenclass, which in turn inherits from the <code>Book</code> class. The <code>Book</code> class has now become the superclass of our object.</p>
+
+<p>Okay, that was a lot. To recap, here&rsquo;s the most important stuff to know about the mysterious eigenclass:</p>
+
+<ol>
+<li>An eigenclass is an anonymous class that is created to hold an object&rsquo;s singleton methods.</li>
+<li>The anonymous eigenclass then becomes the object&rsquo;s immediate class, which it inherits from.</li>
+<li>The original class is re-designated as the superclass of the anonymous eigenclass.</li>
+<li>But because eigenclasses are hidden, when you call <code>charlottes_web.class</code>, it will return <code>Book</code>.</li>
+</ol>
+
+
+<h2>Reveal Thyself, You Eigen, You!</h2>
+
+<p>So, eigenclasses don&rsquo;t show themselves. Cool. Except not cool. Because I want to see it! Well, you can see it, but you have to do a little extra work to make the magic happen. Actually, all you have to do is add a method available to all Ruby <code>Object</code>s, like this:</p>
+
+<pre><code class="ruby">class Object
+  def eigenclass
+    class &lt;&lt; self
+    # This is what opens the eigenclass of the object that is the reciever of the eigenclass method
+
+      self
+      # Now we are in the scope of the eigenclass, and "self" is now the
+      # eigenclass object. Since we are returning self, we will get to see what
+      # the eigenclass actually looks like!
+
+    end
+  end
+end
+</code></pre>
+
+<p>We open up the eigenclass of the object when we use the <code>class &lt;&lt; self</code> syntax. And once we open it up, we are in the scope of the eigenclass. Here, <code>self</code> is now the eigenclass object (everything in Ruby is an object!), and since we are returning <code>self</code>, we will get to see what the eigenclass actually looks like:</p>
+
+<pre><code>charlottes_web.eigenclass
+ =&gt; #&lt;Class:#&lt;Book:0x007fc8ebaf3c08&gt;&gt;
+charlottes_web.eigenclass.class
+ =&gt; Class
+charlottes_web.eigenclass.superclass
+ =&gt; Book
+charlottes_web.eigenclass.superclass.superclass
+ =&gt; Object
+charlottes_web.eigenclass.superclass.superclass.superclass
+ =&gt; BasicObject
+charlottes_web.eigenclass.superclass.superclass.superclass.superclass
+ =&gt; nil
+
+charlottes_web.singleton_methods
+ =&gt; [:wilbur]
+charlottes_web.eigenclass.singleton_methods
+ =&gt; [:type]
+</code></pre>
+
+<p>Interesting. So, the eigenclass of our <code>charlottes_web</code> object does look pretty anonymous, and you might not even notice its weirdness at first. But, it does clearly seem to be a <code>Class</code> object and, as we expected, was inserted into the method lookup chain right between the object and the <code>Book</code> class.</p>
+
+<p>But if you look at the last two lines and their value, that&rsquo;s where stuff gets really interesting. The <code>wilbur</code> method, which we defined on a particular instance of an object, is a singleton method on only that object. The <code>type</code> method, however, lives in the <em>eigenclass</em> of that object.</p>
+
+<p>Is it all coming together now? While the <code>wilbur</code> method could only be called on an instance, the <code>type</code> method can be called on an entire class. So, perhaps you&rsquo;re not not technically creating a class method, but more of an &ldquo;eigenclass class method&rdquo;. In fact, there actually is no such thing as a &ldquo;class method&rdquo; &ndash; you&rsquo;re actually inside of the eigenclass when you create that. But effectively, it&rsquo;s the same thing, because you can&rsquo;t see an eigenclass and it still inherits all the methods from a basic <code>Class</code> object.</p>
+
+<h2>WAT</h2>
+
+<iframe src="//giphy.com/embed/i9nkolRQgbN9C" width="480" height="362" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>If all of this was Greek to you, don&rsquo;t worry. This is just honestly really hard stuff. At the end of the day, all you <em>really</em> need to know is that <code>class &lt;&lt; self</code> is just another way of defining a class method. That and, <em>everything</em> in Ruby is an object.</p>
+
+<p>There&rsquo;s plenty of debate about whether or not using the <code>class &lt;&lt; self</code> syntax is helpful or just confusing. Personally, I like to use it when I have a lot of class methods to define. It can keep your code clean and easy to read, and helps you avoid typing out <code>self.method</code> multiple times.</p>
+
+<p>But, if DRYing out your code is more confusing to you than helpful, you should probably avoid it. It&rsquo;s more about personal preference than anything else. Find a style that works for you and try not to think too much about all the crazy anonymous classes spinning around your head. Try being the keyword here.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Technically speaking, there&rsquo;s actually no such thing as a <em>class method</em> in Ruby. You&rsquo;re always opening up the eigenclass/singleton class of an object whenver you define a class method. Keep in mind that there are many different syntaxes you can use in order to achieve this!</li>
+<li>Curious about the <code>self.method</code> vs <code>class &lt;&lt; self</code> debate? Check out this <a href="http://stackoverflow.com/questions/10964081/class-self-vs-self-method-with-ruby-whats-better">thread on Stack Overflow</a>.</li>
+<li>Read more about the <a href="http://stackoverflow.com/questions/23848667/ruby-method-lookup-path-for-an-object">method lookup path</a> to understand where Ruby looks for stuff.</li>
+<li>Tons of good resources on this stuff <a href="http://madebydna.com/all/code/2011/06/24/eigenclasses-demystified.html">here</a> and <a href="http://yehudakatz.com/2009/11/15/metaprogramming-in-ruby-its-all-about-the-self/">here</a>. Oh, and <a href="http://ruby-metaprogramming.rubylearning.com/html/seeingMetaclassesClearly.html">here</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Time: The Black Sheep of the Programming Family]]></title>
