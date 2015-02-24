@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Ruby | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-02-23T22:23:36-05:00</updated>
+  <updated>2015-02-23T22:26:57-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -14,10 +14,10 @@
 
   
   <entry>
-    <title type="html"><![CDATA[Singletons and Eigens, Oh My! (or, Class Inheritance: Part 2)]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/02/24/singletons-and-eigens-oh-my-or-class-inheritance-part-2/"/>
+    <title type="html"><![CDATA[Class Inheritance: Part 2 (Singletons and Eigens, Oh My!)]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my/"/>
     <updated>2015-02-24T08:13:49-05:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/02/24/singletons-and-eigens-oh-my-or-class-inheritance-part-2</id>
+    <id>http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my</id>
     <content type="html"><![CDATA[<p><em>This blog post is part of a series on Class Inheritence. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance/">here</a>.</em></p>
 
 <p>I recently stumbled upon this line of code that totally floored me. I mean, I had to drop everything I was doing and do some serious Googling, my friends. Well, that and also I asked my fellow developers at work who are far more seasoned programmers than me.</p>
