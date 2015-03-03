@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-02-25T22:40:46-05:00</updated>
+  <updated>2015-03-01T14:43:34-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,165 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Bundle Up &amp; Let Your Objects Do the Freezing: Frozen Hashes]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes/"/>
+    <updated>2015-03-03T08:43:04-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/b7pVN1KY8ycg0" width="480" height="213" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Snowmageddon. Snowpocalypse. The Deep Freeze of 2015. You can call it whatever you want, but we can all agree on one thing: it&rsquo;s so damn cold outside. In fact, it&rsquo;s so cold that I recently saw this error message while debugging a Postgres issue:
+<code>RuntimeError: can't modify frozen Hash</code></p>
+
+<p>My first thought was, naturally, <em>holy shit, even my hashes are frozen</em>. I did a little digging, and it turns out that we aren&rsquo;t the only ones susceptible to these chilly temperatures. Apparently, objects can also freeze!</p>
+
+<p>So, in honor of the frozen tundra that we all seem to currently inhabit, I decided to explore the icy-cold depths of Rails frozen objects. Before you read on though, you should know: I&rsquo;m going to use only gifs from the Disney animated film, <em>Frozen</em> — don&rsquo;t say I didn&rsquo;t warn you.</p>
+
+<!-- more -->
+
+
+<h2>Objects As Cold As Ice</h2>
+
+<p>First things first: what&rsquo;s a frozen object? Well, they&rsquo;re frozen, which means they can&rsquo;t change &ndash; they&rsquo;re immutable and cannot be modified. There are some objects in Ruby that are perpetually frozen, such as any <code>Fixnum</code>, <code>Bignum</code>, <code>Float</code>, and <code>Symbol</code> objects.</p>
+
+<iframe src="//giphy.com/embed/Fjy5XItIvYjEQ" width="480" height="269" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>You&rsquo;ve probably worked with all of these objects before, but may not know that they&rsquo;re actually frozen! Don&rsquo;t believe me? Well, you can check for yourself. Just call the <code>frozen?</code> method on any object of this class:</p>
+
+<pre><code>$ irb
+2.2.0 :001 &gt; 1.frozen?
+ =&gt; true
+2.2.0 :002 &gt; a = :im_a_symbol
+ =&gt; :im_a_symbol
+2.2.0 :003 &gt; a.frozen?
+ =&gt; true
+2.2.0 :004 &gt; 3.14.frozen?
+ =&gt; true
+</code></pre>
+
+<p>This kind of makes sense though, right? Imagine if I could just start rewriting values all over the damn place. I could set <code>1</code> equal to <code>nil</code> and make <code>2</code> equal <code>3</code>, and then we&rsquo;d really hit crazytown.</p>
+
+<p>Frozen objects keep certain things secure and certain in Ruby (and also in Rails!) So, freezing objects is a&hellip;good thing? Well, yes. But also, no.</p>
+
+<h2>The Freeze Method: A Cold Piece Of Work</h2>
+
+<p>Just as there&rsquo;s a method to check whether an object is <code>frozen?</code> or not, there&rsquo;s also a method to freeze mutable objects and make them immutable called &ndash; you guessed it &ndash; <code>freeze</code>. This method is pretty simple: yuo just call it on an object in order to rpevent further modifications to said object. If you <em>do</em> try to modify the object after freezing it, you&rsquo;ll get a <code>RuntimeError</code>:
+<code>
+2.2.0 :005 &gt; x = {1 =&gt; 'a', 2 =&gt; 'b', 3 =&gt; 'c'}
+ =&gt; {1=&gt;"a", 2=&gt;"b", 3=&gt;"c"}
+2.2.0 :006 &gt; x.freeze
+ =&gt; {1=&gt;"a", 2=&gt;"b", 3=&gt;"c"}
+2.2.0 :007 &gt; x.frozen?
+ =&gt; true
+2.2.0 :008 &gt; x[1] = 'b'
+RuntimeError: can't modify frozen Hash
+</code></p>
+
+<iframe src="//giphy.com/embed/oYKesMM459o4w" width="480" height="200" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>But before you get all Elsa on me and start freezing everything, you should know some things about how to use the <code>freeze</code> method as a responsible developer:</p>
+
+<ol>
+<li><p>First and foremost: don&rsquo;t try to call a <code>defrost</code> or <code>thaw</code> method, because there&rsquo;s no such thing. In fact, there is <em>absolutely no way</em> to unfreeze an object. It simply cannot be undone. So, proceed with great caution when freezing things. Or maybe just don&rsquo;t do it at all.</p></li>
+<li><p>The <code>freeze</code> method operates on an object reference, not on a variable. Wait, whut? If this sounds like Ruby objects aren&rsquo;t actually being modified, but their references are instead, well&hellip;that&rsquo;s totally right.</p></li>
+</ol>
+
+
+<p>I really liked the way that Michael Morin explained this in <a href="http://ruby.about.com/od/qa/ss/Can-T-Modify-Frozen-String.htm">his post</a> on frozen objects:</p>
+
+<blockquote><p>When you freeze a hash, it just freezes the references to the objects it already has, it doesn&rsquo;t actually freeze the objects themselves. The frozen hash won&rsquo;t know the difference here. This is an important thing to understand about freezing objects, it&rsquo;s not recursive. All freezing does is prevent the references the object holds from being modified.</p></blockquote>
+
+<p>While we can&rsquo;t unfreeze &ldquo;frozen&rdquo; objects, this particular quality gives us a little bit leeway to get around the lack of a thaw method.</p>
+
+<h2>Chill Out, But Don&rsquo;t Freeze</h2>
+
+<p>There are a few different ways to change an immutable frozen object (which, hello, aren&rsquo;t actually frozen, just their references are). One thing you can do is create a duplicated object, which will <em>not</em> be frozen and therefore, completely mutable:
+<code>
+2.2.0 :009 &gt; x.dup
+ =&gt; {1=&gt;"a", 2=&gt;"b", 3=&gt;"c"}
+2.2.0 :010 &gt; y = _
+ =&gt; {1=&gt;"a", 2=&gt;"b", 3=&gt;"c"}
+2.2.0 :011 &gt; y.frozen?
+ =&gt; false
+2.2.0 :012 &gt; x.frozen?
+ =&gt; true
+2.2.0 :013 &gt; y[1] = 'b'
+ =&gt; "b"
+2.2.0 :014 &gt; y
+ =&gt; {1=&gt;"b", 2=&gt;"b", 3=&gt;"c"}
+</code></p>
+
+<p>Keep in mind, however, that this only changes the data in the duplicated object, not the original one! So&hellip;what now? Well, since only the reference to an object is frozen, that means that you can modify the actual data inside of the frozen object:
+<code>
+2.2.0 :015 &gt; x[1] &lt;&lt; 'bc'
+ =&gt; "ab"
+2.2.0 :016 &gt; x
+ =&gt; {1=&gt;"abc", 2=&gt;"b", 3=&gt;"c"}
+2.2.0 :017 &gt; x.frozen?
+ =&gt; true
+</code></p>
+
+<p>Weird, right!? Our <code>x</code> variable, which points to the <code>Hash</code> object, is still very much frozen. But, we can modify the data and values inside of the object itself. Since we don&rsquo;t want to make an actual copy of the variable, we can instead modify the objects held within that variable (in our case, we&rsquo;re directly modifying the <code>String</code> object, which is a the value of a key in this frozen Hash)</p>
+
+<h2>Freezing Out Those Error Messages</h2>
+
+<p>Cool, so this I guess this is a thing in Ruby. But wait &ndash; it&rsquo;s also a pretty important thing in Rails! Objects in Rails are infinitely more complicated than in Ruby, mostly because you&rsquo;re dealing with ActiveRecord and its methods. Whenever you&rsquo;re trying to delete an ActiveRecord object, you depend on the <code>destroy</code> method.</p>
+
+<p>For example, I use this method in my bookstore app, and I have a <code>delete</code> action in my <code>BooksController</code> that contains code that looks something like this:
+<code>ruby
+@book = Book.find(1)
+@book.destroy
+</code></p>
+
+<p>Now if I wanted to modfiy this book&rsquo;s type after I delete it, I&rsquo;d get an error:
+<code>
+[1] pry(main)&gt; @book.type = 'hardcover'
+TypeError: can't modify frozen hash
+</code></p>
+
+<p>Why is this? Well, even though I deleted the object, it still exists in the <code>@book</code> variable, which still retains all the attributes of the object. Once I destroy the record, the object became frozen. Since the object&rsquo;s attributes hash is frozen, when I try to modify it, I get this error.</p>
+
+<p>The <a href="http://api.rubyonrails.org/classes/ActiveRecord/Persistence.html#method-i-destroy">Rails documentation</a> explains how it implements the <code>freeze</code> method, stating that <code>destroy</code> method:</p>
+
+<blockquote><p>Deletes the record in the database and freezes this instance to reflect that no changes should be made (since they can&rsquo;t be persisted).</p></blockquote>
+
+<p>To avoid creating a <code>@book</code> object that&rsquo;s frozen and still hanging around for no apparent reason, I could instead implicitly delete the object in a single line. Either this:
+<code>ruby
+Book.find(1)destroy
+</code>
+or
+<code>ruby
+Book.destroy(1)
+</code>
+would work.</p>
+
+<p>Alternatively, I could just use the <code>delete</code> method, which doesn&rsquo;t instantiate an object, but isntead directly removes the row from the database.</p>
+
+<p>Frozen objects are in front of us everyday. Ruby actually uses the <code>freeze</code> method when you copy certain objects. According to <a href="http://rubylearning.com/satishtalim/mutable_and_immutable_objects.html">this post</a>, when you use a string as a key of a <code>Hash</code> object, the string is copied, frozen, and then that duplicated copy is used as the key of the hash. This is pretty cool because this means that even if the original string is modified, the duplicated one isn&rsquo;t affected because it has been frozen! The same goes for filenames: internal operations of an application rely on a frozen copy of a filename, rather than the original one.</p>
+
+<p>Once you understand the functionality of <code>freeze</code>, it becomes a lot easier to understand those weird error messages. Soon, you&rsquo;ll no longer fear the ice, but instead bask in the sun. Or&hellip;something more poetic.</p>
+
+<p>Anyways, here&rsquo;s a dancing snowman:</p>
+
+<iframe src="//giphy.com/embed/N80v6XYayA5vG" width="480" height="213" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>You can use the <code>freeze</code> method to make mutable objects immutable. To check whether an object can be modified or not, use the <code>frozen?</code> method, which will return a boolean value.</li>
+<li>Certain Ruby objects, such as integers, floats, and symbols, are always frozen and cannot be modified.</li>
+<li>Some people are <a href="http://m.onkey.org/ruby-i-don-t-like-3-object-freeze">not big fans</a> of the weird functionality of Ruby <code>freeze</code>. But it&rsquo;s still worth it to <a href="http://blog.adamstegman.com/activerecord-hangs-on-to-destroyed-relations.html">learn how it works</a>, especially since it can be <a href="http://blog.adamstegman.com/activerecord-hangs-on-to-destroyed-relations.html">super helpful</a> for <a href="http://www.devarticles.com/c/a/Ruby-on-Rails/Updating-and-Deleting-with-the-Active-Record/2/">debugging Rails apps</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Class Inheritance: Part 2 (Singletons and Eigens, Oh My!)]]></title>
@@ -687,88 +846,6 @@ Definitely <strong>don&rsquo;t</strong> do this &ndash; this will raise an Activ
 <li>The ActiveRecord enum feature allows you compose a single complex state on your models, and can help avoid using multiple boolean value columns to check the status of different objects.</li>
 <li>There are a bunch more resources out there, so make sure <a href="http://brewhouse.io/blog/2013/12/17/whats-new-in-rails-4-1.html">you</a> <a href="http://richonrails.com/articles/active-record-enums-in-ruby-on-rails-4-1">check</a> <a href="https://hackhands.com/ruby-on-enums-queries-and-rails-4-1/">them</a> <a href="http://robots.thoughtbot.com/whats-new-in-edge-rails-active-record-enum">all</a> <a hef="http://dev.mikamai.com/post/82355998967/rails-4-1-activerecord-enums">out</a>.</li>
 <li>Check out the enum <a href="http://edgeguides.rubyonrails.org/4_1_release_notes.html#active-record-enums">release notes</a> and <a href="http://api.rubyonrails.org/v4.1.0/classes/ActiveRecord/Enum.html">documentation</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Embrace Your Inner Paranoia: Using Acts_as_paranoid]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/01/27/embrace-your-inner-paranoia-use-acts-as-paranoid/"/>
-    <updated>2015-01-27T19:36:16-05:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/01/27/embrace-your-inner-paranoia-use-acts-as-paranoid</id>
-    <content type="html"><![CDATA[<p>Yesterday, I started my very first job as a software engineer! It&rsquo;s been super exciting, slightly terrifying, and sometimes overwhelming. I think one of the trickiest parts of starting as a new engineer at a company is the onboarding process.</p>
-
-<p>It might seem kind of scary, but if you think about it, it&rsquo;s actually pretty fun. You get to dive down a rabbit hole and look at production code that you didn&rsquo;t write. It&rsquo;s getting a new puzzle that you haven&rsquo;t solved yet: you try to figure out how one thing connects to another, where modules and methods exist, how things are namespaced, not to mention learning about new frameworks and gems. I feel like I&rsquo;m entering into new dimensions and travelling through a space-time continuum or something. This also might be attributed to the fact that I&rsquo;ve been  listening exclusively to the <a href="https://www.youtube.com/watch?v=YOWSTtXxf9s">Interstellar soundtrack</a> for the past two days, but whatever &ndash; you get the point.</p>
-
-<p>My favorite part of the onboarding process is how much I&rsquo;ve been learning. Every new class or module definition brings a new piece of the puzzle that I&rsquo;ve never seen before, but can&rsquo;t wait to learn about. It&rsquo;s kind of crazy that I get paid to read and learn all day, every day &ndash; that&rsquo;s the dream, right?</p>
-
-<p>Anyways, all of this is to say that I&rsquo;ve found and learned about some cool stuff! For example this little ditty: <code>acts_as_paranoid</code>. I saw this in a class definition and my first thought was literally: <em>Damn, that&rsquo;s a great name for a validation!</em> But as it turns out, it&rsquo;s not actually a validation &ndash; it&rsquo;s Rails magic!</p>
-
-<!-- more -->
-
-
-<h2>Start acting paranoid!</h2>
-
-<p>Okay, I lied: <code>acts_as_paranoid</code> not actually <em>magic</em> &ndash; it&rsquo;s a Rails ActiveRecord plugin. But it&rsquo;s still pretty magical, you guys! So, what does it do? Well, it helps you be less paranoid about deleting stuff by accident (hence the name). Essentially, <code>acts_as_paranoid</code> allows you to make soft deletes in Rails. That means that it gives you the flexibility to delete an object without actually deleting it from the database.</p>
-
-<iframe src="//giphy.com/embed/VpbctjT9VrALS" width="480" height="260" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Does this sound like black magic yet? Just wait, you&rsquo;re about to see some real magic.</p>
-
-<h2>So&hellip;how do I starting acting paranoid?</h2>
-
-<p>In my example, I&rsquo;ll be implementing <code>acts_as_paranoid</code> on some <code>Book</code> objects in my eCommerce bookstore app. Using <code>acts_as_paranoid</code> is relatively simple. You can break it down into two simple steps:</p>
-
-<p>First, add <code>acts_as_paranoid</code> to your class definition:
-<code>ruby
-class Book &lt; ActiveRecord::Base
-  acts_as_paranoid
-end
-</code></p>
-
-<p>Then, add a column to the database for that class called <code>deleted_at</code>, which is set to a <code>datetime</code> format:
-<code>ruby
-class AddDatetimeToBooks &lt; ActiveRecord::Migration
-  def change
-    add_column :books, :deleted_at, :datetime
-  end
-end
-</code></p>
-
-<h2>Ok, I&rsquo;m getting paranoid now &ndash; how does this work?</h2>
-
-<p>So, we have another column in our <code>Books</code> table that has a <code>deleted_at</code> column with a type of <code>:datetime</code>. Now, this is where the magic happens: the <code>acts_as_paranoid</code> plugin actually <em>overrides</em> ActiveRecord&rsquo;s <code>find</code>, <code>count</code>, and <code>destroy</code> methods. So now when we call the <code>destroy</code> method on a <code>Book</code> object, instead of actually deleting the object, the object&rsquo;s <code>deleted_at</code> field will be set to the current date and time.</p>
-
-<p>And, if we call the <code>find</code> method on all of our <code>Book</code> objects, the one we just &ldquo;deleted&rdquo; won&rsquo;t show up! Instead, only the objects that <em>don&rsquo;t</em> have a value in their <code>deleted_at</code> column will render.</p>
-
-<p>So, calling <code>@book.destroy</code> doesn&rsquo;t delete a row from the database; it actually just updates the row by giving a datetime to the object&rsquo;s <code>deleted_at</code> field. If you&rsquo;re into SQL queries, this is what&rsquo;s going on:</p>
-
-<p><code>UPDATE books SET deleted_at = '2015-01-27 19:36:16' WHERE (id = 50)</code></p>
-
-<p>The <code>Book</code> object with an id of <code>50</code> isn&rsquo;t <em>actually</em> deleted from the database, even though it will appear so in all of our views, and to our users/admins.</p>
-
-<h2>But who needs soft deletes, anyways?</h2>
-
-<p>I actually didn&rsquo;t realize the use case for soft deletes at first. But it turns out that they are incredibly helpful when building out large, more complicated Rails applications.</p>
-
-<p>It&rsquo;s important to remember that Ruby is an object-oriented programming language. Any object that has an association with another object inherently relies upon it. In my bookstore app example, a <code>Book</code> object would belong to a <code>Order</code> object, and also be associated with a <code>User</code> object of some sort. If you think about the appliation on a broader, less granular level, you might realize that deleting any given <code>Book</code> object could actually have serious repercussions.</p>
-
-<p>For example, you might want to see a <code>Book</code> object that was ordered in the past, even if that <code>Book</code> has since been deleted from a store. Perhaps you want to view the details of a <code>Shipment</code> object, even if that shipment was cancelled. Or, you might want to see an order that was placed by a <code>User</code> who may have deactivated their account months ago.</p>
-
-<p>The <code>acts_as_paranoid</code> plugin helps you access all of this information, without keeping you up at night, wondering whether you deleted the wrong row from the database. Because honestly, who has time for that? Not this kitty, for sure:</p>
-
-<p><img src="https://idp05.files.wordpress.com/2008/03/paranoid-cat.jpg" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>acts_as_paranoid</code> plugin modifies ActiveRecord methods and allows you to implement soft deletes on your Ruby objects. Just remember to include it in your class definition and add a <code>deleted_at</code> column to your migration, with a type of <code>datetime</code>.</li>
-<li>Want to see another example of disabling records using <code>acts_as_paranoid</code>? Check out <a href="https://www.safaribooksonline.com/library/view/rails-cookbook/0596527314/ch14s11.html">this blog post</a>.</li>
-<li>To read more about <code>acts_as_paranoid</code> and its many caveats, check out <a href="https://github.com/ActsAsParanoid/acts_as_paranoid/">the easy-to-follow documentation</a>.</li>
 </ul>
 
 ]]></content>
