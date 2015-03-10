@@ -1,0 +1,409 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>It&#8217;s All in the Family: Using Acts_as_tree - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="When working in Rails, it&rsquo;s all the family &ndash; literally. No matter the size of your application, almost all of your objects are going to &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">It&#8217;s All in the Family: Using Acts_as_tree</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-03-10T08:27:54-04:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:27 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><iframe src="//giphy.com/embed/eWYGCVTJuOcg0" width="480" height="360" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>When working in Rails, it&rsquo;s all the family &ndash; literally. No matter the size of your application, almost all of your objects are going to be related to each other. You can create however many objects you wan because database rows are cheap, cheap, cheap! But the more objects you make, the harder it is to keep track of the other data that the object relates to (which is generally yet <em>another</em> object).</p>
+
+<p>I found myself in such a predicament last week, when I had to make numerous objects relate to one other to create a tree structure. The obvious first approach was to use the <code>belongs_to</code> and <code>has_many</code> relationship. But when I realized that I wanted some <code>Genre</code> objects to belong to <em>other</em> <code>Genre</code> objects, I ran into a problem. Depending solely on the ActiveRecord relationships turned out to be painful, messy, and complicated, and wouldn&rsquo;t make my code very flexible or sustainable over time.</p>
+
+<p>So I Googled around and found a handy plugin created by DHH himself called <code>acts_as_tree</code>. This gem allows you to create a hierarchical structure of objects in your application and &ndash; to take it a step further &ndash; gives you a bunch of incredibly helpful methods. It even allows you to visualize your tree structure! Sound amazing? That&rsquo;s because it is. And if you follow a few easy steps, you can use it in your application, too.</p>
+
+<!--more-->
+
+
+<h2>Family Ties</h2>
+
+<p>So, for this post I&rsquo;ll continue working through my basic eCommerce Bookstore application, which I&rsquo;ve been using as an example for my previous posts. I&rsquo;ve already got some <code>Book</code> objects, but as my store starts to grow, it&rsquo;s going to be pretty hard to keep track of the different genres of <code>Book</code> objects that I currently have available.</p>
+
+<p>The first step to tackling this problem was easy: create <code>Genre</code> objects, each of which <code>has_many</code> different <code>Book</code> objects associated with it, while each <code>Book</code> object will <code>belong_to</code> one specific <code>Genre</code>.</p>
+
+<p>But what about genres that are associated with and &ldquo;descend from&rdquo; other genres? Well, here&rsquo;s where the delightful and easy-to-use <code>acts_as_tree</code> gem comes in.</p>
+
+<iframe src="//giphy.com/embed/pcPeWllpmv6Zq" width="480" height="431" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>First things first: we&rsquo;ll add <code>gem 'acts_as_tree'</code> to our Gemfile.</p>
+
+<p>Next, we need to add a column to our <code>Genre</code> database. We can write a simple migration that will add a <code>parent_id</code> integer to our database, which will allow us to find the parents and children of a <code>Genre</code> object:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddParentIdColumnToGenre</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>    <span class="n">add_column</span> <span class="ss">:genres</span><span class="p">,</span> <span class="ss">:parent_id</span><span class="p">,</span> <span class="ss">:integer</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Finally, we&rsquo;ll head over to our <code>Genre</code> model, which is what we needs to act as a (family) tree. We need to add a single line in here, which implements the ActiveRecord plugin and specifies what we&rsquo;ll be ordering our <code>Genre</code> objects by:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Genre</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">has_many</span> <span class="ss">:books</span>
+</span><span class='line'>  <span class="n">validates_presence_of</span> <span class="ss">:name</span>
+</span><span class='line'>  <span class="n">acts_as_tree</span> <span class="ss">order</span><span class="p">:</span> <span class="s2">&quot;name&quot;</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Blood Is Thicker Than Water</h2>
+
+<p>Okay, now let&rsquo;s see this baby in action! We can start by making a root <code>Genre</code> object, and then giving it some children:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">literature</span> <span class="o">=</span> <span class="no">Genre</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Literature&quot;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">non_fiction</span> <span class="o">=</span> <span class="n">literature</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Non-Fiction&quot;</span><span class="p">)</span>
+</span><span class='line'><span class="n">fiction</span> <span class="o">=</span> <span class="n">literature</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Fiction&quot;</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Cool, but our tree doesn&rsquo;t really look like a tree yet. Let&rsquo;s give our <code>non_fiction</code> and <code>fiction</code> genres some children, grandchildren, and great-grandchildren of their own:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">biography</span> <span class="o">=</span> <span class="n">non_fiction</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Biography&quot;</span><span class="p">)</span>
+</span><span class='line'><span class="n">comic_novel</span> <span class="o">=</span> <span class="n">fiction</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Comic Novel&quot;</span><span class="p">)</span>
+</span><span class='line'><span class="n">black_comedy</span> <span class="o">=</span> <span class="n">comic_novel</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Black Comedy&quot;</span><span class="p">)</span>
+</span><span class='line'><span class="n">parody</span> <span class="o">=</span> <span class="n">comic_novel</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Parody&quot;</span><span class="p">)</span>
+</span><span class='line'><span class="n">romantic_comedy</span> <span class="o">=</span> <span class="n">comic_novel</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Romanic Comedy&quot;</span><span class="p">)</span>
+</span><span class='line'><span class="n">satire</span> <span class="o">=</span> <span class="n">comic_novel</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Satire&quot;</span><span class="p">)</span>
+</span><span class='line'><span class="n">poltical_satire</span> <span class="o">=</span> <span class="n">satire</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Political Satire&quot;</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Damn. Okay, well now our tree should look look less like a sprout and more like this bad boy:</p>
+
+<iframe src="//giphy.com/embed/hMWmNKdcdhAyI" width="480" height="267" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>It Runs In The Family</h2>
+
+<p>Even though we&rsquo;ve created all these parent-child relationships, what can we do with them, exactly? Well, a lot! You can call the <code>parent</code> and <code>children</code> methods to get a full list of all the objects associated with a particular <code>Genre</code> instance:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">literature</span><span class="o">.</span><span class="n">parent</span>                   <span class="c1"># =&gt; nil</span>
+</span><span class='line'><span class="n">fiction</span><span class="o">.</span><span class="n">parent</span>                      <span class="c1"># =&gt; literature</span>
+</span><span class='line'><span class="n">literature</span><span class="o">.</span><span class="n">children</span>                 <span class="c1"># =&gt; [non_fiction, fiction]</span>
+</span><span class='line'><span class="n">literature</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">first</span><span class="o">.</span><span class="n">children</span>  <span class="c1"># =&gt; [Biography]</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">literature</span><span class="o">.</span><span class="n">root?</span>                    <span class="c1"># =&gt; true</span>
+</span><span class='line'><span class="n">fiction</span><span class="o">.</span><span class="n">root?</span>                       <span class="c1"># =&gt; false</span>
+</span><span class='line'><span class="n">biography</span><span class="o">.</span><span class="n">leaf?</span>                     <span class="c1"># =&gt; true</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">black_comedy</span><span class="o">.</span><span class="n">siblings</span>               <span class="c1"># =&gt; [parody, romantic_comedy, satire]</span>
+</span><span class='line'><span class="n">poltical_satire</span><span class="o">.</span><span class="n">ancestors</span>           <span class="c1"># =&gt; [satire, comic_novel, fiction, literature]</span>
+</span><span class='line'>
+</span><span class='line'><span class="no">Genre</span><span class="o">.</span><span class="n">root</span>                          <span class="c1"># =&gt; literature</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>An important thing to note here is that the <code>children</code> method will return an <em>array</em> of objects, even if there&rsquo;s only one child! So if you&rsquo;re trying to get one particular object, remember to call the <code>first</code> method in the array, or search by a <code>Genre</code> object&rsquo;s specific <code>id</code> to avoid annoying bugs.</p>
+
+<p>Some other cool methods to try include:</p>
+
+<ol>
+<li><p><code>leaves</code>, a class method that will return all the &ldquo;leaves&rdquo; of the tree (in an array).</p></li>
+<li><p><code>descendants</code>, an instance method that will return all the children, and the children&rsquo;s children of an object (in an array).</p></li>
+<li><p><code>self_and_siblings</code>, which returns the receiver object, as well as any siblings it may have (in an array).</p></li>
+<li><p><code>default_tree_order</code>, which returns all the objects listed in alphabetical order!</p></li>
+</ol>
+
+
+<p>But the coolest feature of the <code>acts_as_tree</code> gem is Tree View, which allows you to see a visualization of your entire tree. All we have to do view this magic is add this line to our <code>Genre</code> model:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="kp">extend</span> <span class="no">ActsAsTree</span><span class="o">::</span><span class="no">TreeView</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And then, call the class method <code>tree_view</code>, which takes in an attribute parameter:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Genre</span><span class="o">.</span><span class="n">tree_view</span><span class="p">(</span><span class="ss">:name</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The resulting return value is pure flora magic:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Literature</span>
+</span><span class='line'> <span class="o">|</span><span class="n">_</span> <span class="no">Non</span><span class="o">-</span><span class="no">Fiction</span>
+</span><span class='line'> <span class="o">|</span>    <span class="o">|</span><span class="n">_</span> <span class="no">Biography</span>
+</span><span class='line'> <span class="o">|</span><span class="n">_</span> <span class="no">Fiction</span>
+</span><span class='line'> <span class="o">|</span>    <span class="o">|</span><span class="n">_</span> <span class="no">Comic</span> <span class="no">Novel</span>
+</span><span class='line'> <span class="o">|</span>        <span class="o">|</span><span class="n">_</span> <span class="no">Black</span> <span class="no">Comedy</span>
+</span><span class='line'> <span class="o">|</span>        <span class="o">|</span><span class="n">_</span> <span class="no">Parody</span>
+</span><span class='line'> <span class="o">|</span>        <span class="o">|</span><span class="n">_</span> <span class="no">Romantic</span> <span class="no">Comedy</span>
+</span><span class='line'> <span class="o">|</span>        <span class="o">|</span><span class="n">_</span> <span class="no">Satire</span>
+</span><span class='line'> <span class="o">|</span>            <span class="o">|</span><span class="n">_</span> <span class="no">Political</span> <span class="no">Satire</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Isn&rsquo;t it so beautiful?! Doesn&rsquo;t it make you feel like this:</p>
+
+<iframe src="//giphy.com/embed/FlWgXEtj5aM5G" width="480" height="259" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Or maybe it&rsquo;s just me.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>A lot of people seem to like the <a href="https://github.com/stefankroes/ancestry"><code>ancestry</code> gem</a>, but I think that <code>acts_as_tree</code> is a good one to start off with. If you need the extra functionality that <code>ancestry</code> provides, then you can eventually level up to that. Another variation on the <code>acts_as_tree</code>  is the <a href="https://github.com/chrisroberts/acts_as_sane_tree"><code>acts_as_sane_tree</code> gem</a>, which is configured for PostgreSQL 8.4 and comes with some cool extra methods (but isn&rsquo;t nearly as massive as ancestry).</li>
+<li>There are a lot of different ways to implement the <code>acts_as_tree</code>. Check out <a href="http://railscasts.com/episodes/162-tree-based-navigation">this railscast</a> on tree-based navigation using this gem/plugin (beware the date on this one, though!).</li>
+<li>There are a lot of different ways to deal with recursive data structures in Rails. Check out this <a href="http://gmarik.info/blog/2012/10/14/recursive-data-structures-with-rails">in-depth look</a> at the tried and tested options to learn more.</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-03-10T08:27:54-04:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:27 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes/" title="Previous Post: Bundle Up &amp; Let Your Objects Do The Freezing: Frozen Hashes">&laquo; Bundle Up &amp; Let Your Objects Do The Freezing: Frozen Hashes</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree/">It&#8217;s All in the Family: Using Acts_as_tree</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes/">Bundle Up &amp; Let Your Objects Do the Freezing: Frozen Hashes</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my/">Class Inheritance: Part 2 (Singletons and Eigens, Oh My!)</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/02/17/time-the-black-sheep-of-the-programming-family/">Time: The Black Sheep of the Programming Family</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/">Money Makes the World Go Round: Using Money-Rails and BigDecimal</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

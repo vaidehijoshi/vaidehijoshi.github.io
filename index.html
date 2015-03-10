@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="Snowmageddon. Snowpocalypse. The Deep Freeze of 2015. You can call it whatever you want, but we can all agree on one thing: it&rsquo;s so damn cold &hellip;">
+  <meta name="description" content="When working in Rails, it&rsquo;s all the family &ndash; literally. No matter the size of your application, almost all of your objects are going to &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,56 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree/">It&#8217;s All in the Family: Using Acts_as_tree</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-03-10T08:27:54-04:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:27 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/eWYGCVTJuOcg0" width="480" height="360" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>When working in Rails, it&rsquo;s all the family &ndash; literally. No matter the size of your application, almost all of your objects are going to be related to each other. You can create however many objects you wan because database rows are cheap, cheap, cheap! But the more objects you make, the harder it is to keep track of the other data that the object relates to (which is generally yet <em>another</em> object).</p>
+
+<p>I found myself in such a predicament last week, when I had to make numerous objects relate to one other to create a tree structure. The obvious first approach was to use the <code>belongs_to</code> and <code>has_many</code> relationship. But when I realized that I wanted some <code>Genre</code> objects to belong to <em>other</em> <code>Genre</code> objects, I ran into a problem. Depending solely on the ActiveRecord relationships turned out to be painful, messy, and complicated, and wouldn&rsquo;t make my code very flexible or sustainable over time.</p>
+
+<p>So I Googled around and found a handy plugin created by DHH himself called <code>acts_as_tree</code>. This gem allows you to create a hierarchical structure of objects in your application and &ndash; to take it a step further &ndash; gives you a bunch of incredibly helpful methods. It even allows you to visualize your tree structure! Sound amazing? That&rsquo;s because it is. And if you follow a few easy steps, you can use it in your application, too.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -149,7 +199,7 @@
   </header>
 
 
-  <div class="entry-content"><p><em>This blog post is part of a series on Class Inheritence. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance/">here</a>.</em></p>
+  <div class="entry-content"><p><em>This blog post is part of a series on Class Inheritance. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance/">here</a>.</em></p>
 
 <p>I recently stumbled upon this line of code that totally floored me. I mean, I had to drop everything I was doing and do some serious Googling, my friends. Well, that and also I asked my fellow developers at work who are far more seasoned programmers than me.</p>
 
@@ -280,7 +330,7 @@
 
 <p>Mo money, mo problems. This is especially the case when you&rsquo;re a new developer trying to onboard onto a huge eCommerce Rails application.</p>
 
-<p>No, but really - money is such a pain in the ass to deal with as a programmer. So much logic and detail goes into accpeting a payment, processing a transaction, checking an order&rsquo;s status&hellip;and don&rsquo;t even get me <em>started</em> on shipping &ndash; seriously, I&rsquo;m saving the entire concept of shipping for another blog post.</p>
+<p>No, but really - money is such a pain in the ass to deal with as a programmer. So much logic and detail goes into accepting a payment, processing a transaction, checking an order&rsquo;s status&hellip;and don&rsquo;t even get me <em>started</em> on shipping &ndash; seriously, I&rsquo;m saving the entire concept of shipping for another blog post.</p>
 
 <p>But, at some point or another, you have to deal with other people&rsquo;s money. And you have to try and not screw it up, because apparently people really don&rsquo;t like that. So, how do you handle all those dolla dolla bills? Yup, you guessed it: with the <strong>money-rails library</strong> and Ruby&rsquo;s <strong>BigDecimal object</strong>.</p>
 
@@ -374,7 +424,7 @@
 
   <div class="entry-content"><p>Yesterday, I started my very first job as a software engineer! It&rsquo;s been super exciting, slightly terrifying, and sometimes overwhelming. I think one of the trickiest parts of starting as a new engineer at a company is the onboarding process.</p>
 
-<p>It might seem kind of scary, but if you think about it, it&rsquo;s actually pretty fun. You get to dive down a rabbit hole and look at production code that you didn&rsquo;t write. It&rsquo;s getting a new puzzle that you haven&rsquo;t solved yet: you try to figure out how one thing connects to another, where modules and methods exist, how things are namespaced, not to mention learning about new frameworks and gems. I feel like I&rsquo;m entering into new dimensions and travelling through a space-time continuum or something. This also might be attributed to the fact that I&rsquo;ve been  listening exclusively to the <a href="https://www.youtube.com/watch?v=YOWSTtXxf9s">Interstellar soundtrack</a> for the past two days, but whatever &ndash; you get the point.</p>
+<p>It might seem kind of scary, but if you think about it, it&rsquo;s actually pretty fun. You get to dive down a rabbit hole and look at production code that you didn&rsquo;t write. It&rsquo;s getting a new puzzle that you haven&rsquo;t solved yet: you try to figure out how one thing connects to another, where modules and methods exist, how things are namespaced, not to mention learning about new frameworks and gems. I feel like I&rsquo;m entering into new dimensions and travelling through a space-time continuum or something. This also might be attributed to the fact that I&rsquo;ve been listening exclusively to the <a href="https://www.youtube.com/watch?v=YOWSTtXxf9s">Interstellar soundtrack</a> for the past two days, but whatever &ndash; you get the point.</p>
 
 <p>My favorite part of the onboarding process is how much I&rsquo;ve been learning. Every new class or module definition brings a new piece of the puzzle that I&rsquo;ve never seen before, but can&rsquo;t wait to learn about. It&rsquo;s kind of crazy that I get paid to read and learn all day, every day &ndash; that&rsquo;s the dream, right?</p>
 
@@ -410,7 +460,7 @@
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/flatiron/'>flatiron</a>, <a class='category' href='/blog/categories/fog-creek-fellowship/'>fog creek fellowship</a>
+    <a class='category' href='/blog/categories/flatiron/'>flatiron</a>, <a class='category' href='/blog/categories/non-technical/'>non-technical</a>
   
 </span>
 
@@ -532,53 +582,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/01/06/the-final-countdown-using-javascripts-setinterval-plus-clearinterval-methods/">The Final Countdown: Using JavaScript&#8217;s setInterval + clearInterval Methods</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-01-06T16:30:53-05:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>4:30 pm</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/javascript/'>javascript</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>It&rsquo;s a brand new year, and with that comes a renewed sense of self. Also: a rather lengthy todo list. Enter <strong>#technicaltuesdays</strong>, or my attempt at beefing up my technical chops by posting a blog post every week &mdash; specifically on Tuesdays, in case it wasn&rsquo;t obvious. (Sorry, Thursday, you were a close second, but you just didn&rsquo;t make the cut.)</p>
-
-<p>So, what&rsquo;s on the menu this week? JavaScript! New year = new me, you guys. Actually, some of my technical interviews have been a bit JavaScript-heavy, so I&rsquo;ve been stepping up my curly bracket game.</p>
-
-<p>In honor of the new year, I wanted to use JavaScript to create a quick &ldquo;New Year&rsquo;s Countdown&rdquo; function. Suffice it to say, <em>it was neither quick nor easy</em>. But I learned about two cool timing events in JavaScript &ndash; <strong>setInterval</strong> and <strong>clearInterval</strong> &ndash; and now you can learn about them, too!</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/01/06/the-final-countdown-using-javascripts-setinterval-plus-clearinterval-methods/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -594,6 +597,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree/">It&#8217;s All in the Family: Using Acts_as_tree</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes/">Bundle Up &amp; Let Your Objects Do the Freezing: Frozen Hashes</a>
       </li>
     
@@ -607,10 +614,6 @@
     
       <li class="post">
         <a href="/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/">Money Makes the World Go Round: Using Money-Rails and BigDecimal</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/02/03/when-enough-is-enough-how-to-know-when-to-use-enums/">When Enough Is Enough: How to Know When to Use Enums</a>
       </li>
     
   </ul>

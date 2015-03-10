@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Ruby | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-03-01T14:43:34-05:00</updated>
+  <updated>2015-03-09T21:36:20-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -166,6 +166,7 @@ would work.</p>
 <ul>
 <li>You can use the <code>freeze</code> method to make mutable objects immutable. To check whether an object can be modified or not, use the <code>frozen?</code> method, which will return a boolean value.</li>
 <li>Certain Ruby objects, such as integers, floats, and symbols, are always frozen and cannot be modified.</li>
+<li>Someone made a <a href="https://github.com/zizkovrb/melt">melt gem</a> &ndash; for realsies!</li>
 <li>Some people are <a href="http://m.onkey.org/ruby-i-don-t-like-3-object-freeze">not big fans</a> of the weird functionality of Ruby <code>freeze</code>. But it&rsquo;s still worth it to <a href="http://blog.adamstegman.com/activerecord-hangs-on-to-destroyed-relations.html">learn how it works</a>, especially since it can be <a href="http://blog.adamstegman.com/activerecord-hangs-on-to-destroyed-relations.html">super helpful</a> for <a href="http://www.devarticles.com/c/a/Ruby-on-Rails/Updating-and-Deleting-with-the-Active-Record/2/">debugging Rails apps</a>.</li>
 </ul>
 
@@ -177,7 +178,7 @@ would work.</p>
     <link href="http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my/"/>
     <updated>2015-02-24T08:13:49-05:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my</id>
-    <content type="html"><![CDATA[<p><em>This blog post is part of a series on Class Inheritence. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance/">here</a>.</em></p>
+    <content type="html"><![CDATA[<p><em>This blog post is part of a series on Class Inheritance. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance/">here</a>.</em></p>
 
 <p>I recently stumbled upon this line of code that totally floored me. I mean, I had to drop everything I was doing and do some serious Googling, my friends. Well, that and also I asked my fellow developers at work who are far more seasoned programmers than me.</p>
 
@@ -206,7 +207,7 @@ end
 
 <h2>Class Methods, Because Your Instances Should Never Be Too Greedy</h2>
 
-<p>In order to understand the meaning behind <code>class &lt;&lt; self</code>, we first need to understand the <code>&lt;&lt; self</code> sytax. Let&rsquo;s recap a couple basics about class inheritance first:</p>
+<p>In order to understand the meaning behind <code>class &lt;&lt; self</code>, we first need to understand the <code>&lt;&lt; self</code> syntax. Let&rsquo;s recap a couple basics about class inheritance first:</p>
 
 <ol>
 <li>Classes can have two different types of methods: class methods, which can be called on a <code>Class</code> object, and instance methods, which can only be called on <em>instances</em> of a <code>Class</code> object.</li>
@@ -374,7 +375,7 @@ charlottes_web.eigenclass.singleton_methods
 <h2>tl;dr?</h2>
 
 <ul>
-<li>Technically speaking, there&rsquo;s actually no such thing as a <em>class method</em> in Ruby. You&rsquo;re always opening up the eigenclass/singleton class of an object whenver you define a class method. Keep in mind that there are many different syntaxes you can use in order to achieve this!</li>
+<li>Technically speaking, there&rsquo;s actually no such thing as a <em>class method</em> in Ruby. You&rsquo;re always opening up the eigenclass/singleton class of an object whenever you define a class method. Keep in mind that there are many different syntaxes you can use in order to achieve this!</li>
 <li>Curious about the <code>self.method</code> vs <code>class &lt;&lt; self</code> debate? Check out this <a href="http://stackoverflow.com/questions/10964081/class-self-vs-self-method-with-ruby-whats-better">thread on Stack Overflow</a>.</li>
 <li>Read more about the <a href="http://stackoverflow.com/questions/23848667/ruby-method-lookup-path-for-an-object">method lookup path</a> to understand where Ruby looks for stuff.</li>
 <li>Tons of good resources on this stuff <a href="http://madebydna.com/all/code/2011/06/24/eigenclasses-demystified.html">here</a> and <a href="http://yehudakatz.com/2009/11/15/metaprogramming-in-ruby-its-all-about-the-self/">here</a>. Oh, and <a href="http://ruby-metaprogramming.rubylearning.com/html/seeingMetaclassesClearly.html">here</a>.</li>
@@ -433,7 +434,7 @@ And what if you want to convert a Unix timestamp (like the one in my JSON respon
 2.1.2 :003 &gt; Time.at('-1423694433'.to_i)
  =&gt; 1924-11-19 20:19:27 -0500
 </code>
-Pretty sweet, right? Don&rsquo;t worry, I&rsquo;m about to complicate it a bit further.</p>
+Pretty sweet, right? Don&rsquo;t worry; I&rsquo;m about to complicate it a bit further.</p>
 
 <h2>Even More Types of Time</h2>
 
@@ -450,22 +451,22 @@ Pretty sweet, right? Don&rsquo;t worry, I&rsquo;m about to complicate it a bit f
 2.1.2 :006 &gt; Time.now.utc.iso8601
  =&gt; "2015-02-17T00:09:34Z"
 </code>
-See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC</code> timezone is represented in ISO8601, with the <code>Z</code> short for &ldquo;Zero&rdquo; time. It&rsquo;s also worth reminding ourselves that Unix timestamps are also set in the <code>UTC</code> timezone.</p>
+See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC</code> time zone is represented in ISO8601, with the <code>Z</code> short for &ldquo;Zero&rdquo; time. It&rsquo;s also worth reminding ourselves that Unix timestamps are also set in the <code>UTC</code> time zone.</p>
 
 <h2>Goddamn Time Zones</h2>
 
 <iframe src="//giphy.com/embed/CsV1pnR9hYLuM" width="480" height="269" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
 
-<p>Look man, I&rsquo;m not gonna lie to you: timezones will jack your shit up. Timezone bugs are <em>so</em> common, it&rsquo;s like they&rsquo;re just waiting there patiently, hoping that you&rsquo;ll make a mistake.</p>
+<p>Look man, I&rsquo;m not gonna lie to you: time zones will jack your shit up. Time zone bugs are <em>so</em> common, it&rsquo;s like they&rsquo;re just waiting there patiently, hoping that you&rsquo;ll make a mistake.</p>
 
-<p>But you&rsquo;re a Rails developer &ndash; ain&rsquo;t no timezone gonna stop you! Instead, you&rsquo;re going to make your code defensive and subscribe to these best practices:</p>
+<p>But you&rsquo;re a Rails developer &ndash; ain&rsquo;t no time zone gonna stop you! Instead, you&rsquo;re going to make your code defensive and subscribe to these best practices:</p>
 
 <ol>
-<li><p>Set your timezone in the <code>config/application.rb</code> file in your Rails app. Look for <code>config.time_zone</code>, and configure your time zone equal to that value. Rails will refer to that as your base timezone going forward, and ActiveRecord will convert between `UTC and your set timezone whenever you query.</p></li>
-<li><p>Use the <code>in_time_zone</code> method to convert <code>Time</code> to your system&rsquo;s current set timezone. For example, <code>Time.now.in_time_zone("EST").iso8601</code>.</p></li>
+<li><p>Set your time zone in the <code>config/application.rb</code> file in your Rails app. Look for <code>config.time_zone</code>, and configure your time zone equal to that value. Rails will refer to that as your base time zone going forward, and ActiveRecord will convert between `UTC and your set time zone whenever you query.</p></li>
+<li><p>Use the <code>in_time_zone</code> method to convert <code>Time</code> to your system&rsquo;s current set time zone. For example, <code>Time.now.in_time_zone("EST").iso8601</code>.</p></li>
 <li><p>Use <code>Time.current</code> whenever you make an ActiveRecord query (ActiveRecord will convert <code>Time.current</code> and convert it to <code>UTC</code>: <code>Comment.where(["comments.published_at &gt; ?", Time.current])</code></p></li>
-<li><p>DO NOT use <code>Time.now</code>! This returns <em>your</em> system&rsquo;s time, and ignores whatever timezone you configured for your Rails app. Instead, use numerical attributes and methods (such as <code>1.day.from_now</code> or <code>Date.current</code>), which rely on the timezone you configured in your <code>application.rb</code> to determine the return value.</p></li>
+<li><p>DO NOT use <code>Time.now</code>! This returns <em>your</em> system&rsquo;s time, and ignores whatever time zone you configured for your Rails app. Instead, use numerical attributes and methods (such as <code>1.day.from_now</code> or <code>Date.current</code>), which rely on the time zone you configured in your <code>application.rb</code> to determine the return value.</p></li>
 </ol>
 
 
@@ -477,7 +478,7 @@ See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC
 
 <p>For example, <strong>leap seconds</strong>. Yes, really &ndash; it&rsquo;s a thing. <a href="http://en.wikipedia.org/wiki/Leap_second">Leap seconds</a> occur 1-2 times a year, on either June 30 and/or December 31st. They&rsquo;re necessary in order to keep the Earth&rsquo;s time of day close enough to the Sun&rsquo;s mean time. But, how do you account for this in programs? Well, Google actually does something pretty cool: instead of adding one second, Google&rsquo;s servers implement &ldquo;leap smears&rdquo;, which extend the seconds surrounding a leap second by just a little bit &ndash; enough to account for an entire extra second! Side note: the next leap second is on June 30th of this year! I hope you&rsquo;re ready.</p>
 
-<p>Another bizarre thing is <strong>Y2038</strong>. If this sounds reminiscient of Y2K, that&rsquo;s because it is. Essentially, <a href="http://www.y2038.com/">the 2038 problem</a> boils down to this: On January 19, 2038, Unix timestamps will stop working because of a 32-bit overflow. So, all of the millions of applications that use this time format will have to either reconfigure to 64-bit systems, or choose a new format to store dates and times. There&rsquo;s supposedly no universal solution to this, but hopefully someone will figure out a fix in the next 22 years.</p>
+<p>Another bizarre thing is <strong>Y2038</strong>. If this sounds reminiscent of Y2K, that&rsquo;s because it is. Essentially, <a href="http://www.y2038.com/">the 2038 problem</a> boils down to this: On January 19, 2038, Unix timestamps will stop working because of a 32-bit overflow. So, all of the millions of applications that use this time format will have to either reconfigure to 64-bit systems, or choose a new format to store dates and times. There&rsquo;s supposedly no universal solution to this, but hopefully someone will figure out a fix in the next 22 years.</p>
 
 <p>Hopefully by that point, someone will have figured out how to get rid of time zones completely.</p>
 
@@ -488,7 +489,7 @@ See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC
 
 <ul>
 <li>Unix timestamps and ISO8601 are both good formats for storing date and time in your database. Do a little research to decide <a href="http://stackoverflow.com/questions/15554586/timestamps-iso8601-vs-unix-timestamp">which of these formats</a> is the best tool for whatever job you&rsquo;re trying to accomplish.</li>
-<li>Dealing with timezones is hard, but the <a href="http://danilenko.org/2012/7/6/rails_timezones/">Exhaustive Guide to Rails Time Zones</a> will save you hours of banging your head against the wall &ndash; well, for time-related things, at least.</li>
+<li>Dealing with time zones is hard, but the <a href="http://danilenko.org/2012/7/6/rails_timezones/">Exhaustive Guide to Rails Time Zones</a> will save you hours of banging your head against the wall &ndash; well, for time-related things, at least.</li>
 <li>Want to be a <code>Time</code> object superstar? Read <a href="https://unix4lyfe.org/time/?v=1">this post</a>, which was featured on HackerNews, and peruse the <a href="http://ruby-doc.org//core-2.2.0/Time.html">Ruby documentation</a> to get the skinny on all things time-related.</li>
 </ul>
 
@@ -504,7 +505,7 @@ See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC
 
 <p>Mo money, mo problems. This is especially the case when you&rsquo;re a new developer trying to onboard onto a huge eCommerce Rails application.</p>
 
-<p>No, but really - money is such a pain in the ass to deal with as a programmer. So much logic and detail goes into accpeting a payment, processing a transaction, checking an order&rsquo;s status&hellip;and don&rsquo;t even get me <em>started</em> on shipping &ndash; seriously, I&rsquo;m saving the entire concept of shipping for another blog post.</p>
+<p>No, but really - money is such a pain in the ass to deal with as a programmer. So much logic and detail goes into accepting a payment, processing a transaction, checking an order&rsquo;s status&hellip;and don&rsquo;t even get me <em>started</em> on shipping &ndash; seriously, I&rsquo;m saving the entire concept of shipping for another blog post.</p>
 
 <p>But, at some point or another, you have to deal with other people&rsquo;s money. And you have to try and not screw it up, because apparently people really don&rsquo;t like that. So, how do you handle all those dolla dolla bills? Yup, you guessed it: with the <strong>money-rails library</strong> and Ruby&rsquo;s <strong>BigDecimal object</strong>.</p>
 
@@ -627,7 +628,7 @@ NameError: uninitialized constant BigDecimal
 
 <p>The <a href="http://www.ruby-doc.org/core-2.2.0/">Ruby Core Library</a> is what you use every day, including basic objects such as <code>String</code>, <code>Integer</code>, <code>Float</code>, <code>Array</code>, <code>Hash</code>, and many others. On the other hand, the objects in the <a href="http://www.ruby-doc.org/stdlib-2.2.0/">Ruby Standard Library</a> may seem a little less familiar. Unlike the Core Library, objects from the Standard Library have to be explicitly required. <code>BigDecimal</code> objects are part of the Standard Library, as are <code>Abbrev</code>, <code>Logger</code>, and <code>Matrix</code> objects.</p>
 
-<p>The Standard Library is an extension of the Ruby language. You will always have access to the Core Library, but if you want to use an objec that exists outside of the Core Library, you&rsquo;ll need to specifically require it. So, if you want to play with <code>BigDecimal</code> in the console or use it in your application, you&rsquo;ll have to type this in to have access to the object: <code>require 'bigdecimal'</code>.</p>
+<p>The Standard Library is an extension of the Ruby language. You will always have access to the Core Library, but if you want to use an object that exists outside of the Core Library, you&rsquo;ll need to specifically require it. So, if you want to play with <code>BigDecimal</code> in the console or use it in your application, you&rsquo;ll have to type this in to have access to the object: <code>require 'bigdecimal'</code>.</p>
 
 <h2>More Bang For Your Buck</h2>
 

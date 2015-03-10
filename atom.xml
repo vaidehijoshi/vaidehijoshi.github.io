@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-03-01T14:43:34-05:00</updated>
+  <updated>2015-03-09T21:36:20-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,211 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[It's All in the Family: Using Acts_as_tree]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree/"/>
+    <updated>2015-03-10T08:27:54-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/eWYGCVTJuOcg0" width="480" height="360" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>When working in Rails, it&rsquo;s all the family &ndash; literally. No matter the size of your application, almost all of your objects are going to be related to each other. You can create however many objects you wan because database rows are cheap, cheap, cheap! But the more objects you make, the harder it is to keep track of the other data that the object relates to (which is generally yet <em>another</em> object).</p>
+
+<p>I found myself in such a predicament last week, when I had to make numerous objects relate to one other to create a tree structure. The obvious first approach was to use the <code>belongs_to</code> and <code>has_many</code> relationship. But when I realized that I wanted some <code>Genre</code> objects to belong to <em>other</em> <code>Genre</code> objects, I ran into a problem. Depending solely on the ActiveRecord relationships turned out to be painful, messy, and complicated, and wouldn&rsquo;t make my code very flexible or sustainable over time.</p>
+
+<p>So I Googled around and found a handy plugin created by DHH himself called <code>acts_as_tree</code>. This gem allows you to create a hierarchical structure of objects in your application and &ndash; to take it a step further &ndash; gives you a bunch of incredibly helpful methods. It even allows you to visualize your tree structure! Sound amazing? That&rsquo;s because it is. And if you follow a few easy steps, you can use it in your application, too.</p>
+
+<!--more-->
+
+
+<h2>Family Ties</h2>
+
+<p>So, for this post I&rsquo;ll continue working through my basic eCommerce Bookstore application, which I&rsquo;ve been using as an example for my previous posts. I&rsquo;ve already got some <code>Book</code> objects, but as my store starts to grow, it&rsquo;s going to be pretty hard to keep track of the different genres of <code>Book</code> objects that I currently have available.</p>
+
+<p>The first step to tackling this problem was easy: create <code>Genre</code> objects, each of which <code>has_many</code> different <code>Book</code> objects associated with it, while each <code>Book</code> object will <code>belong_to</code> one specific <code>Genre</code>.</p>
+
+<p>But what about genres that are associated with and &ldquo;descend from&rdquo; other genres? Well, here&rsquo;s where the delightful and easy-to-use <code>acts_as_tree</code> gem comes in.</p>
+
+<iframe src="//giphy.com/embed/pcPeWllpmv6Zq" width="480" height="431" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>First things first: we&rsquo;ll add <code>gem 'acts_as_tree'</code> to our Gemfile.</p>
+
+<p>Next, we need to add a column to our <code>Genre</code> database. We can write a simple migration that will add a <code>parent_id</code> integer to our database, which will allow us to find the parents and children of a <code>Genre</code> object:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddParentIdColumnToGenre</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>    <span class="n">add_column</span> <span class="ss">:genres</span><span class="p">,</span> <span class="ss">:parent_id</span><span class="p">,</span> <span class="ss">:integer</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Finally, we&rsquo;ll head over to our <code>Genre</code> model, which is what we needs to act as a (family) tree. We need to add a single line in here, which implements the ActiveRecord plugin and specifies what we&rsquo;ll be ordering our <code>Genre</code> objects by:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Genre</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">has_many</span> <span class="ss">:books</span>
+</span><span class='line'>  <span class="n">validates_presence_of</span> <span class="ss">:name</span>
+</span><span class='line'>  <span class="n">acts_as_tree</span> <span class="ss">order</span><span class="p">:</span> <span class="s2">&quot;name&quot;</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Blood Is Thicker Than Water</h2>
+
+<p>Okay, now let&rsquo;s see this baby in action! We can start by making a root <code>Genre</code> object, and then giving it some children:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">literature</span> <span class="o">=</span> <span class="no">Genre</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Literature&quot;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">non_fiction</span> <span class="o">=</span> <span class="n">literature</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Non-Fiction&quot;</span><span class="p">)</span>
+</span><span class='line'><span class="n">fiction</span> <span class="o">=</span> <span class="n">literature</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Fiction&quot;</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Cool, but our tree doesn&rsquo;t really look like a tree yet. Let&rsquo;s give our <code>non_fiction</code> and <code>fiction</code> genres some children, grandchildren, and great-grandchildren of their own:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">biography</span> <span class="o">=</span> <span class="n">non_fiction</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Biography&quot;</span><span class="p">)</span>
+</span><span class='line'><span class="n">comic_novel</span> <span class="o">=</span> <span class="n">fiction</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Comic Novel&quot;</span><span class="p">)</span>
+</span><span class='line'><span class="n">black_comedy</span> <span class="o">=</span> <span class="n">comic_novel</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Black Comedy&quot;</span><span class="p">)</span>
+</span><span class='line'><span class="n">parody</span> <span class="o">=</span> <span class="n">comic_novel</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Parody&quot;</span><span class="p">)</span>
+</span><span class='line'><span class="n">romantic_comedy</span> <span class="o">=</span> <span class="n">comic_novel</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Romanic Comedy&quot;</span><span class="p">)</span>
+</span><span class='line'><span class="n">satire</span> <span class="o">=</span> <span class="n">comic_novel</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Satire&quot;</span><span class="p">)</span>
+</span><span class='line'><span class="n">poltical_satire</span> <span class="o">=</span> <span class="n">satire</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Political Satire&quot;</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Damn. Okay, well now our tree should look look less like a sprout and more like this bad boy:</p>
+
+<iframe src="//giphy.com/embed/hMWmNKdcdhAyI" width="480" height="267" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>It Runs In The Family</h2>
+
+<p>Even though we&rsquo;ve created all these parent-child relationships, what can we do with them, exactly? Well, a lot! You can call the <code>parent</code> and <code>children</code> methods to get a full list of all the objects associated with a particular <code>Genre</code> instance:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">literature</span><span class="o">.</span><span class="n">parent</span>                   <span class="c1"># =&gt; nil</span>
+</span><span class='line'><span class="n">fiction</span><span class="o">.</span><span class="n">parent</span>                      <span class="c1"># =&gt; literature</span>
+</span><span class='line'><span class="n">literature</span><span class="o">.</span><span class="n">children</span>                 <span class="c1"># =&gt; [non_fiction, fiction]</span>
+</span><span class='line'><span class="n">literature</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">first</span><span class="o">.</span><span class="n">children</span>  <span class="c1"># =&gt; [Biography]</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">literature</span><span class="o">.</span><span class="n">root?</span>                    <span class="c1"># =&gt; true</span>
+</span><span class='line'><span class="n">fiction</span><span class="o">.</span><span class="n">root?</span>                       <span class="c1"># =&gt; false</span>
+</span><span class='line'><span class="n">biography</span><span class="o">.</span><span class="n">leaf?</span>                     <span class="c1"># =&gt; true</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">black_comedy</span><span class="o">.</span><span class="n">siblings</span>               <span class="c1"># =&gt; [parody, romantic_comedy, satire]</span>
+</span><span class='line'><span class="n">poltical_satire</span><span class="o">.</span><span class="n">ancestors</span>           <span class="c1"># =&gt; [satire, comic_novel, fiction, literature]</span>
+</span><span class='line'>
+</span><span class='line'><span class="no">Genre</span><span class="o">.</span><span class="n">root</span>                          <span class="c1"># =&gt; literature</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>An important thing to note here is that the <code>children</code> method will return an <em>array</em> of objects, even if there&rsquo;s only one child! So if you&rsquo;re trying to get one particular object, remember to call the <code>first</code> method in the array, or search by a <code>Genre</code> object&rsquo;s specific <code>id</code> to avoid annoying bugs.</p>
+
+<p>Some other cool methods to try include:</p>
+
+<ol>
+<li><p><code>leaves</code>, a class method that will return all the &ldquo;leaves&rdquo; of the tree (in an array).</p></li>
+<li><p><code>descendants</code>, an instance method that will return all the children, and the children&rsquo;s children of an object (in an array).</p></li>
+<li><p><code>self_and_siblings</code>, which returns the receiver object, as well as any siblings it may have (in an array).</p></li>
+<li><p><code>default_tree_order</code>, which returns all the objects listed in alphabetical order!</p></li>
+</ol>
+
+
+<p>But the coolest feature of the <code>acts_as_tree</code> gem is Tree View, which allows you to see a visualization of your entire tree. All we have to do view this magic is add this line to our <code>Genre</code> model:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="kp">extend</span> <span class="no">ActsAsTree</span><span class="o">::</span><span class="no">TreeView</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And then, call the class method <code>tree_view</code>, which takes in an attribute parameter:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Genre</span><span class="o">.</span><span class="n">tree_view</span><span class="p">(</span><span class="ss">:name</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The resulting return value is pure flora magic:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Literature</span>
+</span><span class='line'> <span class="o">|</span><span class="n">_</span> <span class="no">Non</span><span class="o">-</span><span class="no">Fiction</span>
+</span><span class='line'> <span class="o">|</span>    <span class="o">|</span><span class="n">_</span> <span class="no">Biography</span>
+</span><span class='line'> <span class="o">|</span><span class="n">_</span> <span class="no">Fiction</span>
+</span><span class='line'> <span class="o">|</span>    <span class="o">|</span><span class="n">_</span> <span class="no">Comic</span> <span class="no">Novel</span>
+</span><span class='line'> <span class="o">|</span>        <span class="o">|</span><span class="n">_</span> <span class="no">Black</span> <span class="no">Comedy</span>
+</span><span class='line'> <span class="o">|</span>        <span class="o">|</span><span class="n">_</span> <span class="no">Parody</span>
+</span><span class='line'> <span class="o">|</span>        <span class="o">|</span><span class="n">_</span> <span class="no">Romantic</span> <span class="no">Comedy</span>
+</span><span class='line'> <span class="o">|</span>        <span class="o">|</span><span class="n">_</span> <span class="no">Satire</span>
+</span><span class='line'> <span class="o">|</span>            <span class="o">|</span><span class="n">_</span> <span class="no">Political</span> <span class="no">Satire</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Isn&rsquo;t it so beautiful?! Doesn&rsquo;t it make you feel like this:</p>
+
+<iframe src="//giphy.com/embed/FlWgXEtj5aM5G" width="480" height="259" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Or maybe it&rsquo;s just me.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>A lot of people seem to like the <a href="https://github.com/stefankroes/ancestry"><code>ancestry</code> gem</a>, but I think that <code>acts_as_tree</code> is a good one to start off with. If you need the extra functionality that <code>ancestry</code> provides, then you can eventually level up to that. Another variation on the <code>acts_as_tree</code>  is the <a href="https://github.com/chrisroberts/acts_as_sane_tree"><code>acts_as_sane_tree</code> gem</a>, which is configured for PostgreSQL 8.4 and comes with some cool extra methods (but isn&rsquo;t nearly as massive as ancestry).</li>
+<li>There are a lot of different ways to implement the <code>acts_as_tree</code>. Check out <a href="http://railscasts.com/episodes/162-tree-based-navigation">this railscast</a> on tree-based navigation using this gem/plugin (beware the date on this one, though!).</li>
+<li>There are a lot of different ways to deal with recursive data structures in Rails. Check out this <a href="http://gmarik.info/blog/2012/10/14/recursive-data-structures-with-rails">in-depth look</a> at the tried and tested options to learn more.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Bundle Up &amp; Let Your Objects Do the Freezing: Frozen Hashes]]></title>
@@ -215,6 +420,7 @@
 <ul>
 <li>You can use the <code>freeze</code> method to make mutable objects immutable. To check whether an object can be modified or not, use the <code>frozen?</code> method, which will return a boolean value.</li>
 <li>Certain Ruby objects, such as integers, floats, and symbols, are always frozen and cannot be modified.</li>
+<li>Someone made a <a href="https://github.com/zizkovrb/melt">melt gem</a> &ndash; for realsies!</li>
 <li>Some people are <a href="http://m.onkey.org/ruby-i-don-t-like-3-object-freeze">not big fans</a> of the weird functionality of Ruby <code>freeze</code>. But it&rsquo;s still worth it to <a href="http://blog.adamstegman.com/activerecord-hangs-on-to-destroyed-relations.html">learn how it works</a>, especially since it can be <a href="http://blog.adamstegman.com/activerecord-hangs-on-to-destroyed-relations.html">super helpful</a> for <a href="http://www.devarticles.com/c/a/Ruby-on-Rails/Updating-and-Deleting-with-the-Active-Record/2/">debugging Rails apps</a>.</li>
 </ul>
 
@@ -226,7 +432,7 @@
     <link href="http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my/"/>
     <updated>2015-02-24T08:13:49-05:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my</id>
-    <content type="html"><![CDATA[<p><em>This blog post is part of a series on Class Inheritence. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance/">here</a>.</em></p>
+    <content type="html"><![CDATA[<p><em>This blog post is part of a series on Class Inheritance. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance/">here</a>.</em></p>
 
 <p>I recently stumbled upon this line of code that totally floored me. I mean, I had to drop everything I was doing and do some serious Googling, my friends. Well, that and also I asked my fellow developers at work who are far more seasoned programmers than me.</p>
 
@@ -263,7 +469,7 @@
 
 <h2>Class Methods, Because Your Instances Should Never Be Too Greedy</h2>
 
-<p>In order to understand the meaning behind <code>class &lt;&lt; self</code>, we first need to understand the <code>&lt;&lt; self</code> sytax. Let&rsquo;s recap a couple basics about class inheritance first:</p>
+<p>In order to understand the meaning behind <code>class &lt;&lt; self</code>, we first need to understand the <code>&lt;&lt; self</code> syntax. Let&rsquo;s recap a couple basics about class inheritance first:</p>
 
 <ol>
 <li>Classes can have two different types of methods: class methods, which can be called on a <code>Class</code> object, and instance methods, which can only be called on <em>instances</em> of a <code>Class</code> object.</li>
@@ -509,7 +715,7 @@
 <h2>tl;dr?</h2>
 
 <ul>
-<li>Technically speaking, there&rsquo;s actually no such thing as a <em>class method</em> in Ruby. You&rsquo;re always opening up the eigenclass/singleton class of an object whenver you define a class method. Keep in mind that there are many different syntaxes you can use in order to achieve this!</li>
+<li>Technically speaking, there&rsquo;s actually no such thing as a <em>class method</em> in Ruby. You&rsquo;re always opening up the eigenclass/singleton class of an object whenever you define a class method. Keep in mind that there are many different syntaxes you can use in order to achieve this!</li>
 <li>Curious about the <code>self.method</code> vs <code>class &lt;&lt; self</code> debate? Check out this <a href="http://stackoverflow.com/questions/10964081/class-self-vs-self-method-with-ruby-whats-better">thread on Stack Overflow</a>.</li>
 <li>Read more about the <a href="http://stackoverflow.com/questions/23848667/ruby-method-lookup-path-for-an-object">method lookup path</a> to understand where Ruby looks for stuff.</li>
 <li>Tons of good resources on this stuff <a href="http://madebydna.com/all/code/2011/06/24/eigenclasses-demystified.html">here</a> and <a href="http://yehudakatz.com/2009/11/15/metaprogramming-in-ruby-its-all-about-the-self/">here</a>. Oh, and <a href="http://ruby-metaprogramming.rubylearning.com/html/seeingMetaclassesClearly.html">here</a>.</li>
@@ -581,7 +787,7 @@
 </span><span class='line'> =&gt; 1924-11-19 20:19:27 -0500 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>Pretty sweet, right? Don&rsquo;t worry, I&rsquo;m about to complicate it a bit further.</p>
+<p>Pretty sweet, right? Don&rsquo;t worry; I&rsquo;m about to complicate it a bit further.</p>
 
 <h2>Even More Types of Time</h2>
 
@@ -605,22 +811,22 @@
 </span><span class='line'> =&gt; "2015-02-17T00:09:34Z" </span></code></pre></td></tr></table></div></figure>
 
 
-<p>See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC</code> timezone is represented in ISO8601, with the <code>Z</code> short for &ldquo;Zero&rdquo; time. It&rsquo;s also worth reminding ourselves that Unix timestamps are also set in the <code>UTC</code> timezone.</p>
+<p>See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC</code> time zone is represented in ISO8601, with the <code>Z</code> short for &ldquo;Zero&rdquo; time. It&rsquo;s also worth reminding ourselves that Unix timestamps are also set in the <code>UTC</code> time zone.</p>
 
 <h2>Goddamn Time Zones</h2>
 
 <iframe src="//giphy.com/embed/CsV1pnR9hYLuM" width="480" height="269" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
 
-<p>Look man, I&rsquo;m not gonna lie to you: timezones will jack your shit up. Timezone bugs are <em>so</em> common, it&rsquo;s like they&rsquo;re just waiting there patiently, hoping that you&rsquo;ll make a mistake.</p>
+<p>Look man, I&rsquo;m not gonna lie to you: time zones will jack your shit up. Time zone bugs are <em>so</em> common, it&rsquo;s like they&rsquo;re just waiting there patiently, hoping that you&rsquo;ll make a mistake.</p>
 
-<p>But you&rsquo;re a Rails developer &ndash; ain&rsquo;t no timezone gonna stop you! Instead, you&rsquo;re going to make your code defensive and subscribe to these best practices:</p>
+<p>But you&rsquo;re a Rails developer &ndash; ain&rsquo;t no time zone gonna stop you! Instead, you&rsquo;re going to make your code defensive and subscribe to these best practices:</p>
 
 <ol>
-<li><p>Set your timezone in the <code>config/application.rb</code> file in your Rails app. Look for <code>config.time_zone</code>, and configure your time zone equal to that value. Rails will refer to that as your base timezone going forward, and ActiveRecord will convert between `UTC and your set timezone whenever you query.</p></li>
-<li><p>Use the <code>in_time_zone</code> method to convert <code>Time</code> to your system&rsquo;s current set timezone. For example, <code>Time.now.in_time_zone("EST").iso8601</code>.</p></li>
+<li><p>Set your time zone in the <code>config/application.rb</code> file in your Rails app. Look for <code>config.time_zone</code>, and configure your time zone equal to that value. Rails will refer to that as your base time zone going forward, and ActiveRecord will convert between `UTC and your set time zone whenever you query.</p></li>
+<li><p>Use the <code>in_time_zone</code> method to convert <code>Time</code> to your system&rsquo;s current set time zone. For example, <code>Time.now.in_time_zone("EST").iso8601</code>.</p></li>
 <li><p>Use <code>Time.current</code> whenever you make an ActiveRecord query (ActiveRecord will convert <code>Time.current</code> and convert it to <code>UTC</code>: <code>Comment.where(["comments.published_at &gt; ?", Time.current])</code></p></li>
-<li><p>DO NOT use <code>Time.now</code>! This returns <em>your</em> system&rsquo;s time, and ignores whatever timezone you configured for your Rails app. Instead, use numerical attributes and methods (such as <code>1.day.from_now</code> or <code>Date.current</code>), which rely on the timezone you configured in your <code>application.rb</code> to determine the return value.</p></li>
+<li><p>DO NOT use <code>Time.now</code>! This returns <em>your</em> system&rsquo;s time, and ignores whatever time zone you configured for your Rails app. Instead, use numerical attributes and methods (such as <code>1.day.from_now</code> or <code>Date.current</code>), which rely on the time zone you configured in your <code>application.rb</code> to determine the return value.</p></li>
 </ol>
 
 
@@ -632,7 +838,7 @@
 
 <p>For example, <strong>leap seconds</strong>. Yes, really &ndash; it&rsquo;s a thing. <a href="http://en.wikipedia.org/wiki/Leap_second">Leap seconds</a> occur 1-2 times a year, on either June 30 and/or December 31st. They&rsquo;re necessary in order to keep the Earth&rsquo;s time of day close enough to the Sun&rsquo;s mean time. But, how do you account for this in programs? Well, Google actually does something pretty cool: instead of adding one second, Google&rsquo;s servers implement &ldquo;leap smears&rdquo;, which extend the seconds surrounding a leap second by just a little bit &ndash; enough to account for an entire extra second! Side note: the next leap second is on June 30th of this year! I hope you&rsquo;re ready.</p>
 
-<p>Another bizarre thing is <strong>Y2038</strong>. If this sounds reminiscient of Y2K, that&rsquo;s because it is. Essentially, <a href="http://www.y2038.com/">the 2038 problem</a> boils down to this: On January 19, 2038, Unix timestamps will stop working because of a 32-bit overflow. So, all of the millions of applications that use this time format will have to either reconfigure to 64-bit systems, or choose a new format to store dates and times. There&rsquo;s supposedly no universal solution to this, but hopefully someone will figure out a fix in the next 22 years.</p>
+<p>Another bizarre thing is <strong>Y2038</strong>. If this sounds reminiscent of Y2K, that&rsquo;s because it is. Essentially, <a href="http://www.y2038.com/">the 2038 problem</a> boils down to this: On January 19, 2038, Unix timestamps will stop working because of a 32-bit overflow. So, all of the millions of applications that use this time format will have to either reconfigure to 64-bit systems, or choose a new format to store dates and times. There&rsquo;s supposedly no universal solution to this, but hopefully someone will figure out a fix in the next 22 years.</p>
 
 <p>Hopefully by that point, someone will have figured out how to get rid of time zones completely.</p>
 
@@ -643,7 +849,7 @@
 
 <ul>
 <li>Unix timestamps and ISO8601 are both good formats for storing date and time in your database. Do a little research to decide <a href="http://stackoverflow.com/questions/15554586/timestamps-iso8601-vs-unix-timestamp">which of these formats</a> is the best tool for whatever job you&rsquo;re trying to accomplish.</li>
-<li>Dealing with timezones is hard, but the <a href="http://danilenko.org/2012/7/6/rails_timezones/">Exhaustive Guide to Rails Time Zones</a> will save you hours of banging your head against the wall &ndash; well, for time-related things, at least.</li>
+<li>Dealing with time zones is hard, but the <a href="http://danilenko.org/2012/7/6/rails_timezones/">Exhaustive Guide to Rails Time Zones</a> will save you hours of banging your head against the wall &ndash; well, for time-related things, at least.</li>
 <li>Want to be a <code>Time</code> object superstar? Read <a href="https://unix4lyfe.org/time/?v=1">this post</a>, which was featured on HackerNews, and peruse the <a href="http://ruby-doc.org//core-2.2.0/Time.html">Ruby documentation</a> to get the skinny on all things time-related.</li>
 </ul>
 
@@ -659,7 +865,7 @@
 
 <p>Mo money, mo problems. This is especially the case when you&rsquo;re a new developer trying to onboard onto a huge eCommerce Rails application.</p>
 
-<p>No, but really - money is such a pain in the ass to deal with as a programmer. So much logic and detail goes into accpeting a payment, processing a transaction, checking an order&rsquo;s status&hellip;and don&rsquo;t even get me <em>started</em> on shipping &ndash; seriously, I&rsquo;m saving the entire concept of shipping for another blog post.</p>
+<p>No, but really - money is such a pain in the ass to deal with as a programmer. So much logic and detail goes into accepting a payment, processing a transaction, checking an order&rsquo;s status&hellip;and don&rsquo;t even get me <em>started</em> on shipping &ndash; seriously, I&rsquo;m saving the entire concept of shipping for another blog post.</p>
 
 <p>But, at some point or another, you have to deal with other people&rsquo;s money. And you have to try and not screw it up, because apparently people really don&rsquo;t like that. So, how do you handle all those dolla dolla bills? Yup, you guessed it: with the <strong>money-rails library</strong> and Ruby&rsquo;s <strong>BigDecimal object</strong>.</p>
 
@@ -815,7 +1021,7 @@
 
 <p>The <a href="http://www.ruby-doc.org/core-2.2.0/">Ruby Core Library</a> is what you use every day, including basic objects such as <code>String</code>, <code>Integer</code>, <code>Float</code>, <code>Array</code>, <code>Hash</code>, and many others. On the other hand, the objects in the <a href="http://www.ruby-doc.org/stdlib-2.2.0/">Ruby Standard Library</a> may seem a little less familiar. Unlike the Core Library, objects from the Standard Library have to be explicitly required. <code>BigDecimal</code> objects are part of the Standard Library, as are <code>Abbrev</code>, <code>Logger</code>, and <code>Matrix</code> objects.</p>
 
-<p>The Standard Library is an extension of the Ruby language. You will always have access to the Core Library, but if you want to use an objec that exists outside of the Core Library, you&rsquo;ll need to specifically require it. So, if you want to play with <code>BigDecimal</code> in the console or use it in your application, you&rsquo;ll have to type this in to have access to the object: <code>require 'bigdecimal'</code>.</p>
+<p>The Standard Library is an extension of the Ruby language. You will always have access to the Core Library, but if you want to use an object that exists outside of the Core Library, you&rsquo;ll need to specifically require it. So, if you want to play with <code>BigDecimal</code> in the console or use it in your application, you&rsquo;ll have to type this in to have access to the object: <code>require 'bigdecimal'</code>.</p>
 
 <h2>More Bang For Your Buck</h2>
 
@@ -1049,7 +1255,7 @@
     <id>http://vaidehijoshi.github.io/blog/2015/01/27/embrace-your-inner-paranoia-use-acts-as-paranoid</id>
     <content type="html"><![CDATA[<p>Yesterday, I started my very first job as a software engineer! It&rsquo;s been super exciting, slightly terrifying, and sometimes overwhelming. I think one of the trickiest parts of starting as a new engineer at a company is the onboarding process.</p>
 
-<p>It might seem kind of scary, but if you think about it, it&rsquo;s actually pretty fun. You get to dive down a rabbit hole and look at production code that you didn&rsquo;t write. It&rsquo;s getting a new puzzle that you haven&rsquo;t solved yet: you try to figure out how one thing connects to another, where modules and methods exist, how things are namespaced, not to mention learning about new frameworks and gems. I feel like I&rsquo;m entering into new dimensions and travelling through a space-time continuum or something. This also might be attributed to the fact that I&rsquo;ve been  listening exclusively to the <a href="https://www.youtube.com/watch?v=YOWSTtXxf9s">Interstellar soundtrack</a> for the past two days, but whatever &ndash; you get the point.</p>
+<p>It might seem kind of scary, but if you think about it, it&rsquo;s actually pretty fun. You get to dive down a rabbit hole and look at production code that you didn&rsquo;t write. It&rsquo;s getting a new puzzle that you haven&rsquo;t solved yet: you try to figure out how one thing connects to another, where modules and methods exist, how things are namespaced, not to mention learning about new frameworks and gems. I feel like I&rsquo;m entering into new dimensions and travelling through a space-time continuum or something. This also might be attributed to the fact that I&rsquo;ve been listening exclusively to the <a href="https://www.youtube.com/watch?v=YOWSTtXxf9s">Interstellar soundtrack</a> for the past two days, but whatever &ndash; you get the point.</p>
 
 <p>My favorite part of the onboarding process is how much I&rsquo;ve been learning. Every new class or module definition brings a new piece of the puzzle that I&rsquo;ve never seen before, but can&rsquo;t wait to learn about. It&rsquo;s kind of crazy that I get paid to read and learn all day, every day &ndash; that&rsquo;s the dream, right?</p>
 
@@ -1891,9 +2097,9 @@
 
 <p>Writers create for their readers. Programmers create for their users. Neither of them allows for complete solitude, and both of them force you to put yourself in someone else&rsquo;s shoes. Writers have to empathize with their characters in order to make them believable and reliable for their readers. Programmers have to not only think about how their users experience an application, but also the readability of their code when it comes to other developers joining a project. In both cases, there&rsquo;s very little room to be selfish.</p>
 
-<p>You also learn to be kinder to yourself in the process. Writing and programming are equally hard, sometimes in the exact same way. In fact, all artistic endeavours are physically, mentally, and emotionally exhausting. But then again, isn&rsquo;t that supposed to be the case? You&rsquo;re creating something out of nothing &ndash; adding something to the universe that didn&rsquo;t already exist before <em>you</em> created it.</p>
+<p>You also learn to be kinder to yourself in the process. Writing and programming are equally hard, sometimes in the exact same way. In fact, all artistic endeavors are physically, mentally, and emotionally exhausting. But then again, isn&rsquo;t that supposed to be the case? You&rsquo;re creating something out of nothing &ndash; adding something to the universe that didn&rsquo;t already exist before <em>you</em> created it.</p>
 
-<p>Code is a living, breathing piece of art. When you build and ship an application, it&rsquo;s (hopefully) consumed by users around the world, all the time. You&rsquo;re never really done creating your art. Words are not that different. You put yourself into your writing and release it out into the world, just as you&rsquo;d deploy an applicaiton, for all the world to see.</p>
+<p>Code is a living, breathing piece of art. When you build and ship an application, it&rsquo;s (hopefully) consumed by users around the world, all the time. You&rsquo;re never really done creating your art. Words are not that different. You put yourself into your writing and release it out into the world, just as you&rsquo;d deploy an application, for all the world to see.</p>
 
 <p>The idea of <a href="http://www.paulgraham.com/hp.html">hackers as artists</a> isn&rsquo;t a new one. The real question is, what about them is similar &ndash; and what can we learn about the creative process to become the best writers and programmers that we can be?</p>
 ]]></content>
@@ -2085,7 +2291,7 @@
 
 <p>Because of naming conventions for Controllers, if I have a Guac Controller, Rails assumes that there is a class called GuacController saved as a file <code>guac_controller.rb</code> in my <code>app/controllers</code> directory. It will also look for corresponding view templates for my GuacController in <code>app/views/guac</code>, and it will take the output of these views and save them as <code>guac.html.erb</code>.</p>
 
-<p>Basically, your Controller makes a lot of assumptions whenver it gets a single web request. But, this also means that <em>you</em> can  anticipate how your Controller might react by simply understanding what your Controller already knows and assumes about your code.</p>
+<p>Basically, your Controller makes a lot of assumptions whenever it gets a single web request. But, this also means that <em>you</em> can anticipate how your Controller might react by simply understanding what your Controller already knows and assumes about your code.</p>
 
 <p>I guess what I&rsquo;m trying to say is&hellip;get to know each other.</p>
 
@@ -2114,9 +2320,9 @@
 <!-- more -->
 
 
-<h2>WTF is inheritence?</h2>
+<h2>WTF is inheritance?</h2>
 
-<p>Inheritence in object-oriented programming is pretty much exactly what it sounds like: when one class <strong>inherits</strong> the properties of another class, just like how you inherit traits from your parents (even if you might wish otherwise).</p>
+<p>Inheritance in object-oriented programming is pretty much exactly what it sounds like: when one class <strong>inherits</strong> the properties of another class, just like how you inherit traits from your parents (even if you might wish otherwise).</p>
 
 <p>Okay, maybe an example here will help:</p>
 
@@ -2150,7 +2356,7 @@
 </span><span class='line'>  <span class="k">end</span>
 </span><span class='line'>
 </span><span class='line'>  <span class="k">def</span> <span class="nf">bake_for</span>
-</span><span class='line'>    <span class="s2">&quot;To make </span><span class="si">#{</span><span class="nb">name</span><span class="si">}</span><span class="s2">, bake for </span><span class="si">#{</span><span class="n">time</span><span class="si">}</span><span class="s2"> at </span><span class="si">#{</span><span class="n">baking_temperature</span><span class="si">}</span><span class="s2"> degrees fahrenheit.&quot;</span>
+</span><span class='line'>    <span class="s2">&quot;To make </span><span class="si">#{</span><span class="nb">name</span><span class="si">}</span><span class="s2">, bake for </span><span class="si">#{</span><span class="n">time</span><span class="si">}</span><span class="s2"> at </span><span class="si">#{</span><span class="n">baking_temperature</span><span class="si">}</span><span class="s2"> degrees Fahrenheit.&quot;</span>
 </span><span class='line'>  <span class="k">end</span>
 </span><span class='line'>
 </span><span class='line'><span class="k">end</span>
@@ -2168,7 +2374,7 @@
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>would output: <code>To make cake, bake for 30 min at 375 degrees fahrenheit.</code></p>
+<p>would output: <code>To make cake, bake for 30 min at 375 degrees Fahrenheit.</code></p>
 
 <p>Awesome. I love cake. But you know what I like even more than cake? Cookies! Just like in my first class, I want to make a new <code>Cookie</code> class, which will also have a name, time, baking temperature, and <code>bake_for</code> method. Now, I could theoretically rewrite all of my code from the <code>BakedStuff</code> class, but then I&rsquo;d have less time to bake and I&rsquo;m also pretty sure that goes against the whole &ldquo;DRY&rdquo; concept in Ruby.</p>
 
@@ -2210,15 +2416,15 @@
 <p>Whoa! New code!</p>
 
 <ul>
-<li>That <code>&lt;</code> sign is what we use to dennote inheritence. All it means is that my <code>Cookie</code> class is now <em>inheriting</em> all the methods from my <code>BakedStuff</code> class.</li>
-<li>Notice that this class has some additional features, including a new instance method which sets the <code>cookies_made</code>.</li>
+<li>That <code>&lt;</code> sign is what we use to denote inheritance. All it means is that my <code>Cookie</code> class is now <em>inheriting</em> all the methods from my <code>BakedStuff</code> class.</li>
+<li>Notice that this class has some additional features, including a new instance method that sets the <code>cookies_made</code>.</li>
 <li>But wait, what&rsquo;s that <code>super</code> thing doing in there??</li>
 </ul>
 
 
 <h2>WHUT is <code>super</code>?</h2>
 
-<p>The <code>super</code> keyword in Ruby is, well, pretty super. Okay, okay, what it <em>really</em> does is allow you to call methods up the &ldquo;inheritence heirarchy&rdquo;, which means that you can use methods that were perviously defined in classes that this class now inherits from.</p>
+<p>The <code>super</code> keyword in Ruby is, well, pretty super. Okay, okay, what it <em>really</em> does is allow you to call methods up the &ldquo;inheritance hierarchy&rdquo;, which means that you can use methods that were previously defined in classes that this class now inherits from.</p>
 
 <p>In fact, <code>super</code> is what allows me to pull down everything from my <code>initialize</code> and <code>bake_for</code> methods in my parent class, which in this case is my <code>BakedStuff</code> class. You&rsquo;ll also notice that I&rsquo;ve reassigned my <code>@time</code> variable to equal 20 minutes, and that I&rsquo;ve added a string interpolation into my <code>bake_for</code> method. And I didn&rsquo;t have to retype any of the code from my parent class in the process!</p>
 
@@ -2311,7 +2517,7 @@
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>which outputs: <code>To make chocolate chip cookies, bake for 20 min at 375 degrees fahrenheit. This recipe will yield 24 cookies.</code></p>
+<p>which outputs: <code>To make chocolate chip cookies, bake for 20 min at 375 degrees Fahrenheit. This recipe will yield 24 cookies.</code></p>
 
 <p>And what about if I create a new pie?</p>
 
@@ -2322,7 +2528,7 @@
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>outputs: <code>To make pie, bake for 45 min at 450 degrees fahrenheit.</code></p>
+<p>outputs: <code>To make pie, bake for 45 min at 450 degrees Fahrenheit.</code></p>
 
 <p>Interesting. It doesn&rsquo;t seem to matter at all that I changed my <code>Cookie</code> class &ndash; <code>BakedStuff</code> stayed the same. And all the edits I made to my <code>Snickerdoodle</code> class didn&rsquo;t fall up to my <code>Cookie</code> class, either. That&rsquo;s because inheritance only works in one direction, from the parent class, down to its children.</p>
 

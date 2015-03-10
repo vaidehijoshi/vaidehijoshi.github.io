@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-03-01T14:43:34-05:00</updated>
+  <updated>2015-03-09T21:36:20-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,157 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[It's All in the Family: Using Acts_as_tree]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree/"/>
+    <updated>2015-03-10T08:27:54-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/eWYGCVTJuOcg0" width="480" height="360" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>When working in Rails, it&rsquo;s all the family &ndash; literally. No matter the size of your application, almost all of your objects are going to be related to each other. You can create however many objects you wan because database rows are cheap, cheap, cheap! But the more objects you make, the harder it is to keep track of the other data that the object relates to (which is generally yet <em>another</em> object).</p>
+
+<p>I found myself in such a predicament last week, when I had to make numerous objects relate to one other to create a tree structure. The obvious first approach was to use the <code>belongs_to</code> and <code>has_many</code> relationship. But when I realized that I wanted some <code>Genre</code> objects to belong to <em>other</em> <code>Genre</code> objects, I ran into a problem. Depending solely on the ActiveRecord relationships turned out to be painful, messy, and complicated, and wouldn&rsquo;t make my code very flexible or sustainable over time.</p>
+
+<p>So I Googled around and found a handy plugin created by DHH himself called <code>acts_as_tree</code>. This gem allows you to create a hierarchical structure of objects in your application and &ndash; to take it a step further &ndash; gives you a bunch of incredibly helpful methods. It even allows you to visualize your tree structure! Sound amazing? That&rsquo;s because it is. And if you follow a few easy steps, you can use it in your application, too.</p>
+
+<!--more-->
+
+
+<h2>Family Ties</h2>
+
+<p>So, for this post I&rsquo;ll continue working through my basic eCommerce Bookstore application, which I&rsquo;ve been using as an example for my previous posts. I&rsquo;ve already got some <code>Book</code> objects, but as my store starts to grow, it&rsquo;s going to be pretty hard to keep track of the different genres of <code>Book</code> objects that I currently have available.</p>
+
+<p>The first step to tackling this problem was easy: create <code>Genre</code> objects, each of which <code>has_many</code> different <code>Book</code> objects associated with it, while each <code>Book</code> object will <code>belong_to</code> one specific <code>Genre</code>.</p>
+
+<p>But what about genres that are associated with and &ldquo;descend from&rdquo; other genres? Well, here&rsquo;s where the delightful and easy-to-use <code>acts_as_tree</code> gem comes in.</p>
+
+<iframe src="//giphy.com/embed/pcPeWllpmv6Zq" width="480" height="431" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>First things first: we&rsquo;ll add <code>gem 'acts_as_tree'</code> to our Gemfile.</p>
+
+<p>Next, we need to add a column to our <code>Genre</code> database. We can write a simple migration that will add a <code>parent_id</code> integer to our database, which will allow us to find the parents and children of a <code>Genre</code> object:
+<code>ruby
+class AddParentIdColumnToGenre &lt; ActiveRecord::Migration
+  def change
+    add_column :genres, :parent_id, :integer
+  end
+end
+</code></p>
+
+<p>Finally, we&rsquo;ll head over to our <code>Genre</code> model, which is what we needs to act as a (family) tree. We need to add a single line in here, which implements the ActiveRecord plugin and specifies what we&rsquo;ll be ordering our <code>Genre</code> objects by:
+<code>ruby
+class Genre &lt; ActiveRecord::Base
+  has_many :books
+  validates_presence_of :name
+  acts_as_tree order: "name"
+end
+</code></p>
+
+<h2>Blood Is Thicker Than Water</h2>
+
+<p>Okay, now let&rsquo;s see this baby in action! We can start by making a root <code>Genre</code> object, and then giving it some children:</p>
+
+<pre><code class="ruby">literature = Genre.create("name" =&gt; "Literature")
+
+non_fiction = literature.children.create("name" =&gt; "Non-Fiction")
+fiction = literature.children.create("name" =&gt; "Fiction")
+</code></pre>
+
+<p>Cool, but our tree doesn&rsquo;t really look like a tree yet. Let&rsquo;s give our <code>non_fiction</code> and <code>fiction</code> genres some children, grandchildren, and great-grandchildren of their own:</p>
+
+<pre><code class="ruby">biography = non_fiction.children.create("name" =&gt; "Biography")
+comic_novel = fiction.children.create("name" =&gt; "Comic Novel")
+black_comedy = comic_novel.create("name" =&gt; "Black Comedy")
+parody = comic_novel.create("name" =&gt; "Parody")
+romantic_comedy = comic_novel.create("name" =&gt; "Romanic Comedy")
+satire = comic_novel.create("name" =&gt; "Satire")
+poltical_satire = satire.create("name" =&gt; "Political Satire")
+</code></pre>
+
+<p>Damn. Okay, well now our tree should look look less like a sprout and more like this bad boy:</p>
+
+<iframe src="//giphy.com/embed/hMWmNKdcdhAyI" width="480" height="267" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>It Runs In The Family</h2>
+
+<p>Even though we&rsquo;ve created all these parent-child relationships, what can we do with them, exactly? Well, a lot! You can call the <code>parent</code> and <code>children</code> methods to get a full list of all the objects associated with a particular <code>Genre</code> instance:</p>
+
+<pre><code class="ruby">literature.parent                   # =&gt; nil
+fiction.parent                      # =&gt; literature
+literature.children                 # =&gt; [non_fiction, fiction]
+literature.children.first.children  # =&gt; [Biography]
+
+literature.root?                    # =&gt; true
+fiction.root?                       # =&gt; false
+biography.leaf?                     # =&gt; true
+
+black_comedy.siblings               # =&gt; [parody, romantic_comedy, satire]
+poltical_satire.ancestors           # =&gt; [satire, comic_novel, fiction, literature]
+
+Genre.root                          # =&gt; literature
+</code></pre>
+
+<p>An important thing to note here is that the <code>children</code> method will return an <em>array</em> of objects, even if there&rsquo;s only one child! So if you&rsquo;re trying to get one particular object, remember to call the <code>first</code> method in the array, or search by a <code>Genre</code> object&rsquo;s specific <code>id</code> to avoid annoying bugs.</p>
+
+<p>Some other cool methods to try include:</p>
+
+<ol>
+<li><p><code>leaves</code>, a class method that will return all the &ldquo;leaves&rdquo; of the tree (in an array).</p></li>
+<li><p><code>descendants</code>, an instance method that will return all the children, and the children&rsquo;s children of an object (in an array).</p></li>
+<li><p><code>self_and_siblings</code>, which returns the receiver object, as well as any siblings it may have (in an array).</p></li>
+<li><p><code>default_tree_order</code>, which returns all the objects listed in alphabetical order!</p></li>
+</ol>
+
+
+<p>But the coolest feature of the <code>acts_as_tree</code> gem is Tree View, which allows you to see a visualization of your entire tree. All we have to do view this magic is add this line to our <code>Genre</code> model:</p>
+
+<pre><code class="ruby">extend ActsAsTree::TreeView
+</code></pre>
+
+<p>And then, call the class method <code>tree_view</code>, which takes in an attribute parameter:</p>
+
+<pre><code class="ruby">Genre.tree_view(:name)
+</code></pre>
+
+<p>The resulting return value is pure flora magic:
+<code>
+Literature
+ |_ Non-Fiction
+ |    |_ Biography
+ |_ Fiction
+ |    |_ Comic Novel
+ |        |_ Black Comedy
+ |        |_ Parody
+ |        |_ Romantic Comedy
+ |        |_ Satire
+ |            |_ Political Satire
+</code></p>
+
+<p>Isn&rsquo;t it so beautiful?! Doesn&rsquo;t it make you feel like this:</p>
+
+<iframe src="//giphy.com/embed/FlWgXEtj5aM5G" width="480" height="259" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Or maybe it&rsquo;s just me.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>A lot of people seem to like the <a href="https://github.com/stefankroes/ancestry"><code>ancestry</code> gem</a>, but I think that <code>acts_as_tree</code> is a good one to start off with. If you need the extra functionality that <code>ancestry</code> provides, then you can eventually level up to that. Another variation on the <code>acts_as_tree</code>  is the <a href="https://github.com/chrisroberts/acts_as_sane_tree"><code>acts_as_sane_tree</code> gem</a>, which is configured for PostgreSQL 8.4 and comes with some cool extra methods (but isn&rsquo;t nearly as massive as ancestry).</li>
+<li>There are a lot of different ways to implement the <code>acts_as_tree</code>. Check out <a href="http://railscasts.com/episodes/162-tree-based-navigation">this railscast</a> on tree-based navigation using this gem/plugin (beware the date on this one, though!).</li>
+<li>There are a lot of different ways to deal with recursive data structures in Rails. Check out this <a href="http://gmarik.info/blog/2012/10/14/recursive-data-structures-with-rails">in-depth look</a> at the tried and tested options to learn more.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Bundle Up &amp; Let Your Objects Do the Freezing: Frozen Hashes]]></title>
@@ -166,6 +317,7 @@ would work.</p>
 <ul>
 <li>You can use the <code>freeze</code> method to make mutable objects immutable. To check whether an object can be modified or not, use the <code>frozen?</code> method, which will return a boolean value.</li>
 <li>Certain Ruby objects, such as integers, floats, and symbols, are always frozen and cannot be modified.</li>
+<li>Someone made a <a href="https://github.com/zizkovrb/melt">melt gem</a> &ndash; for realsies!</li>
 <li>Some people are <a href="http://m.onkey.org/ruby-i-don-t-like-3-object-freeze">not big fans</a> of the weird functionality of Ruby <code>freeze</code>. But it&rsquo;s still worth it to <a href="http://blog.adamstegman.com/activerecord-hangs-on-to-destroyed-relations.html">learn how it works</a>, especially since it can be <a href="http://blog.adamstegman.com/activerecord-hangs-on-to-destroyed-relations.html">super helpful</a> for <a href="http://www.devarticles.com/c/a/Ruby-on-Rails/Updating-and-Deleting-with-the-Active-Record/2/">debugging Rails apps</a>.</li>
 </ul>
 
@@ -177,7 +329,7 @@ would work.</p>
     <link href="http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my/"/>
     <updated>2015-02-24T08:13:49-05:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my</id>
-    <content type="html"><![CDATA[<p><em>This blog post is part of a series on Class Inheritence. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance/">here</a>.</em></p>
+    <content type="html"><![CDATA[<p><em>This blog post is part of a series on Class Inheritance. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance/">here</a>.</em></p>
 
 <p>I recently stumbled upon this line of code that totally floored me. I mean, I had to drop everything I was doing and do some serious Googling, my friends. Well, that and also I asked my fellow developers at work who are far more seasoned programmers than me.</p>
 
@@ -206,7 +358,7 @@ end
 
 <h2>Class Methods, Because Your Instances Should Never Be Too Greedy</h2>
 
-<p>In order to understand the meaning behind <code>class &lt;&lt; self</code>, we first need to understand the <code>&lt;&lt; self</code> sytax. Let&rsquo;s recap a couple basics about class inheritance first:</p>
+<p>In order to understand the meaning behind <code>class &lt;&lt; self</code>, we first need to understand the <code>&lt;&lt; self</code> syntax. Let&rsquo;s recap a couple basics about class inheritance first:</p>
 
 <ol>
 <li>Classes can have two different types of methods: class methods, which can be called on a <code>Class</code> object, and instance methods, which can only be called on <em>instances</em> of a <code>Class</code> object.</li>
@@ -374,7 +526,7 @@ charlottes_web.eigenclass.singleton_methods
 <h2>tl;dr?</h2>
 
 <ul>
-<li>Technically speaking, there&rsquo;s actually no such thing as a <em>class method</em> in Ruby. You&rsquo;re always opening up the eigenclass/singleton class of an object whenver you define a class method. Keep in mind that there are many different syntaxes you can use in order to achieve this!</li>
+<li>Technically speaking, there&rsquo;s actually no such thing as a <em>class method</em> in Ruby. You&rsquo;re always opening up the eigenclass/singleton class of an object whenever you define a class method. Keep in mind that there are many different syntaxes you can use in order to achieve this!</li>
 <li>Curious about the <code>self.method</code> vs <code>class &lt;&lt; self</code> debate? Check out this <a href="http://stackoverflow.com/questions/10964081/class-self-vs-self-method-with-ruby-whats-better">thread on Stack Overflow</a>.</li>
 <li>Read more about the <a href="http://stackoverflow.com/questions/23848667/ruby-method-lookup-path-for-an-object">method lookup path</a> to understand where Ruby looks for stuff.</li>
 <li>Tons of good resources on this stuff <a href="http://madebydna.com/all/code/2011/06/24/eigenclasses-demystified.html">here</a> and <a href="http://yehudakatz.com/2009/11/15/metaprogramming-in-ruby-its-all-about-the-self/">here</a>. Oh, and <a href="http://ruby-metaprogramming.rubylearning.com/html/seeingMetaclassesClearly.html">here</a>.</li>
@@ -433,7 +585,7 @@ And what if you want to convert a Unix timestamp (like the one in my JSON respon
 2.1.2 :003 &gt; Time.at('-1423694433'.to_i)
  =&gt; 1924-11-19 20:19:27 -0500
 </code>
-Pretty sweet, right? Don&rsquo;t worry, I&rsquo;m about to complicate it a bit further.</p>
+Pretty sweet, right? Don&rsquo;t worry; I&rsquo;m about to complicate it a bit further.</p>
 
 <h2>Even More Types of Time</h2>
 
@@ -450,22 +602,22 @@ Pretty sweet, right? Don&rsquo;t worry, I&rsquo;m about to complicate it a bit f
 2.1.2 :006 &gt; Time.now.utc.iso8601
  =&gt; "2015-02-17T00:09:34Z"
 </code>
-See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC</code> timezone is represented in ISO8601, with the <code>Z</code> short for &ldquo;Zero&rdquo; time. It&rsquo;s also worth reminding ourselves that Unix timestamps are also set in the <code>UTC</code> timezone.</p>
+See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC</code> time zone is represented in ISO8601, with the <code>Z</code> short for &ldquo;Zero&rdquo; time. It&rsquo;s also worth reminding ourselves that Unix timestamps are also set in the <code>UTC</code> time zone.</p>
 
 <h2>Goddamn Time Zones</h2>
 
 <iframe src="//giphy.com/embed/CsV1pnR9hYLuM" width="480" height="269" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
 
-<p>Look man, I&rsquo;m not gonna lie to you: timezones will jack your shit up. Timezone bugs are <em>so</em> common, it&rsquo;s like they&rsquo;re just waiting there patiently, hoping that you&rsquo;ll make a mistake.</p>
+<p>Look man, I&rsquo;m not gonna lie to you: time zones will jack your shit up. Time zone bugs are <em>so</em> common, it&rsquo;s like they&rsquo;re just waiting there patiently, hoping that you&rsquo;ll make a mistake.</p>
 
-<p>But you&rsquo;re a Rails developer &ndash; ain&rsquo;t no timezone gonna stop you! Instead, you&rsquo;re going to make your code defensive and subscribe to these best practices:</p>
+<p>But you&rsquo;re a Rails developer &ndash; ain&rsquo;t no time zone gonna stop you! Instead, you&rsquo;re going to make your code defensive and subscribe to these best practices:</p>
 
 <ol>
-<li><p>Set your timezone in the <code>config/application.rb</code> file in your Rails app. Look for <code>config.time_zone</code>, and configure your time zone equal to that value. Rails will refer to that as your base timezone going forward, and ActiveRecord will convert between `UTC and your set timezone whenever you query.</p></li>
-<li><p>Use the <code>in_time_zone</code> method to convert <code>Time</code> to your system&rsquo;s current set timezone. For example, <code>Time.now.in_time_zone("EST").iso8601</code>.</p></li>
+<li><p>Set your time zone in the <code>config/application.rb</code> file in your Rails app. Look for <code>config.time_zone</code>, and configure your time zone equal to that value. Rails will refer to that as your base time zone going forward, and ActiveRecord will convert between `UTC and your set time zone whenever you query.</p></li>
+<li><p>Use the <code>in_time_zone</code> method to convert <code>Time</code> to your system&rsquo;s current set time zone. For example, <code>Time.now.in_time_zone("EST").iso8601</code>.</p></li>
 <li><p>Use <code>Time.current</code> whenever you make an ActiveRecord query (ActiveRecord will convert <code>Time.current</code> and convert it to <code>UTC</code>: <code>Comment.where(["comments.published_at &gt; ?", Time.current])</code></p></li>
-<li><p>DO NOT use <code>Time.now</code>! This returns <em>your</em> system&rsquo;s time, and ignores whatever timezone you configured for your Rails app. Instead, use numerical attributes and methods (such as <code>1.day.from_now</code> or <code>Date.current</code>), which rely on the timezone you configured in your <code>application.rb</code> to determine the return value.</p></li>
+<li><p>DO NOT use <code>Time.now</code>! This returns <em>your</em> system&rsquo;s time, and ignores whatever time zone you configured for your Rails app. Instead, use numerical attributes and methods (such as <code>1.day.from_now</code> or <code>Date.current</code>), which rely on the time zone you configured in your <code>application.rb</code> to determine the return value.</p></li>
 </ol>
 
 
@@ -477,7 +629,7 @@ See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC
 
 <p>For example, <strong>leap seconds</strong>. Yes, really &ndash; it&rsquo;s a thing. <a href="http://en.wikipedia.org/wiki/Leap_second">Leap seconds</a> occur 1-2 times a year, on either June 30 and/or December 31st. They&rsquo;re necessary in order to keep the Earth&rsquo;s time of day close enough to the Sun&rsquo;s mean time. But, how do you account for this in programs? Well, Google actually does something pretty cool: instead of adding one second, Google&rsquo;s servers implement &ldquo;leap smears&rdquo;, which extend the seconds surrounding a leap second by just a little bit &ndash; enough to account for an entire extra second! Side note: the next leap second is on June 30th of this year! I hope you&rsquo;re ready.</p>
 
-<p>Another bizarre thing is <strong>Y2038</strong>. If this sounds reminiscient of Y2K, that&rsquo;s because it is. Essentially, <a href="http://www.y2038.com/">the 2038 problem</a> boils down to this: On January 19, 2038, Unix timestamps will stop working because of a 32-bit overflow. So, all of the millions of applications that use this time format will have to either reconfigure to 64-bit systems, or choose a new format to store dates and times. There&rsquo;s supposedly no universal solution to this, but hopefully someone will figure out a fix in the next 22 years.</p>
+<p>Another bizarre thing is <strong>Y2038</strong>. If this sounds reminiscent of Y2K, that&rsquo;s because it is. Essentially, <a href="http://www.y2038.com/">the 2038 problem</a> boils down to this: On January 19, 2038, Unix timestamps will stop working because of a 32-bit overflow. So, all of the millions of applications that use this time format will have to either reconfigure to 64-bit systems, or choose a new format to store dates and times. There&rsquo;s supposedly no universal solution to this, but hopefully someone will figure out a fix in the next 22 years.</p>
 
 <p>Hopefully by that point, someone will have figured out how to get rid of time zones completely.</p>
 
@@ -488,7 +640,7 @@ See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC
 
 <ul>
 <li>Unix timestamps and ISO8601 are both good formats for storing date and time in your database. Do a little research to decide <a href="http://stackoverflow.com/questions/15554586/timestamps-iso8601-vs-unix-timestamp">which of these formats</a> is the best tool for whatever job you&rsquo;re trying to accomplish.</li>
-<li>Dealing with timezones is hard, but the <a href="http://danilenko.org/2012/7/6/rails_timezones/">Exhaustive Guide to Rails Time Zones</a> will save you hours of banging your head against the wall &ndash; well, for time-related things, at least.</li>
+<li>Dealing with time zones is hard, but the <a href="http://danilenko.org/2012/7/6/rails_timezones/">Exhaustive Guide to Rails Time Zones</a> will save you hours of banging your head against the wall &ndash; well, for time-related things, at least.</li>
 <li>Want to be a <code>Time</code> object superstar? Read <a href="https://unix4lyfe.org/time/?v=1">this post</a>, which was featured on HackerNews, and peruse the <a href="http://ruby-doc.org//core-2.2.0/Time.html">Ruby documentation</a> to get the skinny on all things time-related.</li>
 </ul>
 
@@ -504,7 +656,7 @@ See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC
 
 <p>Mo money, mo problems. This is especially the case when you&rsquo;re a new developer trying to onboard onto a huge eCommerce Rails application.</p>
 
-<p>No, but really - money is such a pain in the ass to deal with as a programmer. So much logic and detail goes into accpeting a payment, processing a transaction, checking an order&rsquo;s status&hellip;and don&rsquo;t even get me <em>started</em> on shipping &ndash; seriously, I&rsquo;m saving the entire concept of shipping for another blog post.</p>
+<p>No, but really - money is such a pain in the ass to deal with as a programmer. So much logic and detail goes into accepting a payment, processing a transaction, checking an order&rsquo;s status&hellip;and don&rsquo;t even get me <em>started</em> on shipping &ndash; seriously, I&rsquo;m saving the entire concept of shipping for another blog post.</p>
 
 <p>But, at some point or another, you have to deal with other people&rsquo;s money. And you have to try and not screw it up, because apparently people really don&rsquo;t like that. So, how do you handle all those dolla dolla bills? Yup, you guessed it: with the <strong>money-rails library</strong> and Ruby&rsquo;s <strong>BigDecimal object</strong>.</p>
 
@@ -627,7 +779,7 @@ NameError: uninitialized constant BigDecimal
 
 <p>The <a href="http://www.ruby-doc.org/core-2.2.0/">Ruby Core Library</a> is what you use every day, including basic objects such as <code>String</code>, <code>Integer</code>, <code>Float</code>, <code>Array</code>, <code>Hash</code>, and many others. On the other hand, the objects in the <a href="http://www.ruby-doc.org/stdlib-2.2.0/">Ruby Standard Library</a> may seem a little less familiar. Unlike the Core Library, objects from the Standard Library have to be explicitly required. <code>BigDecimal</code> objects are part of the Standard Library, as are <code>Abbrev</code>, <code>Logger</code>, and <code>Matrix</code> objects.</p>
 
-<p>The Standard Library is an extension of the Ruby language. You will always have access to the Core Library, but if you want to use an objec that exists outside of the Core Library, you&rsquo;ll need to specifically require it. So, if you want to play with <code>BigDecimal</code> in the console or use it in your application, you&rsquo;ll have to type this in to have access to the object: <code>require 'bigdecimal'</code>.</p>
+<p>The Standard Library is an extension of the Ruby language. You will always have access to the Core Library, but if you want to use an object that exists outside of the Core Library, you&rsquo;ll need to specifically require it. So, if you want to play with <code>BigDecimal</code> in the console or use it in your application, you&rsquo;ll have to type this in to have access to the object: <code>require 'bigdecimal'</code>.</p>
 
 <h2>More Bang For Your Buck</h2>
 
@@ -646,206 +798,6 @@ NameError: uninitialized constant BigDecimal
 <li>The <code>money-rails</code> library allows you to create <code>Money</code> objects, including different currencies. Ruby <code>BigDecimal</code> objects round more accurately and are more precise than <code>Float</code> objects, making them more preferable when working with money.</li>
 <li>Read more about the methods available to <code>BigDecimal</code> objects in the <a href="http://www.ruby-doc.org/stdlib-2.2.0/libdoc/bigdecimal/rdoc/index.html">Ruby documentation</a>, and check out all the cool stuff that the <code>money</code> gem can do over on <a href="http://rubymoney.github.io/money/">their website</a>.</li>
 <li>Want to know more about what makes floats weird? Read <a href="http://www.rails-troubles.com/2011/12/ruby-float-quirks.html">this blog post</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[When Enough Is Enough: How to Know When to Use Enums]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/02/03/when-enough-is-enough-how-to-know-when-to-use-enums/"/>
-    <updated>2015-02-03T08:32:19-05:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/02/03/when-enough-is-enough-how-to-know-when-to-use-enums</id>
-    <content type="html"><![CDATA[<p>NERD ALERT: I love databases. God, they&rsquo;re just <em>fantastic</em>. Few things give me as much joy as an empty whiteboard and a couple of intricate join tables that need to be sketched out. But there&rsquo;s also an art to understanding how to handle data &ndash; particularly when you have a shit ton of it.</p>
-
-<p>The main issue people run into with data is first, how to go about storing it, and second, how to go about getting it when you actually need it! This doesn&rsquo;t sound super complicated though, right? <em>Wrong</em>. Databases grow vertically, not horizontally, and they grow hella fast. At a certain point, the way that you go about storing your data ends up <em>directly impacting</em> how you go about retrieving it!</p>
-
-<p>Many Rubyists write different helper methods to do their querying for them. But this is Rails Land, which means that we have <del>black</del> Rails magic at our disposal. And with the advent of Rails 4.1, that magic now has a name: <strong>enum</strong>.</p>
-
-<!-- more -->
-
-
-<h2>Get Yo Enum On</h2>
-
-<p>When Rails 4.1 was released less than a year ago, it came out with a bunch of new features. One of those was <strong>ActiveRecord enums</strong>, which essentially cut out a lot of methods and superfluous code.</p>
-
-<p>ActiveRecord enums allow you to manipulate the attributes of an ActiveRecord object in Rails such that an attribute&rsquo;s values map to <em>integers</em> in the database (as opposed to strings), and yet can also be <em>queried by name</em>. If all this sounds kind of crazy to you, that&rsquo;s because it is! Enums are pretty cool because they have the flexibility of a string, but the speed and efficiency of an integer. You can look up values in a huge database using an integer, but you can also update and add attributes as string. Oh &ndash; you also get a bunch of methods for FREE!</p>
-
-<iframe src="//giphy.com/embed/eYieKG19ZuaR2" width="480" height="338" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>So how does this magic work, exactly? I thought you&rsquo;d never ask!</p>
-
-<h2>Multiple Columns?! Ain&rsquo;t Nobody Got Time For That!</h2>
-
-<p>To demonstrate how to implement ActiveRecord enums, I&rsquo;ll continue using <a href="http://vaidehijoshi.github.io/blog/2015/01/27/embrace-your-inner-paranoia-use-acts-as-paranoid/">last week&rsquo;s ecommerce bookstore app</a> as my example. So, I have these <code>Book</code> objects in my store, and I want to keep track of what their status is: either <code>in stock</code>, <code>out of stock</code>, or <code>ordered</code>. For the sake of simplicity, we&rsquo;ll pretend that I&rsquo;m not a super sophisticated bookseller, so I don&rsquo;t have a lot of <code>Book</code>s, and therefore each <code>Book</code> object can only ever have one of these three states.</p>
-
-<p>I might first start off by having three different columns to represent each of these states:
-<code>ruby
-class AddStatusesToBooks &lt; ActiveRecord::Migration
-  def change
-    add_column :books, :in_stock?, :boolean
-    add_column :books, :out_of_stock?, :boolean
-    add_column :books, :ordered?, :boolean
-  end
-end
-</code>
-But this seems kind of&hellip;ridiculous. I&rsquo;m always going to have <em>two empty columns</em>. This code has me all like:</p>
-
-<iframe src="//giphy.com/embed/zrdUjl6N99nLq" width="480" height="380" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Alternatively, I could combine all of these columns into one and use some helper methods that return boolean values when I call them on an instance of a <code>Book</code>:
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Book</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">in_stock?</span>
-</span><span class='line'>    <span class="nb">self</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="p">;</span><span class="k">in</span> <span class="n">stock</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span>
-</span><span class='line'>  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;  def out_of_stock?</span>
-</span><span class='line'><span class="sr">    self.status == &amp;lsquo;out of stock&amp;rsquo;</span>
-</span><span class='line'><span class="sr">  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">def</span> <span class="nf">ordered?</span>
-</span><span class='line'>    <span class="nb">self</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="p">;</span><span class="n">ordered</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-Well, now I have one column, so that&rsquo;s better. But this is still so repetitive, ugly, and inefficient. Don&rsquo;t worry, it&rsquo;s about to get real good.</p>
-
-<h2>Query Your Little Heart Out</h2>
-
-<p>Implementing enum is pretty simple. First, add the macro to your class:
-<code>ruby
-class Book &lt; ActiveRecord::Base
-  enum status: [:in_stock, :out_of_stock, :ordered]
-end
-</code>
-You&rsquo;ll notice that I have my <code>status</code> attribute categorized into my three different options. The fact that they look like symbols in an array is no mistake &ndash; each of these symbols is actually associated with its index. So <code>in_stock</code> will be referenced by its index number <code>0</code>, <code>out_of_stock</code> by <code>1</code>, and <code>ordered</code> by <code>2</code>.</p>
-
-<p>Next, add a column to your migration that will allow ActiveRecord enum to carry out your queries:
-<code>ruby
-class AddStatusToBooks &lt; ActiveRecord::Migration
-  def change
-    add_column :books, :status, :integer, default: 0
-  end
-end
-</code>
-I want all my <code>Book</code> objects to default to an <code>in_stock</code> status when they are created, so I added a <code>default: 0</code> to my column. Adding a default is always a good way to keep your code defensive.</p>
-
-<p>Now if I want to create a <code>Book</code> object and check its status:
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">book</span> <span class="o">=</span> <span class="no">Book</span><span class="o">.</span><span class="n">create</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;book.status&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;=&gt;</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">in_stock</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;book.out_of_stock?&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;=&gt;</span> <span class="kp">false</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;book.status = :ordered</span>
-</span><span class='line'><span class="sr">book.ordered! #updates the object</span>
-</span><span class='line'><span class="sr">book.ordered?&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;=&gt;</span> <span class="kp">true</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;book.status?&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;=&gt;</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">ordered</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;book.out_of_stock&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;=&gt;</span> <span class="c1">#&amp;lt;ActiveRecord::Relation []&gt;&lt;/h1&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="no">Go</span> <span class="n">ahead</span> <span class="ow">and</span> <span class="n">scroll</span> <span class="n">up</span> <span class="k">if</span> <span class="n">you</span> <span class="n">don</span><span class="s1">&#39;t believe me -- I promise I didn&#39;</span><span class="n">t</span> <span class="n">make</span> <span class="n">any</span> <span class="n">of</span> <span class="n">these</span> <span class="nb">methods</span><span class="o">!</span> <span class="no">Enum</span> <span class="n">gave</span> <span class="n">them</span> <span class="n">to</span> <span class="n">me</span><span class="p">,</span> <span class="no">FO</span> <span class="no">FREE</span><span class="o">.</span> <span class="no">So</span> <span class="n">what</span><span class="s1">&#39;s actually going on here? Well, not much more than ActiveRecord mapping the integer corresponding to the indexes of the symbols we provided in the enum macro array.</span>
-</span><span class='line'>
-</span><span class='line'><span class="s1">Our database has only one column storing all this information: `status`. That column has rows that are all either `1`, `2`, or `3`. ActiveRecord pulls the actual symbols that correspond to these array indexes, and returns them, simultaneously creating an `in_stock`, `out_of_stock`, and `ordered` scope. And the icing on the cake: all the helper methods that are immediately generated for us in the process!</span>
-</span><span class='line'>
-</span><span class='line'><span class="s1">## Tips and Tricks</span>
-</span><span class='line'>
-</span><span class='line'><span class="s1">Enums give you a lot of flexibility. For example, I played around with the `in_stock` scope of my `Book` object to create a specific class method that would order the top three newest books added to my inventory:</span>
-</span><span class='line'><span class="s1">`scope :newest_stock, -&amp;gt; (limit: 3) { in_stock.order(&#39;</span><span class="n">date</span> <span class="no">DESC</span><span class="err">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="n">limit</span><span class="p">)</span> <span class="p">}</span><span class="sb">`</span>
-</span><span class='line'>
-</span><span class='line'><span class="sb">Another thing to remember is that you *cannot* use the same names for different enums of the same class:</span>
-</span><span class='line'><span class="sb">&lt;/code&gt;&lt;/pre&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sb">&lt;p&gt;class Book &amp;lt; ActiveRecord::Base</span>
-</span><span class='line'><span class="sb">  enum status: [ :ordered ]</span>
-</span><span class='line'><span class="sb">  enum inventory: [ :ordered ]</span>
-</span><span class='line'><span class="sb">end</span>
-</span></code></pre></td></tr></table></div></figure>
-Definitely <strong>don&rsquo;t</strong> do this &ndash; this will raise an ActiveRecord error!</p>
-
-<p>A huge upside to using enums is their contribution to your application&rsquo;s speed and performance. It&rsquo;s a <a href="http://dev.mysql.com/doc/refman/5.1/en/storage-requirements.html">well-known fact</a> that it&rsquo;s much cheaper to store data as an integer in memory, rather than as a string value. Enums take advantage of that, yet allow you to use all the ActiveRecord methods you know and love.</p>
-
-<p>So, you can have your human-readable and fun-to-program code without sacrificing any of the speed and performance that you need to save and access your information. I guess dreams really do come true.</p>
-
-<iframe src="//giphy.com/embed/aCu2aFhWKR84M" width="480" height="198" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The ActiveRecord enum feature allows you compose a single complex state on your models, and can help avoid using multiple boolean value columns to check the status of different objects.</li>
-<li>There are a bunch more resources out there, so make sure <a href="http://brewhouse.io/blog/2013/12/17/whats-new-in-rails-4-1.html">you</a> <a href="http://richonrails.com/articles/active-record-enums-in-ruby-on-rails-4-1">check</a> <a href="https://hackhands.com/ruby-on-enums-queries-and-rails-4-1/">them</a> <a href="http://robots.thoughtbot.com/whats-new-in-edge-rails-active-record-enum">all</a> <a hef="http://dev.mikamai.com/post/82355998967/rails-4-1-activerecord-enums">out</a>.</li>
-<li>Check out the enum <a href="http://edgeguides.rubyonrails.org/4_1_release_notes.html#active-record-enums">release notes</a> and <a href="http://api.rubyonrails.org/v4.1.0/classes/ActiveRecord/Enum.html">documentation</a>.</li>
 </ul>
 
 ]]></content>

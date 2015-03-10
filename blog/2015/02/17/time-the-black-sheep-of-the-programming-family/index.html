@@ -153,7 +153,7 @@
 </span><span class='line'> =&gt; 1924-11-19 20:19:27 -0500 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>Pretty sweet, right? Don&rsquo;t worry, I&rsquo;m about to complicate it a bit further.</p>
+<p>Pretty sweet, right? Don&rsquo;t worry; I&rsquo;m about to complicate it a bit further.</p>
 
 <h2>Even More Types of Time</h2>
 
@@ -177,22 +177,22 @@
 </span><span class='line'> =&gt; "2015-02-17T00:09:34Z" </span></code></pre></td></tr></table></div></figure>
 
 
-<p>See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC</code> timezone is represented in ISO8601, with the <code>Z</code> short for &ldquo;Zero&rdquo; time. It&rsquo;s also worth reminding ourselves that Unix timestamps are also set in the <code>UTC</code> timezone.</p>
+<p>See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC</code> time zone is represented in ISO8601, with the <code>Z</code> short for &ldquo;Zero&rdquo; time. It&rsquo;s also worth reminding ourselves that Unix timestamps are also set in the <code>UTC</code> time zone.</p>
 
 <h2>Goddamn Time Zones</h2>
 
 <iframe src="//giphy.com/embed/CsV1pnR9hYLuM" width="480" height="269" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
 
-<p>Look man, I&rsquo;m not gonna lie to you: timezones will jack your shit up. Timezone bugs are <em>so</em> common, it&rsquo;s like they&rsquo;re just waiting there patiently, hoping that you&rsquo;ll make a mistake.</p>
+<p>Look man, I&rsquo;m not gonna lie to you: time zones will jack your shit up. Time zone bugs are <em>so</em> common, it&rsquo;s like they&rsquo;re just waiting there patiently, hoping that you&rsquo;ll make a mistake.</p>
 
-<p>But you&rsquo;re a Rails developer &ndash; ain&rsquo;t no timezone gonna stop you! Instead, you&rsquo;re going to make your code defensive and subscribe to these best practices:</p>
+<p>But you&rsquo;re a Rails developer &ndash; ain&rsquo;t no time zone gonna stop you! Instead, you&rsquo;re going to make your code defensive and subscribe to these best practices:</p>
 
 <ol>
-<li><p>Set your timezone in the <code>config/application.rb</code> file in your Rails app. Look for <code>config.time_zone</code>, and configure your time zone equal to that value. Rails will refer to that as your base timezone going forward, and ActiveRecord will convert between `UTC and your set timezone whenever you query.</p></li>
-<li><p>Use the <code>in_time_zone</code> method to convert <code>Time</code> to your system&rsquo;s current set timezone. For example, <code>Time.now.in_time_zone("EST").iso8601</code>.</p></li>
+<li><p>Set your time zone in the <code>config/application.rb</code> file in your Rails app. Look for <code>config.time_zone</code>, and configure your time zone equal to that value. Rails will refer to that as your base time zone going forward, and ActiveRecord will convert between `UTC and your set time zone whenever you query.</p></li>
+<li><p>Use the <code>in_time_zone</code> method to convert <code>Time</code> to your system&rsquo;s current set time zone. For example, <code>Time.now.in_time_zone("EST").iso8601</code>.</p></li>
 <li><p>Use <code>Time.current</code> whenever you make an ActiveRecord query (ActiveRecord will convert <code>Time.current</code> and convert it to <code>UTC</code>: <code>Comment.where(["comments.published_at &gt; ?", Time.current])</code></p></li>
-<li><p>DO NOT use <code>Time.now</code>! This returns <em>your</em> system&rsquo;s time, and ignores whatever timezone you configured for your Rails app. Instead, use numerical attributes and methods (such as <code>1.day.from_now</code> or <code>Date.current</code>), which rely on the timezone you configured in your <code>application.rb</code> to determine the return value.</p></li>
+<li><p>DO NOT use <code>Time.now</code>! This returns <em>your</em> system&rsquo;s time, and ignores whatever time zone you configured for your Rails app. Instead, use numerical attributes and methods (such as <code>1.day.from_now</code> or <code>Date.current</code>), which rely on the time zone you configured in your <code>application.rb</code> to determine the return value.</p></li>
 </ol>
 
 
@@ -204,7 +204,7 @@
 
 <p>For example, <strong>leap seconds</strong>. Yes, really &ndash; it&rsquo;s a thing. <a href="http://en.wikipedia.org/wiki/Leap_second">Leap seconds</a> occur 1-2 times a year, on either June 30 and/or December 31st. They&rsquo;re necessary in order to keep the Earth&rsquo;s time of day close enough to the Sun&rsquo;s mean time. But, how do you account for this in programs? Well, Google actually does something pretty cool: instead of adding one second, Google&rsquo;s servers implement &ldquo;leap smears&rdquo;, which extend the seconds surrounding a leap second by just a little bit &ndash; enough to account for an entire extra second! Side note: the next leap second is on June 30th of this year! I hope you&rsquo;re ready.</p>
 
-<p>Another bizarre thing is <strong>Y2038</strong>. If this sounds reminiscient of Y2K, that&rsquo;s because it is. Essentially, <a href="http://www.y2038.com/">the 2038 problem</a> boils down to this: On January 19, 2038, Unix timestamps will stop working because of a 32-bit overflow. So, all of the millions of applications that use this time format will have to either reconfigure to 64-bit systems, or choose a new format to store dates and times. There&rsquo;s supposedly no universal solution to this, but hopefully someone will figure out a fix in the next 22 years.</p>
+<p>Another bizarre thing is <strong>Y2038</strong>. If this sounds reminiscent of Y2K, that&rsquo;s because it is. Essentially, <a href="http://www.y2038.com/">the 2038 problem</a> boils down to this: On January 19, 2038, Unix timestamps will stop working because of a 32-bit overflow. So, all of the millions of applications that use this time format will have to either reconfigure to 64-bit systems, or choose a new format to store dates and times. There&rsquo;s supposedly no universal solution to this, but hopefully someone will figure out a fix in the next 22 years.</p>
 
 <p>Hopefully by that point, someone will have figured out how to get rid of time zones completely.</p>
 
@@ -215,7 +215,7 @@
 
 <ul>
 <li>Unix timestamps and ISO8601 are both good formats for storing date and time in your database. Do a little research to decide <a href="http://stackoverflow.com/questions/15554586/timestamps-iso8601-vs-unix-timestamp">which of these formats</a> is the best tool for whatever job you&rsquo;re trying to accomplish.</li>
-<li>Dealing with timezones is hard, but the <a href="http://danilenko.org/2012/7/6/rails_timezones/">Exhaustive Guide to Rails Time Zones</a> will save you hours of banging your head against the wall &ndash; well, for time-related things, at least.</li>
+<li>Dealing with time zones is hard, but the <a href="http://danilenko.org/2012/7/6/rails_timezones/">Exhaustive Guide to Rails Time Zones</a> will save you hours of banging your head against the wall &ndash; well, for time-related things, at least.</li>
 <li>Want to be a <code>Time</code> object superstar? Read <a href="https://unix4lyfe.org/time/?v=1">this post</a>, which was featured on HackerNews, and peruse the <a href="http://ruby-doc.org//core-2.2.0/Time.html">Ruby documentation</a> to get the skinny on all things time-related.</li>
 </ul>
 
@@ -275,6 +275,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree/">It&#8217;s All in the Family: Using Acts_as_tree</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes/">Bundle Up &amp; Let Your Objects Do the Freezing: Frozen Hashes</a>
       </li>
     
@@ -288,10 +292,6 @@
     
       <li class="post">
         <a href="/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/">Money Makes the World Go Round: Using Money-Rails and BigDecimal</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/02/03/when-enough-is-enough-how-to-know-when-to-use-enums/">When Enough Is Enough: How to Know When to Use Enums</a>
       </li>
     
   </ul>

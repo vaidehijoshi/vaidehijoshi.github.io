@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rails | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-03-01T14:43:34-05:00</updated>
+  <updated>2015-03-09T21:36:20-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,157 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[It's All in the Family: Using Acts_as_tree]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree/"/>
+    <updated>2015-03-10T08:27:54-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/eWYGCVTJuOcg0" width="480" height="360" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>When working in Rails, it&rsquo;s all the family &ndash; literally. No matter the size of your application, almost all of your objects are going to be related to each other. You can create however many objects you wan because database rows are cheap, cheap, cheap! But the more objects you make, the harder it is to keep track of the other data that the object relates to (which is generally yet <em>another</em> object).</p>
+
+<p>I found myself in such a predicament last week, when I had to make numerous objects relate to one other to create a tree structure. The obvious first approach was to use the <code>belongs_to</code> and <code>has_many</code> relationship. But when I realized that I wanted some <code>Genre</code> objects to belong to <em>other</em> <code>Genre</code> objects, I ran into a problem. Depending solely on the ActiveRecord relationships turned out to be painful, messy, and complicated, and wouldn&rsquo;t make my code very flexible or sustainable over time.</p>
+
+<p>So I Googled around and found a handy plugin created by DHH himself called <code>acts_as_tree</code>. This gem allows you to create a hierarchical structure of objects in your application and &ndash; to take it a step further &ndash; gives you a bunch of incredibly helpful methods. It even allows you to visualize your tree structure! Sound amazing? That&rsquo;s because it is. And if you follow a few easy steps, you can use it in your application, too.</p>
+
+<!--more-->
+
+
+<h2>Family Ties</h2>
+
+<p>So, for this post I&rsquo;ll continue working through my basic eCommerce Bookstore application, which I&rsquo;ve been using as an example for my previous posts. I&rsquo;ve already got some <code>Book</code> objects, but as my store starts to grow, it&rsquo;s going to be pretty hard to keep track of the different genres of <code>Book</code> objects that I currently have available.</p>
+
+<p>The first step to tackling this problem was easy: create <code>Genre</code> objects, each of which <code>has_many</code> different <code>Book</code> objects associated with it, while each <code>Book</code> object will <code>belong_to</code> one specific <code>Genre</code>.</p>
+
+<p>But what about genres that are associated with and &ldquo;descend from&rdquo; other genres? Well, here&rsquo;s where the delightful and easy-to-use <code>acts_as_tree</code> gem comes in.</p>
+
+<iframe src="//giphy.com/embed/pcPeWllpmv6Zq" width="480" height="431" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>First things first: we&rsquo;ll add <code>gem 'acts_as_tree'</code> to our Gemfile.</p>
+
+<p>Next, we need to add a column to our <code>Genre</code> database. We can write a simple migration that will add a <code>parent_id</code> integer to our database, which will allow us to find the parents and children of a <code>Genre</code> object:
+<code>ruby
+class AddParentIdColumnToGenre &lt; ActiveRecord::Migration
+  def change
+    add_column :genres, :parent_id, :integer
+  end
+end
+</code></p>
+
+<p>Finally, we&rsquo;ll head over to our <code>Genre</code> model, which is what we needs to act as a (family) tree. We need to add a single line in here, which implements the ActiveRecord plugin and specifies what we&rsquo;ll be ordering our <code>Genre</code> objects by:
+<code>ruby
+class Genre &lt; ActiveRecord::Base
+  has_many :books
+  validates_presence_of :name
+  acts_as_tree order: "name"
+end
+</code></p>
+
+<h2>Blood Is Thicker Than Water</h2>
+
+<p>Okay, now let&rsquo;s see this baby in action! We can start by making a root <code>Genre</code> object, and then giving it some children:</p>
+
+<pre><code class="ruby">literature = Genre.create("name" =&gt; "Literature")
+
+non_fiction = literature.children.create("name" =&gt; "Non-Fiction")
+fiction = literature.children.create("name" =&gt; "Fiction")
+</code></pre>
+
+<p>Cool, but our tree doesn&rsquo;t really look like a tree yet. Let&rsquo;s give our <code>non_fiction</code> and <code>fiction</code> genres some children, grandchildren, and great-grandchildren of their own:</p>
+
+<pre><code class="ruby">biography = non_fiction.children.create("name" =&gt; "Biography")
+comic_novel = fiction.children.create("name" =&gt; "Comic Novel")
+black_comedy = comic_novel.create("name" =&gt; "Black Comedy")
+parody = comic_novel.create("name" =&gt; "Parody")
+romantic_comedy = comic_novel.create("name" =&gt; "Romanic Comedy")
+satire = comic_novel.create("name" =&gt; "Satire")
+poltical_satire = satire.create("name" =&gt; "Political Satire")
+</code></pre>
+
+<p>Damn. Okay, well now our tree should look look less like a sprout and more like this bad boy:</p>
+
+<iframe src="//giphy.com/embed/hMWmNKdcdhAyI" width="480" height="267" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>It Runs In The Family</h2>
+
+<p>Even though we&rsquo;ve created all these parent-child relationships, what can we do with them, exactly? Well, a lot! You can call the <code>parent</code> and <code>children</code> methods to get a full list of all the objects associated with a particular <code>Genre</code> instance:</p>
+
+<pre><code class="ruby">literature.parent                   # =&gt; nil
+fiction.parent                      # =&gt; literature
+literature.children                 # =&gt; [non_fiction, fiction]
+literature.children.first.children  # =&gt; [Biography]
+
+literature.root?                    # =&gt; true
+fiction.root?                       # =&gt; false
+biography.leaf?                     # =&gt; true
+
+black_comedy.siblings               # =&gt; [parody, romantic_comedy, satire]
+poltical_satire.ancestors           # =&gt; [satire, comic_novel, fiction, literature]
+
+Genre.root                          # =&gt; literature
+</code></pre>
+
+<p>An important thing to note here is that the <code>children</code> method will return an <em>array</em> of objects, even if there&rsquo;s only one child! So if you&rsquo;re trying to get one particular object, remember to call the <code>first</code> method in the array, or search by a <code>Genre</code> object&rsquo;s specific <code>id</code> to avoid annoying bugs.</p>
+
+<p>Some other cool methods to try include:</p>
+
+<ol>
+<li><p><code>leaves</code>, a class method that will return all the &ldquo;leaves&rdquo; of the tree (in an array).</p></li>
+<li><p><code>descendants</code>, an instance method that will return all the children, and the children&rsquo;s children of an object (in an array).</p></li>
+<li><p><code>self_and_siblings</code>, which returns the receiver object, as well as any siblings it may have (in an array).</p></li>
+<li><p><code>default_tree_order</code>, which returns all the objects listed in alphabetical order!</p></li>
+</ol>
+
+
+<p>But the coolest feature of the <code>acts_as_tree</code> gem is Tree View, which allows you to see a visualization of your entire tree. All we have to do view this magic is add this line to our <code>Genre</code> model:</p>
+
+<pre><code class="ruby">extend ActsAsTree::TreeView
+</code></pre>
+
+<p>And then, call the class method <code>tree_view</code>, which takes in an attribute parameter:</p>
+
+<pre><code class="ruby">Genre.tree_view(:name)
+</code></pre>
+
+<p>The resulting return value is pure flora magic:
+<code>
+Literature
+ |_ Non-Fiction
+ |    |_ Biography
+ |_ Fiction
+ |    |_ Comic Novel
+ |        |_ Black Comedy
+ |        |_ Parody
+ |        |_ Romantic Comedy
+ |        |_ Satire
+ |            |_ Political Satire
+</code></p>
+
+<p>Isn&rsquo;t it so beautiful?! Doesn&rsquo;t it make you feel like this:</p>
+
+<iframe src="//giphy.com/embed/FlWgXEtj5aM5G" width="480" height="259" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Or maybe it&rsquo;s just me.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>A lot of people seem to like the <a href="https://github.com/stefankroes/ancestry"><code>ancestry</code> gem</a>, but I think that <code>acts_as_tree</code> is a good one to start off with. If you need the extra functionality that <code>ancestry</code> provides, then you can eventually level up to that. Another variation on the <code>acts_as_tree</code>  is the <a href="https://github.com/chrisroberts/acts_as_sane_tree"><code>acts_as_sane_tree</code> gem</a>, which is configured for PostgreSQL 8.4 and comes with some cool extra methods (but isn&rsquo;t nearly as massive as ancestry).</li>
+<li>There are a lot of different ways to implement the <code>acts_as_tree</code>. Check out <a href="http://railscasts.com/episodes/162-tree-based-navigation">this railscast</a> on tree-based navigation using this gem/plugin (beware the date on this one, though!).</li>
+<li>There are a lot of different ways to deal with recursive data structures in Rails. Check out this <a href="http://gmarik.info/blog/2012/10/14/recursive-data-structures-with-rails">in-depth look</a> at the tried and tested options to learn more.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Bundle Up &amp; Let Your Objects Do the Freezing: Frozen Hashes]]></title>
@@ -166,6 +317,7 @@ would work.</p>
 <ul>
 <li>You can use the <code>freeze</code> method to make mutable objects immutable. To check whether an object can be modified or not, use the <code>frozen?</code> method, which will return a boolean value.</li>
 <li>Certain Ruby objects, such as integers, floats, and symbols, are always frozen and cannot be modified.</li>
+<li>Someone made a <a href="https://github.com/zizkovrb/melt">melt gem</a> &ndash; for realsies!</li>
 <li>Some people are <a href="http://m.onkey.org/ruby-i-don-t-like-3-object-freeze">not big fans</a> of the weird functionality of Ruby <code>freeze</code>. But it&rsquo;s still worth it to <a href="http://blog.adamstegman.com/activerecord-hangs-on-to-destroyed-relations.html">learn how it works</a>, especially since it can be <a href="http://blog.adamstegman.com/activerecord-hangs-on-to-destroyed-relations.html">super helpful</a> for <a href="http://www.devarticles.com/c/a/Ruby-on-Rails/Updating-and-Deleting-with-the-Active-Record/2/">debugging Rails apps</a>.</li>
 </ul>
 
@@ -222,7 +374,7 @@ And what if you want to convert a Unix timestamp (like the one in my JSON respon
 2.1.2 :003 &gt; Time.at('-1423694433'.to_i)
  =&gt; 1924-11-19 20:19:27 -0500
 </code>
-Pretty sweet, right? Don&rsquo;t worry, I&rsquo;m about to complicate it a bit further.</p>
+Pretty sweet, right? Don&rsquo;t worry; I&rsquo;m about to complicate it a bit further.</p>
 
 <h2>Even More Types of Time</h2>
 
@@ -239,22 +391,22 @@ Pretty sweet, right? Don&rsquo;t worry, I&rsquo;m about to complicate it a bit f
 2.1.2 :006 &gt; Time.now.utc.iso8601
  =&gt; "2015-02-17T00:09:34Z"
 </code>
-See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC</code> timezone is represented in ISO8601, with the <code>Z</code> short for &ldquo;Zero&rdquo; time. It&rsquo;s also worth reminding ourselves that Unix timestamps are also set in the <code>UTC</code> timezone.</p>
+See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC</code> time zone is represented in ISO8601, with the <code>Z</code> short for &ldquo;Zero&rdquo; time. It&rsquo;s also worth reminding ourselves that Unix timestamps are also set in the <code>UTC</code> time zone.</p>
 
 <h2>Goddamn Time Zones</h2>
 
 <iframe src="//giphy.com/embed/CsV1pnR9hYLuM" width="480" height="269" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
 
-<p>Look man, I&rsquo;m not gonna lie to you: timezones will jack your shit up. Timezone bugs are <em>so</em> common, it&rsquo;s like they&rsquo;re just waiting there patiently, hoping that you&rsquo;ll make a mistake.</p>
+<p>Look man, I&rsquo;m not gonna lie to you: time zones will jack your shit up. Time zone bugs are <em>so</em> common, it&rsquo;s like they&rsquo;re just waiting there patiently, hoping that you&rsquo;ll make a mistake.</p>
 
-<p>But you&rsquo;re a Rails developer &ndash; ain&rsquo;t no timezone gonna stop you! Instead, you&rsquo;re going to make your code defensive and subscribe to these best practices:</p>
+<p>But you&rsquo;re a Rails developer &ndash; ain&rsquo;t no time zone gonna stop you! Instead, you&rsquo;re going to make your code defensive and subscribe to these best practices:</p>
 
 <ol>
-<li><p>Set your timezone in the <code>config/application.rb</code> file in your Rails app. Look for <code>config.time_zone</code>, and configure your time zone equal to that value. Rails will refer to that as your base timezone going forward, and ActiveRecord will convert between `UTC and your set timezone whenever you query.</p></li>
-<li><p>Use the <code>in_time_zone</code> method to convert <code>Time</code> to your system&rsquo;s current set timezone. For example, <code>Time.now.in_time_zone("EST").iso8601</code>.</p></li>
+<li><p>Set your time zone in the <code>config/application.rb</code> file in your Rails app. Look for <code>config.time_zone</code>, and configure your time zone equal to that value. Rails will refer to that as your base time zone going forward, and ActiveRecord will convert between `UTC and your set time zone whenever you query.</p></li>
+<li><p>Use the <code>in_time_zone</code> method to convert <code>Time</code> to your system&rsquo;s current set time zone. For example, <code>Time.now.in_time_zone("EST").iso8601</code>.</p></li>
 <li><p>Use <code>Time.current</code> whenever you make an ActiveRecord query (ActiveRecord will convert <code>Time.current</code> and convert it to <code>UTC</code>: <code>Comment.where(["comments.published_at &gt; ?", Time.current])</code></p></li>
-<li><p>DO NOT use <code>Time.now</code>! This returns <em>your</em> system&rsquo;s time, and ignores whatever timezone you configured for your Rails app. Instead, use numerical attributes and methods (such as <code>1.day.from_now</code> or <code>Date.current</code>), which rely on the timezone you configured in your <code>application.rb</code> to determine the return value.</p></li>
+<li><p>DO NOT use <code>Time.now</code>! This returns <em>your</em> system&rsquo;s time, and ignores whatever time zone you configured for your Rails app. Instead, use numerical attributes and methods (such as <code>1.day.from_now</code> or <code>Date.current</code>), which rely on the time zone you configured in your <code>application.rb</code> to determine the return value.</p></li>
 </ol>
 
 
@@ -266,7 +418,7 @@ See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC
 
 <p>For example, <strong>leap seconds</strong>. Yes, really &ndash; it&rsquo;s a thing. <a href="http://en.wikipedia.org/wiki/Leap_second">Leap seconds</a> occur 1-2 times a year, on either June 30 and/or December 31st. They&rsquo;re necessary in order to keep the Earth&rsquo;s time of day close enough to the Sun&rsquo;s mean time. But, how do you account for this in programs? Well, Google actually does something pretty cool: instead of adding one second, Google&rsquo;s servers implement &ldquo;leap smears&rdquo;, which extend the seconds surrounding a leap second by just a little bit &ndash; enough to account for an entire extra second! Side note: the next leap second is on June 30th of this year! I hope you&rsquo;re ready.</p>
 
-<p>Another bizarre thing is <strong>Y2038</strong>. If this sounds reminiscient of Y2K, that&rsquo;s because it is. Essentially, <a href="http://www.y2038.com/">the 2038 problem</a> boils down to this: On January 19, 2038, Unix timestamps will stop working because of a 32-bit overflow. So, all of the millions of applications that use this time format will have to either reconfigure to 64-bit systems, or choose a new format to store dates and times. There&rsquo;s supposedly no universal solution to this, but hopefully someone will figure out a fix in the next 22 years.</p>
+<p>Another bizarre thing is <strong>Y2038</strong>. If this sounds reminiscent of Y2K, that&rsquo;s because it is. Essentially, <a href="http://www.y2038.com/">the 2038 problem</a> boils down to this: On January 19, 2038, Unix timestamps will stop working because of a 32-bit overflow. So, all of the millions of applications that use this time format will have to either reconfigure to 64-bit systems, or choose a new format to store dates and times. There&rsquo;s supposedly no universal solution to this, but hopefully someone will figure out a fix in the next 22 years.</p>
 
 <p>Hopefully by that point, someone will have figured out how to get rid of time zones completely.</p>
 
@@ -277,7 +429,7 @@ See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC
 
 <ul>
 <li>Unix timestamps and ISO8601 are both good formats for storing date and time in your database. Do a little research to decide <a href="http://stackoverflow.com/questions/15554586/timestamps-iso8601-vs-unix-timestamp">which of these formats</a> is the best tool for whatever job you&rsquo;re trying to accomplish.</li>
-<li>Dealing with timezones is hard, but the <a href="http://danilenko.org/2012/7/6/rails_timezones/">Exhaustive Guide to Rails Time Zones</a> will save you hours of banging your head against the wall &ndash; well, for time-related things, at least.</li>
+<li>Dealing with time zones is hard, but the <a href="http://danilenko.org/2012/7/6/rails_timezones/">Exhaustive Guide to Rails Time Zones</a> will save you hours of banging your head against the wall &ndash; well, for time-related things, at least.</li>
 <li>Want to be a <code>Time</code> object superstar? Read <a href="https://unix4lyfe.org/time/?v=1">this post</a>, which was featured on HackerNews, and peruse the <a href="http://ruby-doc.org//core-2.2.0/Time.html">Ruby documentation</a> to get the skinny on all things time-related.</li>
 </ul>
 
@@ -293,7 +445,7 @@ See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC
 
 <p>Mo money, mo problems. This is especially the case when you&rsquo;re a new developer trying to onboard onto a huge eCommerce Rails application.</p>
 
-<p>No, but really - money is such a pain in the ass to deal with as a programmer. So much logic and detail goes into accpeting a payment, processing a transaction, checking an order&rsquo;s status&hellip;and don&rsquo;t even get me <em>started</em> on shipping &ndash; seriously, I&rsquo;m saving the entire concept of shipping for another blog post.</p>
+<p>No, but really - money is such a pain in the ass to deal with as a programmer. So much logic and detail goes into accepting a payment, processing a transaction, checking an order&rsquo;s status&hellip;and don&rsquo;t even get me <em>started</em> on shipping &ndash; seriously, I&rsquo;m saving the entire concept of shipping for another blog post.</p>
 
 <p>But, at some point or another, you have to deal with other people&rsquo;s money. And you have to try and not screw it up, because apparently people really don&rsquo;t like that. So, how do you handle all those dolla dolla bills? Yup, you guessed it: with the <strong>money-rails library</strong> and Ruby&rsquo;s <strong>BigDecimal object</strong>.</p>
 
@@ -416,7 +568,7 @@ NameError: uninitialized constant BigDecimal
 
 <p>The <a href="http://www.ruby-doc.org/core-2.2.0/">Ruby Core Library</a> is what you use every day, including basic objects such as <code>String</code>, <code>Integer</code>, <code>Float</code>, <code>Array</code>, <code>Hash</code>, and many others. On the other hand, the objects in the <a href="http://www.ruby-doc.org/stdlib-2.2.0/">Ruby Standard Library</a> may seem a little less familiar. Unlike the Core Library, objects from the Standard Library have to be explicitly required. <code>BigDecimal</code> objects are part of the Standard Library, as are <code>Abbrev</code>, <code>Logger</code>, and <code>Matrix</code> objects.</p>
 
-<p>The Standard Library is an extension of the Ruby language. You will always have access to the Core Library, but if you want to use an objec that exists outside of the Core Library, you&rsquo;ll need to specifically require it. So, if you want to play with <code>BigDecimal</code> in the console or use it in your application, you&rsquo;ll have to type this in to have access to the object: <code>require 'bigdecimal'</code>.</p>
+<p>The Standard Library is an extension of the Ruby language. You will always have access to the Core Library, but if you want to use an object that exists outside of the Core Library, you&rsquo;ll need to specifically require it. So, if you want to play with <code>BigDecimal</code> in the console or use it in your application, you&rsquo;ll have to type this in to have access to the object: <code>require 'bigdecimal'</code>.</p>
 
 <h2>More Bang For Your Buck</h2>
 
@@ -635,88 +787,6 @@ Definitely <strong>don&rsquo;t</strong> do this &ndash; this will raise an Activ
 <li>The ActiveRecord enum feature allows you compose a single complex state on your models, and can help avoid using multiple boolean value columns to check the status of different objects.</li>
 <li>There are a bunch more resources out there, so make sure <a href="http://brewhouse.io/blog/2013/12/17/whats-new-in-rails-4-1.html">you</a> <a href="http://richonrails.com/articles/active-record-enums-in-ruby-on-rails-4-1">check</a> <a href="https://hackhands.com/ruby-on-enums-queries-and-rails-4-1/">them</a> <a href="http://robots.thoughtbot.com/whats-new-in-edge-rails-active-record-enum">all</a> <a hef="http://dev.mikamai.com/post/82355998967/rails-4-1-activerecord-enums">out</a>.</li>
 <li>Check out the enum <a href="http://edgeguides.rubyonrails.org/4_1_release_notes.html#active-record-enums">release notes</a> and <a href="http://api.rubyonrails.org/v4.1.0/classes/ActiveRecord/Enum.html">documentation</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Embrace Your Inner Paranoia: Using Acts_as_paranoid]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/01/27/embrace-your-inner-paranoia-use-acts-as-paranoid/"/>
-    <updated>2015-01-27T19:36:16-05:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/01/27/embrace-your-inner-paranoia-use-acts-as-paranoid</id>
-    <content type="html"><![CDATA[<p>Yesterday, I started my very first job as a software engineer! It&rsquo;s been super exciting, slightly terrifying, and sometimes overwhelming. I think one of the trickiest parts of starting as a new engineer at a company is the onboarding process.</p>
-
-<p>It might seem kind of scary, but if you think about it, it&rsquo;s actually pretty fun. You get to dive down a rabbit hole and look at production code that you didn&rsquo;t write. It&rsquo;s getting a new puzzle that you haven&rsquo;t solved yet: you try to figure out how one thing connects to another, where modules and methods exist, how things are namespaced, not to mention learning about new frameworks and gems. I feel like I&rsquo;m entering into new dimensions and travelling through a space-time continuum or something. This also might be attributed to the fact that I&rsquo;ve been  listening exclusively to the <a href="https://www.youtube.com/watch?v=YOWSTtXxf9s">Interstellar soundtrack</a> for the past two days, but whatever &ndash; you get the point.</p>
-
-<p>My favorite part of the onboarding process is how much I&rsquo;ve been learning. Every new class or module definition brings a new piece of the puzzle that I&rsquo;ve never seen before, but can&rsquo;t wait to learn about. It&rsquo;s kind of crazy that I get paid to read and learn all day, every day &ndash; that&rsquo;s the dream, right?</p>
-
-<p>Anyways, all of this is to say that I&rsquo;ve found and learned about some cool stuff! For example this little ditty: <code>acts_as_paranoid</code>. I saw this in a class definition and my first thought was literally: <em>Damn, that&rsquo;s a great name for a validation!</em> But as it turns out, it&rsquo;s not actually a validation &ndash; it&rsquo;s Rails magic!</p>
-
-<!-- more -->
-
-
-<h2>Start acting paranoid!</h2>
-
-<p>Okay, I lied: <code>acts_as_paranoid</code> not actually <em>magic</em> &ndash; it&rsquo;s a Rails ActiveRecord plugin. But it&rsquo;s still pretty magical, you guys! So, what does it do? Well, it helps you be less paranoid about deleting stuff by accident (hence the name). Essentially, <code>acts_as_paranoid</code> allows you to make soft deletes in Rails. That means that it gives you the flexibility to delete an object without actually deleting it from the database.</p>
-
-<iframe src="//giphy.com/embed/VpbctjT9VrALS" width="480" height="260" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Does this sound like black magic yet? Just wait, you&rsquo;re about to see some real magic.</p>
-
-<h2>So&hellip;how do I starting acting paranoid?</h2>
-
-<p>In my example, I&rsquo;ll be implementing <code>acts_as_paranoid</code> on some <code>Book</code> objects in my eCommerce bookstore app. Using <code>acts_as_paranoid</code> is relatively simple. You can break it down into two simple steps:</p>
-
-<p>First, add <code>acts_as_paranoid</code> to your class definition:
-<code>ruby
-class Book &lt; ActiveRecord::Base
-  acts_as_paranoid
-end
-</code></p>
-
-<p>Then, add a column to the database for that class called <code>deleted_at</code>, which is set to a <code>datetime</code> format:
-<code>ruby
-class AddDatetimeToBooks &lt; ActiveRecord::Migration
-  def change
-    add_column :books, :deleted_at, :datetime
-  end
-end
-</code></p>
-
-<h2>Ok, I&rsquo;m getting paranoid now &ndash; how does this work?</h2>
-
-<p>So, we have another column in our <code>Books</code> table that has a <code>deleted_at</code> column with a type of <code>:datetime</code>. Now, this is where the magic happens: the <code>acts_as_paranoid</code> plugin actually <em>overrides</em> ActiveRecord&rsquo;s <code>find</code>, <code>count</code>, and <code>destroy</code> methods. So now when we call the <code>destroy</code> method on a <code>Book</code> object, instead of actually deleting the object, the object&rsquo;s <code>deleted_at</code> field will be set to the current date and time.</p>
-
-<p>And, if we call the <code>find</code> method on all of our <code>Book</code> objects, the one we just &ldquo;deleted&rdquo; won&rsquo;t show up! Instead, only the objects that <em>don&rsquo;t</em> have a value in their <code>deleted_at</code> column will render.</p>
-
-<p>So, calling <code>@book.destroy</code> doesn&rsquo;t delete a row from the database; it actually just updates the row by giving a datetime to the object&rsquo;s <code>deleted_at</code> field. If you&rsquo;re into SQL queries, this is what&rsquo;s going on:</p>
-
-<p><code>UPDATE books SET deleted_at = '2015-01-27 19:36:16' WHERE (id = 50)</code></p>
-
-<p>The <code>Book</code> object with an id of <code>50</code> isn&rsquo;t <em>actually</em> deleted from the database, even though it will appear so in all of our views, and to our users/admins.</p>
-
-<h2>But who needs soft deletes, anyways?</h2>
-
-<p>I actually didn&rsquo;t realize the use case for soft deletes at first. But it turns out that they are incredibly helpful when building out large, more complicated Rails applications.</p>
-
-<p>It&rsquo;s important to remember that Ruby is an object-oriented programming language. Any object that has an association with another object inherently relies upon it. In my bookstore app example, a <code>Book</code> object would belong to a <code>Order</code> object, and also be associated with a <code>User</code> object of some sort. If you think about the appliation on a broader, less granular level, you might realize that deleting any given <code>Book</code> object could actually have serious repercussions.</p>
-
-<p>For example, you might want to see a <code>Book</code> object that was ordered in the past, even if that <code>Book</code> has since been deleted from a store. Perhaps you want to view the details of a <code>Shipment</code> object, even if that shipment was cancelled. Or, you might want to see an order that was placed by a <code>User</code> who may have deactivated their account months ago.</p>
-
-<p>The <code>acts_as_paranoid</code> plugin helps you access all of this information, without keeping you up at night, wondering whether you deleted the wrong row from the database. Because honestly, who has time for that? Not this kitty, for sure:</p>
-
-<p><img src="https://idp05.files.wordpress.com/2008/03/paranoid-cat.jpg" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>acts_as_paranoid</code> plugin modifies ActiveRecord methods and allows you to implement soft deletes on your Ruby objects. Just remember to include it in your class definition and add a <code>deleted_at</code> column to your migration, with a type of <code>datetime</code>.</li>
-<li>Want to see another example of disabling records using <code>acts_as_paranoid</code>? Check out <a href="https://www.safaribooksonline.com/library/view/rails-cookbook/0596527314/ch14s11.html">this blog post</a>.</li>
-<li>To read more about <code>acts_as_paranoid</code> and its many caveats, check out <a href="https://github.com/ActsAsParanoid/acts_as_paranoid/">the easy-to-follow documentation</a>.</li>
 </ul>
 
 ]]></content>

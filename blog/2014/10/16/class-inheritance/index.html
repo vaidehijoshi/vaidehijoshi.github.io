@@ -104,9 +104,9 @@
 <!-- more -->
 
 
-<h2>WTF is inheritence?</h2>
+<h2>WTF is inheritance?</h2>
 
-<p>Inheritence in object-oriented programming is pretty much exactly what it sounds like: when one class <strong>inherits</strong> the properties of another class, just like how you inherit traits from your parents (even if you might wish otherwise).</p>
+<p>Inheritance in object-oriented programming is pretty much exactly what it sounds like: when one class <strong>inherits</strong> the properties of another class, just like how you inherit traits from your parents (even if you might wish otherwise).</p>
 
 <p>Okay, maybe an example here will help:</p>
 
@@ -140,7 +140,7 @@
 </span><span class='line'>  <span class="k">end</span>
 </span><span class='line'>
 </span><span class='line'>  <span class="k">def</span> <span class="nf">bake_for</span>
-</span><span class='line'>    <span class="s2">&quot;To make </span><span class="si">#{</span><span class="nb">name</span><span class="si">}</span><span class="s2">, bake for </span><span class="si">#{</span><span class="n">time</span><span class="si">}</span><span class="s2"> at </span><span class="si">#{</span><span class="n">baking_temperature</span><span class="si">}</span><span class="s2"> degrees fahrenheit.&quot;</span>
+</span><span class='line'>    <span class="s2">&quot;To make </span><span class="si">#{</span><span class="nb">name</span><span class="si">}</span><span class="s2">, bake for </span><span class="si">#{</span><span class="n">time</span><span class="si">}</span><span class="s2"> at </span><span class="si">#{</span><span class="n">baking_temperature</span><span class="si">}</span><span class="s2"> degrees Fahrenheit.&quot;</span>
 </span><span class='line'>  <span class="k">end</span>
 </span><span class='line'>
 </span><span class='line'><span class="k">end</span>
@@ -158,7 +158,7 @@
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>would output: <code>To make cake, bake for 30 min at 375 degrees fahrenheit.</code></p>
+<p>would output: <code>To make cake, bake for 30 min at 375 degrees Fahrenheit.</code></p>
 
 <p>Awesome. I love cake. But you know what I like even more than cake? Cookies! Just like in my first class, I want to make a new <code>Cookie</code> class, which will also have a name, time, baking temperature, and <code>bake_for</code> method. Now, I could theoretically rewrite all of my code from the <code>BakedStuff</code> class, but then I&rsquo;d have less time to bake and I&rsquo;m also pretty sure that goes against the whole &ldquo;DRY&rdquo; concept in Ruby.</p>
 
@@ -200,15 +200,15 @@
 <p>Whoa! New code!</p>
 
 <ul>
-<li>That <code>&lt;</code> sign is what we use to dennote inheritence. All it means is that my <code>Cookie</code> class is now <em>inheriting</em> all the methods from my <code>BakedStuff</code> class.</li>
-<li>Notice that this class has some additional features, including a new instance method which sets the <code>cookies_made</code>.</li>
+<li>That <code>&lt;</code> sign is what we use to denote inheritance. All it means is that my <code>Cookie</code> class is now <em>inheriting</em> all the methods from my <code>BakedStuff</code> class.</li>
+<li>Notice that this class has some additional features, including a new instance method that sets the <code>cookies_made</code>.</li>
 <li>But wait, what&rsquo;s that <code>super</code> thing doing in there??</li>
 </ul>
 
 
 <h2>WHUT is <code>super</code>?</h2>
 
-<p>The <code>super</code> keyword in Ruby is, well, pretty super. Okay, okay, what it <em>really</em> does is allow you to call methods up the &ldquo;inheritence heirarchy&rdquo;, which means that you can use methods that were perviously defined in classes that this class now inherits from.</p>
+<p>The <code>super</code> keyword in Ruby is, well, pretty super. Okay, okay, what it <em>really</em> does is allow you to call methods up the &ldquo;inheritance hierarchy&rdquo;, which means that you can use methods that were previously defined in classes that this class now inherits from.</p>
 
 <p>In fact, <code>super</code> is what allows me to pull down everything from my <code>initialize</code> and <code>bake_for</code> methods in my parent class, which in this case is my <code>BakedStuff</code> class. You&rsquo;ll also notice that I&rsquo;ve reassigned my <code>@time</code> variable to equal 20 minutes, and that I&rsquo;ve added a string interpolation into my <code>bake_for</code> method. And I didn&rsquo;t have to retype any of the code from my parent class in the process!</p>
 
@@ -301,7 +301,7 @@
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>which outputs: <code>To make chocolate chip cookies, bake for 20 min at 375 degrees fahrenheit. This recipe will yield 24 cookies.</code></p>
+<p>which outputs: <code>To make chocolate chip cookies, bake for 20 min at 375 degrees Fahrenheit. This recipe will yield 24 cookies.</code></p>
 
 <p>And what about if I create a new pie?</p>
 
@@ -312,7 +312,7 @@
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>outputs: <code>To make pie, bake for 45 min at 450 degrees fahrenheit.</code></p>
+<p>outputs: <code>To make pie, bake for 45 min at 450 degrees Fahrenheit.</code></p>
 
 <p>Interesting. It doesn&rsquo;t seem to matter at all that I changed my <code>Cookie</code> class &ndash; <code>BakedStuff</code> stayed the same. And all the edits I made to my <code>Snickerdoodle</code> class didn&rsquo;t fall up to my <code>Cookie</code> class, either. That&rsquo;s because inheritance only works in one direction, from the parent class, down to its children.</p>
 
@@ -382,6 +382,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree/">It&#8217;s All in the Family: Using Acts_as_tree</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes/">Bundle Up &amp; Let Your Objects Do the Freezing: Frozen Hashes</a>
       </li>
     
@@ -395,10 +399,6 @@
     
       <li class="post">
         <a href="/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/">Money Makes the World Go Round: Using Money-Rails and BigDecimal</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/02/03/when-enough-is-enough-how-to-know-when-to-use-enums/">When Enough Is Enough: How to Know When to Use Enums</a>
       </li>
     
   </ul>

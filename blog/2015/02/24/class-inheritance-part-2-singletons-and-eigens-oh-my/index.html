@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="This blog post is part of a series on Class Inheritence. Read Part 1 here. I recently stumbled upon this line of code that totally floored me. I mean &hellip;">
+  <meta name="description" content="This blog post is part of a series on Class Inheritance. Read Part 1 here. I recently stumbled upon this line of code that totally floored me. I mean &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -95,7 +95,7 @@
   </header>
 
 
-<div class="entry-content"><p><em>This blog post is part of a series on Class Inheritence. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance/">here</a>.</em></p>
+<div class="entry-content"><p><em>This blog post is part of a series on Class Inheritance. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance/">here</a>.</em></p>
 
 <p>I recently stumbled upon this line of code that totally floored me. I mean, I had to drop everything I was doing and do some serious Googling, my friends. Well, that and also I asked my fellow developers at work who are far more seasoned programmers than me.</p>
 
@@ -132,7 +132,7 @@
 
 <h2>Class Methods, Because Your Instances Should Never Be Too Greedy</h2>
 
-<p>In order to understand the meaning behind <code>class &lt;&lt; self</code>, we first need to understand the <code>&lt;&lt; self</code> sytax. Let&rsquo;s recap a couple basics about class inheritance first:</p>
+<p>In order to understand the meaning behind <code>class &lt;&lt; self</code>, we first need to understand the <code>&lt;&lt; self</code> syntax. Let&rsquo;s recap a couple basics about class inheritance first:</p>
 
 <ol>
 <li>Classes can have two different types of methods: class methods, which can be called on a <code>Class</code> object, and instance methods, which can only be called on <em>instances</em> of a <code>Class</code> object.</li>
@@ -378,7 +378,7 @@
 <h2>tl;dr?</h2>
 
 <ul>
-<li>Technically speaking, there&rsquo;s actually no such thing as a <em>class method</em> in Ruby. You&rsquo;re always opening up the eigenclass/singleton class of an object whenver you define a class method. Keep in mind that there are many different syntaxes you can use in order to achieve this!</li>
+<li>Technically speaking, there&rsquo;s actually no such thing as a <em>class method</em> in Ruby. You&rsquo;re always opening up the eigenclass/singleton class of an object whenever you define a class method. Keep in mind that there are many different syntaxes you can use in order to achieve this!</li>
 <li>Curious about the <code>self.method</code> vs <code>class &lt;&lt; self</code> debate? Check out this <a href="http://stackoverflow.com/questions/10964081/class-self-vs-self-method-with-ruby-whats-better">thread on Stack Overflow</a>.</li>
 <li>Read more about the <a href="http://stackoverflow.com/questions/23848667/ruby-method-lookup-path-for-an-object">method lookup path</a> to understand where Ruby looks for stuff.</li>
 <li>Tons of good resources on this stuff <a href="http://madebydna.com/all/code/2011/06/24/eigenclasses-demystified.html">here</a> and <a href="http://yehudakatz.com/2009/11/15/metaprogramming-in-ruby-its-all-about-the-self/">here</a>. Oh, and <a href="http://ruby-metaprogramming.rubylearning.com/html/seeingMetaclassesClearly.html">here</a>.</li>
@@ -440,6 +440,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree/">It&#8217;s All in the Family: Using Acts_as_tree</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes/">Bundle Up &amp; Let Your Objects Do the Freezing: Frozen Hashes</a>
       </li>
     
@@ -453,10 +457,6 @@
     
       <li class="post">
         <a href="/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/">Money Makes the World Go Round: Using Money-Rails and BigDecimal</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/02/03/when-enough-is-enough-how-to-know-when-to-use-enums/">When Enough Is Enough: How to Know When to Use Enums</a>
       </li>
     
   </ul>
