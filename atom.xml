@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-03-09T21:36:20-04:00</updated>
+  <updated>2015-03-16T18:37:24-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,91 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[A Machine State of Mind, Part 1: Understanding State Machines]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/03/17/a-machine-state-of-mind-part-1-understanding-state-machines/"/>
+    <updated>2015-03-17T08:11:22-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/03/17/a-machine-state-of-mind-part-1-understanding-state-machines</id>
+    <content type="html"><![CDATA[<p><img src="http://www.kurzweilai.net/images/flowchart.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>My favorite thing about programming is the fact that you never run out of opportunities to be completely floored. There&rsquo;s literally <em>always</em> either a concept, theory, framework, or language that you don&rsquo;t know. This is actually fantastic, because there&rsquo;s no dearth of opportunity when it comes to learning. And you always come head-to-head with these facts when you pair program with a more experienced developer.</p>
+
+<p>One of the new concepts that I encountered this week was the idea of <strong>state machines</strong>, sometimes referred to as &ldquo;finite state machines&rdquo;. At first I thought that this was something unique to the gem that we are using in one of our large-scale applications, but it turns out it&rsquo;s not a Rails things. In fact, it&rsquo;s not even a Ruby thing! It&rsquo;s a <em>Computer Science</em> thing; to be a bit more specific, it&rsquo;s a mathematical abstraction used to design complex algorithms. But for all intents and purposes, it&rsquo;s a Computer Science theory that we use almost all the time, whether we know it or not.</p>
+
+<p>If you got through that paragraph without freaking out, you deserve a medal. All this CS theory sounds terrifying, right? Well, don&rsquo;t worry. For programming purposes, you don&rsquo;t actually need to think too much about how state machines are constructed and what&rsquo;s being abstracted away. Even though state machines can get incredibly complex, relatively quickly, let&rsquo;s not overwhelm ourselves; we only need to think about state machines in the context of programming. So we&rsquo;ll keep it simple and focus on what state machines are, how they work, and when to use them.</p>
+
+<!--more-->
+
+
+<h2>State Machines: What Are They?</h2>
+
+<p>A state machine is nothing more than a flow chart. And here&rsquo;s the thing about flowcharts: <em>they&rsquo;re everywhere</em>. If you think about it, a flowchart is just a way of controlling the flow of a set of actions. You have different conditions, and depending on your condition &ndash; or &ldquo;state&rdquo;, as we refer to it in programmatic terms &ndash; you&rsquo;ll take a certain action.</p>
+
+<p>For example, if you&rsquo;re hungry, you&rsquo;ll eat some food, probably a slice of cheesecake. If you&rsquo;re still hungry, you&rsquo;ll eat another slice. When you&rsquo;re full, you&rsquo;ll stop eating cheesecake (LOL, like anyone could ever be &ldquo;too full&rdquo; from cheesecake). You have different states of being, and certain events trigger you to move from one state to another &ndash; from hungry, to less hungry, to completely full.</p>
+
+<p>One of the simplest definitions that I found for state machines in the context of programming comes from a <a href="http://lamsonproject.org/docs/introduction_to_finite_state_machines.html">Lamson Project blog post</a> :</p>
+
+<blockquote><p>A practical finite state machine is basically four things: 1) A bunch of functions, or things that need to get done. 2) A bunch of events, or reasons to call these functions. 3) Some piece of data that tracks the &ldquo;state&rdquo; this bunch of functions is in. 4) Code inside the functions that says how to &ldquo;transition&rdquo; or &ldquo;change&rdquo; into the next state for further processing.</p></blockquote>
+
+<p>At the risk of sounding a bit philosophical, it all boils down to actions that are taken, and the reasons we take certain actions. State machines are how we keep track of different events, and control the flow between those events.</p>
+
+<h2>A State Of Being: How to Use State Machines</h2>
+
+<p>The best way of understanding <em>how</em> to use a state machine in your own application is by seeing an example of it in another application. A good place to start is usually a commonly-used, large-scale web application. Since we&rsquo;ve been using my bookstore application in <a href="http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree/">prior blog posts</a>, we&rsquo;ll use another eCommerce example to understand state machines. Here&rsquo;s a very simplified example of a basic order processing state machine:</p>
+
+<p><img src="http://i.imgur.com/Nd3ityK.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>If we follow the event flow, we start to get an idea of the different actions that trigger different states. Each <code>Order</code> starts off with an initial state (something that we&rsquo;ll explore a bit more when we build our own state machine), and requires a certain event to occur for its state to change. This means that only if an <code>Order</code> is <em>placed</em>, will the <code>Order</code>&rsquo;s state be changed to <code>submitted</code>.</p>
+
+<p>The event triggers are important because without them, there wouldn&rsquo;t be enough clarity to move from one state to another. Take a look at the <code>Order</code> when it&rsquo;s in the <code>processing</code> state. The <code>Order</code> must be either <code>fulfilled</code> or <code>canceled</code> in order for it to proceed to the next state.</p>
+
+<p>This particular state machine is <em>very</em> simple, and doesn&rsquo;t even account for the return or refund process! Imagine what that might look like! You could have states that could have events that <em>refer back</em> to themselves, which would make them <a href="http://en.wikipedia.org/wiki/Directed_acyclic_graph">directed acyclic graphs</a>. Things would start to get really complicated, really fast.</p>
+
+<p>But, if we think back to the Lamson Project&rsquo;s definition of a state machine, our order processing example still fits the bill:</p>
+
+<ol>
+<li>Our <strong>functions</strong>, the stuff that needs to get done, are the different things that need to happen for an event to trigger. For example, the <code>User</code> has to input a valid credit card number, cvv, expiration date, and shipping address just so that the <code>Order</code> can transition from <code>unplaced</code> to <code>submitted</code>.</li>
+<li>Our <strong>events</strong>, the reasons to call the functions, are the actual actions taken during the flow of the machine. The <code>User</code> actually has to successfully <em>submit</em> the form and the data has to be passed from the <code>User</code> and stored in the database so that the event can successfully occur.</li>
+<li>Our <strong>states</strong>, the data that tracks these functions, are the different conditions that our order can be in. If the <code>Order</code> is <code>processing</code>, all the functionality of fulfilling, packaging, and shipping the order must all be contained within that state.</li>
+<li>Our <strong>code inside the functions</strong> would be all the intricate methods that do all the work prior to each event occurring and each state changing. For example, you&rsquo;d probably have a validation to check whether the user had input a valid zip code (something like <code>validates :zip_code_length</code>) before transitioning from an <code>unplaced</code> <code>Order</code> to a <code>submitted</code> one. And you&rsquo;d probably want to execute an <code>in_stock?</code> method before switching from the <code>processing</code> state to the <code>shipped</code> state.</li>
+</ol>
+
+
+<h2>The Case For State Machines</h2>
+
+<p>While understanding state machines is great, is it always the right tool for the job? From my research and reading, it seems like most of the time, it is. <a href="http://www.skorks.com/2011/09/why-developers-never-use-state-machines/">This post</a> by Alan Skorkin gives some pretty good insight into <em>why</em> developers never use state machines. Many developers seem to be intimidated by the very concept of state machines, or sometimes don&rsquo;t even understand them in the first place, which can be cause to avoid them at all costs. Other programmers see them as complex and overly complicated, and perhaps not necessary when you&rsquo;re first starting off in building your application. And sometimes it&rsquo;s just hard to foresee how your application is going to grow, and determine whether or not a state machine is the right tool for the job.</p>
+
+<p>Even though setting up a state machine takes a bit of initial effort, it can save you a lot of pain in the long run. Even though many programmers can&rsquo;t predict when they&rsquo;ll need a state machine, almost every application has some form of flow that fits the bill. And let&rsquo;s face it: almost every web application these days actually strives to <em>do</em> something, which means that it will inevitably have some sort of flow of events.</p>
+
+<p>This fantastic <a href="http://www.shopify.com/technology/3383012-why-developers-should-be-force-fed-state-machines">Shopify blog post</a> makes a great case for why ever programmer needs to be &ldquo;force-fed&rdquo; the state machine concept. The most important part of all of this debate, however, is understanding the state machine pattern. You have to understand the pattern first, and then you can figure out whether you need to spend the time in actually implementing it.</p>
+
+<p>Thankfully, there are a few common red flags that indicate if this is the case:</p>
+
+<ol>
+<li><p>A <code>state</code> or a <code>status</code> attribute on any of your objects: <code>Book::Order.first.status</code></p></li>
+<li><p>Instance methods that return a <code>boolean</code> value: <code>Book::Order.first.shipped?</code></p></li>
+<li><p>Records that are only valid for a certain period of time: <code>User::Membership.first.subscriptions #=&gt; "expired"</code></p></li>
+</ol>
+
+
+<p>If your code base has any of these, you can probably benefit from a state machine. I went back and looked at my old web apps, and found that each and every one of them had at least one, if not more, of these situations. In fact, almost every Rails application is bound to have some variation of these three different scenarios, which means that we should all learn how to use state machines and become better developers!</p>
+
+<p>So how do you actually go about creating a state machine? Well, that&rsquo;s a whole other <del>game</del> blog post entirely. Tune in again next Tuesday, when I&rsquo;ll explore how to actually go about <em>implementing</em> a state machine in your Rails application! Get excited &ndash; like this:</p>
+
+<iframe src="//giphy.com/embed/FlWgXEtj5aM5G" width="480" height="259" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>State machines control the flow of events in a web application by using certain events to trigger different states or conditions.</li>
+<li>If you find that your app has methods like <code>state</code> or <code>status</code> and <code>shipped?</code> or <code>received?</code>, you should try using a state machine.</li>
+<li>Still interested in the CS theory behind state machines? Check out these two super helpful blog posts on the subject <a href="http://blog.markshead.com/869/state-machines-computer-science/">here</a> and <a href="http://www.i-programmer.info/babbages-bag/223-finite-state-machines.html">here</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[It's All in the Family: Using Acts_as_tree]]></title>
@@ -2307,10 +2392,10 @@
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[Class Inheritance]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance/"/>
+    <title type="html"><![CDATA[Class Inheritance: Part 1]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance-part-1/"/>
     <updated>2014-10-16T21:00:34-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance</id>
+    <id>http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance-part-1</id>
     <content type="html"><![CDATA[<p>Confession time: I&rsquo;m kind of in love with object-oriented programming.</p>
 
 <p>I should probably clarify that I don&rsquo;t always understand OOP, and I sometimes even confuse myself for no good reason whenever the topic of &ldquo;self&rdquo; comes up. But hey, every relationship has its ups and downs, and I&rsquo;ve only really been committed to this one for the past week or so.</p>

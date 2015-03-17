@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-03-09T21:36:20-04:00</updated>
+  <updated>2015-03-16T18:37:24-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,91 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[A Machine State of Mind, Part 1: Understanding State Machines]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/03/17/a-machine-state-of-mind-part-1-understanding-state-machines/"/>
+    <updated>2015-03-17T08:11:22-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/03/17/a-machine-state-of-mind-part-1-understanding-state-machines</id>
+    <content type="html"><![CDATA[<p><img src="http://www.kurzweilai.net/images/flowchart.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>My favorite thing about programming is the fact that you never run out of opportunities to be completely floored. There&rsquo;s literally <em>always</em> either a concept, theory, framework, or language that you don&rsquo;t know. This is actually fantastic, because there&rsquo;s no dearth of opportunity when it comes to learning. And you always come head-to-head with these facts when you pair program with a more experienced developer.</p>
+
+<p>One of the new concepts that I encountered this week was the idea of <strong>state machines</strong>, sometimes referred to as &ldquo;finite state machines&rdquo;. At first I thought that this was something unique to the gem that we are using in one of our large-scale applications, but it turns out it&rsquo;s not a Rails things. In fact, it&rsquo;s not even a Ruby thing! It&rsquo;s a <em>Computer Science</em> thing; to be a bit more specific, it&rsquo;s a mathematical abstraction used to design complex algorithms. But for all intents and purposes, it&rsquo;s a Computer Science theory that we use almost all the time, whether we know it or not.</p>
+
+<p>If you got through that paragraph without freaking out, you deserve a medal. All this CS theory sounds terrifying, right? Well, don&rsquo;t worry. For programming purposes, you don&rsquo;t actually need to think too much about how state machines are constructed and what&rsquo;s being abstracted away. Even though state machines can get incredibly complex, relatively quickly, let&rsquo;s not overwhelm ourselves; we only need to think about state machines in the context of programming. So we&rsquo;ll keep it simple and focus on what state machines are, how they work, and when to use them.</p>
+
+<!--more-->
+
+
+<h2>State Machines: What Are They?</h2>
+
+<p>A state machine is nothing more than a flow chart. And here&rsquo;s the thing about flowcharts: <em>they&rsquo;re everywhere</em>. If you think about it, a flowchart is just a way of controlling the flow of a set of actions. You have different conditions, and depending on your condition &ndash; or &ldquo;state&rdquo;, as we refer to it in programmatic terms &ndash; you&rsquo;ll take a certain action.</p>
+
+<p>For example, if you&rsquo;re hungry, you&rsquo;ll eat some food, probably a slice of cheesecake. If you&rsquo;re still hungry, you&rsquo;ll eat another slice. When you&rsquo;re full, you&rsquo;ll stop eating cheesecake (LOL, like anyone could ever be &ldquo;too full&rdquo; from cheesecake). You have different states of being, and certain events trigger you to move from one state to another &ndash; from hungry, to less hungry, to completely full.</p>
+
+<p>One of the simplest definitions that I found for state machines in the context of programming comes from a <a href="http://lamsonproject.org/docs/introduction_to_finite_state_machines.html">Lamson Project blog post</a> :</p>
+
+<blockquote><p>A practical finite state machine is basically four things: 1) A bunch of functions, or things that need to get done. 2) A bunch of events, or reasons to call these functions. 3) Some piece of data that tracks the &ldquo;state&rdquo; this bunch of functions is in. 4) Code inside the functions that says how to &ldquo;transition&rdquo; or &ldquo;change&rdquo; into the next state for further processing.</p></blockquote>
+
+<p>At the risk of sounding a bit philosophical, it all boils down to actions that are taken, and the reasons we take certain actions. State machines are how we keep track of different events, and control the flow between those events.</p>
+
+<h2>A State Of Being: How to Use State Machines</h2>
+
+<p>The best way of understanding <em>how</em> to use a state machine in your own application is by seeing an example of it in another application. A good place to start is usually a commonly-used, large-scale web application. Since we&rsquo;ve been using my bookstore application in <a href="http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree/">prior blog posts</a>, we&rsquo;ll use another eCommerce example to understand state machines. Here&rsquo;s a very simplified example of a basic order processing state machine:</p>
+
+<p><img src="http://i.imgur.com/Nd3ityK.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>If we follow the event flow, we start to get an idea of the different actions that trigger different states. Each <code>Order</code> starts off with an initial state (something that we&rsquo;ll explore a bit more when we build our own state machine), and requires a certain event to occur for its state to change. This means that only if an <code>Order</code> is <em>placed</em>, will the <code>Order</code>&rsquo;s state be changed to <code>submitted</code>.</p>
+
+<p>The event triggers are important because without them, there wouldn&rsquo;t be enough clarity to move from one state to another. Take a look at the <code>Order</code> when it&rsquo;s in the <code>processing</code> state. The <code>Order</code> must be either <code>fulfilled</code> or <code>canceled</code> in order for it to proceed to the next state.</p>
+
+<p>This particular state machine is <em>very</em> simple, and doesn&rsquo;t even account for the return or refund process! Imagine what that might look like! You could have states that could have events that <em>refer back</em> to themselves, which would make them <a href="http://en.wikipedia.org/wiki/Directed_acyclic_graph">directed acyclic graphs</a>. Things would start to get really complicated, really fast.</p>
+
+<p>But, if we think back to the Lamson Project&rsquo;s definition of a state machine, our order processing example still fits the bill:</p>
+
+<ol>
+<li>Our <strong>functions</strong>, the stuff that needs to get done, are the different things that need to happen for an event to trigger. For example, the <code>User</code> has to input a valid credit card number, cvv, expiration date, and shipping address just so that the <code>Order</code> can transition from <code>unplaced</code> to <code>submitted</code>.</li>
+<li>Our <strong>events</strong>, the reasons to call the functions, are the actual actions taken during the flow of the machine. The <code>User</code> actually has to successfully <em>submit</em> the form and the data has to be passed from the <code>User</code> and stored in the database so that the event can successfully occur.</li>
+<li>Our <strong>states</strong>, the data that tracks these functions, are the different conditions that our order can be in. If the <code>Order</code> is <code>processing</code>, all the functionality of fulfilling, packaging, and shipping the order must all be contained within that state.</li>
+<li>Our <strong>code inside the functions</strong> would be all the intricate methods that do all the work prior to each event occurring and each state changing. For example, you&rsquo;d probably have a validation to check whether the user had input a valid zip code (something like <code>validates :zip_code_length</code>) before transitioning from an <code>unplaced</code> <code>Order</code> to a <code>submitted</code> one. And you&rsquo;d probably want to execute an <code>in_stock?</code> method before switching from the <code>processing</code> state to the <code>shipped</code> state.</li>
+</ol>
+
+
+<h2>The Case For State Machines</h2>
+
+<p>While understanding state machines is great, is it always the right tool for the job? From my research and reading, it seems like most of the time, it is. <a href="http://www.skorks.com/2011/09/why-developers-never-use-state-machines/">This post</a> by Alan Skorkin gives some pretty good insight into <em>why</em> developers never use state machines. Many developers seem to be intimidated by the very concept of state machines, or sometimes don&rsquo;t even understand them in the first place, which can be cause to avoid them at all costs. Other programmers see them as complex and overly complicated, and perhaps not necessary when you&rsquo;re first starting off in building your application. And sometimes it&rsquo;s just hard to foresee how your application is going to grow, and determine whether or not a state machine is the right tool for the job.</p>
+
+<p>Even though setting up a state machine takes a bit of initial effort, it can save you a lot of pain in the long run. Even though many programmers can&rsquo;t predict when they&rsquo;ll need a state machine, almost every application has some form of flow that fits the bill. And let&rsquo;s face it: almost every web application these days actually strives to <em>do</em> something, which means that it will inevitably have some sort of flow of events.</p>
+
+<p>This fantastic <a href="http://www.shopify.com/technology/3383012-why-developers-should-be-force-fed-state-machines">Shopify blog post</a> makes a great case for why ever programmer needs to be &ldquo;force-fed&rdquo; the state machine concept. The most important part of all of this debate, however, is understanding the state machine pattern. You have to understand the pattern first, and then you can figure out whether you need to spend the time in actually implementing it.</p>
+
+<p>Thankfully, there are a few common red flags that indicate if this is the case:</p>
+
+<ol>
+<li><p>A <code>state</code> or a <code>status</code> attribute on any of your objects: <code>Book::Order.first.status</code></p></li>
+<li><p>Instance methods that return a <code>boolean</code> value: <code>Book::Order.first.shipped?</code></p></li>
+<li><p>Records that are only valid for a certain period of time: <code>User::Membership.first.subscriptions #=&gt; "expired"</code></p></li>
+</ol>
+
+
+<p>If your code base has any of these, you can probably benefit from a state machine. I went back and looked at my old web apps, and found that each and every one of them had at least one, if not more, of these situations. In fact, almost every Rails application is bound to have some variation of these three different scenarios, which means that we should all learn how to use state machines and become better developers!</p>
+
+<p>So how do you actually go about creating a state machine? Well, that&rsquo;s a whole other <del>game</del> blog post entirely. Tune in again next Tuesday, when I&rsquo;ll explore how to actually go about <em>implementing</em> a state machine in your Rails application! Get excited &ndash; like this:</p>
+
+<iframe src="//giphy.com/embed/FlWgXEtj5aM5G" width="480" height="259" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>State machines control the flow of events in a web application by using certain events to trigger different states or conditions.</li>
+<li>If you find that your app has methods like <code>state</code> or <code>status</code> and <code>shipped?</code> or <code>received?</code>, you should try using a state machine.</li>
+<li>Still interested in the CS theory behind state machines? Check out these two super helpful blog posts on the subject <a href="http://blog.markshead.com/869/state-machines-computer-science/">here</a> and <a href="http://www.i-programmer.info/babbages-bag/223-finite-state-machines.html">here</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[It's All in the Family: Using Acts_as_tree]]></title>
@@ -642,162 +727,6 @@ See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC
 <li>Unix timestamps and ISO8601 are both good formats for storing date and time in your database. Do a little research to decide <a href="http://stackoverflow.com/questions/15554586/timestamps-iso8601-vs-unix-timestamp">which of these formats</a> is the best tool for whatever job you&rsquo;re trying to accomplish.</li>
 <li>Dealing with time zones is hard, but the <a href="http://danilenko.org/2012/7/6/rails_timezones/">Exhaustive Guide to Rails Time Zones</a> will save you hours of banging your head against the wall &ndash; well, for time-related things, at least.</li>
 <li>Want to be a <code>Time</code> object superstar? Read <a href="https://unix4lyfe.org/time/?v=1">this post</a>, which was featured on HackerNews, and peruse the <a href="http://ruby-doc.org//core-2.2.0/Time.html">Ruby documentation</a> to get the skinny on all things time-related.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Money Makes the World Go Round: Using Money-Rails and BigDecimal]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/"/>
-    <updated>2015-02-10T08:07:09-05:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal</id>
-    <content type="html"><![CDATA[<p><img src="http://s3-ec.buzzfed.com/static/enhanced/webdr02/2013/3/26/12/enhanced-buzz-19756-1364314697-15.jpg" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>Mo money, mo problems. This is especially the case when you&rsquo;re a new developer trying to onboard onto a huge eCommerce Rails application.</p>
-
-<p>No, but really - money is such a pain in the ass to deal with as a programmer. So much logic and detail goes into accepting a payment, processing a transaction, checking an order&rsquo;s status&hellip;and don&rsquo;t even get me <em>started</em> on shipping &ndash; seriously, I&rsquo;m saving the entire concept of shipping for another blog post.</p>
-
-<p>But, at some point or another, you have to deal with other people&rsquo;s money. And you have to try and not screw it up, because apparently people really don&rsquo;t like that. So, how do you handle all those dolla dolla bills? Yup, you guessed it: with the <strong>money-rails library</strong> and Ruby&rsquo;s <strong>BigDecimal object</strong>.</p>
-
-<!-- more -->
-
-
-<h2>Get Dat Dough: Implementing Money-Rails</h2>
-
-<p>Including the money-rails library is fairly simple: add <code>gem 'money-rails'</code> to your Gemfile and then <code>bundle</code> in your console.</p>
-
-<p>But what exactly <em>is</em> this library, and how do you effectively use it? Well, that&rsquo;s another thing entirely.</p>
-
-<p>The most important thing to note is that the <code>money-rails</code> library provides integration of the <code>money</code> gem for Rails applications. So, before you go around throwing about your dough every which way, here are a few things about the <code>money</code> gem to keep in mind:</p>
-
-<ol>
-<li>It gives you a <code>Money</code> class, and instances of this class (<code>Money</code> objects) contain all the information about a certain <em>amount</em> of money.  Provides a Money class which encapsulates all information about an certain amount of money, such as its value and its currency.</li>
-<li>It provides you with a <code>Money::Currency</code> class, which contains all the information about a certain monetary unit. Instances of this class are how we will represent different currencies.</li>
-<li>It includes APIs to exchange one kind of currency into another.</li>
-<li>It represents money in <code>Integer</code> values, not <code>Float</code>, in order to avoid rounding errors.</li>
-</ol>
-
-
-<p>This last one is important, so try to remember it &ndash; we&rsquo;re going to come back to this in a bit.</p>
-
-<h2>Make It Rain!</h2>
-
-<p>Ok, time to get rich: let&rsquo;s make ourselves some money. Instantiating a <code>Money</code> object isn&rsquo;t too hard; simply create a new instance and pass it an amount and a currency:
-<code>ruby
-five_bucks = Money.new(500, "USD")  #=&gt; $5.00 USD
-five_bucks.cents     #=&gt; 500
-five_bucks.currency  #=&gt; Currency.new("USD")
-</code></p>
-
-<p>Notice that the amount must be passed in as cents, while the currency must be passed in as either a <code>String</code> or a <code>Money::Currency</code> object.</p>
-
-<p>Money usually means math, so let&rsquo;s do some:
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">my_money</span> <span class="o">=</span> <span class="no">Money</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="mi">3000</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="no">USD</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;)</span>
-</span><span class='line'><span class="n">your_money</span> <span class="o">=</span> <span class="no">Money</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="mi">1500</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="no">USD</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;)</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;my_money + your_money == Money.new(4500, &amp;ldquo;USD&amp;rdquo;)</span>
-</span></code></pre></td></tr></table></div></figure></p>
-
-<p>You can also use the <code>parse</code> method, which takes in a symbol and number in a string format, and returns a <code>Money</code> object with the correct currency type:
-<code>ruby
-Money.parse("£60") == Money.new(60, "GBP")
-</code></p>
-
-<p>In addition to comparing currencies, you can create an access them as objects:
-<code>ruby
-currency = Money.new(60, "GBP").currency #=&gt; "£60.00 GBP"
-currency.iso_code #=&gt; "GBP"
-currency.name     #=&gt; "British Pound"
-</code></p>
-
-<p>You can access any information of a currency (which is, again, just a <code>Money</code> object), including its <code>name</code>, <code>iso_code</code>, <code>symbol</code>, and <code>delimiter</code>. And if you want to create a new currency, you&rsquo;d simply need to pass in the values as a hash into the <code>register</code> class method. There&rsquo;s also the <code>default_currency</code> class method, which does exactly what you think it does, and an <code>exchange_to</code> method, which can be super handy if you ever want to sell your products&hellip;well, basically anywhere.</p>
-
-<p>So. You can make money now. Like, actually <em>create</em> it. Do you feel like a god yet? Okay good. Hold onto that feeling, because it&rsquo;s about to get a little more complicated.</p>
-
-<iframe src="//giphy.com/embed/jUNAEqdvpQCcM" width="480" height="239" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>BigDecimal: Not Just Any Ol&#8217; Number</h2>
-
-<p>When I was first playing around with this gem, I was much like you: young, naive, thoroughly amused by the fact that I could play with money in my console with (mostly) no consequences. And then I saw this:</p>
-
-<pre><code class="ruby">#&lt;BigDecimal:7fbd6eab87f8,'0.8E1',9(36)&gt;
-</code></pre>
-
-<p><em>Um. What? Is that an association? An object? Is it even Ruby?</em></p>
-
-<p>The answer to my questions were no, yes, and absolutely. Actually, that little guy up there is my new friend, <code>BigDecimal</code>. And by the time you finish reading this post, I think you&rsquo;re going to like him, too.</p>
-
-<p>Okay, time for a quick exercise! Open up irb and type in: <code>1.01 - 1.00</code></p>
-
-<pre><code>2.1.2 :001 &gt; 1.01 - 1.00
- =&gt; 0.010000000000000009 
-2.1.2 :002 &gt; n = _
- =&gt; 0.010000000000000009 
-2.1.2 :003 &gt; n &gt; 0.01
- =&gt; true 
-</code></pre>
-
-<p>Wait&hellip;Ruby thinks that the difference between <code>1.01</code> and <code>1.00</code> is greater than <code>0.01</code>? OH SHIT. DID WE BREAK RUBY?!</p>
-
-<p>Nope, nope we did not. But, we <em>did</em> just discover the one true flaw of Ruby <code>Float</code>, which is that they can&rsquo;t store decimals very precisely. Apparently, the reason for this</a> is that floats are stored in a binary number format, which means that there&rsquo;s a lot of conversion from binary to decimal going on under the hood.</p>
-
-<p>This probably doesn&rsquo;t seem all that important, but here&rsquo;s the thing: people really don&rsquo;t like it when you take their money. And when you use floats, you may very well be rounding up in cases when you really shouldn&rsquo;t be, which would result in some sort of numerical error.</p>
-
-<p>Enter our new buddy, <code>BigDecimal</code>. We can do the exact same calculation with this object, but without the arbitrary rounding! If we try it out in irb, we&rsquo;ll get the number that we were originally expecting:</p>
-
-<pre><code>2.1.2 :005 &gt; BigDecimal.new("1.01") - BigDecimal.new("1.00")
- =&gt; #&lt;BigDecimal:7fee2add1560,'0.1E-1',9(27)&gt; 
-2.1.2 :006 &gt; n = _
- =&gt; #&lt;BigDecimal:7fee2add1560,'0.1E-1',9(27)&gt; 
-2.1.2 :007 &gt; n.to_f
- =&gt; 0.01 
-</code></pre>
-
-<p>If you remember scientific notation from middle school, then you&rsquo;ll notice what&rsquo;s going on in <code>0.1E-1</code>, and how that converts to <code>0.01</code> when we called the <code>to_f</code> method on it. This takes more time, but it is far more accurate &ndash; something that&rsquo;s pretty important when it comes to the monies.</p>
-
-<p>Remember earlier in the post when I told you to remember that the <code>money</code> gem uses <code>Integer</code> but not <code>Float</code>? Well, it also uses <code>BigDecimal</code> objects, for the same exact reason that we just discovered on our own.</p>
-
-<h2>What Is Standard Cannot Be Core</h2>
-
-<p>If your first reaction to reading this post was opening up irb and trying to make your own <code>BigDecimal</code> object, then you most certainly encountered this error:</p>
-
-<pre><code>♥ irb
-2.1.2 :001 &gt; BigDecimal.new
-NameError: uninitialized constant BigDecimal
-  from (irb):1
-</code></pre>
-
-<p>Before you freak out, let me assure you that I did not lie to you &ndash; <code>BigDecimal</code> most surely is a real thing. But it&rsquo;s not a core thing. What I mean by that is, <code>BigDecimal</code> is not part of the Ruby Core Library; it&rsquo;s actually part of the Ruby Standard Library.</p>
-
-<p>If you&rsquo;re thinking to yourself, <em>Whut?! Ruby has two different libraries?</em>, you&rsquo;d be right. But even though both deal with Ruby objects, there&rsquo;s a fundamental difference between the two.</p>
-
-<p>The <a href="http://www.ruby-doc.org/core-2.2.0/">Ruby Core Library</a> is what you use every day, including basic objects such as <code>String</code>, <code>Integer</code>, <code>Float</code>, <code>Array</code>, <code>Hash</code>, and many others. On the other hand, the objects in the <a href="http://www.ruby-doc.org/stdlib-2.2.0/">Ruby Standard Library</a> may seem a little less familiar. Unlike the Core Library, objects from the Standard Library have to be explicitly required. <code>BigDecimal</code> objects are part of the Standard Library, as are <code>Abbrev</code>, <code>Logger</code>, and <code>Matrix</code> objects.</p>
-
-<p>The Standard Library is an extension of the Ruby language. You will always have access to the Core Library, but if you want to use an object that exists outside of the Core Library, you&rsquo;ll need to specifically require it. So, if you want to play with <code>BigDecimal</code> in the console or use it in your application, you&rsquo;ll have to type this in to have access to the object: <code>require 'bigdecimal'</code>.</p>
-
-<h2>More Bang For Your Buck</h2>
-
-<p>When I first started reading about <code>BigDecimal</code>, I wondered why I had never run into this type of object before. How could I have missed it entirely? As a beginner, it may not sense to use this type of Ruby object at all, and it may very well slow you down. In fact, I think floats are the default object in use for a reason: they&rsquo;re much cheaper to use in memory, and can convert, lookup, and do arithmetic much faster than <code>BigDecimal</code>. Calculations on <code>BigDecimal</code> objects are much slower because they are objects, which take up <em>far</em> more space and memory. However, if you&rsquo;re actually dealing with currency values &ndash; building an ecommerce application, for example &ndash; <code>BigDecimal</code> still seems to be a clear winner to me.</p>
-
-<p>The <code>money</code> gem and <code>money-rails</code> library provide a lot of flexibility when it comes to handling money in your application mostly because they create <code>Money</code> objects. I&rsquo;m a huge fan of object-oriented programming, and these libraries allow you to manipulate and access your currency with far more ease than if they were stored as simple integers, or even floats.</p>
-
-<p>However, these resources are only the tip of the iceberg when it comes to dealing with money in your Rails application. Another awesome library is <a href="https://github.com/RubyMoney/monetize">monetize</a>, which allows you to convert different types of Ruby objects into <code>Money</code> objects. Once you get the basic structure and namespacing of these libraries, learning about new ones will be a piece of cake. Pretty soon, you&rsquo;ll be breaking the bank with all your knowledge about using money in Rails. Maybe you&rsquo;ll even end up like this guy:</p>
-
-<iframe src="//giphy.com/embed/3Jhdg8Qro5kMo" width="480" height="295" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>money-rails</code> library allows you to create <code>Money</code> objects, including different currencies. Ruby <code>BigDecimal</code> objects round more accurately and are more precise than <code>Float</code> objects, making them more preferable when working with money.</li>
-<li>Read more about the methods available to <code>BigDecimal</code> objects in the <a href="http://www.ruby-doc.org/stdlib-2.2.0/libdoc/bigdecimal/rdoc/index.html">Ruby documentation</a>, and check out all the cool stuff that the <code>money</code> gem can do over on <a href="http://rubymoney.github.io/money/">their website</a>.</li>
-<li>Want to know more about what makes floats weird? Read <a href="http://www.rails-troubles.com/2011/12/ruby-float-quirks.html">this blog post</a>.</li>
 </ul>
 
 ]]></content>
