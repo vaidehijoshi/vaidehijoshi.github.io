@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Computer Science | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/computer-science/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-03-16T22:44:31-04:00</updated>
+  <updated>2015-03-16T22:48:11-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -22,7 +22,7 @@
 
 <p>My favorite thing about programming is the fact that you never run out of opportunities to be completely floored. There&rsquo;s literally <em>always</em> either a concept, theory, framework, or language that you don&rsquo;t know. This is actually fantastic, because there&rsquo;s no dearth of opportunity when it comes to learning. And you always come head-to-head with these facts when you pair program with a more experienced developer.</p>
 
-<p>One of the new concepts that I encountered this week was the idea of <strong>state machines</strong>, sometimes referred to as &ldquo;finite state machines&rdquo;. At first I thought that this was something unique to the gem that we are using in one of our large-scale applications, but it turns out it&rsquo;s not a Rails things. In fact, it&rsquo;s not even a Ruby thing! It&rsquo;s a <em>Computer Science</em> thing; to be a bit more specific, it&rsquo;s a mathematical abstraction used to design complex algorithms. But for all intents and purposes, it&rsquo;s a Computer Science theory that we use almost all the time, whether we know it or not.</p>
+<p>One of the new concepts that I encountered this week was the idea of <strong>state machines</strong>, sometimes referred to as &ldquo;finite state machines&rdquo;. At first I thought that this was something unique to the gem that we are using in one of our large-scale applications, but it turns out it&rsquo;s not a Rails thing. In fact, it&rsquo;s not even a Ruby thing! It&rsquo;s a <em>Computer Science</em> thing; to be a bit more specific, it&rsquo;s a mathematical abstraction used to design complex algorithms. But for all intents and purposes, it&rsquo;s a Computer Science theory that we use almost all the time, whether we know it or not.</p>
 
 <p>If you got through that paragraph without freaking out, you deserve a medal. All this CS theory sounds terrifying, right? Well, don&rsquo;t worry. For programming purposes, you don&rsquo;t actually need to think too much about how state machines are constructed and what&rsquo;s being abstracted away. Even though state machines can get incredibly complex, relatively quickly, let&rsquo;s not overwhelm ourselves; we only need to think about state machines in the context of programming. So we&rsquo;ll keep it simple and focus on what state machines are, how they work, and when to use them.</p>
 
@@ -82,7 +82,7 @@
 
 <p>If your code base has any of these, you can probably benefit from a state machine. I went back and looked at my old web apps, and found that each and every one of them had at least one, if not more, of these situations. In fact, almost every Rails application is bound to have some variation of these three different scenarios, which means that we should all learn how to use state machines and become better developers!</p>
 
-<p>So how do you actually go about creating a state machine? Well, that&rsquo;s a whole other <del>game</del> blog post entirely. Tune in again next Tuesday, when I&rsquo;ll explore how to actually go about <em>implementing</em> a state machine in your Rails application! Get excited &ndash; like this:</p>
+<p>So how do you actually go about creating a state machine? Well, that&rsquo;s a whole other <del>game</del> blog post entirely. Tune in again next Tuesday, when I&rsquo;ll explore how to actually go about <em>implementing</em> a state machine in your Rails application! Get excited! Like this:</p>
 
 <iframe src="//giphy.com/embed/FlWgXEtj5aM5G" width="480" height="259" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
