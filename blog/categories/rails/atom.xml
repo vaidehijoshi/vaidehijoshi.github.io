@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rails | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-03-19T21:49:11-04:00</updated>
+  <updated>2015-03-23T22:14:04-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,313 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[A Machine State of Mind, Part 2: Implementing State Machines]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/03/24/a-machine-state-of-mind-part-2-implementing-state-machines/"/>
+    <updated>2015-03-24T08:03:14-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/03/24/a-machine-state-of-mind-part-2-implementing-state-machines</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/CYMzelWRqbQv6" width="480" height="345" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p><em>This blog post is part of a series on State Machines. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2015/03/17/a-machine-state-of-mind-part-1-understanding-state-machines/">here</a>.</em></p>
+
+<p>Until you encounter a state machine in a gem, framework, or within someone else&rsquo;s code, you probably won&rsquo;t find one very easily. But as we learned last week, they&rsquo;re rather pervasive. I discovered state machines while helping build a large-scale eCommerce website.</p>
+
+<p>But there actually weren&rsquo;t even that many state machines in our code! We were relying on state machines that lived in the source code of a Rails library with a variety of gems, commonly referred to as <a href="https://github.com/spree">spree</a>. (Why reinvent ecommerce platforms when so many people have already made &lsquo;em, amirite?)</p>
+
+<p>So, I did what any self-respecting, completely unaware new developer would do: I dove into the spree source code. And boy, was <em>that</em> a rabbit hole. But, I learned some things about how state machines work in Rails and how to make them. It&rsquo;s good to conceptually understand the theory behind state machines, but the best way to learn something is by doing it. It&rsquo;s time to take off the training wheels and actually <em>build</em> our own state machine!</p>
+
+<!--more-->
+
+
+<h2>Starting Up The Machine Engine</h2>
+
+<p>There are a few different options for implementing state machines in a Rails application; spree, for example, uses the <a href="https://github.com/pluginaweek/state_machine/tree/master">state_machine plugin</a>. Personally, I prefer the <a href="https://github.com/aasm/aasm">acts_as_state_machine gem</a> (aasm), as I&rsquo;ve found it to be a bit easier to use and understand.</p>
+
+<p>Once we <code>gem install aasm</code> and add it to our application&rsquo;s <code>Gemfile</code>, we&rsquo;ll want to include it in the body of the class we&rsquo;re trying to implement the state machine on. In the case of our bookstore application, our <code>Order</code> objects are what will be transitioning from one state to another. As the application begins to grow, it&rsquo;ll be useful to namespace our objects (<code>Book::Order</code>) before including the module:</p>
+
+<pre><code class="ruby">class Book::Order
+  include AASM
+end
+</code></pre>
+
+<p>Including the gem is the easy part. The next part is slightly trickier, yet remains pretty intuitive. First, we&rsquo;ll start by defining two states: an initial <code>state</code> that we want our object to start off in, and a second <code>state</code> we want our object to transition to. Then, we&rsquo;ll want to adding an <code>event</code> with an <code>from</code> and <code>to</code> in its <code>transition</code>:
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">aasm</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">state</span> <span class="ss">:unplaced</span><span class="p">,</span> <span class="ss">:initial</span> <span class="o">=&gt;</span> <span class="kp">true</span>
+</span><span class='line'>  <span class="n">state</span> <span class="ss">:submitted</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  event :submit do</span>
+</span><span class='line'><span class="sr">    transitions :from =&gt; :unplaced, :to =&gt; :submitted</span>
+</span><span class='line'><span class="sr">  end</span>
+</span><span class='line'><span class="sr">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>Notice that the <code>event :submit</code> is the present tense verb form of the <code>state :submitted</code>. And when the <code>submit</code> event is called, the <code>Book::Order</code> object&rsquo;s <code>state</code> will transition from one state to the other.</p>
+
+<p>That&rsquo;s pretty much all you really need to implement a state machine. But of course, we&rsquo;ve only got two states here, which isn&rsquo;t really much of a machine and definitely doesn&rsquo;t take advantage of all the functionalities that <code>aasm</code> provides us with.</p>
+
+<p>Let&rsquo;s continue to build on the state machine based on <a href="http://i.imgur.com/Nd3ityK.png">the diagram</a> from last week&rsquo;s post and add a few more states and events:
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'>  <span class="n">aasm</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">state</span> <span class="ss">:unplaced</span><span class="p">,</span> <span class="ss">:initial</span> <span class="o">=&gt;</span> <span class="kp">true</span>
+</span><span class='line'>    <span class="n">state</span> <span class="ss">:submitted</span>
+</span><span class='line'>    <span class="n">state</span> <span class="ss">:processing</span>
+</span><span class='line'>    <span class="n">state</span> <span class="ss">:shipped</span>
+</span><span class='line'>    <span class="n">state</span> <span class="ss">:completed</span>
+</span><span class='line'>    <span class="n">state</span> <span class="ss">:returned</span>
+</span><span class='line'>    <span class="n">state</span> <span class="ss">:deleted</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;event :submit do</span>
+</span><span class='line'><span class="sr">  transitions :from =&amp;gt; :unplaced, :to =&amp;gt; :submitted</span>
+</span><span class='line'><span class="sr">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">event :process do</span>
+</span><span class='line'><span class="sr">  transitions :from =&amp;gt; [:submitted, :returned], :to =&amp;gt; :processing</span>
+</span><span class='line'><span class="sr">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">event :ship do</span>
+</span><span class='line'><span class="sr">  transitions :from =&amp;gt; :processing, :to =&amp;gt; :shipped</span>
+</span><span class='line'><span class="sr">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">event :complete do</span>
+</span><span class='line'><span class="sr">  transitions :from =&amp;gt; :shipped, :to =&amp;gt; :completed</span>
+</span><span class='line'><span class="sr">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">event :return do</span>
+</span><span class='line'><span class="sr">  transitions :from =&amp;gt; :complete, :to =&amp;gt; :returned</span>
+</span><span class='line'><span class="sr">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">event :delete do</span>
+</span><span class='line'><span class="sr">  transitions :from =&amp;gt; :processing, :to =&amp;gt; :deleted</span>
+</span><span class='line'><span class="sr">end</span>
+</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>Whoa &ndash; now we&rsquo;re talking! This state machine is even more complex than the diagram we started off with!</p>
+
+<p>You&rsquo;ll notice that we even have a <code>state :returned</code> and an <code>event :return</code>, which transition from a <code>complete</code> state to a <code>returned</code> one. And if you&rsquo;ve got a really good eye, you&rsquo;ll see that the <code>process</code> event has changed, too. Now, we can call the <code>process</code> event on the object when it&rsquo;s either in the <code>submitted</code> state or the <code>returned</code> state.</p>
+
+<p>Our state machine is now a <em>self-referential</em> structure, which means that the <code>process</code> event looks back to states within the machine to determine whether it can continue forward or not. This all seems pretty cool, but you better buckle in &ndash; it&rsquo;s about to get <em>even cooler</em>.</p>
+
+<h2>Test Driving Your Machine</h2>
+
+<p>It&rsquo;s lovely that we have this machine and all, but what&rsquo;s the fun if you can&rsquo;t take it out for a whirl? So, let&rsquo;s see what this thing can do.</p>
+
+<p>This gem in particular provides us with a variety of public methods for any instances of our <code>Book::Order</code> class, all via our state machine:</p>
+
+<pre><code>order = Book::Order.new # =&gt; =&gt; #&lt;Book::Order:0x007fad3d51aa30&gt;
+order.unplaced?         # =&gt; true
+order.may_submit?       # =&gt; true
+order.submit            # calls the `submit` event
+
+order.submitted?        # =&gt; true
+order.unplaced?         # =&gt; false
+order.may_submit?       # =&gt; false
+order.submit            # =&gt; raises AASM::InvalidTransition
+</code></pre>
+
+<p><em>Protip</em>: If you&rsquo;re not a big fan of raising exceptions in your application, just add <code>aasm :whiny_transitions =&gt; false do</code> right inside of your class, and you&rsquo;ll return basic <code>boolean</code> values instead of exceptions.</p>
+
+<p>Whew! So that&rsquo;s a lot of methods. But we didn&rsquo;t have to write <em>any</em> of them! Isn&rsquo;t that fantastic? Hopefully the usefulness of state machines is starting to come together now. Remember before we knew what a state machine was? How would we have had to handle all of this functionality?</p>
+
+<p>We would&rsquo;ve had to do all of the following, multiple times:</p>
+
+<ol>
+<li>Make a migration that adds a <code>state</code> or <code>status</code> column in our <code>Book::Object</code> class, with a <code>string</code> value.</li>
+<li>Give the <code>state</code> column an initial default value of <code>unplaced</code>.</li>
+<li>Add an instance method called <code>unplaced?</code> with a <code>boolean</code> return value.</li>
+<li>Add another instance method called <code>submit</code>, which changes the object&rsquo;s <code>state</code> property from <code>"unplaced"</code> to <code>"submitted"</code>.</li>
+<li>Add yet <em>another</em> instance method called <code>submitted?</code>, with (at the very least), a single-line <code>if</code> conditional.</li>
+<li>Add some more instance methods for good measure, all with some logic in them to keep track of our object&rsquo;s <code>state</code>.</li>
+<li>Repeat steps 3-6 for every single new <code>state</code> we wanted to add.</li>
+</ol>
+
+
+<iframe src="//giphy.com/embed/ToMjGpx9F5ktZw8qPUQ" width="480" height="391" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>If we compare this horrifying list to our state machine, it&rsquo;s pretty clear that our machine takes care of all of this! Yes, it requires a little bit of setup when we create our class, but come on, it&rsquo;s like, four lines of code for each state! So much better. And you get all these methods for free! And they&rsquo;re pretty powerful, because we can call them anywhere in our code, on any instance of our object.</p>
+
+<p>But can we customize this machine even further? Heck yes, we can!</p>
+
+<h2>Trick Out Yo&#8217; Ride</h2>
+
+<p>Now that we&rsquo;ve created a basic state machine, we can trick it out with any (or all!) of these options:</p>
+
+<h3>1. Pass a block to an <code>event</code></h3>
+
+<p>Whenever you want a specific event to call a particular method, simply pass a block to the method. The block will only be called if the transition occurs successfully.
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">order_shipped_email</span>
+</span><span class='line'>  <span class="c1"># Sends an email informing the User</span>
+</span><span class='line'>  <span class="c1"># that their Order has been shipped</span>
+</span><span class='line'><span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;order.ship do</span>
+</span><span class='line'><span class="sr">  order.user.send_order_shipped_email</span>
+</span><span class='line'><span class="sr">end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="no">Only</span> <span class="k">if</span> <span class="n">order</span><span class="o">.</span><span class="n">may_ship?</span> <span class="n">returns</span> <span class="o">&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kp">true</span><span class="o">&lt;</span><span class="sr">/code&gt;,&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">will</span> <span class="n">the</span> <span class="o">&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">send_order_shipped_email</span><span class="o">&lt;</span><span class="sr">/code&gt;&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="nb">method</span> <span class="n">actually</span> <span class="n">fire</span><span class="o">.</span><span class="n">&lt;</span><span class="sr">/h1&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;</span>
+</span><span class='line'><span class="sr">### 2. Use a callback</span>
+</span><span class='line'><span class="sr">The `aasm` documentation defines a list of different callbacks you can use for your transitions; the callbacks will only be triggered when certain conditions are met (for example, when you exit a particular `state`).</span>
+</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;state :shipped, :before_enter =&gt; :print_return_label</span>
+</span><span class='line'><span class="sr">state :deleted&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="n">event</span> <span class="ss">:ship</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">transitions</span> <span class="ss">:from</span> <span class="o">=&gt;</span> <span class="ss">:processing</span><span class="p">,</span> <span class="ss">:to</span> <span class="o">=&gt;</span> <span class="ss">:shipped</span>
+</span><span class='line'><span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;event :delete do, :after =&gt; :send_delete_confirmation do</span>
+</span><span class='line'><span class="sr">  transitions :from =&gt; :processing, :to =&gt; :deleted</span>
+</span><span class='line'><span class="sr">  end</span>
+</span><span class='line'><span class="sr">end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="k">def</span> <span class="nf">print_return_label</span>
+</span><span class='line'>  <span class="c1"># Prints order details along with</span>
+</span><span class='line'>  <span class="c1"># the return label information.</span>
+</span><span class='line'><span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;def send_delete_confirmation</span>
+</span><span class='line'><span class="sr">  # Sends a confirmation email</span>
+</span><span class='line'><span class="sr">  # that the &lt;code&gt;Order&lt;/</span><span class="n">code</span><span class="o">&gt;</span> <span class="n">has</span> <span class="n">been</span> <span class="n">deleted</span><span class="o">.</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>These callbacks work exactly as you might think, hooking into either a state or an event. Before the <code>Order</code> switches states from <code>processed</code> to <code>shipped</code>, the <code>print_return_label</code> method will fire. But the <code>send_delete_confirmation</code> method will only be called after the <code>delete event</code> is finished &ndash; only after the transition from <code>processing</code> to <code>deleted</code> occurs successfully.</p>
+
+<h3>3. Implement a guard</h3>
+
+<p>If you want to only allow a transition if a particular condition is defined; if the guard returns <code>false</code>, the transition will be denied, and will either return <code>false</code> or raise an error.</p>
+
+<pre><code class="ruby">event :submit do
+  transitions :from =&gt; :unplaced, :to =&gt; :submitted, :guard =&gt; :payment_successfully_processed?
+end
+
+def payment_successfully_processed?
+  # Returns a truthy value based on
+  # whether the user's credit card info
+  # has been processed successfully or not
+end
+</code></pre>
+
+<p>These are just three things you can do to spice up your state machine. Creating a state machine with this gem gives you a fair amount of flexibility. You can use multiple guards or build multiple transitions for a single event. As your state machine grows, you can call the <code>aasm.current_event</code> to keep track of where you are in your code.</p>
+
+<p>Now that you know how to implement a state machine, hopefully you now realize the value in them and don&rsquo;t feel too intimidated. As long as you take it a step at a time, you can create your own state machine, with the exact kind of functionality your program needs. With that said, there&rsquo;s only one thing left to do: go forth implement one yourself! Fly young grasshopper, fly!</p>
+
+<iframe src="//giphy.com/embed/dH89UD4eJuOeQ" width="480" height="269" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>State machines can be broken down into <code>states</code> and <code>events</code>. Events control the flow of one <code>state</code> to another.</li>
+<li>Each <code>event</code> has a <code>from</code> and a <code>to transition</code>. Only if a transition occurs successfully will an object&rsquo;s <code>state</code> change. You can manipulate how an event or transition works using callbacks, blocks, and guards.</li>
+<li>Find more great blog posts that implement FSM&rsquo;s <a href="http://www.sitepoint.com/state-machines-in-ruby/">here</a> and <a href="http://bits.citrusbyte.com/state-design-pattern-with-ruby/?utm_source=rubyweekly&utm_medium=email">here</a>. And if you want to get really fancy, learn how to use <a href="https://github.com/wvanbergen/state_machine-audit_trail">this</a>!</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[It's All in the Family: Using Acts_as_tree]]></title>
@@ -589,206 +896,6 @@ NameError: uninitialized constant BigDecimal
 <li>The <code>money-rails</code> library allows you to create <code>Money</code> objects, including different currencies. Ruby <code>BigDecimal</code> objects round more accurately and are more precise than <code>Float</code> objects, making them more preferable when working with money.</li>
 <li>Read more about the methods available to <code>BigDecimal</code> objects in the <a href="http://www.ruby-doc.org/stdlib-2.2.0/libdoc/bigdecimal/rdoc/index.html">Ruby documentation</a>, and check out all the cool stuff that the <code>money</code> gem can do over on <a href="http://rubymoney.github.io/money/">their website</a>.</li>
 <li>Want to know more about what makes floats weird? Read <a href="http://www.rails-troubles.com/2011/12/ruby-float-quirks.html">this blog post</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[When Enough Is Enough: How to Know When to Use Enums]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/02/03/when-enough-is-enough-how-to-know-when-to-use-enums/"/>
-    <updated>2015-02-03T08:32:19-05:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/02/03/when-enough-is-enough-how-to-know-when-to-use-enums</id>
-    <content type="html"><![CDATA[<p>NERD ALERT: I love databases. God, they&rsquo;re just <em>fantastic</em>. Few things give me as much joy as an empty whiteboard and a couple of intricate join tables that need to be sketched out. But there&rsquo;s also an art to understanding how to handle data &ndash; particularly when you have a shit ton of it.</p>
-
-<p>The main issue people run into with data is first, how to go about storing it, and second, how to go about getting it when you actually need it! This doesn&rsquo;t sound super complicated though, right? <em>Wrong</em>. Databases grow vertically, not horizontally, and they grow hella fast. At a certain point, the way that you go about storing your data ends up <em>directly impacting</em> how you go about retrieving it!</p>
-
-<p>Many Rubyists write different helper methods to do their querying for them. But this is Rails Land, which means that we have <del>black</del> Rails magic at our disposal. And with the advent of Rails 4.1, that magic now has a name: <strong>enum</strong>.</p>
-
-<!-- more -->
-
-
-<h2>Get Yo Enum On</h2>
-
-<p>When Rails 4.1 was released less than a year ago, it came out with a bunch of new features. One of those was <strong>ActiveRecord enums</strong>, which essentially cut out a lot of methods and superfluous code.</p>
-
-<p>ActiveRecord enums allow you to manipulate the attributes of an ActiveRecord object in Rails such that an attribute&rsquo;s values map to <em>integers</em> in the database (as opposed to strings), and yet can also be <em>queried by name</em>. If all this sounds kind of crazy to you, that&rsquo;s because it is! Enums are pretty cool because they have the flexibility of a string, but the speed and efficiency of an integer. You can look up values in a huge database using an integer, but you can also update and add attributes as string. Oh &ndash; you also get a bunch of methods for FREE!</p>
-
-<iframe src="//giphy.com/embed/eYieKG19ZuaR2" width="480" height="338" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>So how does this magic work, exactly? I thought you&rsquo;d never ask!</p>
-
-<h2>Multiple Columns?! Ain&rsquo;t Nobody Got Time For That!</h2>
-
-<p>To demonstrate how to implement ActiveRecord enums, I&rsquo;ll continue using <a href="http://vaidehijoshi.github.io/blog/2015/01/27/embrace-your-inner-paranoia-use-acts-as-paranoid/">last week&rsquo;s ecommerce bookstore app</a> as my example. So, I have these <code>Book</code> objects in my store, and I want to keep track of what their status is: either <code>in stock</code>, <code>out of stock</code>, or <code>ordered</code>. For the sake of simplicity, we&rsquo;ll pretend that I&rsquo;m not a super sophisticated bookseller, so I don&rsquo;t have a lot of <code>Book</code>s, and therefore each <code>Book</code> object can only ever have one of these three states.</p>
-
-<p>I might first start off by having three different columns to represent each of these states:
-<code>ruby
-class AddStatusesToBooks &lt; ActiveRecord::Migration
-  def change
-    add_column :books, :in_stock?, :boolean
-    add_column :books, :out_of_stock?, :boolean
-    add_column :books, :ordered?, :boolean
-  end
-end
-</code>
-But this seems kind of&hellip;ridiculous. I&rsquo;m always going to have <em>two empty columns</em>. This code has me all like:</p>
-
-<iframe src="//giphy.com/embed/zrdUjl6N99nLq" width="480" height="380" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Alternatively, I could combine all of these columns into one and use some helper methods that return boolean values when I call them on an instance of a <code>Book</code>:
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Book</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">in_stock?</span>
-</span><span class='line'>    <span class="nb">self</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="p">;</span><span class="k">in</span> <span class="n">stock</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span>
-</span><span class='line'>  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;  def out_of_stock?</span>
-</span><span class='line'><span class="sr">    self.status == &amp;lsquo;out of stock&amp;rsquo;</span>
-</span><span class='line'><span class="sr">  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">def</span> <span class="nf">ordered?</span>
-</span><span class='line'>    <span class="nb">self</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="p">;</span><span class="n">ordered</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-Well, now I have one column, so that&rsquo;s better. But this is still so repetitive, ugly, and inefficient. Don&rsquo;t worry, it&rsquo;s about to get real good.</p>
-
-<h2>Query Your Little Heart Out</h2>
-
-<p>Implementing enum is pretty simple. First, add the macro to your class:
-<code>ruby
-class Book &lt; ActiveRecord::Base
-  enum status: [:in_stock, :out_of_stock, :ordered]
-end
-</code>
-You&rsquo;ll notice that I have my <code>status</code> attribute categorized into my three different options. The fact that they look like symbols in an array is no mistake &ndash; each of these symbols is actually associated with its index. So <code>in_stock</code> will be referenced by its index number <code>0</code>, <code>out_of_stock</code> by <code>1</code>, and <code>ordered</code> by <code>2</code>.</p>
-
-<p>Next, add a column to your migration that will allow ActiveRecord enum to carry out your queries:
-<code>ruby
-class AddStatusToBooks &lt; ActiveRecord::Migration
-  def change
-    add_column :books, :status, :integer, default: 0
-  end
-end
-</code>
-I want all my <code>Book</code> objects to default to an <code>in_stock</code> status when they are created, so I added a <code>default: 0</code> to my column. Adding a default is always a good way to keep your code defensive.</p>
-
-<p>Now if I want to create a <code>Book</code> object and check its status:
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">book</span> <span class="o">=</span> <span class="no">Book</span><span class="o">.</span><span class="n">create</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;book.status&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;=&gt;</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">in_stock</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;book.out_of_stock?&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;=&gt;</span> <span class="kp">false</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;book.status = :ordered</span>
-</span><span class='line'><span class="sr">book.ordered! #updates the object</span>
-</span><span class='line'><span class="sr">book.ordered?&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;=&gt;</span> <span class="kp">true</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;book.status?&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;=&gt;</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">ordered</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;book.out_of_stock&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;=&gt;</span> <span class="c1">#&amp;lt;ActiveRecord::Relation []&gt;&lt;/h1&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="no">Go</span> <span class="n">ahead</span> <span class="ow">and</span> <span class="n">scroll</span> <span class="n">up</span> <span class="k">if</span> <span class="n">you</span> <span class="n">don</span><span class="s1">&#39;t believe me -- I promise I didn&#39;</span><span class="n">t</span> <span class="n">make</span> <span class="n">any</span> <span class="n">of</span> <span class="n">these</span> <span class="nb">methods</span><span class="o">!</span> <span class="no">Enum</span> <span class="n">gave</span> <span class="n">them</span> <span class="n">to</span> <span class="n">me</span><span class="p">,</span> <span class="no">FO</span> <span class="no">FREE</span><span class="o">.</span> <span class="no">So</span> <span class="n">what</span><span class="s1">&#39;s actually going on here? Well, not much more than ActiveRecord mapping the integer corresponding to the indexes of the symbols we provided in the enum macro array.</span>
-</span><span class='line'>
-</span><span class='line'><span class="s1">Our database has only one column storing all this information: `status`. That column has rows that are all either `1`, `2`, or `3`. ActiveRecord pulls the actual symbols that correspond to these array indexes, and returns them, simultaneously creating an `in_stock`, `out_of_stock`, and `ordered` scope. And the icing on the cake: all the helper methods that are immediately generated for us in the process!</span>
-</span><span class='line'>
-</span><span class='line'><span class="s1">## Tips and Tricks</span>
-</span><span class='line'>
-</span><span class='line'><span class="s1">Enums give you a lot of flexibility. For example, I played around with the `in_stock` scope of my `Book` object to create a specific class method that would order the top three newest books added to my inventory:</span>
-</span><span class='line'><span class="s1">`scope :newest_stock, -&amp;gt; (limit: 3) { in_stock.order(&#39;</span><span class="n">date</span> <span class="no">DESC</span><span class="err">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="n">limit</span><span class="p">)</span> <span class="p">}</span><span class="sb">`</span>
-</span><span class='line'>
-</span><span class='line'><span class="sb">Another thing to remember is that you *cannot* use the same names for different enums of the same class:</span>
-</span><span class='line'><span class="sb">&lt;/code&gt;&lt;/pre&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sb">&lt;p&gt;class Book &amp;lt; ActiveRecord::Base</span>
-</span><span class='line'><span class="sb">  enum status: [ :ordered ]</span>
-</span><span class='line'><span class="sb">  enum inventory: [ :ordered ]</span>
-</span><span class='line'><span class="sb">end</span>
-</span></code></pre></td></tr></table></div></figure>
-Definitely <strong>don&rsquo;t</strong> do this &ndash; this will raise an ActiveRecord error!</p>
-
-<p>A huge upside to using enums is their contribution to your application&rsquo;s speed and performance. It&rsquo;s a <a href="http://dev.mysql.com/doc/refman/5.1/en/storage-requirements.html">well-known fact</a> that it&rsquo;s much cheaper to store data as an integer in memory, rather than as a string value. Enums take advantage of that, yet allow you to use all the ActiveRecord methods you know and love.</p>
-
-<p>So, you can have your human-readable and fun-to-program code without sacrificing any of the speed and performance that you need to save and access your information. I guess dreams really do come true.</p>
-
-<iframe src="//giphy.com/embed/aCu2aFhWKR84M" width="480" height="198" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The ActiveRecord enum feature allows you compose a single complex state on your models, and can help avoid using multiple boolean value columns to check the status of different objects.</li>
-<li>There are a bunch more resources out there, so make sure <a href="http://brewhouse.io/blog/2013/12/17/whats-new-in-rails-4-1.html">you</a> <a href="http://richonrails.com/articles/active-record-enums-in-ruby-on-rails-4-1">check</a> <a href="https://hackhands.com/ruby-on-enums-queries-and-rails-4-1/">them</a> <a href="http://robots.thoughtbot.com/whats-new-in-edge-rails-active-record-enum">all</a> <a hef="http://dev.mikamai.com/post/82355998967/rails-4-1-activerecord-enums">out</a>.</li>
-<li>Check out the enum <a href="http://edgeguides.rubyonrails.org/4_1_release_notes.html#active-record-enums">release notes</a> and <a href="http://api.rubyonrails.org/v4.1.0/classes/ActiveRecord/Enum.html">documentation</a>.</li>
 </ul>
 
 ]]></content>

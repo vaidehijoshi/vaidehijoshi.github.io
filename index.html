@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="My favorite thing about programming is the fact that you never run out of opportunities to be completely floored. There&rsquo;s literally always &hellip;">
+  <meta name="description" content="This blog post is part of a series on State Machines. Read Part 1 here. Until you encounter a state machine in a gem, framework, or within someone &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,60 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/03/24/a-machine-state-of-mind-part-2-implementing-state-machines/">A Machine State of Mind, Part 2: Implementing State Machines</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-03-24T08:03:14-04:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:03 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/computer-science/'>computer science</a>, <a class='category' href='/blog/categories/rails/'>rails</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/CYMzelWRqbQv6" width="480" height="345" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p><em>This blog post is part of a series on State Machines. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2015/03/17/a-machine-state-of-mind-part-1-understanding-state-machines/">here</a>.</em></p>
+
+<p>Until you encounter a state machine in a gem, framework, or within someone else&rsquo;s code, you probably won&rsquo;t find one very easily. But as we learned last week, they&rsquo;re rather pervasive. I discovered state machines while helping build a large-scale eCommerce website.</p>
+
+<p>But there actually weren&rsquo;t even that many state machines in our code! We were relying on state machines that lived in the source code of a Rails library with a variety of gems, commonly referred to as <a href="https://github.com/spree">spree</a>. (Why reinvent ecommerce platforms when so many people have already made &lsquo;em, amirite?)</p>
+
+<p>So, I did what any self-respecting, completely unaware new developer would do: I dove into the spree source code. And boy, was <em>that</em> a rabbit hole. But, I learned some things about how state machines work in Rails and how to make them. It&rsquo;s good to conceptually understand the theory behind state machines, but the best way to learn something is by doing it. It&rsquo;s time to take off the training wheels and actually <em>build</em> our own state machine!</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/03/24/a-machine-state-of-mind-part-2-implementing-state-machines/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -539,53 +593,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/01/20/implementing-rem-in-css-or-how-to-be-a-shiny-happy-developer/">Implementing REM in CSS (or, How to Be a Shiny Happy Developer)</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-01-20T17:39:10-05:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>5:39 pm</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/css/'>css</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>During a recent pair programming session, I came to the tough realization that I really know <em>nothing</em> about CSS. Granted, I can add in a <code>div</code> tag here and there, and yes, I can make a responsive page using Twitter Bootstrap like no one&rsquo;s business. But, what do I really know about design? Not as much as I thought I did.</p>
-
-<p>I figured out that this was the case when the designer I was pairing with started using <strong>ems</strong> and <strong>rems</strong>. I should probably preface this and say that I have always been a pixel kind of girl. I was formerly of the mindset that you can have any font size you like &ndash;  as long as it&rsquo;s defined in pixels.</p>
-
-<p>But, after doing a bit of research, I found that ems and rems actually have an interesting history behind them, and are super helpful when it comes to elastic layouts and responsive design.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/01/20/implementing-rem-in-css-or-how-to-be-a-shiny-happy-developer/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -601,6 +608,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/03/24/a-machine-state-of-mind-part-2-implementing-state-machines/">A Machine State of Mind, Part 2: Implementing State Machines</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/03/17/a-machine-state-of-mind-part-1-understanding-state-machines/">A Machine State of Mind, Part 1: Understanding State Machines</a>
       </li>
     
@@ -614,10 +625,6 @@
     
       <li class="post">
         <a href="/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my/">Class Inheritance: Part 2 (Singletons and Eigens, Oh My!)</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/02/17/time-the-black-sheep-of-the-programming-family/">Time: The Black Sheep of the Programming Family</a>
       </li>
     
   </ul>
