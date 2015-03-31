@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-03-23T22:14:04-04:00</updated>
+  <updated>2015-03-30T23:36:41-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,386 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Delegating All of the Things With Ruby Forwardable]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable/"/>
+    <updated>2015-03-31T08:35:27-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable</id>
+    <content type="html"><![CDATA[<p><img src="http://assets.amuniversal.com/77c6dce06d5c01301d80001dd8b71c47" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>It was the best of times. It was the worst of times. It was&hellip;refactoring time! Well it was for me yesterday, at least.</p>
+
+<p>Refactoring your own code has a great payoff at the end, but boy, does it take some work to get there. Something I&rsquo;ve noticed about my own code recently is that I&rsquo;m now able to know that something needs to be refactored pretty easily. I&rsquo;ve been having a lot of gut feelings about parts of my code that just <em>feel</em> wrong, inefficient, and repetitive. The problem is, even though I know where my code is weak, I don&rsquo;t usually know <em>how</em> to go about making my code better.</p>
+
+<p>And this is where making effective use of resources (read: The Art Of Effective Googling) comes quite in handy. Yesterday, however, I used even better resource &ndash; a more experienced developer! We took a look at my code and came up with some ways I could refactor it. I learned about a pretty interesting module that could save me lines of code and keep my application <a href="http://en.wikipedia.org/wiki/Don%27t_repeat_yourself">DRY</a>. And now I get to share it with you! This module is called <a href="http://ruby-doc.org/stdlib-2.0/libdoc/forwardable/rdoc/Forwardable.html">Forwardable</a>, and trust me when I say that it&rsquo;s going to make you want to delegate all the things.</p>
+
+<!--more-->
+
+
+<h2>Infatuation With Delegation</h2>
+
+<p>Before we even get to Ruby&rsquo;s Forwardable module, let&rsquo;s first make sure we understand delegation. So, <em>whut</em> exactly is delegation? It&rsquo;s probably exactly what you imagine it to be. In plain English, when you delegate something to someone else, you divide up responsibilities amongst yourselves. For example, if I had someone to delegate all these blog posts to, I wouldn&rsquo;t have to write all of them myself! But I digress; back to programming.</p>
+
+<p>Delegation in programming is not too different. When an object has a lot of responsibilities and things to do, it&rsquo;s generally easier to give some of those responsibilities to another object &ndash; a &ldquo;helper&rdquo; object &ndash; to avoid repetition and keep things working efficiently. Let&rsquo;s put this in some technical context for a hot minute: we can use a technique called <strong>encapsulation</strong> to pack a bunch of functionality into a single object&rsquo;s class and instance methods.</p>
+
+<iframe src="//giphy.com/embed/UOpdmwKA7la0g" width="480" height="207" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Ok, maybe you&rsquo;re not a fan of technical jargon. Maybe you&rsquo;d much rather prefer a real-life example of delegation? Alright, here you are:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Product</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">sku</span>
+</span><span class='line'>    <span class="c1"># Returns a sku specific to a</span>
+</span><span class='line'>    <span class="c1"># particular instance of a product.</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">class</span> <span class="nc">Book</span> <span class="o">&lt;&lt;</span> <span class="no">Product</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">author</span>
+</span><span class='line'>    <span class="c1"># Returns an Author object</span>
+</span><span class='line'>    <span class="c1"># associated with that book.</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Yup, that&rsquo;s right. Class inheritance, a concept I&rsquo;ve <a href="http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my/">written about</a> <a href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance-part-1/">a couple times</a> that you&rsquo;re probably pretty familiar with at this point, is a type of delegation.</p>
+
+<p>Since a <code>Book</code> object inherits from a <code>Product</code> object, it has both an <code>author</code> method an a <code>sku</code> method. When you ask a <code>Book</code> for its <code>sku</code>, it first looks in the <code>Book</code> class, and when it doesn&rsquo;t find the method in there, it delegates up to its parent class, which is the <code>Product</code> class. Instead of making the <code>Book</code> responsible for all the functionality, we&rsquo;re using the <code>Product</code> object to take care of doing the logic and finding and returning the correct <code>sku</code>.</p>
+
+<p>See, you&rsquo;ve already worked with delegation! Nothing to fear here. Now let&rsquo;s apply delegation to the Forwardable module.</p>
+
+<h2>Put Your Best Foot Forward</h2>
+
+<p>The best way to see Ruby Forwardable in action is by using it to actually refactor something. So, let&rsquo;s take a look at what our raw code looks like right now:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Book</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">language</span>
+</span><span class='line'>    <span class="s2">&quot;English&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">year</span>
+</span><span class='line'>    <span class="s2">&quot;1926&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">author</span>
+</span><span class='line'>    <span class="s2">&quot;Ernest Hemingway&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">title</span>
+</span><span class='line'>    <span class="s2">&quot;The Sun Also Rises&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">class</span> <span class="nc">Product</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span>
+</span><span class='line'>    <span class="vi">@book</span> <span class="o">=</span> <span class="no">Book</span><span class="o">.</span><span class="n">new</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">language</span>
+</span><span class='line'>    <span class="vi">@book</span><span class="o">.</span><span class="n">language</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">year</span>
+</span><span class='line'>    <span class="vi">@book</span><span class="o">.</span><span class="n">year</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">author</span>
+</span><span class='line'>    <span class="vi">@book</span><span class="o">.</span><span class="n">author</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">info</span>
+</span><span class='line'>    <span class="vi">@book</span><span class="o">.</span><span class="n">title</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Ugh. You&rsquo;ve probably already recoiled in horror. We have a <code>Book</code> object, which has a <code>language</code>, <code>year</code>, <code>author</code>, and <code>title</code>. And we have a <code>Product</code> object, which creates a new instance of a <code>Book</code> object, and then pretty much repeats all those methods again, using the instance it creates in the <code>initialize</code> method.</p>
+
+<p>We already know this code is bad. But how to go about refactoring it? Use Forwardable, obvs, and do some forwarding! We&rsquo;ll delegate all the handling of information to the <code>Book</code> object. Our <code>Product</code> class doesn&rsquo;t need to worry about that!</p>
+
+<p>Cool. So how do we do this? Like so:</p>
+
+<ul>
+<li>Let&rsquo;s first get rid of all of those methods in the <code>Product</code> class. We&rsquo;ll keep our <code>initialize</code> method, since that&rsquo;s how we&rsquo;ll create a new instance of <code>Book</code> in order to have something that we can call methods on. Now our class looks pretty empty:</li>
+</ul>
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Product</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span>
+</span><span class='line'>    <span class="vi">@book</span> <span class="o">=</span> <span class="no">Book</span><span class="o">.</span><span class="n">new</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li>We&rsquo;ll add the Forwardable module, part of the Ruby standard library, by extending it in the first line of the class:</li>
+</ul>
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="kp">extend</span> <span class="no">Forwardable</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li>Now we&rsquo;ll specify the methods that we to call on a <code>Book</code> object <em>through</em> our <code>Product</code> class by using the <code>def_delegators</code> method, available through Forwardable:</li>
+</ul>
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">def_delegators</span> <span class="ss">:@book</span><span class="p">,</span> <span class="ss">:language</span><span class="p">,</span> <span class="ss">:year</span><span class="p">,</span> <span class="ss">:author</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li>We also want to get the title as well, but we want to rename that method as <code>info</code>. We can use <code>def_delegator</code> in order to do that:</li>
+</ul>
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">def_delegator</span> <span class="ss">:@book</span><span class="p">,</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">:info</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now we&rsquo;ve cut down these two classes a lot. Our refactored code looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Book</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">language</span>
+</span><span class='line'>    <span class="s2">&quot;English&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">year</span>
+</span><span class='line'>    <span class="s2">&quot;1926&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">author</span>
+</span><span class='line'>    <span class="s2">&quot;Ernest Hemingway&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">title</span>
+</span><span class='line'>    <span class="s2">&quot;The Sun Also Rises&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">class</span> <span class="nc">Product</span>
+</span><span class='line'>  <span class="kp">extend</span> <span class="no">Forwardable</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">def_delegators</span> <span class="ss">:@book</span><span class="p">,</span> <span class="ss">:language</span><span class="p">,</span> <span class="ss">:year</span><span class="p">,</span> <span class="ss">:author</span>
+</span><span class='line'>    <span class="n">def_delegator</span> <span class="ss">:@book</span><span class="p">,</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">:info</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span>
+</span><span class='line'>    <span class="vi">@book</span> <span class="o">=</span> <span class="no">Book</span><span class="o">.</span><span class="n">new</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>What can this refactored code actually do? Well, it lets us call <code>info</code> on a <code>Product</code> and get back the title of the book! And it allows us to call <code>year</code> directly on an instance of <code>Product</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">p</span> <span class="o">=</span> <span class="no">Product</span><span class="o">.</span><span class="n">new</span>
+</span><span class='line'> <span class="o">=&gt;</span> <span class="c1">#&lt;Product:0x007feb2183ea78 @book=#&lt;Book:0x007feb2183e9d8&gt;&gt; </span>
+</span><span class='line'><span class="nb">p</span><span class="o">.</span><span class="n">year</span>
+</span><span class='line'> <span class="o">=&gt;</span> <span class="s2">&quot;1926&quot;</span>
+</span><span class='line'><span class="nb">p</span><span class="o">.</span><span class="n">info</span>
+</span><span class='line'> <span class="o">=&gt;</span> <span class="s2">&quot;The Sun Also Rises&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>But wait &ndash; we didn&rsquo;t write a <code>year</code> method in the <code>Product</code> class! Well, okay, we <em>kind</em> of did. We used <code>def_delegators</code>, to tell the <code>Product</code> class that it should respond to three methods: <code>language</code>, <code>author</code>, and <code>year</code>. And, we&rsquo;re telling the <code>Product</code> class to respond to each of these methods by calling it on an instance of <code>@book</code>.</p>
+
+<p>And how did we rewrite that <code>title</code> method, exactly? We used <code>def_delegator</code> (singular, not plural!) to tell the <code>Product</code> class to respond to a method called <code>info</code> by calling <code>title</code> on <code>@book</code>. The reason that this works is only because we already have a <code>title</code> method defined on all instances of the <code>Book</code> class.</p>
+
+<h2>Delegate Like You Mean It</h2>
+
+<p>Using the Forwardable module comes in handy not just for refactoring, but also for your initial structuring of an application. Anytime you have an object handling lots of functionality, think about whether you can encapsulate that functionality into another class, and delegate the methods that aren&rsquo;t directly required into that &ldquo;helper&rdquo; class.</p>
+
+<p>There are some great blog posts with examples of how to use the Forwardable module effectively. Here&rsquo;s an implementation on a Reading List class (think Goodreads):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ReadingList</span>
+</span><span class='line'>    <span class="kp">extend</span> <span class="no">Forwardable</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">def_delegators</span> <span class="ss">:@books</span><span class="p">,</span> <span class="ss">:map</span><span class="p">,</span> <span class="ss">:size</span><span class="p">,</span> <span class="ss">:&lt;&lt;</span><span class="p">,</span> <span class="ss">:shuffle</span>
+</span><span class='line'>    <span class="n">def_delegator</span> <span class="ss">:@books</span><span class="p">,</span> <span class="ss">:shift</span><span class="p">,</span> <span class="ss">:remove_book</span>
+</span><span class='line'>    <span class="n">def_delegator</span> <span class="ss">:@books</span><span class="p">,</span> <span class="ss">:push</span><span class="p">,</span> <span class="ss">:add_book</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">initialize</span>
+</span><span class='line'>        <span class="vi">@books</span> <span class="o">=</span> <span class="o">[]</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>There&rsquo;s some pretty bomb stuff happening in such few lines. The <code>ReadingList</code> class gets initialized with an empty array, which we save as an instance variable, <code>@books</code>. Then we&rsquo;ve also our <code>def_delegators</code>, which delegate <code>map</code>, <code>size</code>, <code>&lt;&lt;</code>, and <code>shuffle</code> to the <code>@books</code>. And we have two methods that we (kinda) wrote: <code>remove_book</code> and <code>add_book</code>.</p>
+
+<p>That&rsquo;s a lot of stuff for 9 lines of code! So what can this do, exactly? Well, let&rsquo;s see our reading list in action:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">vaidehis_list</span> <span class="o">=</span> <span class="no">ReadingList</span><span class="o">.</span><span class="n">new</span>
+</span><span class='line'> <span class="o">=&gt;</span> <span class="c1">#&lt;ReadingList:0x007feb21a6d0b0 @books=[]&gt; </span>
+</span><span class='line'><span class="n">vaidehis_list</span><span class="o">.</span><span class="n">add_book</span><span class="p">(</span><span class="s1">&#39;For Whom The Bell Tolls&#39;</span><span class="p">)</span>
+</span><span class='line'> <span class="o">=&gt;</span> <span class="o">[</span><span class="s2">&quot;For Whom The Bell Tolls&quot;</span><span class="o">]</span>
+</span><span class='line'><span class="n">vaidehis_list</span><span class="o">.</span><span class="n">add_book</span><span class="p">(</span><span class="s1">&#39;The Old Man And The Sea&#39;</span><span class="p">)</span>
+</span><span class='line'> <span class="o">=&gt;</span> <span class="o">[</span><span class="s2">&quot;For Whom The Bell Tolls&quot;</span><span class="p">,</span> <span class="s2">&quot;The Old Man And The Sea&quot;</span><span class="o">]</span>
+</span><span class='line'> <span class="n">vaidehis_list</span><span class="o">.</span><span class="n">add_book</span><span class="p">(</span><span class="s1">&#39;To Have And To Have Not&#39;</span><span class="p">)</span>
+</span><span class='line'> <span class="o">=&gt;</span> <span class="o">[</span><span class="s2">&quot;For Whom The Bell Tolls&quot;</span><span class="p">,</span> <span class="s2">&quot;The Old Man And The Sea&quot;</span><span class="p">,</span> <span class="s2">&quot;To Have And To Have Not&quot;</span><span class="o">]</span>
+</span><span class='line'><span class="n">vaidehis_list</span><span class="o">.</span><span class="n">size</span>
+</span><span class='line'> <span class="o">=&gt;</span> <span class="mi">3</span>
+</span><span class='line'><span class="n">vaidehis_list</span><span class="o">.</span><span class="n">shuffle</span>
+</span><span class='line'> <span class="o">=&gt;</span> <span class="o">[</span><span class="s2">&quot;For Whom The Bell Tolls&quot;</span><span class="p">,</span> <span class="s2">&quot;To Have And To Have Not&quot;</span><span class="p">,</span> <span class="s2">&quot;The Old Man And The Sea&quot;</span><span class="o">]</span>
+</span><span class='line'><span class="n">vaidehis_list</span><span class="o">.</span><span class="n">remove_book</span>
+</span><span class='line'> <span class="o">=&gt;</span> <span class="s2">&quot;For Whom The Bell Tolls&quot;</span>
+</span><span class='line'><span class="n">vaidehis_list</span><span class="o">.</span><span class="n">size</span>
+</span><span class='line'> <span class="o">=&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><em>Dayummmmm</em>. Pretty sweet, right? We get to call all these methods directly on our <code>ReadingList</code> class! But what are they actually getting called on? Well, by using <code>def_delegators</code> and <code>def_delegator</code>, we&rsquo;re telling our <code>ReadingList</code> class to call methods like <code>shift</code> and <code>shuffle</code> on our <code>@books</code> instance. And here&rsquo;s where it gets pretty cool: our <code>@books</code> variable is&hellip;an ARRAY.</p>
+
+<p>Just in case you&rsquo;re not as enthused about this fact as I am, let me explain what this means. It means that we can have access to every single method available on an array instance. Just in case you&rsquo;re wondering, all instance of <code>Array</code>s have 113 methods available to them (not including the 54 methods available to all instance of <code>Object</code>)! All we&rsquo;d have to do is add a method (literally, you can choose any method available on an array) like <code>flat_map</code> to our <code>def_delegators</code> line, and tada! It&rsquo;s ours to use on our <code>ReadingList</code> object.</p>
+
+<p>You can see how this can get pretty powerful, pretty fast. In just a few lines of code, we&rsquo;re exercising the functionality of an entire plain old ruby object (PORO), simply by delegating methods through Forwardable.</p>
+
+<p>Okay, that was a lot of refactoring magic. I told you, right? Lots of effort, but lots of payoff! Now, if you&rsquo;ll excuse me, I apparently have some books to read.</p>
+
+<iframe src="//giphy.com/embed/112iFz2Y2b1Pwc" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Delegation is the idea that an object can delegate a task to an associated &ldquo;helper&rdquo; object.</li>
+<li>The Forwardable module uses <code>def_delegators</code> to delegate methods to another Ruby object, and <code>def_delegator</code> to rename a method that&rsquo;s being delegated to another object.</li>
+<li>For another example of this module, read this <a href="http://oneofthesedaysblog.com/ruby-day-4-forwardable">incredibly thorough</a> blog post on implementing Forwardable.</li>
+<li>Curious about delegation patterns in Object-Oriented Programming? <a href="http://radar.oreilly.com/2014/02/delegation-patterns-in-ruby.html">This post</a> has gotcha covered.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[A Machine State of Mind, Part 2: Implementing State Machines]]></title>
