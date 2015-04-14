@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Ruby | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-04-06T21:05:02-04:00</updated>
+  <updated>2015-04-14T00:15:22-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,221 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Tackling Those Tests, Part 1: The How, When, and What of Rspec Testing]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/"/>
+    <updated>2015-04-14T08:17:03-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing</id>
+    <content type="html"><![CDATA[<p><img src="http://www.datamation.com/imagesvr_ce/306/philosophy-geeks.jpg" style="display: block; margin-left: auto; margin-right: auto; width: 50%; height: 50%;"></p>
+
+<p>Up until two weeks ago, I had one great fear: <em>testing</em>. And, to be clear, when I say &ldquo;fear&rdquo;, what I actually mean is sheer terror.</p>
+
+<p>My test-writing anxiety stems from the fact that I&rsquo;ve never really had to do it before. I mean, I&rsquo;ve had to make tons of tests <em>pass</em>, which means that I read other people&rsquo;s tests all the time. Yet I&rsquo;ve somehow made it thus far in my coding career without ever having to write relatively complex tests of my own. But that all changed a few weeks ago, when I was forced to finally confront my fear of testing.</p>
+
+<p>The thing about conquering fears, however, is that usually involves doing the very thing that you&rsquo;re afraid of. So, I spent the better portion of a week learning how and when to write tests, all while encountering a couple painful bugs along the way. It was not a fun week, but the good news is that I can write a fully-functioning test suite now! And now that I know more about testing, I actually find it kind of fun &ndash; so fun, in fact, that I&rsquo;m going to share it with you!</p>
+
+<!--more-->
+
+
+<h2>Ain&rsquo;t No Spec Like Rspec</h2>
+
+<p>Before we get into the how and when of testing, we first need to setup our Rails application with <code>rspec</code>, a behavior-driven development framework built specifically for testing in Ruby.</p>
+
+<p>We&rsquo;ll first want to add <code>rspec-rails</code> to our the development and test group in our <code>Gemfile</code>:</p>
+
+<pre><code class="ruby">group :development, :test do
+  gem 'rspec-rails'
+end
+</code></pre>
+
+<p>Next, we&rsquo;ll run a quick <code>bundle install</code>, and then generate a <code>/spec</code> folder by running <code>rails generate rspec:install</code>. We now have access to a <code>rails_helper.rb</code> and <code>spec_helper.rb</code> file inside of our <code>/spec</code> directory.</p>
+
+<p>Finally, we&rsquo;ll want to add files for everything that we want to test. But let&rsquo;s start simple for now and just test our <code>ReadingList</code> model. The path to this spec file should be <code>/spec/models/reading_list_spec.rb</code>, so we&rsquo;ll need to add a <code>models</code> directory and a <code>reading_list_spec.rb</code> file.</p>
+
+<p>Once we&rsquo;ve done that, we can check that everything is setup properly by running our <code>rspec</code> command:</p>
+
+<pre><code>♥ rspec
+No examples found.
+
+
+Finished in 0.00023 seconds (files took 0.08619 seconds to load)
+0 examples, 0 failures
+</code></pre>
+
+<p>You know what needs to happen next, right? It&rsquo;s time for us to write some tests.</p>
+
+<iframe src="//giphy.com/embed/nhj799TYbxG80" width="480" height="235" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Okay, I feel your pain. But I promise, we&rsquo;re going to get through this together.</p>
+
+<h2>Knowing What To Test</h2>
+
+<p>I&rsquo;ve found that the best way to start writing tests is by picking one section to work on first. Otherwise, it can just be so overwhelming and might make you want to give up completely. Let&rsquo;s take a look at what our <code>ReadingList</code> model:</p>
+
+<pre><code class="ruby">class ReadingList &lt; ActiveRecord::Base
+  belongs_to :user
+  has_many :books
+
+  attr_accessor :read
+
+  def books_read
+    books.where(read: true).count
+  end
+
+  def books_unread
+    books.where(read: false).count
+  end
+
+  def percentage_read
+    read = books_read.to_f
+    unread = books_unread.to_f
+
+    calculate_percentage(read, unread)
+  end
+
+  def calculate_percentage(read, unread)
+    ((read / unread) * 100).round(2)
+  end
+end
+</code></pre>
+
+<p>Whoa, this seems like a lot. But fear not! Programming is nothing more than breaking down big problems into smaller, bite-sized pieces. And that&rsquo;s exactly what we&rsquo;ll do when writing these tests.</p>
+
+<p>Let&rsquo;s look at the <code>percentage_read</code> method to start. This is the instance method that we&rsquo;ll actually want to call somewhere in our view. It uses the number of books marked <code>read</code> (which will always be a boolean <code>true</code> or <code>false</code> value), and calculates the <code>User</code>&rsquo;s reading progress on the list, returning a percentage.</p>
+
+<p>But even though this is the method we want to test, a deeper look reveals that it actually relies and calls upon three other methods: <code>books_read</code>, <code>books_unread</code>, and <code>calculate_percentage</code>. This should be a big red flag, because it means that we need to test these three methods individually, first. The flow of our code is actually directing us in our test-writing process: we can decide which tests to write and in which order by looking at our method&rsquo;s dependencies.</p>
+
+<p>So, let&rsquo;s hop to it:</p>
+
+<ul>
+<li>We&rsquo;ll start by first requiring <code>rails_helper</code> in our <code>reading_list_spec.rb</code>, and stubbing out our tests with a block:
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="p">;</span><span class="n">rails_helper</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span><span class="o">&lt;</span><span class="sr">/li&gt;</span>
+</span><span class='line'><span class="sr">&lt;/u</span><span class="n">l</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="no">RSpec</span><span class="o">.</span><span class="n">describe</span> <span class="no">ReadingList</span><span class="p">,</span> <span class="ss">:type</span> <span class="o">=&gt;</span> <span class="ss">:model</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">describe</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="c1">#percentage_read&amp;rdquo; do</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>We can use a <code>describe</code> block to break up our tests into different sections. They will come in handy as our tests start to grow, and will make our test suite easier to read &ndash; not just when we come back to look at them later, but also when another developer digs through our code. The <code>#</code> symbol before our method name denotes that <code>percentage_read</code> is an instance method, another important distinction to make as we go about adding more tests.</p>
+
+<ul>
+<li>Next, we&rsquo;ll describe what our method <em>should</em> do by using <code>it</code> blocks</li>
+</ul>
+
+
+<pre><code class="ruby">  describe "#percentage_read" do
+    it "finds the number of read books in a list" do
+    end
+
+    it "finds the number of unread books in a list" do
+    end
+
+    it "calculates a percentage when given two values" do
+    end
+
+    it "calculates the percentage of books read in a list" do
+    end
+  end
+</code></pre>
+
+<ul>
+<li>Now we need to add some data &ndash; but not too much! We only want enough data to test the functionality of our method. Let&rsquo;s create a list with two books, one marked read and the other not marked read. We&rsquo;ll add this before our <code>describe</code> and <code>it</code> blocks:</li>
+</ul>
+
+
+<pre><code class="ruby">  let(:list) { ReadingList.create!(title: "Vaidehi's List" }
+  let(:book1) { list.books.build(title: "A Game Of Thrones", read: true) }
+  let(:book2) { list.books.build(title: "A Storm Of Swords", read: false) }
+</code></pre>
+
+<p>Wait, what&rsquo;s that <code>let</code> doing in there? The answer is: something magical! It creates an instance of <code>ReadingList</code> and makes a reference to it called <code>list</code>, which is then accessible to us in each of our <code>it</code> blocks. The <code>let</code> syntax is <a href="http://www.reddit.com/r/ruby/comments/2bcz12/newbie_to_rspec_why_use_let_instead_of_a_local/">an alternative</a> to creating local variables inside <em>every single</em> one of our <code>it</code> blocks.</p>
+
+<ul>
+<li>Finally, we&rsquo;ll add some expectations for our model&rsquo;s behavior when each method is called. Our finished test suite now looks like this:</li>
+</ul>
+
+
+<pre><code class="ruby">RSpec.describe ReadingList, :type =&gt; :model do
+  let(:list) { ReadingList.create!(title: "Vaidehi's List" }
+  let(:book1) { list.books.build(title: "A Game Of Thrones", read: true) }
+  let(:book2) { list.books.build(title: "A Storm Of Swords", read: false) }
+
+  describe "#percentage_read" do
+    it "finds the number of read books in a list" do
+      expect(list.books_read).to eq(1)
+    end
+
+    it "finds the number of unread books in a list" do
+      expect(list.books_unread).to eq(1)
+    end
+
+    it "calculates a percentage when given two values" do
+      expect(list.calculate_percentage(3.0, 4.0)).to eq(75.00)
+    end
+
+    it "calculates the percentage of books read in a list" do
+      expect(list.percentage_read).to eq(50.00)
+    end
+  end
+end
+</code></pre>
+
+<p>Each one of our tests is just a single line, specifying our exact expectations! Pretty awesome, right? This makes for relatively DRY code, which is pretty easy to understand.</p>
+
+<h2>Testing Your Assumptions</h2>
+
+<p>Now that we know <em>how</em> to write tests, it&rsquo;s time to address the question of <em>when</em> and <em>what</em> to test. Here&rsquo;s a good rule of thumb that I adhere to: <strong>test your assumptions</strong>. Whenever we write code, we make a ton of assumptions. The problem with making assumptions, however, is that you forget or don&rsquo;t realize that you made them, and then they end up coming back to screw you.</p>
+
+<p><img src="http://www.explainxkcd.com/wiki/images/e/e6/when_you_assume.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>In fact, even the tests we just wrote are based on a lot of assumptions. And there are a lot of things that we haven&rsquo;t considered. For example:</p>
+
+<ol>
+<li>Does the <code>read</code> attribute on a <code>ReadingList</code> object only accept a <code>boolean</code> value? What if someone tries to pass a non-boolean value as <code>read</code>?</li>
+<li>What is the default value of the <code>read</code> attribute?</li>
+<li>What if <code>read</code> is nil &ndash; what will break?</li>
+<li>What if the return value of <code>books_unread</code> is <code>0</code>?</li>
+</ol>
+
+
+<p>Just FYI, I discovered the answer to number 4, which looks like this:</p>
+
+<blockquote class="twitter-tweet tw-align-center" lang="en"><p>Uh oh&#8230;I did a bad thing: <a href="http://t.co/uFZEkyCPRl">pic.twitter.com/uFZEkyCPRl</a></p>&mdash; Vaidehi Joshi (@vaidehijoshi) <a href="https://twitter.com/vaidehijoshi/status/583994491570229249">April 3, 2015</a></blockquote>
+
+
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+<p>This is all to say that we must write tests for behavior that <em>should</em> and <em>should not</em> occur. We&rsquo;d probably want to write validations to prevent <code>nil</code> values, and we&rsquo;d definitely want to raise an error whenever we try to divide by <code>0</code>. We aren&rsquo;t just testing for what we can see &ndash; we also need to test for things we can&rsquo;t see, and any edge cases that we can think of.</p>
+
+<p>Learning the how, when, and what of testing is a process that comes with time and practice. The more tests you write, the better you&rsquo;ll get at testing. Of course, there are few tips and tricks of the testing trade that can very quickly and easily save you a lot of heartache.</p>
+
+<p>Tune in again next Tuesday, when I&rsquo;ll delve into generating fixtures for test data using FactoryGirl &ndash; a trick that&rsquo;s going to make your testing life so much easier.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>All <code>rspec</code> tests have an <code>it</code> block, which describes what behavior is expected. This block should never be too big, and contains an assertion of what expected value should be returned.</li>
+<li>The <code>let</code> syntax allows for lazy evaluation and keeps you from having to create a new instance of an object inside of every single <code>it</code> block. Check out more on the <code>let</code> and <code>let!</code> helper methods over on <a href="http://stackoverflow.com/questions/17407733/trouble-differentiating-rspecs-let-vs-let">this Stack Overflow answer</a> or on <a href="https://www.relishapp.com/rspec/rspec-core/v/2-5/docs/helper-methods/let-and-let">this blog post</a>.</li>
+<li>Use <code>describe</code> blocks to divide up your tests into sections, based on functionality and code cohesion. You can also use <code>context</code> blocks to assert different scenarios that could occur during one method call. Read about the <a href="http://lmws.net/describe-vs-context-in-rspec">difference between describe and context</a>.</li>
+<li>Find out more about different rspec testing conventions at <a href="http://betterspecs.org/">Better Specs</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Delegating All of the Things With Ruby Forwardable]]></title>
@@ -819,162 +1034,6 @@ See that <code>Z</code> at the end of the string? That&rsquo;s how the <code>UTC
 <li>Unix timestamps and ISO8601 are both good formats for storing date and time in your database. Do a little research to decide <a href="http://stackoverflow.com/questions/15554586/timestamps-iso8601-vs-unix-timestamp">which of these formats</a> is the best tool for whatever job you&rsquo;re trying to accomplish.</li>
 <li>Dealing with time zones is hard, but the <a href="http://danilenko.org/2012/7/6/rails_timezones/">Exhaustive Guide to Rails Time Zones</a> will save you hours of banging your head against the wall &ndash; well, for time-related things, at least.</li>
 <li>Want to be a <code>Time</code> object superstar? Read <a href="https://unix4lyfe.org/time/?v=1">this post</a>, which was featured on HackerNews, and peruse the <a href="http://ruby-doc.org//core-2.2.0/Time.html">Ruby documentation</a> to get the skinny on all things time-related.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Money Makes the World Go Round: Using Money-Rails and BigDecimal]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/"/>
-    <updated>2015-02-10T08:07:09-05:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal</id>
-    <content type="html"><![CDATA[<p><img src="http://s3-ec.buzzfed.com/static/enhanced/webdr02/2013/3/26/12/enhanced-buzz-19756-1364314697-15.jpg" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>Mo money, mo problems. This is especially the case when you&rsquo;re a new developer trying to onboard onto a huge eCommerce Rails application.</p>
-
-<p>No, but really - money is such a pain in the ass to deal with as a programmer. So much logic and detail goes into accepting a payment, processing a transaction, checking an order&rsquo;s status&hellip;and don&rsquo;t even get me <em>started</em> on shipping &ndash; seriously, I&rsquo;m saving the entire concept of shipping for another blog post.</p>
-
-<p>But, at some point or another, you have to deal with other people&rsquo;s money. And you have to try and not screw it up, because apparently people really don&rsquo;t like that. So, how do you handle all those dolla dolla bills? Yup, you guessed it: with the <strong>money-rails library</strong> and Ruby&rsquo;s <strong>BigDecimal object</strong>.</p>
-
-<!-- more -->
-
-
-<h2>Get Dat Dough: Implementing Money-Rails</h2>
-
-<p>Including the money-rails library is fairly simple: add <code>gem 'money-rails'</code> to your Gemfile and then <code>bundle</code> in your console.</p>
-
-<p>But what exactly <em>is</em> this library, and how do you effectively use it? Well, that&rsquo;s another thing entirely.</p>
-
-<p>The most important thing to note is that the <code>money-rails</code> library provides integration of the <code>money</code> gem for Rails applications. So, before you go around throwing about your dough every which way, here are a few things about the <code>money</code> gem to keep in mind:</p>
-
-<ol>
-<li>It gives you a <code>Money</code> class, and instances of this class (<code>Money</code> objects) contain all the information about a certain <em>amount</em> of money.  Provides a Money class which encapsulates all information about an certain amount of money, such as its value and its currency.</li>
-<li>It provides you with a <code>Money::Currency</code> class, which contains all the information about a certain monetary unit. Instances of this class are how we will represent different currencies.</li>
-<li>It includes APIs to exchange one kind of currency into another.</li>
-<li>It represents money in <code>Integer</code> values, not <code>Float</code>, in order to avoid rounding errors.</li>
-</ol>
-
-
-<p>This last one is important, so try to remember it &ndash; we&rsquo;re going to come back to this in a bit.</p>
-
-<h2>Make It Rain!</h2>
-
-<p>Ok, time to get rich: let&rsquo;s make ourselves some money. Instantiating a <code>Money</code> object isn&rsquo;t too hard; simply create a new instance and pass it an amount and a currency:
-<code>ruby
-five_bucks = Money.new(500, "USD")  #=&gt; $5.00 USD
-five_bucks.cents     #=&gt; 500
-five_bucks.currency  #=&gt; Currency.new("USD")
-</code></p>
-
-<p>Notice that the amount must be passed in as cents, while the currency must be passed in as either a <code>String</code> or a <code>Money::Currency</code> object.</p>
-
-<p>Money usually means math, so let&rsquo;s do some:
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">my_money</span> <span class="o">=</span> <span class="no">Money</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="mi">3000</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="no">USD</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;)</span>
-</span><span class='line'><span class="n">your_money</span> <span class="o">=</span> <span class="no">Money</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="mi">1500</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="no">USD</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;)</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;my_money + your_money == Money.new(4500, &amp;ldquo;USD&amp;rdquo;)</span>
-</span></code></pre></td></tr></table></div></figure></p>
-
-<p>You can also use the <code>parse</code> method, which takes in a symbol and number in a string format, and returns a <code>Money</code> object with the correct currency type:
-<code>ruby
-Money.parse("£60") == Money.new(60, "GBP")
-</code></p>
-
-<p>In addition to comparing currencies, you can create an access them as objects:
-<code>ruby
-currency = Money.new(60, "GBP").currency #=&gt; "£60.00 GBP"
-currency.iso_code #=&gt; "GBP"
-currency.name     #=&gt; "British Pound"
-</code></p>
-
-<p>You can access any information of a currency (which is, again, just a <code>Money</code> object), including its <code>name</code>, <code>iso_code</code>, <code>symbol</code>, and <code>delimiter</code>. And if you want to create a new currency, you&rsquo;d simply need to pass in the values as a hash into the <code>register</code> class method. There&rsquo;s also the <code>default_currency</code> class method, which does exactly what you think it does, and an <code>exchange_to</code> method, which can be super handy if you ever want to sell your products&hellip;well, basically anywhere.</p>
-
-<p>So. You can make money now. Like, actually <em>create</em> it. Do you feel like a god yet? Okay good. Hold onto that feeling, because it&rsquo;s about to get a little more complicated.</p>
-
-<iframe src="//giphy.com/embed/jUNAEqdvpQCcM" width="480" height="239" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>BigDecimal: Not Just Any Ol&#8217; Number</h2>
-
-<p>When I was first playing around with this gem, I was much like you: young, naive, thoroughly amused by the fact that I could play with money in my console with (mostly) no consequences. And then I saw this:</p>
-
-<pre><code class="ruby">#&lt;BigDecimal:7fbd6eab87f8,'0.8E1',9(36)&gt;
-</code></pre>
-
-<p><em>Um. What? Is that an association? An object? Is it even Ruby?</em></p>
-
-<p>The answer to my questions were no, yes, and absolutely. Actually, that little guy up there is my new friend, <code>BigDecimal</code>. And by the time you finish reading this post, I think you&rsquo;re going to like him, too.</p>
-
-<p>Okay, time for a quick exercise! Open up irb and type in: <code>1.01 - 1.00</code></p>
-
-<pre><code>2.1.2 :001 &gt; 1.01 - 1.00
- =&gt; 0.010000000000000009 
-2.1.2 :002 &gt; n = _
- =&gt; 0.010000000000000009 
-2.1.2 :003 &gt; n &gt; 0.01
- =&gt; true 
-</code></pre>
-
-<p>Wait&hellip;Ruby thinks that the difference between <code>1.01</code> and <code>1.00</code> is greater than <code>0.01</code>? OH SHIT. DID WE BREAK RUBY?!</p>
-
-<p>Nope, nope we did not. But, we <em>did</em> just discover the one true flaw of Ruby <code>Float</code>, which is that they can&rsquo;t store decimals very precisely. Apparently, the reason for this</a> is that floats are stored in a binary number format, which means that there&rsquo;s a lot of conversion from binary to decimal going on under the hood.</p>
-
-<p>This probably doesn&rsquo;t seem all that important, but here&rsquo;s the thing: people really don&rsquo;t like it when you take their money. And when you use floats, you may very well be rounding up in cases when you really shouldn&rsquo;t be, which would result in some sort of numerical error.</p>
-
-<p>Enter our new buddy, <code>BigDecimal</code>. We can do the exact same calculation with this object, but without the arbitrary rounding! If we try it out in irb, we&rsquo;ll get the number that we were originally expecting:</p>
-
-<pre><code>2.1.2 :005 &gt; BigDecimal.new("1.01") - BigDecimal.new("1.00")
- =&gt; #&lt;BigDecimal:7fee2add1560,'0.1E-1',9(27)&gt; 
-2.1.2 :006 &gt; n = _
- =&gt; #&lt;BigDecimal:7fee2add1560,'0.1E-1',9(27)&gt; 
-2.1.2 :007 &gt; n.to_f
- =&gt; 0.01 
-</code></pre>
-
-<p>If you remember scientific notation from middle school, then you&rsquo;ll notice what&rsquo;s going on in <code>0.1E-1</code>, and how that converts to <code>0.01</code> when we called the <code>to_f</code> method on it. This takes more time, but it is far more accurate &ndash; something that&rsquo;s pretty important when it comes to the monies.</p>
-
-<p>Remember earlier in the post when I told you to remember that the <code>money</code> gem uses <code>Integer</code> but not <code>Float</code>? Well, it also uses <code>BigDecimal</code> objects, for the same exact reason that we just discovered on our own.</p>
-
-<h2>What Is Standard Cannot Be Core</h2>
-
-<p>If your first reaction to reading this post was opening up irb and trying to make your own <code>BigDecimal</code> object, then you most certainly encountered this error:</p>
-
-<pre><code>♥ irb
-2.1.2 :001 &gt; BigDecimal.new
-NameError: uninitialized constant BigDecimal
-  from (irb):1
-</code></pre>
-
-<p>Before you freak out, let me assure you that I did not lie to you &ndash; <code>BigDecimal</code> most surely is a real thing. But it&rsquo;s not a core thing. What I mean by that is, <code>BigDecimal</code> is not part of the Ruby Core Library; it&rsquo;s actually part of the Ruby Standard Library.</p>
-
-<p>If you&rsquo;re thinking to yourself, <em>Whut?! Ruby has two different libraries?</em>, you&rsquo;d be right. But even though both deal with Ruby objects, there&rsquo;s a fundamental difference between the two.</p>
-
-<p>The <a href="http://www.ruby-doc.org/core-2.2.0/">Ruby Core Library</a> is what you use every day, including basic objects such as <code>String</code>, <code>Integer</code>, <code>Float</code>, <code>Array</code>, <code>Hash</code>, and many others. On the other hand, the objects in the <a href="http://www.ruby-doc.org/stdlib-2.2.0/">Ruby Standard Library</a> may seem a little less familiar. Unlike the Core Library, objects from the Standard Library have to be explicitly required. <code>BigDecimal</code> objects are part of the Standard Library, as are <code>Abbrev</code>, <code>Logger</code>, and <code>Matrix</code> objects.</p>
-
-<p>The Standard Library is an extension of the Ruby language. You will always have access to the Core Library, but if you want to use an object that exists outside of the Core Library, you&rsquo;ll need to specifically require it. So, if you want to play with <code>BigDecimal</code> in the console or use it in your application, you&rsquo;ll have to type this in to have access to the object: <code>require 'bigdecimal'</code>.</p>
-
-<h2>More Bang For Your Buck</h2>
-
-<p>When I first started reading about <code>BigDecimal</code>, I wondered why I had never run into this type of object before. How could I have missed it entirely? As a beginner, it may not sense to use this type of Ruby object at all, and it may very well slow you down. In fact, I think floats are the default object in use for a reason: they&rsquo;re much cheaper to use in memory, and can convert, lookup, and do arithmetic much faster than <code>BigDecimal</code>. Calculations on <code>BigDecimal</code> objects are much slower because they are objects, which take up <em>far</em> more space and memory. However, if you&rsquo;re actually dealing with currency values &ndash; building an ecommerce application, for example &ndash; <code>BigDecimal</code> still seems to be a clear winner to me.</p>
-
-<p>The <code>money</code> gem and <code>money-rails</code> library provide a lot of flexibility when it comes to handling money in your application mostly because they create <code>Money</code> objects. I&rsquo;m a huge fan of object-oriented programming, and these libraries allow you to manipulate and access your currency with far more ease than if they were stored as simple integers, or even floats.</p>
-
-<p>However, these resources are only the tip of the iceberg when it comes to dealing with money in your Rails application. Another awesome library is <a href="https://github.com/RubyMoney/monetize">monetize</a>, which allows you to convert different types of Ruby objects into <code>Money</code> objects. Once you get the basic structure and namespacing of these libraries, learning about new ones will be a piece of cake. Pretty soon, you&rsquo;ll be breaking the bank with all your knowledge about using money in Rails. Maybe you&rsquo;ll even end up like this guy:</p>
-
-<iframe src="//giphy.com/embed/3Jhdg8Qro5kMo" width="480" height="295" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>money-rails</code> library allows you to create <code>Money</code> objects, including different currencies. Ruby <code>BigDecimal</code> objects round more accurately and are more precise than <code>Float</code> objects, making them more preferable when working with money.</li>
-<li>Read more about the methods available to <code>BigDecimal</code> objects in the <a href="http://www.ruby-doc.org/stdlib-2.2.0/libdoc/bigdecimal/rdoc/index.html">Ruby documentation</a>, and check out all the cool stuff that the <code>money</code> gem can do over on <a href="http://rubymoney.github.io/money/">their website</a>.</li>
-<li>Want to know more about what makes floats weird? Read <a href="http://www.rails-troubles.com/2011/12/ruby-float-quirks.html">this blog post</a>.</li>
 </ul>
 
 ]]></content>

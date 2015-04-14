@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-04-06T21:05:02-04:00</updated>
+  <updated>2015-04-14T00:15:22-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,221 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Tackling Those Tests, Part 1: The How, When, and What of Rspec Testing]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/"/>
+    <updated>2015-04-14T08:17:03-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing</id>
+    <content type="html"><![CDATA[<p><img src="http://www.datamation.com/imagesvr_ce/306/philosophy-geeks.jpg" style="display: block; margin-left: auto; margin-right: auto; width: 50%; height: 50%;"></p>
+
+<p>Up until two weeks ago, I had one great fear: <em>testing</em>. And, to be clear, when I say &ldquo;fear&rdquo;, what I actually mean is sheer terror.</p>
+
+<p>My test-writing anxiety stems from the fact that I&rsquo;ve never really had to do it before. I mean, I&rsquo;ve had to make tons of tests <em>pass</em>, which means that I read other people&rsquo;s tests all the time. Yet I&rsquo;ve somehow made it thus far in my coding career without ever having to write relatively complex tests of my own. But that all changed a few weeks ago, when I was forced to finally confront my fear of testing.</p>
+
+<p>The thing about conquering fears, however, is that usually involves doing the very thing that you&rsquo;re afraid of. So, I spent the better portion of a week learning how and when to write tests, all while encountering a couple painful bugs along the way. It was not a fun week, but the good news is that I can write a fully-functioning test suite now! And now that I know more about testing, I actually find it kind of fun &ndash; so fun, in fact, that I&rsquo;m going to share it with you!</p>
+
+<!--more-->
+
+
+<h2>Ain&rsquo;t No Spec Like Rspec</h2>
+
+<p>Before we get into the how and when of testing, we first need to setup our Rails application with <code>rspec</code>, a behavior-driven development framework built specifically for testing in Ruby.</p>
+
+<p>We&rsquo;ll first want to add <code>rspec-rails</code> to our the development and test group in our <code>Gemfile</code>:</p>
+
+<pre><code class="ruby">group :development, :test do
+  gem 'rspec-rails'
+end
+</code></pre>
+
+<p>Next, we&rsquo;ll run a quick <code>bundle install</code>, and then generate a <code>/spec</code> folder by running <code>rails generate rspec:install</code>. We now have access to a <code>rails_helper.rb</code> and <code>spec_helper.rb</code> file inside of our <code>/spec</code> directory.</p>
+
+<p>Finally, we&rsquo;ll want to add files for everything that we want to test. But let&rsquo;s start simple for now and just test our <code>ReadingList</code> model. The path to this spec file should be <code>/spec/models/reading_list_spec.rb</code>, so we&rsquo;ll need to add a <code>models</code> directory and a <code>reading_list_spec.rb</code> file.</p>
+
+<p>Once we&rsquo;ve done that, we can check that everything is setup properly by running our <code>rspec</code> command:</p>
+
+<pre><code>♥ rspec
+No examples found.
+
+
+Finished in 0.00023 seconds (files took 0.08619 seconds to load)
+0 examples, 0 failures
+</code></pre>
+
+<p>You know what needs to happen next, right? It&rsquo;s time for us to write some tests.</p>
+
+<iframe src="//giphy.com/embed/nhj799TYbxG80" width="480" height="235" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Okay, I feel your pain. But I promise, we&rsquo;re going to get through this together.</p>
+
+<h2>Knowing What To Test</h2>
+
+<p>I&rsquo;ve found that the best way to start writing tests is by picking one section to work on first. Otherwise, it can just be so overwhelming and might make you want to give up completely. Let&rsquo;s take a look at what our <code>ReadingList</code> model:</p>
+
+<pre><code class="ruby">class ReadingList &lt; ActiveRecord::Base
+  belongs_to :user
+  has_many :books
+
+  attr_accessor :read
+
+  def books_read
+    books.where(read: true).count
+  end
+
+  def books_unread
+    books.where(read: false).count
+  end
+
+  def percentage_read
+    read = books_read.to_f
+    unread = books_unread.to_f
+
+    calculate_percentage(read, unread)
+  end
+
+  def calculate_percentage(read, unread)
+    ((read / unread) * 100).round(2)
+  end
+end
+</code></pre>
+
+<p>Whoa, this seems like a lot. But fear not! Programming is nothing more than breaking down big problems into smaller, bite-sized pieces. And that&rsquo;s exactly what we&rsquo;ll do when writing these tests.</p>
+
+<p>Let&rsquo;s look at the <code>percentage_read</code> method to start. This is the instance method that we&rsquo;ll actually want to call somewhere in our view. It uses the number of books marked <code>read</code> (which will always be a boolean <code>true</code> or <code>false</code> value), and calculates the <code>User</code>&rsquo;s reading progress on the list, returning a percentage.</p>
+
+<p>But even though this is the method we want to test, a deeper look reveals that it actually relies and calls upon three other methods: <code>books_read</code>, <code>books_unread</code>, and <code>calculate_percentage</code>. This should be a big red flag, because it means that we need to test these three methods individually, first. The flow of our code is actually directing us in our test-writing process: we can decide which tests to write and in which order by looking at our method&rsquo;s dependencies.</p>
+
+<p>So, let&rsquo;s hop to it:</p>
+
+<ul>
+<li>We&rsquo;ll start by first requiring <code>rails_helper</code> in our <code>reading_list_spec.rb</code>, and stubbing out our tests with a block:
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="p">;</span><span class="n">rails_helper</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span><span class="o">&lt;</span><span class="sr">/li&gt;</span>
+</span><span class='line'><span class="sr">&lt;/u</span><span class="n">l</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="no">RSpec</span><span class="o">.</span><span class="n">describe</span> <span class="no">ReadingList</span><span class="p">,</span> <span class="ss">:type</span> <span class="o">=&gt;</span> <span class="ss">:model</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">describe</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="c1">#percentage_read&amp;rdquo; do</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>We can use a <code>describe</code> block to break up our tests into different sections. They will come in handy as our tests start to grow, and will make our test suite easier to read &ndash; not just when we come back to look at them later, but also when another developer digs through our code. The <code>#</code> symbol before our method name denotes that <code>percentage_read</code> is an instance method, another important distinction to make as we go about adding more tests.</p>
+
+<ul>
+<li>Next, we&rsquo;ll describe what our method <em>should</em> do by using <code>it</code> blocks</li>
+</ul>
+
+
+<pre><code class="ruby">  describe "#percentage_read" do
+    it "finds the number of read books in a list" do
+    end
+
+    it "finds the number of unread books in a list" do
+    end
+
+    it "calculates a percentage when given two values" do
+    end
+
+    it "calculates the percentage of books read in a list" do
+    end
+  end
+</code></pre>
+
+<ul>
+<li>Now we need to add some data &ndash; but not too much! We only want enough data to test the functionality of our method. Let&rsquo;s create a list with two books, one marked read and the other not marked read. We&rsquo;ll add this before our <code>describe</code> and <code>it</code> blocks:</li>
+</ul>
+
+
+<pre><code class="ruby">  let(:list) { ReadingList.create!(title: "Vaidehi's List" }
+  let(:book1) { list.books.build(title: "A Game Of Thrones", read: true) }
+  let(:book2) { list.books.build(title: "A Storm Of Swords", read: false) }
+</code></pre>
+
+<p>Wait, what&rsquo;s that <code>let</code> doing in there? The answer is: something magical! It creates an instance of <code>ReadingList</code> and makes a reference to it called <code>list</code>, which is then accessible to us in each of our <code>it</code> blocks. The <code>let</code> syntax is <a href="http://www.reddit.com/r/ruby/comments/2bcz12/newbie_to_rspec_why_use_let_instead_of_a_local/">an alternative</a> to creating local variables inside <em>every single</em> one of our <code>it</code> blocks.</p>
+
+<ul>
+<li>Finally, we&rsquo;ll add some expectations for our model&rsquo;s behavior when each method is called. Our finished test suite now looks like this:</li>
+</ul>
+
+
+<pre><code class="ruby">RSpec.describe ReadingList, :type =&gt; :model do
+  let(:list) { ReadingList.create!(title: "Vaidehi's List" }
+  let(:book1) { list.books.build(title: "A Game Of Thrones", read: true) }
+  let(:book2) { list.books.build(title: "A Storm Of Swords", read: false) }
+
+  describe "#percentage_read" do
+    it "finds the number of read books in a list" do
+      expect(list.books_read).to eq(1)
+    end
+
+    it "finds the number of unread books in a list" do
+      expect(list.books_unread).to eq(1)
+    end
+
+    it "calculates a percentage when given two values" do
+      expect(list.calculate_percentage(3.0, 4.0)).to eq(75.00)
+    end
+
+    it "calculates the percentage of books read in a list" do
+      expect(list.percentage_read).to eq(50.00)
+    end
+  end
+end
+</code></pre>
+
+<p>Each one of our tests is just a single line, specifying our exact expectations! Pretty awesome, right? This makes for relatively DRY code, which is pretty easy to understand.</p>
+
+<h2>Testing Your Assumptions</h2>
+
+<p>Now that we know <em>how</em> to write tests, it&rsquo;s time to address the question of <em>when</em> and <em>what</em> to test. Here&rsquo;s a good rule of thumb that I adhere to: <strong>test your assumptions</strong>. Whenever we write code, we make a ton of assumptions. The problem with making assumptions, however, is that you forget or don&rsquo;t realize that you made them, and then they end up coming back to screw you.</p>
+
+<p><img src="http://www.explainxkcd.com/wiki/images/e/e6/when_you_assume.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>In fact, even the tests we just wrote are based on a lot of assumptions. And there are a lot of things that we haven&rsquo;t considered. For example:</p>
+
+<ol>
+<li>Does the <code>read</code> attribute on a <code>ReadingList</code> object only accept a <code>boolean</code> value? What if someone tries to pass a non-boolean value as <code>read</code>?</li>
+<li>What is the default value of the <code>read</code> attribute?</li>
+<li>What if <code>read</code> is nil &ndash; what will break?</li>
+<li>What if the return value of <code>books_unread</code> is <code>0</code>?</li>
+</ol>
+
+
+<p>Just FYI, I discovered the answer to number 4, which looks like this:</p>
+
+<blockquote class="twitter-tweet tw-align-center" lang="en"><p>Uh oh&#8230;I did a bad thing: <a href="http://t.co/uFZEkyCPRl">pic.twitter.com/uFZEkyCPRl</a></p>&mdash; Vaidehi Joshi (@vaidehijoshi) <a href="https://twitter.com/vaidehijoshi/status/583994491570229249">April 3, 2015</a></blockquote>
+
+
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+<p>This is all to say that we must write tests for behavior that <em>should</em> and <em>should not</em> occur. We&rsquo;d probably want to write validations to prevent <code>nil</code> values, and we&rsquo;d definitely want to raise an error whenever we try to divide by <code>0</code>. We aren&rsquo;t just testing for what we can see &ndash; we also need to test for things we can&rsquo;t see, and any edge cases that we can think of.</p>
+
+<p>Learning the how, when, and what of testing is a process that comes with time and practice. The more tests you write, the better you&rsquo;ll get at testing. Of course, there are few tips and tricks of the testing trade that can very quickly and easily save you a lot of heartache.</p>
+
+<p>Tune in again next Tuesday, when I&rsquo;ll delve into generating fixtures for test data using FactoryGirl &ndash; a trick that&rsquo;s going to make your testing life so much easier.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>All <code>rspec</code> tests have an <code>it</code> block, which describes what behavior is expected. This block should never be too big, and contains an assertion of what expected value should be returned.</li>
+<li>The <code>let</code> syntax allows for lazy evaluation and keeps you from having to create a new instance of an object inside of every single <code>it</code> block. Check out more on the <code>let</code> and <code>let!</code> helper methods over on <a href="http://stackoverflow.com/questions/17407733/trouble-differentiating-rspecs-let-vs-let">this Stack Overflow answer</a> or on <a href="https://www.relishapp.com/rspec/rspec-core/v/2-5/docs/helper-methods/let-and-let">this blog post</a>.</li>
+<li>Use <code>describe</code> blocks to divide up your tests into sections, based on functionality and code cohesion. You can also use <code>context</code> blocks to assert different scenarios that could occur during one method call. Read about the <a href="http://lmws.net/describe-vs-context-in-rspec">difference between describe and context</a>.</li>
+<li>Find out more about different rspec testing conventions at <a href="http://betterspecs.org/">Better Specs</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Querying at Warp Drive: Using ActiveRecord Includes]]></title>
@@ -926,159 +1141,6 @@ end
 <li>State machines control the flow of events in a web application by using certain events to trigger different states or conditions.</li>
 <li>If you find that your app has methods like <code>state</code> or <code>status</code> and <code>shipped?</code> or <code>received?</code>, you should try using a state machine.</li>
 <li>Still interested in the CS theory behind state machines? Check out these two super helpful blog posts on the subject <a href="http://blog.markshead.com/869/state-machines-computer-science/">here</a> and <a href="http://www.i-programmer.info/babbages-bag/223-finite-state-machines.html">here</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[It's All in the Family: Using Acts_as_tree]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree/"/>
-    <updated>2015-03-10T08:27:54-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/eWYGCVTJuOcg0" width="480" height="360" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>When working in Rails, it&rsquo;s all the family &ndash; literally. No matter the size of your application, almost all of your objects are going to be related to each other. You can create however many objects you wan because database rows are cheap, cheap, cheap! But the more objects you make, the harder it is to keep track of the other data that the object relates to (which is generally yet <em>another</em> object).</p>
-
-<p>I found myself in such a predicament last week, when I had to make numerous objects relate to one other to create a tree structure. The obvious first approach was to use the <code>belongs_to</code> and <code>has_many</code> relationship. But when I realized that I wanted some <code>Genre</code> objects to belong to <em>other</em> <code>Genre</code> objects, I ran into a problem. Depending solely on the ActiveRecord relationships turned out to be painful, messy, and complicated, and wouldn&rsquo;t make my code very flexible or sustainable over time.</p>
-
-<p>So I Googled around and found a handy plugin created by DHH himself called <code>acts_as_tree</code>. This gem allows you to create a hierarchical structure of objects in your application and &ndash; to take it a step further &ndash; gives you a bunch of incredibly helpful methods. It even allows you to visualize your tree structure! Sound amazing? That&rsquo;s because it is. And if you follow a few easy steps, you can use it in your application, too.</p>
-
-<!--more-->
-
-
-<h2>Family Ties</h2>
-
-<p>So, for this post I&rsquo;ll continue working through my basic eCommerce Bookstore application, which I&rsquo;ve been using as an example for my previous posts. I&rsquo;ve already got some <code>Book</code> objects, but as my store starts to grow, it&rsquo;s going to be pretty hard to keep track of the different genres of <code>Book</code> objects that I currently have available.</p>
-
-<p>The first step to tackling this problem was easy: create <code>Genre</code> objects, each of which <code>has_many</code> different <code>Book</code> objects associated with it, while each <code>Book</code> object will <code>belong_to</code> one specific <code>Genre</code>.</p>
-
-<p>But what about genres that are associated with and &ldquo;descend from&rdquo; other genres? Well, here&rsquo;s where the delightful and easy-to-use <code>acts_as_tree</code> gem comes in.</p>
-
-<iframe src="//giphy.com/embed/pcPeWllpmv6Zq" width="480" height="431" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>First things first: we&rsquo;ll add <code>gem 'acts_as_tree'</code> to our Gemfile.</p>
-
-<p>Next, we need to add a column to our <code>Genre</code> database. We can write a simple migration that will add a <code>parent_id</code> integer to our database, which will allow us to find the parents and children of a <code>Genre</code> object:
-<code>ruby
-class AddParentIdColumnToGenre &lt; ActiveRecord::Migration
-  def change
-    add_column :genres, :parent_id, :integer
-  end
-end
-</code></p>
-
-<p>Finally, we&rsquo;ll head over to our <code>Genre</code> model, which is what we needs to act as a (family) tree. We need to add a single line in here, which implements the ActiveRecord plugin and specifies what we&rsquo;ll be ordering our <code>Genre</code> objects by:
-<code>ruby
-class Genre &lt; ActiveRecord::Base
-  has_many :books
-  validates_presence_of :name
-  acts_as_tree order: "name"
-end
-</code></p>
-
-<h2>Blood Is Thicker Than Water</h2>
-
-<p>Okay, now let&rsquo;s see this baby in action! We can start by making a root <code>Genre</code> object, and then giving it some children:</p>
-
-<pre><code class="ruby">literature = Genre.create("name" =&gt; "Literature")
-
-non_fiction = literature.children.create("name" =&gt; "Non-Fiction")
-fiction = literature.children.create("name" =&gt; "Fiction")
-</code></pre>
-
-<p>Cool, but our tree doesn&rsquo;t really look like a tree yet. Let&rsquo;s give our <code>non_fiction</code> and <code>fiction</code> genres some children, grandchildren, and great-grandchildren of their own:</p>
-
-<pre><code class="ruby">biography = non_fiction.children.create("name" =&gt; "Biography")
-comic_novel = fiction.children.create("name" =&gt; "Comic Novel")
-black_comedy = comic_novel.create("name" =&gt; "Black Comedy")
-parody = comic_novel.create("name" =&gt; "Parody")
-romantic_comedy = comic_novel.create("name" =&gt; "Romanic Comedy")
-satire = comic_novel.create("name" =&gt; "Satire")
-poltical_satire = satire.create("name" =&gt; "Political Satire")
-</code></pre>
-
-<p>Damn. Okay, well now our tree should look look less like a sprout and more like this bad boy:</p>
-
-<iframe src="//giphy.com/embed/hMWmNKdcdhAyI" width="480" height="267" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>It Runs In The Family</h2>
-
-<p>Even though we&rsquo;ve created all these parent-child relationships, what can we do with them, exactly? Well, a lot! You can call the <code>parent</code> and <code>children</code> methods to get a full list of all the objects associated with a particular <code>Genre</code> instance:</p>
-
-<pre><code class="ruby">literature.parent                   # =&gt; nil
-fiction.parent                      # =&gt; literature
-literature.children                 # =&gt; [non_fiction, fiction]
-literature.children.first.children  # =&gt; [Biography]
-
-literature.root?                    # =&gt; true
-fiction.root?                       # =&gt; false
-biography.leaf?                     # =&gt; true
-
-black_comedy.siblings               # =&gt; [parody, romantic_comedy, satire]
-poltical_satire.ancestors           # =&gt; [satire, comic_novel, fiction, literature]
-
-Genre.root                          # =&gt; literature
-</code></pre>
-
-<p>An important thing to note here is that the <code>children</code> method will return an <em>array</em> of objects, even if there&rsquo;s only one child! So if you&rsquo;re trying to get one particular object, remember to call the <code>first</code> method in the array, or search by a <code>Genre</code> object&rsquo;s specific <code>id</code> to avoid annoying bugs.</p>
-
-<p>Some other cool methods to try include:</p>
-
-<ol>
-<li><p><code>leaves</code>, a class method that will return all the &ldquo;leaves&rdquo; of the tree (in an array).</p></li>
-<li><p><code>descendants</code>, an instance method that will return all the children, and the children&rsquo;s children of an object (in an array).</p></li>
-<li><p><code>self_and_siblings</code>, which returns the receiver object, as well as any siblings it may have (in an array).</p></li>
-<li><p><code>default_tree_order</code>, which returns all the objects listed in alphabetical order!</p></li>
-</ol>
-
-
-<p>But the coolest feature of the <code>acts_as_tree</code> gem is Tree View, which allows you to see a visualization of your entire tree. All we have to do view this magic is add this line to our <code>Genre</code> model:</p>
-
-<pre><code class="ruby">extend ActsAsTree::TreeView
-</code></pre>
-
-<p>And then, call the class method <code>tree_view</code>, which takes in an attribute parameter:</p>
-
-<pre><code class="ruby">Genre.tree_view(:name)
-</code></pre>
-
-<p>The resulting return value is pure flora magic:
-<code>
-Literature
- |_ Non-Fiction
- |    |_ Biography
- |_ Fiction
- |    |_ Comic Novel
- |        |_ Black Comedy
- |        |_ Parody
- |        |_ Romantic Comedy
- |        |_ Satire
- |            |_ Political Satire
-</code></p>
-
-<p>Isn&rsquo;t it so beautiful?! Doesn&rsquo;t it make you feel like this:</p>
-
-<iframe src="//giphy.com/embed/FlWgXEtj5aM5G" width="480" height="259" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Or maybe it&rsquo;s just me.</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>A lot of people seem to like the <a href="https://github.com/stefankroes/ancestry"><code>ancestry</code> gem</a>, but I think that <code>acts_as_tree</code> is a good one to start off with. If you need the extra functionality that <code>ancestry</code> provides, then you can eventually level up to that. Another variation on the <code>acts_as_tree</code>  is the <a href="https://github.com/chrisroberts/acts_as_sane_tree"><code>acts_as_sane_tree</code> gem</a>, which is configured for PostgreSQL 8.4 and comes with some cool extra methods (but isn&rsquo;t nearly as massive as ancestry).</li>
-<li>There are a lot of different ways to implement the <code>acts_as_tree</code>. Check out <a href="http://railscasts.com/episodes/162-tree-based-navigation">this railscast</a> on tree-based navigation using this gem/plugin (beware the date on this one, though!).</li>
-<li>There are a lot of different ways to deal with recursive data structures in Rails. Check out this <a href="http://gmarik.info/blog/2012/10/14/recursive-data-structures-with-rails">in-depth look</a> at the tried and tested options to learn more.</li>
 </ul>
 
 ]]></content>
