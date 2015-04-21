@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rails | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-04-14T00:15:22-04:00</updated>
+  <updated>2015-04-20T23:47:16-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,225 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Tackling Those Tests, Part 2: Getting Fun and Functional With FactoryGirl]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/"/>
+    <updated>2015-04-21T08:34:19-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl</id>
+    <content type="html"><![CDATA[<p><img src="https://33.media.tumblr.com/0b9992ca5a259a54c16199c2de69c903/tumblr_mtjab8Yo0U1rlp47to1_500.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p><em>This blog post is part of a series on testing. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/">here</a>.</em></p>
+
+<p>Good things always come in pairs, and that couldn&rsquo;t be more true when it comes to testing. Like milk and cookies or peanut butter and jelly, test suites and test data are at their best when they&rsquo;re put together. As we discovered last week, a thoughtful test suite is important when it comes to checking our assumptions. But even the most comprehensive test suite is nothing without the appropriate amount &ndash; and type &ndash; of test data to support it.</p>
+
+<p>Every Rails application comes with a production, development, and test environment, and good test data is an indication of a well-constructed testing environment. But not all data is created equally. To take a cue from George Orwell, we could go so far as to claim that some forms of test data are more equal than others.</p>
+
+<p>Enter <strong>FactoryGirl</strong>, a gem that I&rsquo;ve recently discovered to be the most efficient way and painless way of creating test data within a Rails application. Generating test data is often the culprit for not only a great deal of pain and sufferring, but also some annoying bugs that are hard to catch. In fact, one of the most excruciating bugs I&rsquo;ve ever dealt with came from a single line of code, meant to create some test data. So it seems fitting that this week we tackle the most dangerous (yet thrilling!) part of testing: generating test data.</p>
+
+<!--more-->
+
+
+<h2>Setting Up The Factory Floor</h2>
+
+<p>Since we&rsquo;re implementing <code>FactoryGirl</code> on top of a Rails application, we&rsquo;ll work exclusively with the <code>factory_girl_rails</code> gem, which has been built specifically for this purpose.</p>
+
+<p>Once we&rsquo;ve added <code>gem 'factory_girl_rails'</code> to our <code>Gemfile</code> and run a <code>bundle install</code> in the terminal, we&rsquo;re ready to start setting up our factories. We&rsquo;ll start by creating factories for our <code>ReadingList</code> model from last week&rsquo;s post.</p>
+
+<ul>
+<li><p>Within our <code>/spec</code> directory, we&rsquo;ll need to create a <code>factories</code> directory. This is where each of the factories for each model will live.</p></li>
+<li><p>Inside of our <code>/spec/factories/</code> subdirectory, we&rsquo;ll create a file for our <code>ReadingList</code> factory. The convention for naming factories is to use the plural form of the model name in snake case, with the word &ldquo;factory&rdquo; appended to the end. In our case, that file would be named <code>reading_lists_factory.rb</code>.</p></li>
+<li><p>In our newly-created <code>ReadingList</code> Factory, we&rsquo;ll add a block that defines what our <code>FactoryGirl</code> object will look like. Every single factory you make for any instance of test data will begin with a block exactly like this one:</p></li>
+</ul>
+
+
+<pre><code class="ruby">FactoryGirl.define do
+end
+</code></pre>
+
+<ul>
+<li>Next, we&rsquo;ll want to give this test object a name. For this very basic test suite, we only want to test one <code>ReadingList</code> object, so we&rsquo;ll stick with a simple name: <code>reading_list</code>. Keep in mind that whatever name we give this test object is what we&rsquo;ll be using to refer to it inside of our tests. Inside of our initial <code>FactoryGirl</code> block, we&rsquo;ll define this specific object like this:</li>
+</ul>
+
+
+<pre><code class="ruby">FactoryGirl.define do
+  factory :reading_list,  do
+  end
+end
+</code></pre>
+
+<ul>
+<li>Lastly, we need to define some attributes for our test object. For now, our <code>ReadingList</code> test object needs only three columns in the database: one for its <code>id</code>, one for its <code>title</code>, and a foreign key of the <code>User</code> it belongs to. Here&rsquo;s what our final test object definition looks like:</li>
+</ul>
+
+
+<pre><code class="ruby">FactoryGirl.define do
+  factory :reading_list,  do
+    user
+    title "Books I Want To Read"
+  end
+end
+</code></pre>
+
+<p>Pretty cool, right? We don&rsquo;t have to give our test object an <code>id</code>, because <code>FactoryGirl</code> will generate one when we call on it to create a new test object. So what&rsquo;s that <code>user</code> line doing in there? Well, it&rsquo;s creating an association between two factories! When <code>FactoryGirl</code> sees <code>user</code>, it looks for a file with the path <code>/spec/factories/user_factory.rb</code>, and creates an instance of a <code>User</code> test object, which it then uses to build our <code>ReadingList</code> object.</p>
+
+<p>But right now, our code will give us a big, nasty error. Can you guess the reason behind that? Why, we don&rsquo;t have a <code>User</code> factory, of course! I guess we better get on that.</p>
+
+<iframe src="//giphy.com/embed/W6vq5qLStzYys" width="480" height="244" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>Form Follows Function</h2>
+
+<p>Now that we know how to set up our factories pretty quickly, we can hop on making a <code>users_factory</code>. For now, our <code>User</code> objects have only a <code>first_name</code> and a <code>last_name</code> attribute, so we&rsquo;ll create a <code>User</code> test object that satisfies these requirements.</p>
+
+<p>But, some <code>Users</code> can also be <code>admin</code>s, but this is an optional trait that not all <code>User</code>s will have. This is something we definitely want to test, but we also want to keep our code DRY. How do we handle this? By nesting factories!</p>
+
+<pre><code class="ruby">FactoryGirl.define do
+  factory :user do
+    first_name "Vaidehi"
+    last_name "Joshi"
+
+    factory :admin do
+      admin true
+    end
+  end
+end
+</code></pre>
+
+<p>This tells FactoryGirl to define two different <code>user</code> instances: a <code>user</code> test object, and an <code>admin</code> test object, which inherits the traits of the <code>user</code> object &ndash; namely, its <code>first_name</code> and <code>last_name</code> attributes.</p>
+
+<p>While we&rsquo;re at it, why don&rsquo;t we set up our <code>books_factory</code> as well? That might look something a little like this:</p>
+
+<pre><code class="ruby">FactoryGirl.define do
+  factory :book1, class: Book do
+    title "A Game Of Thrones"
+    reading_list
+    read true
+  end
+
+  factory :book2, class: Book do
+    title "A Storm Of Swords"
+    reading_list
+    read false
+  end
+end
+</code></pre>
+
+<p>Wait, what&rsquo;s up with the <code>class: Book</code> syntax? We haven&rsquo;t seen that yet! Well, not to worry &ndash; you only have to use it in a specific situation! What exactly <em>is</em> that situation, you might ask? Well, the only time you ever need to explicitly define a FactoryGirl object&rsquo;s class is if the name of the object &ndash; <code>book1</code> or <code>book2</code> in our case &ndash; is different from the object&rsquo;s class name. If we had only a single <code>book</code> test object, we wouldn&rsquo;t have to define the class name, since FactoryGirl will know to look for it in the <code>books_factory.rb</code> file.</p>
+
+<p>Remember last week when we had to manually create two different <code>Book</code> objects every single time we wanted to create a new test object? Well, here we&rsquo;re defining two test objects in a singular, isolated place.</p>
+
+<iframe src="//giphy.com/embed/Q6gPyUYrCk76g" width="480" height="550" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p></p>
+
+
+<p>Awesome! Now it&rsquo;s time to bring it all together in our cleaned-up test suite!</p>
+
+<h2>Bypassing Testing Bugs</h2>
+
+<p>When we wrote out the first iteration of our test suite last week, we had a few different <code>let</code> blocks, inside of which we called <code>create!</code> and <code>build</code> on our different objects. Our <code>let</code> blocks definintely helped us tidy up our tests, since we built and created all of our test objects at once, at the very top of our <code>do</code> block.</p>
+
+<p>But as is the case with most of programming, there&rsquo;s a better way to do that. Now that we&rsquo;ve implemented FactoryGirl, we can cut out some of those blocks, and only call them when we need them. And, we don&rsquo;t need to create an instance with the attributes explicitly defined in a block &ndash; instead, we just tell FactoryGirl to create it for us!</p>
+
+<p>Here&rsquo;s a refactored version of last week&rsquo;s tests, now with the <code>factory_girl_rails</code> to help us out:
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="p">;</span><span class="n">rails_helper</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;Describe ReadingList do</span>
+</span><span class='line'><span class="sr">  let(:reading_list) { create(:reading_list) }&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="n">it</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="p">;</span><span class="n">belongs</span> <span class="n">to</span> <span class="n">a</span> <span class="n">user</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">user</span> <span class="o">=</span> <span class="n">create</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">expect</span><span class="p">(</span><span class="n">reading_list</span><span class="o">.</span><span class="n">user</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="kp">include</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  it &amp;lsquo;has a title&amp;rsquo; do</span>
+</span><span class='line'><span class="sr">    expect(reading_list.title).to eq(&amp;ldquo;Books I Want To Read&amp;rdquo;)</span>
+</span><span class='line'><span class="sr">  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="n">describe</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="c1">#percentage_read&amp;rdquo; do</span>
+</span><span class='line'>    <span class="n">it</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">calculates</span> <span class="n">the</span> <span class="n">percentage</span> <span class="n">of</span> <span class="n">books</span> <span class="n">read</span> <span class="k">in</span> <span class="n">a</span> <span class="n">list</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">book1</span> <span class="o">=</span> <span class="n">create</span><span class="p">(</span><span class="ss">:book1</span><span class="p">)</span>
+</span><span class='line'>      <span class="n">book2</span> <span class="o">=</span> <span class="n">create</span><span class="p">(</span><span class="ss">:book2</span><span class="p">)</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;  expect(reading_list.percentage_read).to eq(50.00)</span>
+</span><span class='line'><span class="sr">end</span>
+</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  end</span>
+</span><span class='line'><span class="sr">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>You&rsquo;ll notice that I&rsquo;ve replaced <code>build</code> with <code>create</code> in this iteration of tests. I initially had used <code>build</code>, but when I started implementing FactoryGirl, I hit a wall. In fact, I spent an unmentionable number of hours trying to figure out what on earth I was doing wrong!</p>
+
+<p>It turns out I was using the wrong tool for the job. The <code>build</code> method creates an instance, but <em>does not</em> save it. The <code>create</code> method, on the other hand, both creates <em>and</em> persists the object. This was one of the most important debugging lesson I learned while writing tests, and it was not a fun lesson to learn. I hope that at the very least, <em>you</em> won&rsquo;t have to struggle through that bug like I did!</p>
+
+<p>The thing that I valued the most during this debugging process was learning how <code>FactoryGirl</code> actualy works. If those <code>build</code> and <code>create</code> methods seem an awful lot like ActiveRecord to you, that&rsquo;s because it IS ActiveRecord!</p>
+
+<p>In fact, when we call <code>create(:book1)</code>, the magic of <code>FactoryGirl</code> actually does the following:</p>
+
+<ol>
+<li>Creates a new <code>ReadingList</code>.</li>
+<li>Saves the <code>ReadingList</code>.</li>
+<li>Creates a new <code>Book</code>.</li>
+<li>Associates that <code>Book</code> with the <code>ReadingList</code>.</li>
+<li>Saves the <code>Book</code>.</li>
+</ol>
+
+
+<p>Amazing, right? We get so much functionality, all in a single method call! Learning this made me appreciate what <code>FactoryGirl</code> does so much more than if I had just included it blindly in my <code>Gemfile</code> without giving it a second though.</p>
+
+<p>Thoughtbot, the creators of the <code>factory_girl</code> gem, has a great post explaining how it <a href="https://github.com/thoughtbot/factory_girl/wiki/How-factory_girl-interacts-with-ActiveRecord">interacts with ActiveRecord</a>. I found their explaination super helpful when I was first learning about FactoryGirl:</p>
+
+<blockquote><p>When you invoke a factory, factory_girl uses your definitions to compile a list of attributes that should be assigned to that instance, as well as any associated factories. It saves associations first so that foreign keys will be properly set on dependent models. To create an instance, it calls new without any arguments, assigns each attribute (including associations), and then calls save!. factory_girl doesn’t do anything special to create ActiveRecord instances. It doesn’t interact with the database or extend ActiveRecord or your models in any way.</p></blockquote>
+
+<p>Sure, when it comes to the world of testing, the night may be dark and full of terrors. But with <code>FactoryGirl</code> on your side, you&rsquo;ll feel safer, as though you&rsquo;ve got an army of dragons to back you up. In my head, they&rsquo;re super cute ones kinda like these:</p>
+
+<iframe src="//giphy.com/embed/WmqnGHr3oYGR2" width="480" height="259" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p></p>
+
+
+<p>Tune in again next week, when I&rsquo;ll cap off this series by sharing two more gems we can add to our army of testing dragons: <code>shoulda-matchers</code> for writing quick and easy validations, and <code>database_cleaner</code>, the key to unlocking your dreams of a neat and tidy testing database. Until then, test on, my friends &ndash; test on!</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>factory_girl_rails</code> gem is used to generate test data for a Rails application, and each factory defines the attributes and associations of a test object. All factory files should be created in the <code>./spec/factories</code> subdirectory.</li>
+<li>This post only covers a couple of the tricks that <code>FactoryGirl</code> has up her sleeve. To read them all, check out the gem&rsquo;s <a href="http://www.rubydoc.info/gems/factory_girl/file/GETTING_STARTED.md">extensive documentation</a>.</li>
+<li>This tutorial is super detailed and I referred to it frequently while writing this blog post. If you want to learn more about testing and implementing <code>FactoryGirl</code>, <a href="http://everydayrails.com/2012/03/19/testing-series-rspec-models-factory-girl.html">give it a read</a>.</li>
+<li>Did you know that factories and fixtures are actually quite different? No? Well then, you should read <a href="https://semaphoreci.com/blog/2014/01/14/rails-testing-antipatterns-fixtures-and-factories.html">this post</a> and get all caught up.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Tackling Those Tests, Part 1: The How, When, and What of Rspec Testing]]></title>
@@ -881,166 +1100,6 @@ Literature
 <li>A lot of people seem to like the <a href="https://github.com/stefankroes/ancestry"><code>ancestry</code> gem</a>, but I think that <code>acts_as_tree</code> is a good one to start off with. If you need the extra functionality that <code>ancestry</code> provides, then you can eventually level up to that. Another variation on the <code>acts_as_tree</code>  is the <a href="https://github.com/chrisroberts/acts_as_sane_tree"><code>acts_as_sane_tree</code> gem</a>, which is configured for PostgreSQL 8.4 and comes with some cool extra methods (but isn&rsquo;t nearly as massive as ancestry).</li>
 <li>There are a lot of different ways to implement the <code>acts_as_tree</code>. Check out <a href="http://railscasts.com/episodes/162-tree-based-navigation">this railscast</a> on tree-based navigation using this gem/plugin (beware the date on this one, though!).</li>
 <li>There are a lot of different ways to deal with recursive data structures in Rails. Check out this <a href="http://gmarik.info/blog/2012/10/14/recursive-data-structures-with-rails">in-depth look</a> at the tried and tested options to learn more.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Bundle Up &amp; Let Your Objects Do the Freezing: Frozen Hashes]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes/"/>
-    <updated>2015-03-03T08:43:04-05:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/b7pVN1KY8ycg0" width="480" height="213" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Snowmageddon. Snowpocalypse. The Deep Freeze of 2015. You can call it whatever you want, but we can all agree on one thing: it&rsquo;s so damn cold outside. In fact, it&rsquo;s so cold that I recently saw this error message while debugging a Postgres issue:
-<code>RuntimeError: can't modify frozen Hash</code></p>
-
-<p>My first thought was, naturally, <em>holy shit, even my hashes are frozen</em>. I did a little digging, and it turns out that we aren&rsquo;t the only ones susceptible to these chilly temperatures. Apparently, objects can also freeze!</p>
-
-<p>So, in honor of the frozen tundra that we all seem to currently inhabit, I decided to explore the icy-cold depths of Rails frozen objects. Before you read on though, you should know: I&rsquo;m going to use only gifs from the Disney animated film, <em>Frozen</em> — don&rsquo;t say I didn&rsquo;t warn you.</p>
-
-<!-- more -->
-
-
-<h2>Objects As Cold As Ice</h2>
-
-<p>First things first: what&rsquo;s a frozen object? Well, they&rsquo;re frozen, which means they can&rsquo;t change &ndash; they&rsquo;re immutable and cannot be modified. There are some objects in Ruby that are perpetually frozen, such as any <code>Fixnum</code>, <code>Bignum</code>, <code>Float</code>, and <code>Symbol</code> objects.</p>
-
-<iframe src="//giphy.com/embed/Fjy5XItIvYjEQ" width="480" height="269" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>You&rsquo;ve probably worked with all of these objects before, but may not know that they&rsquo;re actually frozen! Don&rsquo;t believe me? Well, you can check for yourself. Just call the <code>frozen?</code> method on any object of this class:</p>
-
-<pre><code>$ irb
-2.2.0 :001 &gt; 1.frozen?
- =&gt; true
-2.2.0 :002 &gt; a = :im_a_symbol
- =&gt; :im_a_symbol
-2.2.0 :003 &gt; a.frozen?
- =&gt; true
-2.2.0 :004 &gt; 3.14.frozen?
- =&gt; true
-</code></pre>
-
-<p>This kind of makes sense though, right? Imagine if I could just start rewriting values all over the damn place. I could set <code>1</code> equal to <code>nil</code> and make <code>2</code> equal <code>3</code>, and then we&rsquo;d really hit crazytown.</p>
-
-<p>Frozen objects keep certain things secure and certain in Ruby (and also in Rails!) So, freezing objects is a&hellip;good thing? Well, yes. But also, no.</p>
-
-<h2>The Freeze Method: A Cold Piece Of Work</h2>
-
-<p>Just as there&rsquo;s a method to check whether an object is <code>frozen?</code> or not, there&rsquo;s also a method to freeze mutable objects and make them immutable called &ndash; you guessed it &ndash; <code>freeze</code>. This method is pretty simple: yuo just call it on an object in order to rpevent further modifications to said object. If you <em>do</em> try to modify the object after freezing it, you&rsquo;ll get a <code>RuntimeError</code>:
-<code>
-2.2.0 :005 &gt; x = {1 =&gt; 'a', 2 =&gt; 'b', 3 =&gt; 'c'}
- =&gt; {1=&gt;"a", 2=&gt;"b", 3=&gt;"c"}
-2.2.0 :006 &gt; x.freeze
- =&gt; {1=&gt;"a", 2=&gt;"b", 3=&gt;"c"}
-2.2.0 :007 &gt; x.frozen?
- =&gt; true
-2.2.0 :008 &gt; x[1] = 'b'
-RuntimeError: can't modify frozen Hash
-</code></p>
-
-<iframe src="//giphy.com/embed/oYKesMM459o4w" width="480" height="200" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>But before you get all Elsa on me and start freezing everything, you should know some things about how to use the <code>freeze</code> method as a responsible developer:</p>
-
-<ol>
-<li><p>First and foremost: don&rsquo;t try to call a <code>defrost</code> or <code>thaw</code> method, because there&rsquo;s no such thing. In fact, there is <em>absolutely no way</em> to unfreeze an object. It simply cannot be undone. So, proceed with great caution when freezing things. Or maybe just don&rsquo;t do it at all.</p></li>
-<li><p>The <code>freeze</code> method operates on an object reference, not on a variable. Wait, whut? If this sounds like Ruby objects aren&rsquo;t actually being modified, but their references are instead, well&hellip;that&rsquo;s totally right.</p></li>
-</ol>
-
-
-<p>I really liked the way that Michael Morin explained this in <a href="http://ruby.about.com/od/qa/ss/Can-T-Modify-Frozen-String.htm">his post</a> on frozen objects:</p>
-
-<blockquote><p>When you freeze a hash, it just freezes the references to the objects it already has, it doesn&rsquo;t actually freeze the objects themselves. The frozen hash won&rsquo;t know the difference here. This is an important thing to understand about freezing objects, it&rsquo;s not recursive. All freezing does is prevent the references the object holds from being modified.</p></blockquote>
-
-<p>While we can&rsquo;t unfreeze &ldquo;frozen&rdquo; objects, this particular quality gives us a little bit leeway to get around the lack of a thaw method.</p>
-
-<h2>Chill Out, But Don&rsquo;t Freeze</h2>
-
-<p>There are a few different ways to change an immutable frozen object (which, hello, aren&rsquo;t actually frozen, just their references are). One thing you can do is create a duplicated object, which will <em>not</em> be frozen and therefore, completely mutable:
-<code>
-2.2.0 :009 &gt; x.dup
- =&gt; {1=&gt;"a", 2=&gt;"b", 3=&gt;"c"}
-2.2.0 :010 &gt; y = _
- =&gt; {1=&gt;"a", 2=&gt;"b", 3=&gt;"c"}
-2.2.0 :011 &gt; y.frozen?
- =&gt; false
-2.2.0 :012 &gt; x.frozen?
- =&gt; true
-2.2.0 :013 &gt; y[1] = 'b'
- =&gt; "b"
-2.2.0 :014 &gt; y
- =&gt; {1=&gt;"b", 2=&gt;"b", 3=&gt;"c"}
-</code></p>
-
-<p>Keep in mind, however, that this only changes the data in the duplicated object, not the original one! So&hellip;what now? Well, since only the reference to an object is frozen, that means that you can modify the actual data inside of the frozen object:
-<code>
-2.2.0 :015 &gt; x[1] &lt;&lt; 'bc'
- =&gt; "ab"
-2.2.0 :016 &gt; x
- =&gt; {1=&gt;"abc", 2=&gt;"b", 3=&gt;"c"}
-2.2.0 :017 &gt; x.frozen?
- =&gt; true
-</code></p>
-
-<p>Weird, right!? Our <code>x</code> variable, which points to the <code>Hash</code> object, is still very much frozen. But, we can modify the data and values inside of the object itself. Since we don&rsquo;t want to make an actual copy of the variable, we can instead modify the objects held within that variable (in our case, we&rsquo;re directly modifying the <code>String</code> object, which is a the value of a key in this frozen Hash)</p>
-
-<h2>Freezing Out Those Error Messages</h2>
-
-<p>Cool, so this I guess this is a thing in Ruby. But wait &ndash; it&rsquo;s also a pretty important thing in Rails! Objects in Rails are infinitely more complicated than in Ruby, mostly because you&rsquo;re dealing with ActiveRecord and its methods. Whenever you&rsquo;re trying to delete an ActiveRecord object, you depend on the <code>destroy</code> method.</p>
-
-<p>For example, I use this method in my bookstore app, and I have a <code>delete</code> action in my <code>BooksController</code> that contains code that looks something like this:
-<code>ruby
-@book = Book.find(1)
-@book.destroy
-</code></p>
-
-<p>Now if I wanted to modfiy this book&rsquo;s type after I delete it, I&rsquo;d get an error:
-<code>
-[1] pry(main)&gt; @book.type = 'hardcover'
-TypeError: can't modify frozen hash
-</code></p>
-
-<p>Why is this? Well, even though I deleted the object, it still exists in the <code>@book</code> variable, which still retains all the attributes of the object. Once I destroy the record, the object became frozen. Since the object&rsquo;s attributes hash is frozen, when I try to modify it, I get this error.</p>
-
-<p>The <a href="http://api.rubyonrails.org/classes/ActiveRecord/Persistence.html#method-i-destroy">Rails documentation</a> explains how it implements the <code>freeze</code> method, stating that <code>destroy</code> method:</p>
-
-<blockquote><p>Deletes the record in the database and freezes this instance to reflect that no changes should be made (since they can&rsquo;t be persisted).</p></blockquote>
-
-<p>To avoid creating a <code>@book</code> object that&rsquo;s frozen and still hanging around for no apparent reason, I could instead implicitly delete the object in a single line. Either this:
-<code>ruby
-Book.find(1)destroy
-</code>
-or
-<code>ruby
-Book.destroy(1)
-</code>
-would work.</p>
-
-<p>Alternatively, I could just use the <code>delete</code> method, which doesn&rsquo;t instantiate an object, but isntead directly removes the row from the database.</p>
-
-<p>Frozen objects are in front of us everyday. Ruby actually uses the <code>freeze</code> method when you copy certain objects. According to <a href="http://rubylearning.com/satishtalim/mutable_and_immutable_objects.html">this post</a>, when you use a string as a key of a <code>Hash</code> object, the string is copied, frozen, and then that duplicated copy is used as the key of the hash. This is pretty cool because this means that even if the original string is modified, the duplicated one isn&rsquo;t affected because it has been frozen! The same goes for filenames: internal operations of an application rely on a frozen copy of a filename, rather than the original one.</p>
-
-<p>Once you understand the functionality of <code>freeze</code>, it becomes a lot easier to understand those weird error messages. Soon, you&rsquo;ll no longer fear the ice, but instead bask in the sun. Or&hellip;something more poetic.</p>
-
-<p>Anyways, here&rsquo;s a dancing snowman:</p>
-
-<iframe src="//giphy.com/embed/N80v6XYayA5vG" width="480" height="213" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>You can use the <code>freeze</code> method to make mutable objects immutable. To check whether an object can be modified or not, use the <code>frozen?</code> method, which will return a boolean value.</li>
-<li>Certain Ruby objects, such as integers, floats, and symbols, are always frozen and cannot be modified.</li>
-<li>Someone made a <a href="https://github.com/zizkovrb/melt">melt gem</a> &ndash; for realsies!</li>
-<li>Some people are <a href="http://m.onkey.org/ruby-i-don-t-like-3-object-freeze">not big fans</a> of the weird functionality of Ruby <code>freeze</code>. But it&rsquo;s still worth it to <a href="http://blog.adamstegman.com/activerecord-hangs-on-to-destroyed-relations.html">learn how it works</a>, especially since it can be <a href="http://blog.adamstegman.com/activerecord-hangs-on-to-destroyed-relations.html">super helpful</a> for <a href="http://www.devarticles.com/c/a/Ruby-on-Rails/Updating-and-Deleting-with-the-Active-Record/2/">debugging Rails apps</a>.</li>
 </ul>
 
 ]]></content>
