@@ -1,0 +1,400 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Tackling Those Tests, Part 3: Testing Made Easy With Gems - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="This blog post is part of a series on testing. Read Part 2 here. If there&rsquo;s anything that I&rsquo;ve learned about testing while writing this &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Tackling Those Tests, Part 3: Testing Made Easy With Gems</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-04-28T08:50:59-04:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:50 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/testing/'>testing</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><img src="https://imgs.xkcd.com/comics/shouldnt_be_hard.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p><em>This blog post is part of a series on testing. Read Part 2 <a href="http://vaidehijoshi.github.io/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/">here</a>.</em></p>
+
+<p>If there&rsquo;s anything that I&rsquo;ve learned about testing while writing this three-part blog post series, it&rsquo;s this: testing is freaking hard! It&rsquo;s tough to figure out the correct syntax and conventions, particularly when you&rsquo;re just starting out. Figuring out when to write a test is also a tricky business. And then sitting down to actually write the test is pretty difficult, too.</p>
+
+<p>But there are ways to make it easier on yourself. And I should know, because I tried to write my tests the hard way, and I definitely do not recommend it. Here&rsquo;s what I <em>do</em> recommend: GEMS! And lots of &lsquo;em. There are a lot of Ruby gems out there, specifically designed to make your testing life easier.</p>
+
+<p>So, to close off this epic series on testing in Rails, I&rsquo;m going to share my two favorite testing gems: <code>shoulda-matchers</code> and <code>database_cleaner</code>. Once you know how to implement them, your testing life will forever be easier. Because, let&rsquo;s be real &ndash; isn&rsquo;t that the way testing <em>should</em> be?</p>
+
+<!--more-->
+
+
+<h2>You Shoulda Used Shoulda</h2>
+
+<p>Last week, we wrote some tests for a <code>ReadingList</code> object, which we tested using factories. To refresh your memory, every <code>ReadingList</code> has a <code>title</code> attribute, which is just a <code>string</code> value. An important test for this object is a <code>title</code> validation. But what would that look like? Probably something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="s1">&#39;rails_helper&#39;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">describe</span> <span class="no">ReadingList</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">context</span> <span class="s1">&#39;has a title&#39;</span> <span class="k">do</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">let</span><span class="p">(</span><span class="ss">:real_list</span><span class="p">)</span> <span class="p">{</span> <span class="n">create</span><span class="p">(</span><span class="ss">:reading_list</span><span class="p">,</span> <span class="ss">title</span><span class="p">:</span> <span class="s2">&quot;my list&quot;</span><span class="p">)</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">it</span> <span class="s1">&#39;has a title&#39;</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="n">reading_list</span><span class="o">.</span><span class="n">title</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span><span class="p">(</span><span class="s2">&quot;Books I Want To Read&quot;</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">context</span> <span class="s1">&#39;doesn&#39;</span><span class="n">t</span> <span class="n">have</span> <span class="n">a</span> <span class="n">title</span><span class="s1">&#39; do</span>
+</span><span class='line'><span class="s1">    let(:fake_list) { create(:reading_list) }</span>
+</span><span class='line'>
+</span><span class='line'><span class="s1">    it &#39;</span><span class="n">raises</span> <span class="n">an</span> <span class="n">error</span><span class="err">&#39;</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="n">fake_list</span><span class="o">.</span><span class="n">save!</span><span class="p">)</span><span class="n">to</span> <span class="n">raise_error</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Man, that&rsquo;s a lot of work for a single line of Rails code, isn&rsquo;t it? Wait a second &ndash; what if we could shorten this huge test into one line of code? Is is possible? Of course it is! And it&rsquo;s easy too, because the <code>shoulda</code> gem does just that.</p>
+
+<p>To actually use the gem, you just need to add it to the <code>test</code> group within your <code>Gemfile</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">group</span> <span class="ss">:test</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">gem</span> <span class="s1">&#39;rspec-rails&#39;</span>
+</span><span class='line'>  <span class="n">gem</span> <span class="s1">&#39;shoulda-matchers&#39;</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>You also need to add <code>require 'shoulda/matchers'</code> to your <code>rails_helper.rb</code> file. Now we can rewrite our validation test as a single line:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="s1">&#39;rails_helper&#39;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">describe</span> <span class="no">ReadingList</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">it</span> <span class="p">{</span> <span class="n">should</span> <span class="n">validate_presence_of</span><span class="p">(</span><span class="ss">:title</span><span class="p">)</span> <span class="p">}</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pretty awesome, right? We can do this for all of our validations now! But wait &ndash; there&rsquo;s more! The <code>shoulda</code> gem takes care of more than just validations. It can also test for associations in ActiveRecord and actions in our controllers! You can even write super specific validations scoped to a particular attribute or object, like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">it</span> <span class="p">{</span> <span class="n">should</span> <span class="n">validate_uniqueness_of</span><span class="p">(</span><span class="ss">:reading_list</span><span class="p">)</span><span class="o">.</span><span class="n">scoped_to</span><span class="p">(</span><span class="ss">:title</span><span class="p">,</span> <span class="ss">:user</span><span class="p">)</span> <span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>YAHHHHSSS we are on a test-writing roll!</p>
+
+<iframe src="//giphy.com/embed/NaNHdFMPAoL2E" width="480" height="241" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>Clean Yo Database</h2>
+
+<p>Now that you can write tests like a pro, you probably have an overwhelming desire to write all the tests and create all the objects and build all the factories. And you totally should. But you should also make sure they don&rsquo;t come back to haunt you.</p>
+
+<p>What do I mean by that, exactly? Well, whenever you run your test suite, you want to be sure that you clean out your database and get rid of any old or repeat data. This is super important when you have a lot of tests. You want to be sure that your test database is getting cleaned after each test, so that the next test starts with an blank database.</p>
+
+<p>Enter <code>database_cleaner</code>, a gem that does exactly what you think it does. Although we&rsquo;re using this gem in conjunction with Rails and RSpec, it also comes in handy for testing with <a href="https://github.com/jnicklas/capybara">capybara</a> and <a href="http://docs.seleniumhq.org/">selenium</a>. I was introduced to this gem by another developer who took one look at my failing test and asked me whether or not I had repeat data. I didn&rsquo;t even realize that database inconsistencies were thing. But they are! And that&rsquo;s why we&rsquo;ll want to use the <code>database_cleaner</code> gem.</p>
+
+<p>Inside of our <code>/spec/rails_helper.rb</code> file, there&rsquo;s a large block that starts with the line <code>RSpec.configure do |config|</code>. That&rsquo;s exactly where our <code>database_cleaner</code> gem code is going to live &ndash; inside of that block.</p>
+
+<p>Inside of that block, we&rsquo;ll stick in this little bit of code:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">config</span><span class="o">.</span><span class="n">before</span><span class="p">(</span><span class="ss">:suite</span><span class="p">)</span> <span class="k">do</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">config</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="ss">:each</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">example</span><span class="o">|</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Our <code>config.before(:suite)</code> block is for all the things we want to do before our entire test suite runs. We&rsquo;ll probably want to put in some code that will get rid of old data from previous test suites that we ran earlier.</p>
+
+<p>The <code>config.around(:each)</code> block is for each individual test example that runs in our suite. This is where we would put certain lines of that only need to run for more specific tests (like a capybara test, for example).</p>
+
+<p>But our tests are relatively simple in this example. So, inside of our <code>before(:suite)</code> block, we&rsquo;ll add some instructions:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">config</span><span class="o">.</span><span class="n">before</span><span class="p">(</span><span class="ss">:suite</span><span class="p">)</span> <span class="k">do</span>
+</span><span class='line'>  <span class="k">begin</span>
+</span><span class='line'>    <span class="no">DatabaseCleaner</span><span class="o">.</span><span class="n">strategy</span> <span class="o">=</span> <span class="ss">:transaction</span>
+</span><span class='line'>    <span class="no">DatabaseCleaner</span><span class="o">.</span><span class="n">clean_with</span><span class="p">(</span><span class="ss">:truncation</span><span class="p">)</span>
+</span><span class='line'>    <span class="no">DatabaseCleaner</span><span class="o">.</span><span class="n">start</span>
+</span><span class='line'>  <span class="k">ensure</span>
+</span><span class='line'>    <span class="no">DatabaseCleaner</span><span class="o">.</span><span class="n">clean</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The <code>start</code> and <code>clean</code> methods hook into the beginning and end of our test suite, ensuring that whatever lines are above actually get executed properly. But what do the two lines above <em>do</em>, exactly?</p>
+
+<p>Well, the <code>clean_with(:truncation)</code> method clears out our test database completely, and the <code>strategy = :transaction</code> method sets the behavior of the database &ldquo;cleaning strategy&rdquo; to be a transaction. Avdi Grimm has a <a href="http://devblog.avdi.org/2012/08/31/configuring-database_cleaner-with-rails-rspec-capybara-and-selenium/">great blog post</a> on what all of this means, and his explanation of transactions is easy to understand:</p>
+
+<blockquote><p>Transactions are very fast, and for all the tests where they do work—that is, any test where the entire test runs in the RSpec process—they are preferable.</p></blockquote>
+
+<p>Okay, cool. But what about our other block? We gotta put some stuff in there, too. But since we don&rsquo;t have any specific instructions or strategies for any of our tests, we&rsquo;ll just run each of our examples normally, inside of a single block:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">config</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="ss">:each</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">example</span><span class="o">|</span>
+</span><span class='line'>  <span class="no">DatabaseCleaner</span><span class="o">.</span><span class="n">cleaning</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">example</span><span class="o">.</span><span class="n">run</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Nice! In just a handful of lines, we&rsquo;ve saved ourselves hours of heartache trying to figure out why one of our tests isn&rsquo;t passing. Well, at least <em>you</em> saved yourself hours of heartache. I already went through the pain of that while trying to debug my poorly-written tests! But one of us will never have to go through that, which I think is a cause for celebration!</p>
+
+<iframe src="//giphy.com/embed/rO7Rqg58ZbJLO" width="480" height="259" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>shoulda-matchers</code> gem helps you keep your code DRY and test for associations and validations. The <code>database_cleaner</code> gem keeps your database clean between tests and helps you avoid problems related to repeat data.</li>
+<li>Both of these gems have well-written and maintained documentation. Read them both! (<a href="http://matchers.shoulda.io/docs/v2.8.0/">shoulda</a> docs and <a href="https://github.com/DatabaseCleaner/database_cleaner">database cleaner</a> docs)</li>
+<li>If you&rsquo;re curious about the difference between transactions, truncations, and deletions, check out <a href="http://makandracards.com/makandra/13045-understanding-database-cleaning-strategies-in-tests">this post</a>.</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-04-28T08:50:59-04:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:50 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/testing/'>testing</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/" title="Previous Post: Tackling Those Tests, Part 2: Getting Fun And Functional With FactoryGirl">&laquo; Tackling Those Tests, Part 2: Getting Fun And Functional With FactoryGirl</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems/">Tackling Those Tests, Part 3: Testing Made Easy With Gems</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/">Tackling Those Tests, Part 2: Getting Fun and Functional With FactoryGirl</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/">Tackling Those Tests, Part 1: The How, When, and What of Rspec Testing</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/07/querying-at-warp-drive-using-activerecord-includes/">Querying at Warp Drive: Using ActiveRecord Includes</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable/">Delegating All of the Things With Ruby Forwardable</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

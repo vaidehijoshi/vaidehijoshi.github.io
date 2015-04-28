@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rails | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-04-20T23:47:16-04:00</updated>
+  <updated>2015-04-28T01:06:35-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,146 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Tackling Those Tests, Part 3: Testing Made Easy With Gems]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems/"/>
+    <updated>2015-04-28T08:50:59-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems</id>
+    <content type="html"><![CDATA[<p><img src="https://imgs.xkcd.com/comics/shouldnt_be_hard.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p><em>This blog post is part of a series on testing. Read Part 2 <a href="http://vaidehijoshi.github.io/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/">here</a>.</em></p>
+
+<p>If there&rsquo;s anything that I&rsquo;ve learned about testing while writing this three-part blog post series, it&rsquo;s this: testing is freaking hard! It&rsquo;s tough to figure out the correct syntax and conventions, particularly when you&rsquo;re just starting out. Figuring out when to write a test is also a tricky business. And then sitting down to actually write the test is pretty difficult, too.</p>
+
+<p>But there are ways to make it easier on yourself. And I should know, because I tried to write my tests the hard way, and I definitely do not recommend it. Here&rsquo;s what I <em>do</em> recommend: GEMS! And lots of &lsquo;em. There are a lot of Ruby gems out there, specifically designed to make your testing life easier.</p>
+
+<p>So, to close off this epic series on testing in Rails, I&rsquo;m going to share my two favorite testing gems: <code>shoulda-matchers</code> and <code>database_cleaner</code>. Once you know how to implement them, your testing life will forever be easier. Because, let&rsquo;s be real &ndash; isn&rsquo;t that the way testing <em>should</em> be?</p>
+
+<!--more-->
+
+
+<h2>You Shoulda Used Shoulda</h2>
+
+<p>Last week, we wrote some tests for a <code>ReadingList</code> object, which we tested using factories. To refresh your memory, every <code>ReadingList</code> has a <code>title</code> attribute, which is just a <code>string</code> value. An important test for this object is a <code>title</code> validation. But what would that look like? Probably something like this:</p>
+
+<pre><code class="ruby">require 'rails_helper'
+
+describe ReadingList do
+  context 'has a title' do
+
+    let(:real_list) { create(:reading_list, title: "my list") }
+
+    it 'has a title' do
+      expect(reading_list.title).to eq("Books I Want To Read")
+    end
+  end
+
+  context 'doesn't have a title' do
+    let(:fake_list) { create(:reading_list) }
+
+    it 'raises an error' do
+      expect(fake_list.save!)to raise_error
+    end
+  end
+end
+</code></pre>
+
+<p>Man, that&rsquo;s a lot of work for a single line of Rails code, isn&rsquo;t it? Wait a second &ndash; what if we could shorten this huge test into one line of code? Is is possible? Of course it is! And it&rsquo;s easy too, because the <code>shoulda</code> gem does just that.</p>
+
+<p>To actually use the gem, you just need to add it to the <code>test</code> group within your <code>Gemfile</code>:</p>
+
+<pre><code class="ruby">group :test do
+  gem 'rspec-rails'
+  gem 'shoulda-matchers'
+end
+</code></pre>
+
+<p>You also need to add <code>require 'shoulda/matchers'</code> to your <code>rails_helper.rb</code> file. Now we can rewrite our validation test as a single line:</p>
+
+<pre><code class="ruby">require 'rails_helper'
+
+describe ReadingList do
+  it { should validate_presence_of(:title) } 
+end
+</code></pre>
+
+<p>Pretty awesome, right? We can do this for all of our validations now! But wait &ndash; there&rsquo;s more! The <code>shoulda</code> gem takes care of more than just validations. It can also test for associations in ActiveRecord and actions in our controllers! You can even write super specific validations scoped to a particular attribute or object, like this:</p>
+
+<pre><code class="ruby">it { should validate_uniqueness_of(:reading_list).scoped_to(:title, :user) }
+</code></pre>
+
+<p>YAHHHHSSS we are on a test-writing roll!</p>
+
+<iframe src="//giphy.com/embed/NaNHdFMPAoL2E" width="480" height="241" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>Clean Yo Database</h2>
+
+<p>Now that you can write tests like a pro, you probably have an overwhelming desire to write all the tests and create all the objects and build all the factories. And you totally should. But you should also make sure they don&rsquo;t come back to haunt you.</p>
+
+<p>What do I mean by that, exactly? Well, whenever you run your test suite, you want to be sure that you clean out your database and get rid of any old or repeat data. This is super important when you have a lot of tests. You want to be sure that your test database is getting cleaned after each test, so that the next test starts with an blank database.</p>
+
+<p>Enter <code>database_cleaner</code>, a gem that does exactly what you think it does. Although we&rsquo;re using this gem in conjunction with Rails and RSpec, it also comes in handy for testing with <a href="https://github.com/jnicklas/capybara">capybara</a> and <a href="http://docs.seleniumhq.org/">selenium</a>. I was introduced to this gem by another developer who took one look at my failing test and asked me whether or not I had repeat data. I didn&rsquo;t even realize that database inconsistencies were thing. But they are! And that&rsquo;s why we&rsquo;ll want to use the <code>database_cleaner</code> gem.</p>
+
+<p>Inside of our <code>/spec/rails_helper.rb</code> file, there&rsquo;s a large block that starts with the line <code>RSpec.configure do |config|</code>. That&rsquo;s exactly where our <code>database_cleaner</code> gem code is going to live &ndash; inside of that block.</p>
+
+<p>Inside of that block, we&rsquo;ll stick in this little bit of code:</p>
+
+<pre><code class="ruby">config.before(:suite) do
+end
+
+config.around(:each) do |example|
+end
+</code></pre>
+
+<p>Our <code>config.before(:suite)</code> block is for all the things we want to do before our entire test suite runs. We&rsquo;ll probably want to put in some code that will get rid of old data from previous test suites that we ran earlier.</p>
+
+<p>The <code>config.around(:each)</code> block is for each individual test example that runs in our suite. This is where we would put certain lines of that only need to run for more specific tests (like a capybara test, for example).</p>
+
+<p>But our tests are relatively simple in this example. So, inside of our <code>before(:suite)</code> block, we&rsquo;ll add some instructions:</p>
+
+<pre><code class="ruby">config.before(:suite) do
+  begin
+    DatabaseCleaner.strategy = :transaction
+    DatabaseCleaner.clean_with(:truncation)
+    DatabaseCleaner.start
+  ensure
+    DatabaseCleaner.clean
+  end
+end
+</code></pre>
+
+<p>The <code>start</code> and <code>clean</code> methods hook into the beginning and end of our test suite, ensuring that whatever lines are above actually get executed properly. But what do the two lines above <em>do</em>, exactly?</p>
+
+<p>Well, the <code>clean_with(:truncation)</code> method clears out our test database completely, and the <code>strategy = :transaction</code> method sets the behavior of the database &ldquo;cleaning strategy&rdquo; to be a transaction. Avdi Grimm has a <a href="http://devblog.avdi.org/2012/08/31/configuring-database_cleaner-with-rails-rspec-capybara-and-selenium/">great blog post</a> on what all of this means, and his explanation of transactions is easy to understand:</p>
+
+<blockquote><p>Transactions are very fast, and for all the tests where they do work—that is, any test where the entire test runs in the RSpec process—they are preferable.</p></blockquote>
+
+<p>Okay, cool. But what about our other block? We gotta put some stuff in there, too. But since we don&rsquo;t have any specific instructions or strategies for any of our tests, we&rsquo;ll just run each of our examples normally, inside of a single block:</p>
+
+<pre><code class="ruby">config.around(:each) do |example|
+  DatabaseCleaner.cleaning do
+    example.run
+  end
+end
+</code></pre>
+
+<p>Nice! In just a handful of lines, we&rsquo;ve saved ourselves hours of heartache trying to figure out why one of our tests isn&rsquo;t passing. Well, at least <em>you</em> saved yourself hours of heartache. I already went through the pain of that while trying to debug my poorly-written tests! But one of us will never have to go through that, which I think is a cause for celebration!</p>
+
+<iframe src="//giphy.com/embed/rO7Rqg58ZbJLO" width="480" height="259" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>shoulda-matchers</code> gem helps you keep your code DRY and test for associations and validations. The <code>database_cleaner</code> gem keeps your database clean between tests and helps you avoid problems related to repeat data.</li>
+<li>Both of these gems have well-written and maintained documentation. Read them both! (<a href="http://matchers.shoulda.io/docs/v2.8.0/">shoulda</a> docs and <a href="https://github.com/DatabaseCleaner/database_cleaner">database cleaner</a> docs)</li>
+<li>If you&rsquo;re curious about the difference between transactions, truncations, and deletions, check out <a href="http://makandracards.com/makandra/13045-understanding-database-cleaning-strategies-in-tests">this post</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Tackling Those Tests, Part 2: Getting Fun and Functional With FactoryGirl]]></title>
@@ -947,159 +1087,6 @@ end
 <li>State machines can be broken down into <code>states</code> and <code>events</code>. Events control the flow of one <code>state</code> to another.</li>
 <li>Each <code>event</code> has a <code>from</code> and a <code>to transition</code>. Only if a transition occurs successfully will an object&rsquo;s <code>state</code> change. You can manipulate how an event or transition works using callbacks, blocks, and guards.</li>
 <li>Find more great blog posts that implement FSM&rsquo;s <a href="http://www.sitepoint.com/state-machines-in-ruby/">here</a> and <a href="http://bits.citrusbyte.com/state-design-pattern-with-ruby/?utm_source=rubyweekly&utm_medium=email">here</a>. And if you want to get really fancy, learn how to use <a href="https://github.com/wvanbergen/state_machine-audit_trail">this</a>!</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[It's All in the Family: Using Acts_as_tree]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree/"/>
-    <updated>2015-03-10T08:27:54-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/eWYGCVTJuOcg0" width="480" height="360" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>When working in Rails, it&rsquo;s all the family &ndash; literally. No matter the size of your application, almost all of your objects are going to be related to each other. You can create however many objects you wan because database rows are cheap, cheap, cheap! But the more objects you make, the harder it is to keep track of the other data that the object relates to (which is generally yet <em>another</em> object).</p>
-
-<p>I found myself in such a predicament last week, when I had to make numerous objects relate to one other to create a tree structure. The obvious first approach was to use the <code>belongs_to</code> and <code>has_many</code> relationship. But when I realized that I wanted some <code>Genre</code> objects to belong to <em>other</em> <code>Genre</code> objects, I ran into a problem. Depending solely on the ActiveRecord relationships turned out to be painful, messy, and complicated, and wouldn&rsquo;t make my code very flexible or sustainable over time.</p>
-
-<p>So I Googled around and found a handy plugin created by DHH himself called <code>acts_as_tree</code>. This gem allows you to create a hierarchical structure of objects in your application and &ndash; to take it a step further &ndash; gives you a bunch of incredibly helpful methods. It even allows you to visualize your tree structure! Sound amazing? That&rsquo;s because it is. And if you follow a few easy steps, you can use it in your application, too.</p>
-
-<!--more-->
-
-
-<h2>Family Ties</h2>
-
-<p>So, for this post I&rsquo;ll continue working through my basic eCommerce Bookstore application, which I&rsquo;ve been using as an example for my previous posts. I&rsquo;ve already got some <code>Book</code> objects, but as my store starts to grow, it&rsquo;s going to be pretty hard to keep track of the different genres of <code>Book</code> objects that I currently have available.</p>
-
-<p>The first step to tackling this problem was easy: create <code>Genre</code> objects, each of which <code>has_many</code> different <code>Book</code> objects associated with it, while each <code>Book</code> object will <code>belong_to</code> one specific <code>Genre</code>.</p>
-
-<p>But what about genres that are associated with and &ldquo;descend from&rdquo; other genres? Well, here&rsquo;s where the delightful and easy-to-use <code>acts_as_tree</code> gem comes in.</p>
-
-<iframe src="//giphy.com/embed/pcPeWllpmv6Zq" width="480" height="431" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>First things first: we&rsquo;ll add <code>gem 'acts_as_tree'</code> to our Gemfile.</p>
-
-<p>Next, we need to add a column to our <code>Genre</code> database. We can write a simple migration that will add a <code>parent_id</code> integer to our database, which will allow us to find the parents and children of a <code>Genre</code> object:
-<code>ruby
-class AddParentIdColumnToGenre &lt; ActiveRecord::Migration
-  def change
-    add_column :genres, :parent_id, :integer
-  end
-end
-</code></p>
-
-<p>Finally, we&rsquo;ll head over to our <code>Genre</code> model, which is what we needs to act as a (family) tree. We need to add a single line in here, which implements the ActiveRecord plugin and specifies what we&rsquo;ll be ordering our <code>Genre</code> objects by:
-<code>ruby
-class Genre &lt; ActiveRecord::Base
-  has_many :books
-  validates_presence_of :name
-  acts_as_tree order: "name"
-end
-</code></p>
-
-<h2>Blood Is Thicker Than Water</h2>
-
-<p>Okay, now let&rsquo;s see this baby in action! We can start by making a root <code>Genre</code> object, and then giving it some children:</p>
-
-<pre><code class="ruby">literature = Genre.create("name" =&gt; "Literature")
-
-non_fiction = literature.children.create("name" =&gt; "Non-Fiction")
-fiction = literature.children.create("name" =&gt; "Fiction")
-</code></pre>
-
-<p>Cool, but our tree doesn&rsquo;t really look like a tree yet. Let&rsquo;s give our <code>non_fiction</code> and <code>fiction</code> genres some children, grandchildren, and great-grandchildren of their own:</p>
-
-<pre><code class="ruby">biography = non_fiction.children.create("name" =&gt; "Biography")
-comic_novel = fiction.children.create("name" =&gt; "Comic Novel")
-black_comedy = comic_novel.create("name" =&gt; "Black Comedy")
-parody = comic_novel.create("name" =&gt; "Parody")
-romantic_comedy = comic_novel.create("name" =&gt; "Romanic Comedy")
-satire = comic_novel.create("name" =&gt; "Satire")
-poltical_satire = satire.create("name" =&gt; "Political Satire")
-</code></pre>
-
-<p>Damn. Okay, well now our tree should look look less like a sprout and more like this bad boy:</p>
-
-<iframe src="//giphy.com/embed/hMWmNKdcdhAyI" width="480" height="267" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>It Runs In The Family</h2>
-
-<p>Even though we&rsquo;ve created all these parent-child relationships, what can we do with them, exactly? Well, a lot! You can call the <code>parent</code> and <code>children</code> methods to get a full list of all the objects associated with a particular <code>Genre</code> instance:</p>
-
-<pre><code class="ruby">literature.parent                   # =&gt; nil
-fiction.parent                      # =&gt; literature
-literature.children                 # =&gt; [non_fiction, fiction]
-literature.children.first.children  # =&gt; [Biography]
-
-literature.root?                    # =&gt; true
-fiction.root?                       # =&gt; false
-biography.leaf?                     # =&gt; true
-
-black_comedy.siblings               # =&gt; [parody, romantic_comedy, satire]
-poltical_satire.ancestors           # =&gt; [satire, comic_novel, fiction, literature]
-
-Genre.root                          # =&gt; literature
-</code></pre>
-
-<p>An important thing to note here is that the <code>children</code> method will return an <em>array</em> of objects, even if there&rsquo;s only one child! So if you&rsquo;re trying to get one particular object, remember to call the <code>first</code> method in the array, or search by a <code>Genre</code> object&rsquo;s specific <code>id</code> to avoid annoying bugs.</p>
-
-<p>Some other cool methods to try include:</p>
-
-<ol>
-<li><p><code>leaves</code>, a class method that will return all the &ldquo;leaves&rdquo; of the tree (in an array).</p></li>
-<li><p><code>descendants</code>, an instance method that will return all the children, and the children&rsquo;s children of an object (in an array).</p></li>
-<li><p><code>self_and_siblings</code>, which returns the receiver object, as well as any siblings it may have (in an array).</p></li>
-<li><p><code>default_tree_order</code>, which returns all the objects listed in alphabetical order!</p></li>
-</ol>
-
-
-<p>But the coolest feature of the <code>acts_as_tree</code> gem is Tree View, which allows you to see a visualization of your entire tree. All we have to do view this magic is add this line to our <code>Genre</code> model:</p>
-
-<pre><code class="ruby">extend ActsAsTree::TreeView
-</code></pre>
-
-<p>And then, call the class method <code>tree_view</code>, which takes in an attribute parameter:</p>
-
-<pre><code class="ruby">Genre.tree_view(:name)
-</code></pre>
-
-<p>The resulting return value is pure flora magic:
-<code>
-Literature
- |_ Non-Fiction
- |    |_ Biography
- |_ Fiction
- |    |_ Comic Novel
- |        |_ Black Comedy
- |        |_ Parody
- |        |_ Romantic Comedy
- |        |_ Satire
- |            |_ Political Satire
-</code></p>
-
-<p>Isn&rsquo;t it so beautiful?! Doesn&rsquo;t it make you feel like this:</p>
-
-<iframe src="//giphy.com/embed/FlWgXEtj5aM5G" width="480" height="259" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Or maybe it&rsquo;s just me.</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>A lot of people seem to like the <a href="https://github.com/stefankroes/ancestry"><code>ancestry</code> gem</a>, but I think that <code>acts_as_tree</code> is a good one to start off with. If you need the extra functionality that <code>ancestry</code> provides, then you can eventually level up to that. Another variation on the <code>acts_as_tree</code>  is the <a href="https://github.com/chrisroberts/acts_as_sane_tree"><code>acts_as_sane_tree</code> gem</a>, which is configured for PostgreSQL 8.4 and comes with some cool extra methods (but isn&rsquo;t nearly as massive as ancestry).</li>
-<li>There are a lot of different ways to implement the <code>acts_as_tree</code>. Check out <a href="http://railscasts.com/episodes/162-tree-based-navigation">this railscast</a> on tree-based navigation using this gem/plugin (beware the date on this one, though!).</li>
-<li>There are a lot of different ways to deal with recursive data structures in Rails. Check out this <a href="http://gmarik.info/blog/2012/10/14/recursive-data-structures-with-rails">in-depth look</a> at the tried and tested options to learn more.</li>
 </ul>
 
 ]]></content>

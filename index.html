@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="This blog post is part of a series on testing. Read Part 1 here. Good things always come in pairs, and that couldn&rsquo;t be more true when it &hellip;">
+  <meta name="description" content="This blog post is part of a series on testing. Read Part 2 here. If there&rsquo;s anything that I&rsquo;ve learned about testing while writing this &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,57 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems/">Tackling Those Tests, Part 3: Testing Made Easy With Gems</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-04-28T08:50:59-04:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:50 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/testing/'>testing</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><img src="https://imgs.xkcd.com/comics/shouldnt_be_hard.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p><em>This blog post is part of a series on testing. Read Part 2 <a href="http://vaidehijoshi.github.io/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/">here</a>.</em></p>
+
+<p>If there&rsquo;s anything that I&rsquo;ve learned about testing while writing this three-part blog post series, it&rsquo;s this: testing is freaking hard! It&rsquo;s tough to figure out the correct syntax and conventions, particularly when you&rsquo;re just starting out. Figuring out when to write a test is also a tricky business. And then sitting down to actually write the test is pretty difficult, too.</p>
+
+<p>But there are ways to make it easier on yourself. And I should know, because I tried to write my tests the hard way, and I definitely do not recommend it. Here&rsquo;s what I <em>do</em> recommend: GEMS! And lots of &lsquo;em. There are a lot of Ruby gems out there, specifically designed to make your testing life easier.</p>
+
+<p>So, to close off this epic series on testing in Rails, I&rsquo;m going to share my two favorite testing gems: <code>shoulda-matchers</code> and <code>database_cleaner</code>. Once you know how to implement them, your testing life will forever be easier. Because, let&rsquo;s be real &ndash; isn&rsquo;t that the way testing <em>should</em> be?</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -546,60 +597,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/02/17/time-the-black-sheep-of-the-programming-family/">Time: The Black Sheep of the Programming Family</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-02-17T08:30:24-05:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:30 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><iframe src="//giphy.com/embed/FHuIOZoauNXXO" width="480" height="480" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>No matter where you&rsquo;re from, what programming language you prefer, or which JavaScript framework you&rsquo;re committed to, I think you&rsquo;ll agree with me on one thing: time is a bitch. And no, I don&rsquo;t mean the wrinkles on your forehead kind of time (although that sucks too); I&rsquo;m talking about time as a programming concept.</p>
-
-<p>I mean, you create some migrations, build some models, make some API calls, but then time shows up and brings down the party. I happened to learn all about programming&rsquo;s royal pain in the ass while working with the <a href="http://instagram.com/developer/">Instagram API</a> last week. After I finally got my code working, I took a look at my JSON response and saw this strange creature:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>"created_time": "1423694433"</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Yeah, I didn&rsquo;t know what that was either. So I went down the rabbit hole and learned about all the different things there are to know about dealing with time in your Rails applications. So save yourself some time (HAHA get it, get it?) and get the lowdown below.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/02/17/time-the-black-sheep-of-the-programming-family/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -615,6 +612,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems/">Tackling Those Tests, Part 3: Testing Made Easy With Gems</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/">Tackling Those Tests, Part 2: Getting Fun and Functional With FactoryGirl</a>
       </li>
     
@@ -628,10 +629,6 @@
     
       <li class="post">
         <a href="/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable/">Delegating All of the Things With Ruby Forwardable</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/24/a-machine-state-of-mind-part-2-implementing-state-machines/">A Machine State of Mind, Part 2: Implementing State Machines</a>
       </li>
     
   </ul>
