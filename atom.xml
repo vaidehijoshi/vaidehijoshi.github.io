@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-04-28T01:06:35-04:00</updated>
+  <updated>2015-05-04T23:44:57-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,216 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Metaprogramming Dynamic Methods: Using Public_send]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/"/>
+    <updated>2015-05-05T08:38:29-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send</id>
+    <content type="html"><![CDATA[<p><img src="http://imgs.xkcd.com/comics/hofstadter.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>A really amazing thing happened to me last week: I wrote some code that I was actually proud of! I was trying to solve an interesting problem for an application I started building at work recently, and I implemented the first solution that came into my mind. And after I took a step back from my text editor and actually looked at what I had written, I realized something. My code was actually <em>good</em>.</p>
+
+<p>The very fact that I was so surprised and thrilled at the prospect of writing good code speaks volumes to the nature of programming. Most of the time I abhor the methods I write because I know they could be written better, but I don&rsquo;t have the syntactical flow (yet!) to write them well. So last week&rsquo;s incident of &ldquo;code pride&rdquo;, however fleeting, was rather noteworthy.</p>
+
+<p>I looked back on my code over the weekend and thought about what made it seem so beautiful to me. What did I do differently that made me beam with pride knowing that I had been the one to write that particular method? The short answer to that question is: metaprogramming. <strong>Metaprogramming</strong> is nothing more than abstraction of code, which often means that your code will write more code for you! Of course, there are a lot of different techniques and approaches to this, and I&rsquo;m certainly no expert. But I did learn a little something about a meta method called <code>public_send</code>, and I&rsquo;ll show you just how I used it!</p>
+
+<!--more-->
+
+
+<h2>Gotta Dispatch? Do It Dynamically.</h2>
+
+<p>Everything in Ruby &ndash; everything in programming, really &ndash; is just an abstraction. We sprinkle some syntactic sugar to make our lives easier and code simpler, but it&rsquo;s all just an abstraction of something else. When we&rsquo;re refactoring by metaprogramming, it&rsquo;s this same concept of abstraction that we have to keep in mind. And when we look for and find patterns within our code, it&rsquo;s generally a sign that we could be encapsulating and abstracting away that piece of functionality.</p>
+
+<p>My favorite example of abstraction is <strong>method dispatching</strong>. Method dispatching is how we send a message to an object. And boy, do we do that a lot. Since everything in Ruby is an object, whenever you want an object to do something, you have to send it a message. And luckily, because Ruby is so great, the method we use to &ldquo;send&rdquo; messages is called just that: <code>send</code>.</p>
+
+<p>The <code>send</code> method is called in our programs way more than we might realize. For example, if we open up our console and do some simple math:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2.2.0 &gt; 3 + 4
+</span><span class='line'> =&gt; 7</span></code></pre></td></tr></table></div></figure>
+
+
+<p>what we&rsquo;re <em>really</em> doing is sending a message to the <code>3</code> Integer object, and telling it to perform an action (<code>+</code>) in terms of another object (the <code>4</code> Integer object):</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2.2.0 &gt; 3.send(:+, 4)
+</span><span class='line'> =&gt; 7</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The <code>send</code> method takes a parameter of either a string or symbol, which is the method name. The method name will always be the first parameter, and the second  parameters is passed to the method as an argument.</p>
+
+<p>Now, this is great when you know that you want to add 3 and 4. But who is going to add 3 and 4 all of the time? No one, that&rsquo;s who. You&rsquo;re probably going to want to add 3 to 5, and 6, and on and on&hellip;</p>
+
+<p>Enter <strong>dynamic dispatching</strong> to save the day!</p>
+
+<iframe src="//giphy.com/embed/144RafbwKkBDva" width="480" height="269" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Dynamic dispatching, as the slightly odd yet adorable gif above demonstrates, involves sending various messages (read: methods) to objects, with the added caveat that our methods keep changing, depending on the situation. Dynamic dispatching also allows us to send different methods to objects in our program without any other object knowing the contents of that message. A good indicator for using dynamic dispatching is if you have call a method in a specific situation, but don&rsquo;t know what exactly that method will be.</p>
+
+<p>Confused yet? Okay, okay, let me give you an example.</p>
+
+<h2>You Can Send Whuteva You Like</h2>
+
+<p>Knowing that you can use <code>send</code> to &ldquo;send&rdquo; different methods to an object is only half the fun. The other half is figuring out when to pull out this tool from your Toolbelt of Knowledge™ &ndash; yes, I&rsquo;m trademarking this phrase &ndash; and actually use it.</p>
+
+<p>So&hellip;I guess it&rsquo;s time for me to show you a real-life example of how I used recently dynamic dispatch to invoke specific methods in my application! Hopefully to neither your surprise nor chagrin, I&rsquo;ll be using my eCommerce Bookstore example.</p>
+
+<p>In my store, I have a paginated list of different books available for purchase. Each book has only a limited amount of space it can take up in the view, so as an admin of the site, it&rsquo;ll be up to me to decide how I want different books to show up. Some of my books have awesome book covers, so I want to use thumbnail images of their cover as the main &ldquo;viewable attribute&rdquo; in my store. Since I&rsquo;m using the <code>paperclip</code> gem, this will be pretty easy.</p>
+
+<p>However, some books in my store don&rsquo;t even have book covers! My vast collection of Shakespearean plays, for example, would be much better served by making the author as the &ldquo;visible attribute&rdquo;, rather than nonexistent covers. And I think the <em>Game of Thrones</em> book series should have the book title as the &ldquo;visible attribute&rdquo;.</p>
+
+<p>So, how can we handle this? Well, let&rsquo;s first look for any patterns.</p>
+
+<h3>1. Look For Patterns</h3>
+
+<p>In our view, we want to be able to show each <code>Book</code> object using its primary viewable attribute. The problem we&rsquo;re dealing with here is that an admin will mark different attributes for a <code>Book</code> object as &ldquo;viewable&rdquo;, which means that we can&rsquo;t predict whether it&rsquo;ll be a <code>title</code>, <code>author</code>, or an image. But we do know that every <code>Book</code> object has to have <em>some</em> &ldquo;viewable attribute&rdquo;.</p>
+
+<p>Cool, so there is <em>some</em> sort of pattern emerging here: we need to render an attribute, and we don&rsquo;t know what it will be. Or&hellip;do we?</p>
+
+<h3>2. Consider The Data</h3>
+
+<p>Since we&rsquo;re building out an admin panel for this application, we know that every book needs to have a <code>title</code> and an <code>author</code>. The book cover (which we&rsquo;ll refer to as <code>media</code>) is optional, but the other two are not, which means we&rsquo;ll have a validation for our <code>Book</code> objects:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Book</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">validates_presence_of</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">:author</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This validation makes me think about the other things that will <em>always</em> be present on a <code>Book</code> object, and the first thing that comes to mind is a <code>viewable_by</code> attribute. If we think about it, an admin always has to mark <em>something</em> as &ldquo;viewable&rdquo;, and that &ldquo;viewable&rdquo; property can change when they update an object. So this is really a property unique to each <code>Book</code>, which means that it could very well be a column saved in the database.</p>
+
+<p>So, we&rsquo;ll write a migration that adds a <code>viewable_by</code> column, which can never be <code>null</code>, and will always default to a <code>Book</code>&rsquo;s <code>title</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddViewableByToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>    <span class="n">add_column</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:viewable_by</span><span class="p">,</span> <span class="ss">:string</span><span class="p">,</span> <span class="ss">null</span><span class="p">:</span> <span class="kp">false</span><span class="p">,</span> <span class="ss">default</span><span class="p">:</span> <span class="s2">&quot;title&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This migration might look pretty simple, but it is its very simplicity that lends itself so elegantly to some serious metaprogramming that we&rsquo;ll do next.</p>
+
+<h3>3. Encapsulate And Abstract</h3>
+
+<p>This last part can be the hardest to wrap our minds around, but it also happens to be the coolest. As it stands, our database has a column that will be populated with either a string value <code>"title"</code>, <code>"author"</code>, or <code>"media"</code>. These values will be changed and updated by an admin, and they will obviously and inevitably change. But here&rsquo;s what&rsquo;s not going to change: we&rsquo;re still going to want to render the value of whatever attribute is marked as &ldquo;visible&rdquo; &ndash; that is to say, whatever string value is saved as <code>viewable_by</code>.</p>
+
+<p>If we think back to the pattern we just identified, we realize that the attribute changes, but what we want to do with it stays the same. No matter what the <code>Book</code> is <code>viewable_by</code>, we want to render it. We want to send a message to this object and tell it, <em>Hey Book! Whatever you are viewable by is exactly what you should show yourself as!</em></p>
+
+<p>And this is where we can use <code>send</code> to encapsulate and abstract this away into a single method call. First, we&rsquo;ll want to add a method that checks whether this is an image &ndash; if it is, we&rsquo;ll hand it off to the <code>paperclip</code> gem to render the image:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">show_cover?</span>
+</span><span class='line'>  <span class="nb">self</span><span class="o">.</span><span class="n">viewable_by</span> <span class="o">==</span> <span class="s1">&#39;media&#39;</span> <span class="p">?</span> <span class="kp">true</span> <span class="p">:</span> <span class="kp">false</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This method will return <code>true</code> if we the <code>viewable_by</code> attribute is set to <code>media</code>, and <code>false</code> if it&rsquo;s not. We can use this <code>boolean</code> return value in a conditional statement:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">book_html</span>
+</span><span class='line'>  <span class="k">if</span> <span class="n">show_cover?</span>
+</span><span class='line'>    <span class="c1"># Code here will generate and return</span>
+</span><span class='line'>    <span class="c1"># an html image tag to render in view.</span>
+</span><span class='line'>  <span class="k">else</span>
+</span><span class='line'>    <span class="nb">send</span><span class="p">(</span><span class="nb">self</span><span class="o">.</span><span class="n">viewable_by</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Whoaaaaa, whut is happening? The answer is: something cool! This <code>book_html</code> method will render either a thumbnail image (which we let some other code worry about generating), or it returns a <code>title</code> or an <code>author</code>. And what&rsquo;s really cool is that, we could add other attributes to our table &ndash; like <code>year</code> or <code>genre</code> and render html based on that, as long as it was saved in our <code>viewable</code> column.</p>
+
+<p>How does this work exactly? Well, whenever we create a new column in our database, we get two important methods for free: a reader and a writer. That means that we have both a <code>title=</code> and a <code>title</code> method.</p>
+
+<p>If we look back to how the <code>send</code> method works, we&rsquo;ll remember that the <code>send</code> method takes a parameter of a string or a symbol, which is the name of the method to be called. When we call <code>send</code> and pass it the value of <code>self.viewable_by</code>, we&rsquo;ll actually be calling <code>send("title")</code> on an instance of <code>Book</code>. This will then call <code>title</code> on that instance of <code>Book</code>, returning that particular book&rsquo;s title as a string.</p>
+
+<p>The cool thing about this code is that it&rsquo;s flexible, and has abstracted away a pattern into a dynamic method call, which is dispatched to the appropriate object at the appropriate time. But there&rsquo;s still one major issue with this code that I can see. Let&rsquo;s fix that.</p>
+
+<h2>To Send Or To Public Send? That Is The Question.</h2>
+
+<p>A lot of the most incriminating evidence against using the <code>send</code> method stems from the fact that <code>send</code> can even send <em>private</em> methods to an object. This can be dangerous for your application internally, and also leaves it vulnerable to external, malicious attacks.</p>
+
+<p>A quick fix for this is to instead use <code>public_send</code>, which does exactly what you think it does: send only publicly-accessible methods to the object that is its receiver. Our final code now looks something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Book</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">validates_presence_of</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">:author</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">show_cover?</span>
+</span><span class='line'>    <span class="nb">self</span><span class="o">.</span><span class="n">viewable_by</span> <span class="o">==</span> <span class="s1">&#39;media&#39;</span> <span class="p">?</span> <span class="kp">true</span> <span class="p">:</span> <span class="kp">false</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">book_html</span>
+</span><span class='line'>    <span class="k">if</span> <span class="n">show_cover?</span>
+</span><span class='line'>      <span class="c1"># Code here will generate and return</span>
+</span><span class='line'>      <span class="c1"># an html image tag to render in view.</span>
+</span><span class='line'>    <span class="k">else</span>
+</span><span class='line'>      <span class="n">public_send</span><span class="p">(</span><span class="nb">self</span><span class="o">.</span><span class="n">viewable_by</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Nice! Not too shabby for our first attempt at metaprogramming all the things (or at least one thing).</p>
+
+<p>As hard as it is to do, you can&rsquo;t be too hard on yourself when it comes to refactoring and metaprogramming. I honestly think it just comes with time, practice, and exposure. Eventually, you&rsquo;ll start to recognize the same patterns again and again, and you&rsquo;ll start to learn which tools are the right ones for the job.</p>
+
+<p>Even though it takes a bit more effort, I think learning the different techniques of metaprogramming makes you better and both reading and writing code. By rewriting your old code and implementing some of those metaprogramming techniques, you take away some of the otherwise hard-coded lines in your application, and make it more flexible and dynamic.</p>
+
+<p>If any or all of this sounds intimidating, that&rsquo;s because it is! But it&rsquo;s also not impossible, as I&rsquo;ve recently proven to myself (and hopefully to you). Luckily, Ruby gives us a lot of tools to meta program away our boilerplate code. It&rsquo;s just a question of knowing what those tools are so that you can use them when you see the perfect opportunity. And when you finally metaprogram something, you&rsquo;ll be so impressed with yourself that you&rsquo;ll let out a little squeal of glee like this little kitty and it&rsquo;ll be the cutest thing ever:</p>
+
+<iframe src="//giphy.com/embed/117j1ldyb838Zi" width="480" height="382" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>We can use dynamic dispatching to send a method to an object without being explicit about the method&rsquo;s contents within our application. The <code>send</code> and <code>public_send</code> method are two ways of doing this, and both take a string or symbol as a parameter, and use that to call a method of the same name upon the receiving object.</li>
+<li>Learn the basics of metaprogramming over <a href="http://ruby-metaprogramming.rubylearning.com/html/ruby_metaprogramming_2.html">here</a>, and check out the docs on <a href="http://ruby-doc.org/core-2.2.2/Object.html#method-i-send">send</a> and <a href="http://apidock.com/ruby/Object/public_send">public_send</a>.</li>
+<li>Curious about the different types of dynamic method calls out there? This <a href="http://ruby.about.com/od/oo/ss/Dynamic-Method-Calls.htm">blog post</a> covers a few different kinds in depth.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Tackling Those Tests, Part 3: Testing Made Easy With Gems]]></title>
@@ -3752,54 +3962,6 @@
 <li>Still curious? Check out <a href="http://vimeo.com/24716767">this video</a>, which introduces Ruby recursion in great depth.</li>
 </ul>
 
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[So You Wanna Ship Some Software, Eh?]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2014/11/30/so-you-wanna-ship-some-software-eh/"/>
-    <updated>2014-11-30T18:05:55-05:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2014/11/30/so-you-wanna-ship-some-software-eh</id>
-    <content type="html"><![CDATA[<p>Disheveled hair. Bags under your eyes. Hermit-like tendencies. Suffice it to say, project mode can do a <em>lot</em> of things to a person. It&rsquo;s the first time you&rsquo;re on your own, and the feeling of &ldquo;sink or swim&rdquo; will, inevitably, hit you in the face at some point or another.</p>
-
-<p>But, project mode also teaches you a lot about what it means to focus and ship software. And it doesn&rsquo;t really matter that you&rsquo;ve only been coding for 9 weeks and that your application has only four models and that you&rsquo;re missing a ton of <code>&lt;div&gt;</code> tags. Why? Because the mistakes you make in your first application are ones that you&rsquo;ll never make again. So, inspired by <a href="http://blakedeboer.ghost.io/recent-lessons-learned/">Blake&rsquo;s post on lessons learned</a> from building a web application, here are a few things I learned in the process of shipping my first piece of software:</p>
-
-<!-- more -->
-
-
-<h2>1. Build something you actually care about</h2>
-
-<p>This seems obvious, but it&rsquo;s worth repeating: don&rsquo;t choose a project or problem that you think other people would find interesting &ndash; choose something that <em>you</em> genuinely find interesting. If you aren&rsquo;t invested in the question that you&rsquo;re trying to answer, it&rsquo;s going to be evident in the product and demo. On the other hand, if you really care about what you&rsquo;re building, your passion will not only come through in your product and presentation, but will filter down and get other people excited about what you&rsquo;re building. It&rsquo;s also important to remember that <em>you</em>, more than anyone else, are going to have to look at your data and code; you might as well pick something you won&rsquo;t mind looking at for hours at a time, days on end.</p>
-
-<h2>2. Ignore the OCD impulses, leave styling for later</h2>
-
-<p>Possibly the biggest mistake we made while building our app was trying to make it look better before it was really done. We tried to implement some styling not only before we had picked a theme, but worse: before we actually knew what information we&rsquo;d ultimately end up displaying to our users. All in all, we probably wasted 6-10 hours collectively, all in a futile attempt to make a broken application look prettier. When the time finally came to actually style our application, a lot of time went in trying to reformulate our CSS to make it work with the theme that we chose. So, no matter how much it gnaws at you, leave the styling, design, and UX stuff until your application is fully-functional and, most importantly, <em>finished</em>.</p>
-
-<h2>3. Set small goals &amp; short time limits</h2>
-
-<p>One of the things that our group did quite well was building out one feature at a time and adding functionality to our application bit by bit. We did a good job of writing out and prioritizing the different kinds of functionality and types of features we could tackle in a given day. But it was much tougher to learn how much time to spend on actually building a feature out. A few days into project mode, we started setting time limits for ourselves, both individually and as a team. One person could only spend so much time working on a problem before opening it up to the group, and as a group, we could only debug a problem for so long before outsourcing to a TA or classmate. This minimized the number of hours we spent staring our screens without knowing which direction to go in next. With small, progressive goals to work towards and short spurts of time to complete them in, we were as a whole, far more productive.</p>
-
-<h2>4. Do what you don&rsquo;t know</h2>
-
-<p>I have this fear of routes. Correction: I <em>had</em> a fear of routes. How did I stop being scared of routing and that silly little <code>routes.rb</code> file? I forced myself to map out the routes with my group and take the lead in actually programming them out in our application.</p>
-
-<p>While I coded, my project partner Joe (who&rsquo;s a super skilled router) helped me debug our routes, and made sure to explain why we were routing certain things in a specific way. And when we got to the CSS and styling, he took over the wheel while I helped him navigate the grid column framework in Bootstrap. This ended up being a super symbiotic relationship, because we both worked on the exact topics we knew that we were weak in, and both became better programmers in the process.</p>
-
-<h2>5. Version control: &lsquo;Nuff said.</h2>
-
-<p>If you&rsquo;re rusty on merging branches, making a commit, or merging conflicts, use project mode as an opportunity to conquer your git fears and learn as much as you can. Version control is awesome. It will probably (read: definitely) save you at some point in your project.</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>Build first, design later.</li>
-<li>Write code that you care about.</li>
-<li>Practice what you don&rsquo;t already know.</li>
-<li>For the love of God, commit yo shit!</li>
-</ul>
-
-
-<p><img src="http://www.explainxkcd.com/wiki/images/d/de/git_commit.png" alt="git commit comic" style="display: block; margin-left: auto; margin-right: auto;"></p>
 ]]></content>
   </entry>
   
