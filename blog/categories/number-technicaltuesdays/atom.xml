@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-05-04T23:44:57-04:00</updated>
+  <updated>2015-05-05T07:26:56-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -108,7 +108,7 @@ end
 <p>And this is where we can use <code>send</code> to encapsulate and abstract this away into a single method call. First, we&rsquo;ll want to add a method that checks whether this is an image &ndash; if it is, we&rsquo;ll hand it off to the <code>paperclip</code> gem to render the image:</p>
 
 <pre><code class="ruby">def show_cover?
-  self.viewable_by == 'media' ? true : false
+  self.viewable_by == 'media'
 end
 </code></pre>
 
@@ -142,7 +142,7 @@ end
   validates_presence_of :title, :author
 
   def show_cover?
-    self.viewable_by == 'media' ? true : false
+    self.viewable_by == 'media'
   end
 
   def book_html

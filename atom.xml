@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-05-04T23:44:57-04:00</updated>
+  <updated>2015-05-05T07:26:56-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -126,7 +126,7 @@
 <span class='line-number'>2</span>
 <span class='line-number'>3</span>
 </pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">show_cover?</span>
-</span><span class='line'>  <span class="nb">self</span><span class="o">.</span><span class="n">viewable_by</span> <span class="o">==</span> <span class="s1">&#39;media&#39;</span> <span class="p">?</span> <span class="kp">true</span> <span class="p">:</span> <span class="kp">false</span>
+</span><span class='line'>  <span class="nb">self</span><span class="o">.</span><span class="n">viewable_by</span> <span class="o">==</span> <span class="s1">&#39;media&#39;</span>
 </span><span class='line'><span class="k">end</span>
 </span></code></pre></td></tr></table></div></figure>
 
@@ -186,7 +186,7 @@
 </span><span class='line'>  <span class="n">validates_presence_of</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">:author</span>
 </span><span class='line'>
 </span><span class='line'>  <span class="k">def</span> <span class="nf">show_cover?</span>
-</span><span class='line'>    <span class="nb">self</span><span class="o">.</span><span class="n">viewable_by</span> <span class="o">==</span> <span class="s1">&#39;media&#39;</span> <span class="p">?</span> <span class="kp">true</span> <span class="p">:</span> <span class="kp">false</span>
+</span><span class='line'>    <span class="nb">self</span><span class="o">.</span><span class="n">viewable_by</span> <span class="o">==</span> <span class="s1">&#39;media&#39;</span>
 </span><span class='line'>  <span class="k">end</span>
 </span><span class='line'>
 </span><span class='line'>  <span class="k">def</span> <span class="nf">book_html</span>
