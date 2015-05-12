@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="This blog post is part of a series on Class Inheritance. Read Part 1 here. I recently stumbled upon this line of code that totally floored me. I mean &hellip;">
+  <meta name="description" content="Snowmageddon. Snowpocalypse. The Deep Freeze of 2015. You can call it whatever you want, but we can all agree on one thing: it&rsquo;s so damn cold &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,57 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes/">Bundle Up &amp; Let Your Objects Do the Freezing: Frozen Hashes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-03-03T08:43:04-05:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>8:43 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/b7pVN1KY8ycg0" width="480" height="213" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Snowmageddon. Snowpocalypse. The Deep Freeze of 2015. You can call it whatever you want, but we can all agree on one thing: it&rsquo;s so damn cold outside. In fact, it&rsquo;s so cold that I recently saw this error message while debugging a Postgres issue:
+<code>RuntimeError: can't modify frozen Hash</code></p>
+
+<p>My first thought was, naturally, <em>holy shit, even my hashes are frozen</em>. I did a little digging, and it turns out that we aren&rsquo;t the only ones susceptible to these chilly temperatures. Apparently, objects can also freeze!</p>
+
+<p>So, in honor of the frozen tundra that we all seem to currently inhabit, I decided to explore the icy-cold depths of Rails frozen objects. Before you read on though, you should know: I&rsquo;m going to use only gifs from the Disney animated film, <em>Frozen</em> — don&rsquo;t say I didn&rsquo;t warn you.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -528,55 +579,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/14/to-understand-recursion-you-must-first-understand-recursion/">To Understand Recursion, You Must First Understand Recursion</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-14T22:32:29-05:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:32 pm</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/flatiron/'>flatiron</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><img src="http://xkcdsw.com/content/img/1105.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>Recursion is kind of like the cloud &ndash; it&rsquo;s hard to explain and you might not ever see it, but it definitely is a thing. Yet we deal directly with recursion more than we may realize.</p>
-
-<p><strong><em>Recursion</em></strong> is the process of repating a procedure or action. In Ruby, we put all of our procedures inside of a method, and we use loops to repeat those procedures again and again. So, if we have methods and loops, what&rsquo;s the need for recursion?</p>
-
-<p>Well, as Rubyists, we&rsquo;re pretty lucky to work with a language that&rsquo;s intuitive and human-friendly. We like to read and write code that&rsquo;s actually comprehensive and (ideally) can be understood and appreciated by programmers and non-programmers alike. It turns out that recursion is a big part of that. It can make our code more readable and can even help it run faster.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2014/12/14/to-understand-recursion-you-must-first-understand-recursion/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/3">&larr; Older</a>
@@ -594,6 +596,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/">Investigating Ruby&#8217;s Global Functions + Kernel Module With Puts</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/">Metaprogramming Dynamic Methods: Using Public_send</a>
       </li>
     
@@ -607,10 +613,6 @@
     
       <li class="post">
         <a href="/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/">Tackling Those Tests, Part 1: The How, When, and What of Rspec Testing</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/04/07/querying-at-warp-drive-using-activerecord-includes/">Querying at Warp Drive: Using ActiveRecord Includes</a>
       </li>
     
   </ul>

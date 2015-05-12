@@ -1,0 +1,423 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Investigating Ruby&#8217;s Global Functions + Kernel Module With Puts - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="When you&rsquo;re a relatively new developer, it&rsquo;s easy to get caught up in all of the things that you don&rsquo;t know. And boy is that a &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Investigating Ruby&#8217;s Global Functions + Kernel Module With Puts</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-05-12T08:09:27-04:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:09 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><iframe src="//giphy.com/embed/10Vy7fN9fr7dD2" width="480" height="361" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>When you&rsquo;re a relatively new developer, it&rsquo;s easy to get caught up in all of the things that you don&rsquo;t know. And boy is <em>that</em> a long, long list of things. But there&rsquo;s also another list that we should probably consider and revisit from time to time: the list of all the things we thought we knew, but didn&rsquo;t <em>really</em> understand when we learned them.</p>
+
+<p>Last week, while developing some curriculum for an Intro to Programming course, my co-teacher and I had one of those moments. We were trying to draw a diagram to explain the concept of an object &ldquo;receiving&rdquo; a method. As I looked back through our code snippets, I noticed that we were using very basic methods like <code>puts</code> and <code>gets</code> quite often, as most Ruby tutorials usually do. And then I realized something: I had no clue what the receiver of the <code>puts</code> method was.</p>
+
+<p>We both just sat there, partly perplexed and partly dumbfounded. How could we not know how <code>puts</code> and <code>gets</code> really worked? We used them all the time when we were learning to code, so perhaps we didn&rsquo;t really think past the flexibility of these methods. But now that we are both more seasoned programmers, it seemed strange that we had never really thought about this before.</p>
+
+<p>So, I did exactly what any good developer would do: I asked Twitter. Well, okay, I asked Twitter&hellip;and then I put on my detective hat and did some investigating of my own.</p>
+
+<!--more-->
+
+
+<h2>Puts, I love you, but you&rsquo;re bringing me down</h2>
+
+<blockquote class="twitter-tweet tw-align-center" lang="en"><p lang="en" dir="ltr">RUBYISTS, please help: what is the receiver of the puts and gets methods? Is it the main Object? I need to know, it&#39;s driving me crazy</p>&mdash; Vaidehi Joshi (@vaidehijoshi) <a href="https://twitter.com/vaidehijoshi/status/596465002669875201">May 8, 2015</a></blockquote>
+
+
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+<p>I have a bone to pick with the <code>puts</code> method. Well, okay, two bones I guess. First, it has no explicit receiver:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>♥ irb
+</span><span class='line'>2.2.0 :001 &gt; puts "wat"
+</span><span class='line'>wat
+</span><span class='line'> =&gt; nil </span></code></pre></td></tr></table></div></figure>
+
+
+<p>And second, it&rsquo;s just REALLY hard to figure out what on earth is happening with this method. In fact, the hardest part about understanding <code>puts</code> was figuring out exactly <em>where</em> inside of Ruby it lived.</p>
+
+<p>Apparently though, there&rsquo;s a method for that &ndash; well, two methods, actually. The <code>owner</code> and the <code>receiver</code> methods can be used to ask a method where it lives and who it can be called on. We can just pass it the name of the method we&rsquo;re curious about as a symbol, and then ask it where it belongs:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2.2.0 :002 &gt; method(:puts).receiver
+</span><span class='line'> =&gt; main 
+</span><span class='line'>
+</span><span class='line'>2.2.0 :003 &gt; method(:puts).owner
+</span><span class='line'> =&gt; Kernel </span></code></pre></td></tr></table></div></figure>
+
+
+<p>WAT. It seemed like <code>main</code> was the receiver of this method, while <code>Kernel</code> was the owner, or the place where this method was actually defined.</p>
+
+<p>But did that mean that <code>main</code> was also self within the context of <code>irb</code>? And what <em>was</em> <code>main</code>, exactly? There was only one way to find out:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2.2.0 :004 &gt; method(:gets).receiver == self
+</span><span class='line'> =&gt; true 
+</span><span class='line'>
+</span><span class='line'>2.2.0 :005 &gt; self
+</span><span class='line'> =&gt; main 
+</span><span class='line'>
+</span><span class='line'>2.2.0 :006 &gt; self.class
+</span><span class='line'> =&gt; Object</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pretty weird, right? But hang on&hellip;there was a line up there that was pretty new for me. Something about a <code>Kernel</code>? Let&rsquo;s do a bit more detective work.</p>
+
+<h2>Tell Me &lsquo;Bout Them Kernels</h2>
+
+<iframe src="//giphy.com/embed/rambtrormFyWQ" width="480" height="268" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Okay, you&rsquo;re probably wondering: <em>So that <code>Kernel</code> thing &ndash; what&rsquo;s the deal?</em> Well, it turns out that <code>Kernel</code> is a module, and if you&rsquo;re like me, you probably haven&rsquo;t thought about it that much until now.</p>
+
+<p>But what you might remember about modules is that they have to be mixed into a class in order to be included; that is to say, in order for a class or instances of a class to have access to methods in a module, that module has to be included or extended into the class.</p>
+
+<p>Which means that <code>Kernel</code> has to be included into a Ruby class. But&hellip;which one? To figure out, we need to think back to what <code>self</code> was within the context of <code>irb</code>: <code>main</code>. If we try to ask <code>main</code> for its ancestors (so that we can deduce where the <code>Kernel</code> module is coming into play), we get this error:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2.2.0 :007 &gt; main.ancestors
+</span><span class='line'>NoMethodError: undefined method `ancestors' for main:Object
+</span><span class='line'>  from (irb):75
+</span><span class='line'>  from /usr/bin/irb:12:in `&lt;main&gt;'</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Okay, not so great. But hang on a second&hellip;since we know that <code>main</code> is an instance of the <code>Object</code> class, we can just ask the <code>Object</code> class who its ancestors are!</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2.2.0 :008 &gt; Object.ancestors
+</span><span class='line'> =&gt; [Object, Kernel, BasicObject] </span></code></pre></td></tr></table></div></figure>
+
+
+<p>Nice! We found <code>Kernel</code>, and it looks like it&rsquo;s included the <code>Object</code> class. We can figure this out because it appears to the right of <code>Object</code>, which means it has been mixed into the class to its left.</p>
+
+<p>So, if a method like <code>puts</code> is written in the <code>Kernel</code> module, what can it be called on? Who is doing the &ldquo;receiving&rdquo; of this method call? Well, according to <a href="http://ruby-doc.com/docs/ProgrammingRuby/html/ref_m_kernel.html">the Ruby docs</a>, pretty much anything:</p>
+
+<blockquote><p>The Kernel module is included by class Object, so its methods are available in every Ruby object. These methods are called without a receiver and thus can be called in functional form.</p></blockquote>
+
+<p>So, theoretically-speaking, if the Kernel module is included by class Object, and is therefore available to <em>every</em> Ruby object, we should be able to call <code>puts</code> on a <code>String</code> instance, right?</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2.2.0 :009 &gt; "".puts('wat')
+</span><span class='line'>NoMethodError: private method `puts' called for "":String
+</span><span class='line'>  from (irb):79
+</span><span class='line'>  from /usr/bin/irb:12:in `&lt;main&gt;'</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Uh oh! Maybe we can&rsquo;t. But&hellip;why not?</p>
+
+<h2>Global Functions</h2>
+
+<p>If you are smart cookie, you probably read that error and guessed that <code>puts</code> is a private method defined on <code>Kernel</code>. We can confirm this by using the <code>private_method_defined?</code> method to double check:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2.2.0 :010 &gt; Kernel.private_method_defined?(:puts)
+</span><span class='line'> =&gt; true</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The fact that <code>puts</code> is a private method is important. It means that it can&rsquo;t be called explicitly by anyone else. But how is it, then, that we use this method so frequently and easily? Well, because its mixed in to class <code>Object</code>, it&rsquo;s accessible to any Ruby object &ndash; but only in the current context. This explains why <code>puts</code> never has to be called explicitly upon any object; instead, it will be called <em>implicitly</em> on whatever <code>self</code> happens to be. In other words, the method will be called on the current context of <code>self</code>.</p>
+
+<p>It&rsquo;s also pretty crucial that a method like <code>puts</code> can be called in the current context of self. In fact, that&rsquo;s exactly what allows us to do this within a Ruby class:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Class</span> <span class="no">Duck</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">swim</span>
+</span><span class='line'>    <span class="nb">puts</span> <span class="s2">&quot;We&#39;re swimming.&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">quack</span>
+</span><span class='line'>    <span class="nb">puts</span> <span class="s2">&quot;Quack quack!&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>or something like this in <code>irb</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="mi">2</span><span class="o">.</span><span class="mi">2</span><span class="o">.</span><span class="mi">0</span> <span class="p">:</span><span class="mo">011</span> <span class="o">&gt;</span> <span class="nb">puts</span> <span class="s2">&quot;Waddle waddle&quot;</span>
+</span><span class='line'><span class="no">Waddle</span> <span class="n">waddle</span>
+</span><span class='line'> <span class="o">=&gt;</span> <span class="kp">nil</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Even though the context of <code>self</code> changes from the Duck Class, to an instance of a Duck, back to <code>main</code> in <code>irb</code>, we have access to <code>puts</code> in all contexts. It&rsquo;s kind of magical, if you think about it: a single private method, defined in a module, trickles down to all Ruby objects that descend from it!</p>
+
+<p>And this magic has a name: <strong>global functions</strong> work. Since methods like <code>puts</code> are defined on the <code>Kernel</code> and mixed into the <code>Object</code> class, they are accessible <em>everywhere</em>. They&rsquo;re private methods, which means they must be invoked without an explicit receiver (also known as a &ldquo;function form&rdquo; of method invocation).</p>
+
+<p>I really liked the way that <a href="https://codequizzes.wordpress.com/2014/04/22/rubys-kernel-module/">this blog post</a> explains the concept:</p>
+
+<blockquote><p>Virtually all Ruby objects inherit from Object and have access to the methods defined in the Kernel module, so Kernel’s private instance methods are accessible virtually anywhere in a Ruby program, regardless of self.</p></blockquote>
+
+<p>And you know what&rsquo;s even cooler? These global functions defined on <code>Kernel</code> are used everywhere! In fact, you probably don&rsquo;t even realize that you use them. Here are some of the ones that surprised me:</p>
+
+<ul>
+<li><code>gets</code></li>
+<li><code>chomp</code></li>
+<li><code>sleep</code></li>
+<li><code>require</code></li>
+<li><code>gem</code></li>
+<li><code>rand</code></li>
+<li><code>gsub</code></li>
+<li><code>proc</code></li>
+<li><code>eval</code></li>
+</ul>
+
+
+<p>Yup. All of these methods are defined on <code>Kernel</code>, available to all objects (including <code>main</code> as <code>self</code> in <code>irb</code>), and don&rsquo;t need a receiver to be called!</p>
+
+<iframe src="//giphy.com/embed/gLRDi5KnA3Fte" width="480" height="374" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Now that you know where all these methods live and where they come from, you probably feel pretty powerful. You also will hopefully feel more purposeful when you write even a simple <code>puts</code> statement in a line of code.</p>
+
+<p>Perhaps the moral of the story here is to never take code for granted: always question how it works and try to understand exactly what&rsquo;s going on in every line that you type.</p>
+
+<p>The second moral is to use other developers on Twitter as resources to help you figure out what to Google, obvs.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>Kernel</code> module is mixed into the <code>Object</code> class, which means all methods (including private methods!) defined on this module are accesible to all Ruby objects, making them &ldquo;global&rdquo; functions.</li>
+<li>Even though a method&rsquo;s implicit receiver is <code>self</code>, the context of <code>self</code> changes depending on which class you are in; this is particularly important when dealing with &ldquo;global&rdquo; functions.</li>
+<li>Curious about <code>main</code> and <code>self</code> in <code>irb</code>? Check out these two great <a href="http://www.sitepoint.com/rubys-top-self-object/">blog</a> <a href="https://banisterfiend.wordpress.com/2010/11/23/what-is-the-ruby-top-level/">posts</a>.</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-05-12T08:09:27-04:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:09 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/" title="Previous Post: Metaprogramming Dynamic Methods: Using Public_send">&laquo; Metaprogramming Dynamic Methods: Using Public_send</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/">Investigating Ruby&#8217;s Global Functions + Kernel Module With Puts</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/">Metaprogramming Dynamic Methods: Using Public_send</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems/">Tackling Those Tests, Part 3: Testing Made Easy With Gems</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/">Tackling Those Tests, Part 2: Getting Fun and Functional With FactoryGirl</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/">Tackling Those Tests, Part 1: The How, When, and What of Rspec Testing</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-05-05T07:26:56-04:00</updated>
+  <updated>2015-05-12T01:25:23-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,225 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Investigating Ruby's Global Functions + Kernel Module With Puts]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/"/>
+    <updated>2015-05-12T08:09:27-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/10Vy7fN9fr7dD2" width="480" height="361" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>When you&rsquo;re a relatively new developer, it&rsquo;s easy to get caught up in all of the things that you don&rsquo;t know. And boy is <em>that</em> a long, long list of things. But there&rsquo;s also another list that we should probably consider and revisit from time to time: the list of all the things we thought we knew, but didn&rsquo;t <em>really</em> understand when we learned them.</p>
+
+<p>Last week, while developing some curriculum for an Intro to Programming course, my co-teacher and I had one of those moments. We were trying to draw a diagram to explain the concept of an object &ldquo;receiving&rdquo; a method. As I looked back through our code snippets, I noticed that we were using very basic methods like <code>puts</code> and <code>gets</code> quite often, as most Ruby tutorials usually do. And then I realized something: I had no clue what the receiver of the <code>puts</code> method was.</p>
+
+<p>We both just sat there, partly perplexed and partly dumbfounded. How could we not know how <code>puts</code> and <code>gets</code> really worked? We used them all the time when we were learning to code, so perhaps we didn&rsquo;t really think past the flexibility of these methods. But now that we are both more seasoned programmers, it seemed strange that we had never really thought about this before.</p>
+
+<p>So, I did exactly what any good developer would do: I asked Twitter. Well, okay, I asked Twitter&hellip;and then I put on my detective hat and did some investigating of my own.</p>
+
+<!--more-->
+
+
+<h2>Puts, I love you, but you&rsquo;re bringing me down</h2>
+
+<blockquote class="twitter-tweet tw-align-center" lang="en"><p lang="en" dir="ltr">RUBYISTS, please help: what is the receiver of the puts and gets methods? Is it the main Object? I need to know, it&#39;s driving me crazy</p>&mdash; Vaidehi Joshi (@vaidehijoshi) <a href="https://twitter.com/vaidehijoshi/status/596465002669875201">May 8, 2015</a></blockquote>
+
+
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+<p>I have a bone to pick with the <code>puts</code> method. Well, okay, two bones I guess. First, it has no explicit receiver:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>♥ irb
+</span><span class='line'>2.2.0 :001 &gt; puts "wat"
+</span><span class='line'>wat
+</span><span class='line'> =&gt; nil </span></code></pre></td></tr></table></div></figure>
+
+
+<p>And second, it&rsquo;s just REALLY hard to figure out what on earth is happening with this method. In fact, the hardest part about understanding <code>puts</code> was figuring out exactly <em>where</em> inside of Ruby it lived.</p>
+
+<p>Apparently though, there&rsquo;s a method for that &ndash; well, two methods, actually. The <code>owner</code> and the <code>receiver</code> methods can be used to ask a method where it lives and who it can be called on. We can just pass it the name of the method we&rsquo;re curious about as a symbol, and then ask it where it belongs:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2.2.0 :002 &gt; method(:puts).receiver
+</span><span class='line'> =&gt; main 
+</span><span class='line'>
+</span><span class='line'>2.2.0 :003 &gt; method(:puts).owner
+</span><span class='line'> =&gt; Kernel </span></code></pre></td></tr></table></div></figure>
+
+
+<p>WAT. It seemed like <code>main</code> was the receiver of this method, while <code>Kernel</code> was the owner, or the place where this method was actually defined.</p>
+
+<p>But did that mean that <code>main</code> was also self within the context of <code>irb</code>? And what <em>was</em> <code>main</code>, exactly? There was only one way to find out:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2.2.0 :004 &gt; method(:gets).receiver == self
+</span><span class='line'> =&gt; true 
+</span><span class='line'>
+</span><span class='line'>2.2.0 :005 &gt; self
+</span><span class='line'> =&gt; main 
+</span><span class='line'>
+</span><span class='line'>2.2.0 :006 &gt; self.class
+</span><span class='line'> =&gt; Object</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pretty weird, right? But hang on&hellip;there was a line up there that was pretty new for me. Something about a <code>Kernel</code>? Let&rsquo;s do a bit more detective work.</p>
+
+<h2>Tell Me &lsquo;Bout Them Kernels</h2>
+
+<iframe src="//giphy.com/embed/rambtrormFyWQ" width="480" height="268" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Okay, you&rsquo;re probably wondering: <em>So that <code>Kernel</code> thing &ndash; what&rsquo;s the deal?</em> Well, it turns out that <code>Kernel</code> is a module, and if you&rsquo;re like me, you probably haven&rsquo;t thought about it that much until now.</p>
+
+<p>But what you might remember about modules is that they have to be mixed into a class in order to be included; that is to say, in order for a class or instances of a class to have access to methods in a module, that module has to be included or extended into the class.</p>
+
+<p>Which means that <code>Kernel</code> has to be included into a Ruby class. But&hellip;which one? To figure out, we need to think back to what <code>self</code> was within the context of <code>irb</code>: <code>main</code>. If we try to ask <code>main</code> for its ancestors (so that we can deduce where the <code>Kernel</code> module is coming into play), we get this error:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2.2.0 :007 &gt; main.ancestors
+</span><span class='line'>NoMethodError: undefined method `ancestors' for main:Object
+</span><span class='line'>  from (irb):75
+</span><span class='line'>  from /usr/bin/irb:12:in `&lt;main&gt;'</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Okay, not so great. But hang on a second&hellip;since we know that <code>main</code> is an instance of the <code>Object</code> class, we can just ask the <code>Object</code> class who its ancestors are!</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2.2.0 :008 &gt; Object.ancestors
+</span><span class='line'> =&gt; [Object, Kernel, BasicObject] </span></code></pre></td></tr></table></div></figure>
+
+
+<p>Nice! We found <code>Kernel</code>, and it looks like it&rsquo;s included the <code>Object</code> class. We can figure this out because it appears to the right of <code>Object</code>, which means it has been mixed into the class to its left.</p>
+
+<p>So, if a method like <code>puts</code> is written in the <code>Kernel</code> module, what can it be called on? Who is doing the &ldquo;receiving&rdquo; of this method call? Well, according to <a href="http://ruby-doc.com/docs/ProgrammingRuby/html/ref_m_kernel.html">the Ruby docs</a>, pretty much anything:</p>
+
+<blockquote><p>The Kernel module is included by class Object, so its methods are available in every Ruby object. These methods are called without a receiver and thus can be called in functional form.</p></blockquote>
+
+<p>So, theoretically-speaking, if the Kernel module is included by class Object, and is therefore available to <em>every</em> Ruby object, we should be able to call <code>puts</code> on a <code>String</code> instance, right?</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2.2.0 :009 &gt; "".puts('wat')
+</span><span class='line'>NoMethodError: private method `puts' called for "":String
+</span><span class='line'>  from (irb):79
+</span><span class='line'>  from /usr/bin/irb:12:in `&lt;main&gt;'</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Uh oh! Maybe we can&rsquo;t. But&hellip;why not?</p>
+
+<h2>Global Functions</h2>
+
+<p>If you are smart cookie, you probably read that error and guessed that <code>puts</code> is a private method defined on <code>Kernel</code>. We can confirm this by using the <code>private_method_defined?</code> method to double check:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2.2.0 :010 &gt; Kernel.private_method_defined?(:puts)
+</span><span class='line'> =&gt; true</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The fact that <code>puts</code> is a private method is important. It means that it can&rsquo;t be called explicitly by anyone else. But how is it, then, that we use this method so frequently and easily? Well, because its mixed in to class <code>Object</code>, it&rsquo;s accessible to any Ruby object &ndash; but only in the current context. This explains why <code>puts</code> never has to be called explicitly upon any object; instead, it will be called <em>implicitly</em> on whatever <code>self</code> happens to be. In other words, the method will be called on the current context of <code>self</code>.</p>
+
+<p>It&rsquo;s also pretty crucial that a method like <code>puts</code> can be called in the current context of self. In fact, that&rsquo;s exactly what allows us to do this within a Ruby class:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Class</span> <span class="no">Duck</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">swim</span>
+</span><span class='line'>    <span class="nb">puts</span> <span class="s2">&quot;We&#39;re swimming.&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">quack</span>
+</span><span class='line'>    <span class="nb">puts</span> <span class="s2">&quot;Quack quack!&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>or something like this in <code>irb</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="mi">2</span><span class="o">.</span><span class="mi">2</span><span class="o">.</span><span class="mi">0</span> <span class="p">:</span><span class="mo">011</span> <span class="o">&gt;</span> <span class="nb">puts</span> <span class="s2">&quot;Waddle waddle&quot;</span>
+</span><span class='line'><span class="no">Waddle</span> <span class="n">waddle</span>
+</span><span class='line'> <span class="o">=&gt;</span> <span class="kp">nil</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Even though the context of <code>self</code> changes from the Duck Class, to an instance of a Duck, back to <code>main</code> in <code>irb</code>, we have access to <code>puts</code> in all contexts. It&rsquo;s kind of magical, if you think about it: a single private method, defined in a module, trickles down to all Ruby objects that descend from it!</p>
+
+<p>And this magic has a name: <strong>global functions</strong> work. Since methods like <code>puts</code> are defined on the <code>Kernel</code> and mixed into the <code>Object</code> class, they are accessible <em>everywhere</em>. They&rsquo;re private methods, which means they must be invoked without an explicit receiver (also known as a &ldquo;function form&rdquo; of method invocation).</p>
+
+<p>I really liked the way that <a href="https://codequizzes.wordpress.com/2014/04/22/rubys-kernel-module/">this blog post</a> explains the concept:</p>
+
+<blockquote><p>Virtually all Ruby objects inherit from Object and have access to the methods defined in the Kernel module, so Kernel’s private instance methods are accessible virtually anywhere in a Ruby program, regardless of self.</p></blockquote>
+
+<p>And you know what&rsquo;s even cooler? These global functions defined on <code>Kernel</code> are used everywhere! In fact, you probably don&rsquo;t even realize that you use them. Here are some of the ones that surprised me:</p>
+
+<ul>
+<li><code>gets</code></li>
+<li><code>chomp</code></li>
+<li><code>sleep</code></li>
+<li><code>require</code></li>
+<li><code>gem</code></li>
+<li><code>rand</code></li>
+<li><code>gsub</code></li>
+<li><code>proc</code></li>
+<li><code>eval</code></li>
+</ul>
+
+
+<p>Yup. All of these methods are defined on <code>Kernel</code>, available to all objects (including <code>main</code> as <code>self</code> in <code>irb</code>), and don&rsquo;t need a receiver to be called!</p>
+
+<iframe src="//giphy.com/embed/gLRDi5KnA3Fte" width="480" height="374" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Now that you know where all these methods live and where they come from, you probably feel pretty powerful. You also will hopefully feel more purposeful when you write even a simple <code>puts</code> statement in a line of code.</p>
+
+<p>Perhaps the moral of the story here is to never take code for granted: always question how it works and try to understand exactly what&rsquo;s going on in every line that you type.</p>
+
+<p>The second moral is to use other developers on Twitter as resources to help you figure out what to Google, obvs.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>Kernel</code> module is mixed into the <code>Object</code> class, which means all methods (including private methods!) defined on this module are accesible to all Ruby objects, making them &ldquo;global&rdquo; functions.</li>
+<li>Even though a method&rsquo;s implicit receiver is <code>self</code>, the context of <code>self</code> changes depending on which class you are in; this is particularly important when dealing with &ldquo;global&rdquo; functions.</li>
+<li>Curious about <code>main</code> and <code>self</code> in <code>irb</code>? Check out these two great <a href="http://www.sitepoint.com/rubys-top-self-object/">blog</a> <a href="https://banisterfiend.wordpress.com/2010/11/23/what-is-the-ruby-top-level/">posts</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Metaprogramming Dynamic Methods: Using Public_send]]></title>
@@ -3816,150 +4035,6 @@
 <li>The <strong>clearInterval</strong> method takes an in-scope variable which points to the setInterval method.</li>
 <li>Both of these timing events work together as a pair.</li>
 <li>Want to read more about timing events in JavaScript? Check out setInterval + clearInterval&rsquo;s cousins, <a href="http://javascript.info/tutorial/settimeout-setinterval">setTimeout and clearTimeout</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[To Understand Recursion, You Must First Understand Recursion]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2014/12/14/to-understand-recursion-you-must-first-understand-recursion/"/>
-    <updated>2014-12-14T22:32:29-05:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2014/12/14/to-understand-recursion-you-must-first-understand-recursion</id>
-    <content type="html"><![CDATA[<p><img src="http://xkcdsw.com/content/img/1105.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>Recursion is kind of like the cloud &ndash; it&rsquo;s hard to explain and you might not ever see it, but it definitely is a thing. Yet we deal directly with recursion more than we may realize.</p>
-
-<p><strong><em>Recursion</em></strong> is the process of repating a procedure or action. In Ruby, we put all of our procedures inside of a method, and we use loops to repeat those procedures again and again. So, if we have methods and loops, what&rsquo;s the need for recursion?</p>
-
-<p>Well, as Rubyists, we&rsquo;re pretty lucky to work with a language that&rsquo;s intuitive and human-friendly. We like to read and write code that&rsquo;s actually comprehensive and (ideally) can be understood and appreciated by programmers and non-programmers alike. It turns out that recursion is a big part of that. It can make our code more readable and can even help it run faster.</p>
-
-<!-- more -->
-
-
-<h2>Functionally Recursive Babushkas</h2>
-
-<p>In Ruby, we use recursion when we call a method from within itself. Sometimes, when you&rsquo;re within the scope of a method, you want to repeat the same action again from inside of it. Functional recursion achieves exactly that goal.</p>
-
-<p>One of the best metaphors for recursion that I&rsquo;ve heard comes from my friend and <a href="http://jimmykuruvilla.github.io/">fellow classmate, Jimmy</a>. He explained recursion as a set of nested Russian matryoshka (aka babushka) dolls:</p>
-
-<p><img src="http://www.russia-ex.com/images/blog/Matryoshka-Dolls-1.jpg" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>These dolls work in a pretty interesting way. Within each one, there is another doll that is exactly the same. You have multiple copies of the same doll, each within another, until eventually, you get to the smallest doll.</p>
-
-<p>In the programming context, the smallest doll is your <strong>base case</strong>. The base case is imperative when it comes to utilizing recursion. It&rsquo;s how you tell your recursive method when to <em>stop</em> calling itself from inside of itself.</p>
-
-<p>Imagine what would happen if you didn&rsquo;t have a final doll to end with &ndash; you&rsquo;d just keep going and going and going until, eventually, your head would probably explode:</p>
-
-<iframe src="//giphy.com/embed/MrZTFRJ8F4n6" width="480" height="641" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Or, more likely, you&rsquo;d be stuck in something like an infinite loop, and you&rsquo;d eventually use more memory than whatever was available to you in the stack, ending up with an error like <code>SystemStackError: stack level too deep</code> or <code>Stack overflow!</code>.</p>
-
-<p>These kinds of errors are good reminders of how dangerous recursion can be. But don&rsquo;t let that dissuade you! Recursion can also be pretty powerful, especially if you want to repeat a function multiple times.</p>
-
-<h2>Recursion, Rinse, Repeat</h2>
-
-<p>A classic example for explaining recursion is calculating factorials. Just in case you need a refresher: a factorial is the product of an integer and all the integers below it, up to the number 1. The factorial of 4 would be written out as: <code>4 * 3 * 2 * 1</code>, or <code>24</code>.</p>
-
-<p>Now, we could very easily write this using a <code>while</code> loop:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">factorial</span><span class="p">(</span><span class="n">num</span><span class="p">)</span>
-</span><span class='line'>  <span class="n">factorial_count</span> <span class="o">=</span> <span class="mi">1</span>
-</span><span class='line'>  <span class="k">while</span> <span class="n">num</span> <span class="o">&gt;</span> <span class="mi">0</span>
-</span><span class='line'>    <span class="n">factorial_count</span> <span class="o">*=</span> <span class="n">num</span>
-</span><span class='line'>    <span class="n">num</span> <span class="o">-=</span> <span class="mi">1</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>  <span class="nb">puts</span> <span class="n">factorial_count</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>But let&rsquo;s look at this code for a second. What exactly happens when our compiler runs this code? Well, a lot of stuff.</p>
-
-<ol>
-<li>First, it has to keep track of our counter, since we only ever want to calculate a factorial down to the number 1.</li>
-<li>Then, it checks that the number being passed in as a parameter (for example, <code>num = 7</code>), is greater than 0.</li>
-<li>If <code>num</code> is greater than 0, it will multiply <code>num</code> by the counter.</li>
-<li>Then, it will decrease the counter by 1.</li>
-<li>Finally, it repeats steps 1-4 again until <code>num = 0</code>, in which case it will and finally break out of the <code>while</code> loop.</li>
-</ol>
-
-
-<p>Okay. <strong>WHUT?!</strong> This seems like a lot of stuff to keep track of. And that <code>factorial_count</code> variable is pretty weird and counter-intuitive (pun <em>totally</em> intended). And if we were calculating the factorials for a larger numbr &ndash; say 70, instead of 7 &ndash; this would be a lot of logic to keep track of and repeat over and over.</p>
-
-<p>Let&rsquo;s rethink this problem for a second. What we actually want to do is find the factorials of all the numbers smaller than 7 and greater than 1, and then just multiply them together. In fact, all we really want to do is repeat the same procedure of multiplication.</p>
-
-<p>Instead of using a loop, we could write a method that takes in a single argument <code>num</code>, and actually use that same method to replicate the process of multiplication. That might look something like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">factorial</span><span class="p">(</span><span class="n">num</span><span class="p">)</span>
-</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="n">.</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">include?</span><span class="p">(</span><span class="n">num</span><span class="p">)</span>
-</span><span class='line'>    <span class="k">return</span> <span class="mi">1</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>  <span class="n">num</span> <span class="o">*</span> <span class="n">factorial</span><span class="p">(</span><span class="n">num</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>There&rsquo;s something pretty interesting happening here. If we pass in the number 7 as our parameter for <code>num</code>, our compiler does the following:</p>
-
-<ol>
-<li>First, it immediately jumps past the <code>if</code> statement.</li>
-<li>Next, it multiplies 7 by <code>factorial(6)</code></li>
-<li>Then, inside of the <code>factorial(6)</code> method, it circumvents the <code>if</code> statement again, and multiplies 6 by <code>factorial(5)</code>.</li>
-<li>Eventually, when it hits the <code>if</code> statement, it returns 1.</li>
-</ol>
-
-
-<p>Here&rsquo;s a visualization of what this looks like:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">factorial</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span> <span class="o">=</span> <span class="mi">7</span> <span class="o">*</span> <span class="n">factorial</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
-</span><span class='line'>             <span class="o">=</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">6</span> <span class="o">*</span> <span class="n">factorial</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-</span><span class='line'>             <span class="o">=</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">6</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">factorial</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
-</span><span class='line'>             <span class="o">=</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">6</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">factorial</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
-</span><span class='line'>             <span class="o">=</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">6</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">factorial</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-</span><span class='line'>             <span class="o">=</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">6</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">factorial</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-</span><span class='line'>             <span class="o">=</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">6</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">1</span>
-</span><span class='line'>             <span class="o">=</span> <span class="mi">5040</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Does the Russian doll metaphor make a bit more sense now? Here are our seven dolls, each one nested within another. And our base case is 1, which is where our nesting and recursive function actually ends, helping us avoid a stack overflow error.</p>
-
-<p>I think that the best part of this code, though, is that it&rsquo;s a <em>lot</em> easier to read. There&rsquo;s no counter, no loop, no incrementation. Just one clean and crisp method that you can use as many times as needed after defining it only once. And, if you think about it, the visual representation of the compiler&rsquo;s actions mimics exactly how a real human would write out and solve a factorial problem.</p>
-
-<p>One of the most difficult aspects of programming is picking the right tool for a job. Sometimes, that tool might be recursion and make your job easier. Other times, it might be the completely wrong choice and infinitely complicate your life. But, the more that you code and get comfortable with recursion, the better you&rsquo;ll be at recognizing when to bust out the recursive wrench out of your toolbelt.</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li><em>Recursion</em> is the process of calling a method or function from within itself.</li>
-<li>Functional recursion <strong>must</strong> have a <em>base case</em> in order to avoid stack overflow errors.</li>
-<li>Still curious? Check out <a href="http://vimeo.com/24716767">this video</a>, which introduces Ruby recursion in great depth.</li>
 </ul>
 
 ]]></content>
