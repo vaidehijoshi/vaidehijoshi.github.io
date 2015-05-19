@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Ruby | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-05-12T01:27:08-04:00</updated>
+  <updated>2015-05-19T02:00:26-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -42,7 +42,7 @@
 
 <p>I have a bone to pick with the <code>puts</code> method. Well, okay, two bones I guess. First, it has no explicit receiver:</p>
 
-<pre><code class="ruby">♥ irb
+<pre><code>♥ irb
 2.2.0 :001 &gt; puts "wat"
 wat
  =&gt; nil 
@@ -52,7 +52,7 @@ wat
 
 <p>Apparently though, there&rsquo;s a method for that &ndash; well, two methods, actually. The <code>owner</code> and the <code>receiver</code> methods can be used to ask a method where it lives and who it can be called on. We can just pass it the name of the method we&rsquo;re curious about as a symbol, and then ask it where it belongs:</p>
 
-<pre><code class="ruby">2.2.0 :002 &gt; method(:puts).receiver
+<pre><code>2.2.0 :002 &gt; method(:puts).receiver
  =&gt; main 
 
 2.2.0 :003 &gt; method(:puts).owner
@@ -63,7 +63,7 @@ wat
 
 <p>But did that mean that <code>main</code> was also self within the context of <code>irb</code>? And what <em>was</em> <code>main</code>, exactly? There was only one way to find out:</p>
 
-<pre><code class="ruby">2.2.0 :004 &gt; method(:gets).receiver == self
+<pre><code>2.2.0 :004 &gt; method(:gets).receiver == self
  =&gt; true 
 
 2.2.0 :005 &gt; self
@@ -86,7 +86,7 @@ wat
 
 <p>Which means that <code>Kernel</code> has to be included into a Ruby class. But&hellip;which one? To figure out, we need to think back to what <code>self</code> was within the context of <code>irb</code>: <code>main</code>. If we try to ask <code>main</code> for its ancestors (so that we can deduce where the <code>Kernel</code> module is coming into play), we get this error:</p>
 
-<pre><code class="ruby">2.2.0 :007 &gt; main.ancestors
+<pre><code>2.2.0 :007 &gt; main.ancestors
 NoMethodError: undefined method `ancestors' for main:Object
   from (irb):75
   from /usr/bin/irb:12:in `&lt;main&gt;'
@@ -94,7 +94,7 @@ NoMethodError: undefined method `ancestors' for main:Object
 
 <p>Okay, not so great. But hang on a second&hellip;since we know that <code>main</code> is an instance of the <code>Object</code> class, we can just ask the <code>Object</code> class who its ancestors are!</p>
 
-<pre><code class="ruby">2.2.0 :008 &gt; Object.ancestors
+<pre><code>2.2.0 :008 &gt; Object.ancestors
  =&gt; [Object, Kernel, BasicObject] 
 </code></pre>
 
@@ -106,7 +106,7 @@ NoMethodError: undefined method `ancestors' for main:Object
 
 <p>So, theoretically-speaking, if the Kernel module is included by class Object, and is therefore available to <em>every</em> Ruby object, we should be able to call <code>puts</code> on a <code>String</code> instance, right?</p>
 
-<pre><code class="ruby">2.2.0 :009 &gt; "".puts('wat')
+<pre><code>2.2.0 :009 &gt; "".puts('wat')
 NoMethodError: private method `puts' called for "":String
   from (irb):79
   from /usr/bin/irb:12:in `&lt;main&gt;'
@@ -118,7 +118,7 @@ NoMethodError: private method `puts' called for "":String
 
 <p>If you are smart cookie, you probably read that error and guessed that <code>puts</code> is a private method defined on <code>Kernel</code>. We can confirm this by using the <code>private_method_defined?</code> method to double check:</p>
 
-<pre><code class="rubyruby">2.2.0 :010 &gt; Kernel.private_method_defined?(:puts)
+<pre><code>2.2.0 :010 &gt; Kernel.private_method_defined?(:puts)
  =&gt; true
 </code></pre>
 
@@ -139,7 +139,7 @@ end
 
 <p>or something like this in <code>irb</code>:</p>
 
-<pre><code class="ruby">2.2.0 :011 &gt; puts "Waddle waddle"
+<pre><code>2.2.0 :011 &gt; puts "Waddle waddle"
 Waddle waddle
  =&gt; nil 
 </code></pre>
@@ -443,16 +443,23 @@ end
 
 <ul>
 <li>We&rsquo;ll start by first requiring <code>rails_helper</code> in our <code>reading_list_spec.rb</code>, and stubbing out our tests with a block:
-&#8220;`ruby
-require &lsquo;rails_helper&rsquo;</li>
-</ul>
-
-
-<p>RSpec.describe ReadingList, :type => :model do
-  describe &ldquo;#percentage_read&rdquo; do
-  end
-end
-&#8220;`</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="p">;</span><span class="n">rails_helper</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span><span class="o">&lt;</span><span class="sr">/li&gt;</span>
+</span><span class='line'><span class="sr">&lt;/u</span><span class="n">l</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="no">RSpec</span><span class="o">.</span><span class="n">describe</span> <span class="no">ReadingList</span><span class="p">,</span> <span class="ss">:type</span> <span class="o">=&gt;</span> <span class="ss">:model</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">describe</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="c1">#percentage_read&amp;rdquo; do</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
 
 <p>We can use a <code>describe</code> block to break up our tests into different sections. They will come in handy as our tests start to grow, and will make our test suite easier to read &ndash; not just when we come back to look at them later, but also when another developer digs through our code. The <code>#</code> symbol before our method name denotes that <code>percentage_read</code> is an instance method, another important distinction to make as we go about adding more tests.</p>
 
@@ -590,74 +597,139 @@ end
 <p><br></p>
 
 <p>Ok, maybe you&rsquo;re not a fan of technical jargon. Maybe you&rsquo;d much rather prefer a real-life example of delegation? Alright, here you are:
-&#8220;`ruby
-class Product
-  def sku
-    # Returns a sku specific to a
-    # particular instance of a product.
-  end
-end</p>
-
-<p>class Book &lt;&lt; Product
-  def author
-    # Returns an Author object
-    # associated with that book.
-  end
-end</p>
-
-<pre><code>
-Yup, that's right. Class inheritance, a concept I've &lt;a href="http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my/"&gt;written about&lt;/a&gt; &lt;a href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance-part-1/"&gt;a couple times&lt;/a&gt; that you're probably pretty familiar with at this point, is a type of delegation. 
-
-Since a `Book` object inherits from a `Product` object, it has both an `author` method an a `sku` method. When you ask a `Book` for its `sku`, it first looks in the `Book` class, and when it doesn't find the method in there, it delegates up to its parent class, which is the `Product` class. Instead of making the `Book` responsible for all the functionality, we're using the `Product` object to take care of doing the logic and finding and returning the correct `sku`.
-
-See, you've already worked with delegation! Nothing to fear here. Now let's apply delegation to the Forwardable module.
-
-##Put Your Best Foot Forward
-
-The best way to see Ruby Forwardable in action is by using it to actually refactor something. So, let's take a look at what our raw code looks like right now:
-</code></pre>
-
-<p>class Book
-  def language
-    &ldquo;English&rdquo;
-  end</p>
-
-<p>  def year
-    &ldquo;1926&rdquo;
-  end</p>
-
-<p>  def author
-    &ldquo;Ernest Hemingway&rdquo;
-  end</p>
-
-<p>  def title
-    &ldquo;The Sun Also Rises&rdquo;
-  end
-end</p>
-
-<p>class Product</p>
-
-<p>  def initialize
-    @book = Book.new
-  end</p>
-
-<p>  def language
-    @book.language
-  end</p>
-
-<p>  def year
-    @book.year
-  end</p>
-
-<p>  def author
-    @book.author
-  end</p>
-
-<p>  def info
-    @book.title
-  end
-end
-&#8220;`</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Product</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">sku</span>
+</span><span class='line'>    <span class="c1"># Returns a sku specific to a</span>
+</span><span class='line'>    <span class="c1"># particular instance of a product.</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;class Book &amp;lt;&amp;lt; Product</span>
+</span><span class='line'><span class="sr">  def author</span>
+</span><span class='line'><span class="sr">    # Returns an Author object</span>
+</span><span class='line'><span class="sr">    # associated with that book.</span>
+</span><span class='line'><span class="sr">  end</span>
+</span><span class='line'><span class="sr">end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span>
+</span><span class='line'><span class="no">Yup</span><span class="p">,</span> <span class="n">that</span><span class="s1">&#39;s right. Class inheritance, a concept I&#39;</span><span class="n">ve</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="n">a</span> <span class="n">href</span><span class="o">=</span><span class="s2">&quot;http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my/&quot;</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">written</span> <span class="n">about</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">/</span><span class="n">a</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="n">a</span> <span class="n">href</span><span class="o">=</span><span class="s2">&quot;http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance-part-1/&quot;</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">a</span> <span class="n">couple</span> <span class="n">times</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">/</span><span class="n">a</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="n">that</span> <span class="n">you</span><span class="s1">&#39;re probably pretty familiar with at this point, is a type of delegation. </span>
+</span><span class='line'>
+</span><span class='line'><span class="s1">Since a `Book` object inherits from a `Product` object, it has both an `author` method an a `sku` method. When you ask a `Book` for its `sku`, it first looks in the `Book` class, and when it doesn&#39;</span><span class="n">t</span> <span class="n">find</span> <span class="n">the</span> <span class="nb">method</span> <span class="k">in</span> <span class="n">there</span><span class="p">,</span> <span class="n">it</span> <span class="n">delegates</span> <span class="n">up</span> <span class="n">to</span> <span class="n">its</span> <span class="n">parent</span> <span class="n">class</span><span class="p">,</span> <span class="n">which</span> <span class="n">is</span> <span class="n">the</span> <span class="sb">`Product`</span> <span class="n">class</span><span class="o">.</span> <span class="no">Instead</span> <span class="n">of</span> <span class="n">making</span> <span class="n">the</span> <span class="sb">`Book`</span> <span class="n">responsible</span> <span class="k">for</span> <span class="n">all</span> <span class="n">the</span> <span class="n">functionality</span><span class="p">,</span> <span class="n">we</span><span class="s1">&#39;re using the `Product` object to take care of doing the logic and finding and returning the correct `sku`.</span>
+</span><span class='line'>
+</span><span class='line'><span class="s1">See, you&#39;</span><span class="n">ve</span> <span class="n">already</span> <span class="n">worked</span> <span class="n">with</span> <span class="n">delegation!</span> <span class="no">Nothing</span> <span class="n">to</span> <span class="n">fear</span> <span class="n">here</span><span class="o">.</span> <span class="no">Now</span> <span class="n">let</span><span class="s1">&#39;s apply delegation to the Forwardable module.</span>
+</span><span class='line'>
+</span><span class='line'><span class="s1">##Put Your Best Foot Forward</span>
+</span><span class='line'>
+</span><span class='line'><span class="s1">The best way to see Ruby Forwardable in action is by using it to actually refactor something. So, let&#39;</span><span class="n">s</span> <span class="n">take</span> <span class="n">a</span> <span class="n">look</span> <span class="n">at</span> <span class="n">what</span> <span class="n">our</span> <span class="n">raw</span> <span class="n">code</span> <span class="n">looks</span> <span class="n">like</span> <span class="n">right</span> <span class="ss">now</span><span class="p">:</span>
+</span><span class='line'><span class="o">&lt;</span><span class="sr">/code&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="k">class</span> <span class="nc">Book</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">language</span>
+</span><span class='line'>    <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="no">English</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span>
+</span><span class='line'>  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  def year</span>
+</span><span class='line'><span class="sr">    &amp;ldquo;1926&amp;rdquo;</span>
+</span><span class='line'><span class="sr">  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">def</span> <span class="nf">author</span>
+</span><span class='line'>    <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="no">Ernest</span> <span class="no">Hemingway</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span>
+</span><span class='line'>  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  def title</span>
+</span><span class='line'><span class="sr">    &amp;ldquo;The Sun Also Rises&amp;rdquo;</span>
+</span><span class='line'><span class="sr">  end</span>
+</span><span class='line'><span class="sr">end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="k">class</span> <span class="nc">Product</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  def initialize</span>
+</span><span class='line'><span class="sr">    @book = Book.new</span>
+</span><span class='line'><span class="sr">  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">def</span> <span class="nf">language</span>
+</span><span class='line'>    <span class="vi">@book</span><span class="o">.</span><span class="n">language</span>
+</span><span class='line'>  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  def year</span>
+</span><span class='line'><span class="sr">    @book.year</span>
+</span><span class='line'><span class="sr">  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">def</span> <span class="nf">author</span>
+</span><span class='line'>    <span class="vi">@book</span><span class="o">.</span><span class="n">author</span>
+</span><span class='line'>  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  def info</span>
+</span><span class='line'><span class="sr">    @book.title</span>
+</span><span class='line'><span class="sr">  end</span>
+</span><span class='line'><span class="sr">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
 
 <p>Ugh. You&rsquo;ve probably already recoiled in horror. We have a <code>Book</code> object, which has a <code>language</code>, <code>year</code>, <code>author</code>, and <code>title</code>. And we have a <code>Product</code> object, which creates a new instance of a <code>Book</code> object, and then pretty much repeats all those methods again, using the instance it creates in the <code>initialize</code> method.</p>
 
@@ -752,21 +824,33 @@ p.info
 <p>Using the Forwardable module comes in handy not just for refactoring, but also for your initial structuring of an application. Anytime you have an object handling lots of functionality, think about whether you can encapsulate that functionality into another class, and delegate the methods that aren&rsquo;t directly required into that &ldquo;helper&rdquo; class.</p>
 
 <p>There are some great blog posts with examples of how to use the Forwardable module effectively. Here&rsquo;s an implementation on a Reading List class (think Goodreads):
-&#8220;`ruby
-class ReadingList
-    extend Forwardable</p>
-
-<pre><code>def_delegators :@books, :map, :size, :&lt;&lt;, :shuffle
-def_delegator :@books, :shift, :remove_book
-def_delegator :@books, :push, :add_book
-
-def initialize
-    @books = []
-end      
-</code></pre>
-
-<p>end
-&#8220;`</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ReadingList</span>
+</span><span class='line'>    <span class="kp">extend</span> <span class="no">Forwardable</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;def_delegators :@books, :map, :size, :&amp;lt;&amp;lt;, :shuffle</span>
+</span><span class='line'><span class="sr">def_delegator :@books, :shift, :remove_book</span>
+</span><span class='line'><span class="sr">def_delegator :@books, :push, :add_book</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">def initialize</span>
+</span><span class='line'><span class="sr">    @books = []</span>
+</span><span class='line'><span class="sr">end      </span>
+</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;end</span>
+</span></code></pre></td></tr></table></div></figure></p>
 
 <p>There&rsquo;s some pretty bomb stuff happening in such few lines. The <code>ReadingList</code> class gets initialized with an empty array, which we save as an instance variable, <code>@books</code>. Then we&rsquo;ve also our <code>def_delegators</code>, which delegate <code>map</code>, <code>size</code>, <code>&lt;&lt;</code>, and <code>shuffle</code> to the <code>@books</code>. And we have two methods that we (kinda) wrote: <code>remove_book</code> and <code>add_book</code>.</p>
 

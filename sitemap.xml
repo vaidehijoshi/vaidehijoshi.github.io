@@ -1,151 +1,153 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/</loc>
+    <lastmod>2015-05-19T08:51:11-04:00</lastmod>
+  </url>
+  <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/</loc>
     <lastmod>2015-05-12T08:09:27-04:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/</loc>
     <lastmod>2015-05-05T08:38:29-04:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems/</loc>
     <lastmod>2015-04-28T08:50:59-04:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/</loc>
     <lastmod>2015-04-21T08:34:19-04:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/</loc>
     <lastmod>2015-04-14T08:17:03-04:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/04/07/querying-at-warp-drive-using-activerecord-includes/</loc>
     <lastmod>2015-04-07T08:36:54-04:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable/</loc>
     <lastmod>2015-03-31T08:35:27-04:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/03/24/a-machine-state-of-mind-part-2-implementing-state-machines/</loc>
     <lastmod>2015-03-24T08:03:14-04:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/03/17/a-machine-state-of-mind-part-1-understanding-state-machines/</loc>
     <lastmod>2015-03-17T08:11:22-04:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree/</loc>
     <lastmod>2015-03-10T08:27:54-04:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes/</loc>
     <lastmod>2015-03-03T08:43:04-05:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my/</loc>
     <lastmod>2015-02-24T08:13:49-05:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/02/17/time-the-black-sheep-of-the-programming-family/</loc>
     <lastmod>2015-02-17T08:30:24-05:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/</loc>
     <lastmod>2015-02-10T08:07:09-05:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/02/03/when-enough-is-enough-how-to-know-when-to-use-enums/</loc>
     <lastmod>2015-02-03T08:32:19-05:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/01/27/embrace-your-inner-paranoia-use-acts-as-paranoid/</loc>
     <lastmod>2015-01-27T19:36:16-05:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/01/23/the-fog-creek-fellowship-lessons-in-fearlessness-and-fortitude/</loc>
     <lastmod>2015-01-23T14:04:16-05:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/01/20/implementing-rem-in-css-or-how-to-be-a-shiny-happy-developer/</loc>
     <lastmod>2015-01-20T17:39:10-05:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/01/13/tidying-up-those-views-using-decorators-in-rails/</loc>
     <lastmod>2015-01-13T22:53:10-05:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/01/06/the-final-countdown-using-javascripts-setinterval-plus-clearinterval-methods/</loc>
     <lastmod>2015-01-06T16:30:53-05:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2014/12/14/to-understand-recursion-you-must-first-understand-recursion/</loc>
     <lastmod>2014-12-14T22:32:29-05:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2014/11/30/so-you-wanna-ship-some-software-eh/</loc>
     <lastmod>2014-11-30T18:05:55-05:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2014/11/19/how-programming-makes-you-a-better-writer/</loc>
     <lastmod>2014-11-19T08:08:47-05:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2014/11/16/the-asset-whutline-revisiting-the-asset-pipeline-after-javascript/</loc>
     <lastmod>2014-11-16T23:14:13-05:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2014/10/30/have-you-met-your-controller-yet/</loc>
     <lastmod>2014-10-30T23:28:43-04:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance-part-1/</loc>
     <lastmod>2014-10-16T21:00:34-04:00</lastmod>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/archives/</loc>
-    <lastmod>2015-05-12T01:27:08-04:00</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/</loc>
-    <lastmod>2015-05-12T01:27:08-04:00</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/about/</loc>
-    <lastmod>2015-05-12T01:27:08-04:00</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/blog/categories/flatiron/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/blog/categories/non-technical/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/blog/categories/javascript/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/blog/categories/rails/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/blog/categories/css/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/blog/categories/ruby/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/blog/categories/computer-science/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/blog/categories/refactoring/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/blog/categories/testing/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/blog/categories/metaprogramming/</loc>
   </url>
 </urlset>

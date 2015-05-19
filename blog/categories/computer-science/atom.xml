@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Computer Science | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/computer-science/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-05-12T01:27:08-04:00</updated>
+  <updated>2015-05-19T02:00:26-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -33,26 +33,43 @@
 <h2>Inquiries on Querying</h2>
 
 <p>The best way to know how to make your code run at warp drive is by first figuring out how fast it is to start with. But before we get into the issue of speed, let&rsquo;s check out what our code base looks like:
-&#8220;`ruby
-class Order &lt; ActiveRecord::Base
-  belongs_to :user
-  attr_accessor :details
-end</p>
-
-<p>class User &lt; ActiveRecord::Base
-  has_many :orders</p>
-
-<p>  class &lt;&lt; self
-    def all_order_details
-      User.all.each |user|
-        user.orders.each do |order|
-          order.details
-        end
-      end
-    end
-  end
-end
-&#8220;`</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">belongs_to</span> <span class="ss">:user</span>
+</span><span class='line'>  <span class="kp">attr_accessor</span> <span class="ss">:details</span>
+</span><span class='line'><span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;class User &amp;lt; ActiveRecord::Base</span>
+</span><span class='line'><span class="sr">  has_many :orders&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">class</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="nb">self</span>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">all_order_details</span>
+</span><span class='line'>      <span class="no">User</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">each</span> <span class="o">|</span><span class="n">user</span><span class="o">|</span>
+</span><span class='line'>        <span class="n">user</span><span class="o">.</span><span class="n">orders</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">order</span><span class="o">|</span>
+</span><span class='line'>          <span class="n">order</span><span class="o">.</span><span class="n">details</span>
+</span><span class='line'>        <span class="k">end</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
 
 <p>Nothing <em>too</em> fancy happening here. We&rsquo;ve got a one-to-many relationship here, with a <code>User</code> object having many <code>Orders</code>, and each <code>Order</code> belonging to a <code>User</code>. There&rsquo;s also a class method called <code>all_order_details</code> in our <code>User</code> class. This method queries for all of the <code>User</code> objects in our database, and loops through each <code>User</code> instance, grabbing each order, and calling <code>details</code> on it. And if we take a look at our <code>Order</code> class, we&rsquo;ll see that <code>details</code> is just an attribute on <code>Order</code>. (Forget what that weird <code>class &lt;&lt; self</code> syntax means? Jog your memory with <a href="http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my/">this post</a> from a few weeks ago.)</p>
 
@@ -90,38 +107,67 @@ User Load (1.1ms)  SELECT "users".* FROM "users"
 </code></p>
 
 <p>Loading all of our <code>Users</code> takes 1.1 milliseconds. But what about our <code>Order</code> details? We need to go through our <code>Users</code> table in order to grab each <code>Order</code>&rsquo;s details. That&rsquo;s exactly what&rsquo;s happening in each one of the queries that looks like this:
-&#8220;`ruby
-Order Load (0.6ms)  SELECT &ldquo;orders&rdquo;.<em> FROM &ldquo;orders&rdquo; WHERE &ldquo;orders&rdquo;.&ldquo;user_id&rdquo; = ?  [[&ldquo;user_id&rdquo;, 1]]
-Order Load (0.1ms)  SELECT &ldquo;orders&rdquo;.</em> FROM &ldquo;orders&rdquo; WHERE &ldquo;orders&rdquo;.&ldquo;user_id&rdquo; = ?  [[&ldquo;user_id&rdquo;, 2]]</p>
-
-<h1>more queries for each user&rsquo;s orders</h1>
-
-<pre><code>
-We're first loading all the `Orders` when we look for a `User` with an `id` of `1`, which takes us 0.6 milliseconds. And as we continue querying through the remaining 9 `Users` in our database, each query takes us 0.1 milliseconds.
-
-Right now, this might not seem like that big of a deal. But we have to keep in mind that we only have ten users so far! Hopefully, we'll have a *lot* more as our user base grows. And that's where our problem comes in. Actually, our problem is quite common, and it's even got a name: **the n + 1 problem**.
-
-The crux of the n + 1 problem is essentially this: the number of queries you make will directly correspond to the number of objects (n) that you have in your database. This means that we'll have 1 query to get all of our `User` objects, and n number of *additional* queries for each `User` object we want to get order details from.
-
-With only 10 users, we'll make 11 queries in total: 1 query for our users, and 10 for each user we query to load the user's order details. But what if we have 10,000 users? Or if we're being optimistic, 100,000 user? ...Or even a million? Making over a hundred thousand queries is just way too slow and simply not acceptable.
-
-Thankfully, this problem is so common that Rails has a fantastic solution, tailor-made to handle it.
-
-## Smarter Querying
-
-Rails is a pretty smart cookie -- it allows you to load a bunch of stuff at once ahead of time if you know exactly what you want to query. This is referred to as **eager loading**, and a really easy way to eager load your associations is by using the ActiveRecord method `includes`.
-
-You can call `includes` on an object an pass it a parameter of the table you want to load as a symbol name. We can implement this directly on our `all_order_details` method:
-</code></pre>
-
-<p>def all_order_details
-  User.all.includes(:orders).each |user|
-    user.orders.each do |order|
-      order.details
-    end
-  end
-end
-&#8220;`</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">6</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">orders</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span><span class="o">.</span><span class="n">&lt;em</span><span class="o">&gt;</span> <span class="no">FROM</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">orders</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span> <span class="no">WHERE</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">orders</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span><span class="o">.</span><span class="n">&amp;ldquo</span><span class="p">;</span><span class="n">user_id</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span> <span class="o">=</span> <span class="p">?</span>  <span class="o">[[&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">user_id</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;,</span> <span class="mi">1</span><span class="o">]]</span>
+</span><span class='line'><span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">1</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">orders</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span><span class="o">.</span><span class="n">&lt;</span><span class="sr">/em&gt; FROM &amp;ldquo;orders&amp;rdquo; WHERE &amp;ldquo;orders&amp;rdquo;.&amp;ldquo;user_id&amp;rdquo; = ?  [[&amp;ldquo;user_id&amp;rdquo;, 2]]&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">more</span> <span class="n">queries</span> <span class="k">for</span> <span class="n">each</span> <span class="n">user</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span><span class="n">s</span> <span class="n">orders</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;</span>
+</span><span class='line'><span class="sr">We&#39;re first loading all the `Orders` when we look for a `User` with an `id` of `1`, which takes us 0.6 milliseconds. And as we continue querying through the remaining 9 `Users` in our database, each query takes us 0.1 milliseconds.</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">Right now, this might not seem like that big of a deal. But we have to keep in mind that we only have ten users so far! Hopefully, we&#39;ll have a *lot* more as our user base grows. And that&#39;s where our problem comes in. Actually, our problem is quite common, and it&#39;s even got a name: **the n + 1 problem**.</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">The crux of the n + 1 problem is essentially this: the number of queries you make will directly correspond to the number of objects (n) that you have in your database. This means that we&#39;ll have 1 query to get all of our `User` objects, and n number of *additional* queries for each `User` object we want to get order details from.</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">With only 10 users, we&#39;ll make 11 queries in total: 1 query for our users, and 10 for each user we query to load the user&#39;s order details. But what if we have 10,000 users? Or if we&#39;re being optimistic, 100,000 user? ...Or even a million? Making over a hundred thousand queries is just way too slow and simply not acceptable.</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">Thankfully, this problem is so common that Rails has a fantastic solution, tailor-made to handle it.</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">## Smarter Querying</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">Rails is a pretty smart cookie -- it allows you to load a bunch of stuff at once ahead of time if you know exactly what you want to query. This is referred to as **eager loading**, and a really easy way to eager load your associations is by using the ActiveRecord method `includes`.</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">You can call `includes` on an object an pass it a parameter of the table you want to load as a symbol name. We can implement this directly on our `all_order_details` method:</span>
+</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;def all_order_details</span>
+</span><span class='line'><span class="sr">  User.all.includes(:orders).each |user|</span>
+</span><span class='line'><span class="sr">    user.orders.each do |order|</span>
+</span><span class='line'><span class="sr">      order.details</span>
+</span><span class='line'><span class="sr">    end</span>
+</span><span class='line'><span class="sr">  end</span>
+</span><span class='line'><span class="sr">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
 
 <p>This may look pretty similar to our original code at first, but when we look at our server logs, we can see a world of difference:
 <code>ruby
@@ -198,61 +244,104 @@ end
 </code></pre>
 
 <p>Including the gem is the easy part. The next part is slightly trickier, yet remains pretty intuitive. First, we&rsquo;ll start by defining two states: an initial <code>state</code> that we want our object to start off in, and a second <code>state</code> we want our object to transition to. Then, we&rsquo;ll want to adding an <code>event</code> with an <code>from</code> and <code>to</code> in its <code>transition</code>:
-&#8220;`ruby
-aasm do
-  state :unplaced, :initial => true
-  state :submitted</p>
-
-<p>  event :submit do
-    transitions :from => :unplaced, :to => :submitted
-  end
-end
-&#8220;`</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">aasm</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">state</span> <span class="ss">:unplaced</span><span class="p">,</span> <span class="ss">:initial</span> <span class="o">=&gt;</span> <span class="kp">true</span>
+</span><span class='line'>  <span class="n">state</span> <span class="ss">:submitted</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  event :submit do</span>
+</span><span class='line'><span class="sr">    transitions :from =&gt; :unplaced, :to =&gt; :submitted</span>
+</span><span class='line'><span class="sr">  end</span>
+</span><span class='line'><span class="sr">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
 
 <p>Notice that the <code>event :submit</code> is the present tense verb form of the <code>state :submitted</code>. And when the <code>submit</code> event is called, the <code>Book::Order</code> object&rsquo;s <code>state</code> will transition from one state to the other.</p>
 
 <p>That&rsquo;s pretty much all you really need to implement a state machine. But of course, we&rsquo;ve only got two states here, which isn&rsquo;t really much of a machine and definitely doesn&rsquo;t take advantage of all the functionalities that <code>aasm</code> provides us with.</p>
 
 <p>Let&rsquo;s continue to build on the state machine based on <a href="http://i.imgur.com/Nd3ityK.png">the diagram</a> from last week&rsquo;s post and add a few more states and events:
-&#8220;`ruby
-  aasm do
-    state :unplaced, :initial => true
-    state :submitted
-    state :processing
-    state :shipped
-    state :completed
-    state :returned
-    state :deleted</p>
-
-<pre><code>event :submit do
-  transitions :from =&gt; :unplaced, :to =&gt; :submitted
-end
-
-event :process do
-  transitions :from =&gt; [:submitted, :returned], :to =&gt; :processing
-end
-
-event :ship do
-  transitions :from =&gt; :processing, :to =&gt; :shipped
-end
-
-event :complete do
-  transitions :from =&gt; :shipped, :to =&gt; :completed
-end
-
-event :return do
-  transitions :from =&gt; :complete, :to =&gt; :returned
-end
-
-event :delete do
-  transitions :from =&gt; :processing, :to =&gt; :deleted
-end
-</code></pre>
-
-<p>  end</p>
-
-<p>end
-&#8220;`</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'>  <span class="n">aasm</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">state</span> <span class="ss">:unplaced</span><span class="p">,</span> <span class="ss">:initial</span> <span class="o">=&gt;</span> <span class="kp">true</span>
+</span><span class='line'>    <span class="n">state</span> <span class="ss">:submitted</span>
+</span><span class='line'>    <span class="n">state</span> <span class="ss">:processing</span>
+</span><span class='line'>    <span class="n">state</span> <span class="ss">:shipped</span>
+</span><span class='line'>    <span class="n">state</span> <span class="ss">:completed</span>
+</span><span class='line'>    <span class="n">state</span> <span class="ss">:returned</span>
+</span><span class='line'>    <span class="n">state</span> <span class="ss">:deleted</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;event :submit do</span>
+</span><span class='line'><span class="sr">  transitions :from =&amp;gt; :unplaced, :to =&amp;gt; :submitted</span>
+</span><span class='line'><span class="sr">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">event :process do</span>
+</span><span class='line'><span class="sr">  transitions :from =&amp;gt; [:submitted, :returned], :to =&amp;gt; :processing</span>
+</span><span class='line'><span class="sr">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">event :ship do</span>
+</span><span class='line'><span class="sr">  transitions :from =&amp;gt; :processing, :to =&amp;gt; :shipped</span>
+</span><span class='line'><span class="sr">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">event :complete do</span>
+</span><span class='line'><span class="sr">  transitions :from =&amp;gt; :shipped, :to =&amp;gt; :completed</span>
+</span><span class='line'><span class="sr">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">event :return do</span>
+</span><span class='line'><span class="sr">  transitions :from =&amp;gt; :complete, :to =&amp;gt; :returned</span>
+</span><span class='line'><span class="sr">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">event :delete do</span>
+</span><span class='line'><span class="sr">  transitions :from =&amp;gt; :processing, :to =&amp;gt; :deleted</span>
+</span><span class='line'><span class="sr">end</span>
+</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
 
 <p>Whoa &ndash; now we&rsquo;re talking! This state machine is even more complex than the diagram we started off with!</p>
 
@@ -310,49 +399,89 @@ order.submit            # =&gt; raises AASM::InvalidTransition
 <h3>1. Pass a block to an <code>event</code></h3>
 
 <p>Whenever you want a specific event to call a particular method, simply pass a block to the method. The block will only be called if the transition occurs successfully.
-&#8220;`ruby
-def order_shipped_email
-  # Sends an email informing the User
-  # that their Order has been shipped
-end</p>
-
-<p>order.ship do
-  order.user.send_order_shipped_email
-end</p>
-
-<h1>Only if order.may_ship? returns <code>true</code>,</h1>
-
-<h1>will the <code>send_order_shipped_email</code></h1>
-
-<h1>method actually fire.</h1>
-
-<pre><code>
-### 2. Use a callback
-The `aasm` documentation defines a list of different callbacks you can use for your transitions; the callbacks will only be triggered when certain conditions are met (for example, when you exit a particular `state`).
-</code></pre>
-
-<p>state :shipped, :before_enter => :print_return_label
-state :deleted</p>
-
-<p>event :ship do
-  transitions :from => :processing, :to => :shipped
-end</p>
-
-<p>event :delete do, :after => :send_delete_confirmation do
-  transitions :from => :processing, :to => :deleted
-  end
-end</p>
-
-<p>def print_return_label
-  # Prints order details along with
-  # the return label information.
-end</p>
-
-<p>def send_delete_confirmation
-  # Sends a confirmation email
-  # that the <code>Order</code> has been deleted.
-end
-&#8220;`</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">order_shipped_email</span>
+</span><span class='line'>  <span class="c1"># Sends an email informing the User</span>
+</span><span class='line'>  <span class="c1"># that their Order has been shipped</span>
+</span><span class='line'><span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;order.ship do</span>
+</span><span class='line'><span class="sr">  order.user.send_order_shipped_email</span>
+</span><span class='line'><span class="sr">end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="no">Only</span> <span class="k">if</span> <span class="n">order</span><span class="o">.</span><span class="n">may_ship?</span> <span class="n">returns</span> <span class="o">&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="kp">true</span><span class="o">&lt;</span><span class="sr">/code&gt;,&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">will</span> <span class="n">the</span> <span class="o">&lt;</span><span class="n">code</span><span class="o">&gt;</span><span class="n">send_order_shipped_email</span><span class="o">&lt;</span><span class="sr">/code&gt;&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="nb">method</span> <span class="n">actually</span> <span class="n">fire</span><span class="o">.</span><span class="n">&lt;</span><span class="sr">/h1&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;</span>
+</span><span class='line'><span class="sr">### 2. Use a callback</span>
+</span><span class='line'><span class="sr">The `aasm` documentation defines a list of different callbacks you can use for your transitions; the callbacks will only be triggered when certain conditions are met (for example, when you exit a particular `state`).</span>
+</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;state :shipped, :before_enter =&gt; :print_return_label</span>
+</span><span class='line'><span class="sr">state :deleted&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="n">event</span> <span class="ss">:ship</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">transitions</span> <span class="ss">:from</span> <span class="o">=&gt;</span> <span class="ss">:processing</span><span class="p">,</span> <span class="ss">:to</span> <span class="o">=&gt;</span> <span class="ss">:shipped</span>
+</span><span class='line'><span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;event :delete do, :after =&gt; :send_delete_confirmation do</span>
+</span><span class='line'><span class="sr">  transitions :from =&gt; :processing, :to =&gt; :deleted</span>
+</span><span class='line'><span class="sr">  end</span>
+</span><span class='line'><span class="sr">end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="k">def</span> <span class="nf">print_return_label</span>
+</span><span class='line'>  <span class="c1"># Prints order details along with</span>
+</span><span class='line'>  <span class="c1"># the return label information.</span>
+</span><span class='line'><span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;def send_delete_confirmation</span>
+</span><span class='line'><span class="sr">  # Sends a confirmation email</span>
+</span><span class='line'><span class="sr">  # that the &lt;code&gt;Order&lt;/</span><span class="n">code</span><span class="o">&gt;</span> <span class="n">has</span> <span class="n">been</span> <span class="n">deleted</span><span class="o">.</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
 
 <p>These callbacks work exactly as you might think, hooking into either a state or an event. Before the <code>Order</code> switches states from <code>processed</code> to <code>shipped</code>, the <code>print_return_label</code> method will fire. But the <code>send_delete_confirmation</code> method will only be called after the <code>delete event</code> is finished &ndash; only after the transition from <code>processing</code> to <code>deleted</code> occurs successfully.</p>
 

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rails | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-05-12T01:27:08-04:00</updated>
+  <updated>2015-05-19T02:00:26-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,292 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[The Secret Life of Your Database, Part 1: Migrations]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/"/>
+    <updated>2015-05-19T08:51:11-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations</id>
+    <content type="html"><![CDATA[<p><img src="http://31.media.tumblr.com/tumblr_mcsccsfcnn1qz9l5so1_1280.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>As young developers, we often get caught up in what we don&rsquo;t know. One of the first and hardest lessons to learn when you&rsquo;re starting out as a programmer is the sheer volume of things that you don&rsquo;t know. You have to get comfortable not knowing them, and you have to work towards learning as much about them as you can.</p>
+
+<p>However, sometimes we focus so much on learning new things, that we forget to come back to what we already know &ndash; or at least, what we <em>think</em> we already know. In fact, this is exactly what I&rsquo;ve been guilty of for the past few weeks. I&rsquo;ve been focusing so much on learning new frameworks and getting comfortable with other languages, that I forgot to question my knowledge of Rails. Since it was a known domain and language, I assumed that I didn&rsquo;t need to revisit it that often.</p>
+
+<p>But boy, was I wrong. Just because you&rsquo;re familiar with something doesn&rsquo;t mean that you understand it completely. The trick to dealing with this is to make yourself feel uncomfortable in your otherwise familiar language. And that&rsquo;s exactly what happened to me. Last week, while writing some lines of SQL (yes, really), I ran across a database migration that used an <code>up</code> and a <code>down</code> method. I saw those lines of code and realized something: I had no idea how my database really works. In fact, I&rsquo;ve written so many migrations in so many Rails applications that, at some point, I&rsquo;m stopped thinking about what was actually going on under the hood. So, I set out to make myself uncomfortable and uncover the secret life of my database.</p>
+
+<!--more-->
+
+
+<h2>Teach Me How To Migrate</h2>
+
+<p>Most of us were introduced to Rails databases through migrations. Migrations are how we alter our database schema over time. They implement a Ruby DSL (domain-specific language), and run SQL queries in our database for us. And, they are super easy to learn to use and understand:</p>
+
+<pre><code class="ruby">rails generate migration CreateBooks
+</code></pre>
+
+<p>Running a command like the one above prompts Active Record to create a unique, timestamped file within our <code>/db</code> directory, with a migration class that might look something like this:</p>
+
+<pre><code class="ruby">class CreateBooks &lt; ActiveRecord::Migration
+  def change
+    create_table :books do |t|
+      t.string :title
+      t.integer :year
+
+      t.timestamps null: false
+    end
+  end
+end
+</code></pre>
+
+<p>Nothing <em>too</em> surprising here; we&rsquo;ve seen this kind of <code>change</code> method before. But what you may <em>not</em> have seen &ndash; or at least, understood &ndash; is something that looks like this:</p>
+
+<pre><code class="ruby">class CreateBooks &lt; ActiveRecord::Migration
+  def up
+    create_table :books do |t|
+      t.string :title
+      t.integer :year
+    end
+  end
+
+  def down
+    drop_table :books
+  end
+end
+</code></pre>
+
+<p>So, what does that <code>up</code> and <code>down</code> <em>actually</em> mean? What is going up, exactly&hellip;and what&rsquo;s going down? And how is this different from using the <code>change</code> method, which probably seems way simpler right about now? Well, it&rsquo;s time for us to find out.</p>
+
+<h2>All The Migrations Fit To Run</h2>
+
+<p>The first step to understanding how something works is by unpacking it, step by step. And that&rsquo;s what we&rsquo;ll do with our migrations. Let&rsquo;s first look at how many migrations we currently have.</p>
+
+<p>We&rsquo;ve already generated a few migrations using the <code>rails generate migration</code> commands for our in-progress bookstore application. We can take a look at what all those migrations look like by running the <code>rake db:migrate:status</code> command, which will show us the status of our migrations, including any pending ones we may have:</p>
+
+<pre><code class="ruby">❤ rake db:migrate:status
+
+database: bookstore_development
+
+ Status   Migration ID    Migration Name
+--------------------------------------------------
+   up     20140217160517  Create users
+   up     20150424175043  Create books
+   up     20150429145355  Add media columns to books
+   up     20150430140850  Add author to books
+   up     20150430160704  Add genre to books
+   up     20150430192426  Create reading lists
+   down   20150430191950  Add user id to reading lists
+</code></pre>
+
+<p>Whoa &ndash; look at all those migrations! And more importantly, look at the column to the left of the migrations: seem familiar? Each one of our migrations has a <code>status</code>, which is either <code>up</code> or <code>down</code>. Let&rsquo;s remember this, we&rsquo;re going to come back to it in a second.</p>
+
+<p>According to the Rails <a href="https://github.com/rails/rails/blob/f47b4236e089b07cb683ee9b7ff8b06111a0ec10/activerecord/lib/active_record/railties/databases.rake#L91">source code</a>, the <code>rake:db:migrate:status</code> rake task displays the status of all our migrations. This can be helpful in determining if we have any migrations we need to run. And it looks like we do! Let&rsquo;s run <code>rake db:migrate</code> and then check the status of our migrations again with <code>rake db:migrate:status</code>:</p>
+
+<pre><code class="ruby">❤ rake db:migrate:status
+
+database: bookstore_development
+
+ Status   Migration ID    Migration Name
+--------------------------------------------------
+   up     20140217160517  Create users
+   up     20150424175043  Create books
+   up     20150429145355  Add media columns to books
+   up     20150430140850  Add author to books
+   up     20150430160704  Add genre to books
+   up     20150430192426  Create reading lists
+   up     20150430191950  Add user id to reading lists
+</code></pre>
+
+<p>Hm, interesting. That last migration, which adds a <code>user_id</code> column to our <code>reading_lists</code> table, now has a status of <code>up</code>. We&rsquo;ve basically migrated our database up, meaning that we have no pending migrations and all of our migrations are up to date.</p>
+
+<p>But what if we wanted to rollback our migration, instead? Or, better yet, what if we wanted to rollback the last two migrations? Could we go back in time? Back to when we didn&rsquo;t even have a <code>reading_lists</code> table in our database? How would we do that?</p>
+
+<p>Well, we could run a command like <code>rake db:rollback STEP=</code>, which rolls back our database however many steps we specify. For this example, we&rsquo;ll just rollback to two migrations ago (<code>rake db:rollback STEP=2</code>). What is the state of our database now? Let&rsquo;s check the <code>migrate:status</code> again:</p>
+
+<pre><code class="ruby">❤ rake db:migrate:status
+
+database: bookstore_development
+
+ Status   Migration ID    Migration Name
+--------------------------------------------------
+   up     20140217160517  Create users
+   up     20150424175043  Create books
+   up     20150429145355  Add media columns to books
+   up     20150430140850  Add author to books
+   up     20150430160704  Add genre to books
+   down   20150430192426  Create reading lists
+   down   20150430191950  Add user id to reading lists
+</code></pre>
+
+<p>Nice! We&rsquo;ve migrated our database down, back to two migrations ago. There&rsquo;s some serious <em>Back To The Future</em> stuff going down right now.</p>
+
+<iframe src="//giphy.com/embed/uYfz9FKd0EGpG" width="480" height="255" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>What Your Database Won&rsquo;t Tell You (Unless You Ask)</h2>
+
+<p>Okay, so we can migrate up and down a database. Cool. We can go back and forth in time, to older versions of our database and to newer &ndash; and even the newest! &ndash; version of our database. Double cool. But what about what we <em>originally</em> set out to figure out? What do the <code>up</code> and <code>down</code> methods do in our migrations? And why do we only see them <em>some</em> of the time?</p>
+
+<p>If you had an inkling that the <code>up</code> and <code>down</code> methods were somehow interlinked with the migration <code>status</code> column we saw when we ran <code>rake db:migrate:status</code>&hellip;well, your inkling was right on the money. They <em>are</em> connected, and in a really cool way.</p>
+
+<p>The <code>up</code> and <code>down</code> methods are defined on a <code>Migration</code> class, which inherits from the <code>ActiveRecord::Migration</code> class. Active Record literally puts the M (model) in MVC, since it&rsquo;s what handles all of our database records. And Active Record is pretty darn smart. Depending on which rake task we provide it, Active Record will execute either an <code>up</code> method in a migration file, or a <code>down</code> method.</p>
+
+<p>The Rails Guides <a href="http://edgeguides.rubyonrails.org/active_record_migrations.html">explain this</a> pretty well:</p>
+
+<blockquote><p>&ldquo;The up method should describe the transformation you&rsquo;d like to make to your schema, and the down method of your migration should revert the transformations done by the up method. In other words, the database schema should be unchanged if you do an up followed by a down. For example, if you create a table in the up method, you should drop it in the down method. It is wise to perform the transformations in precisely the reverse order they were made in the up method.&rdquo;&#8221;</p></blockquote>
+
+<p>As you might have guessed, these two methods are inverse of each other in both form and function. The <code>up</code> method is called when migrating &ldquo;up&rdquo; the database &ndash; <em>forward</em> in time &ndash; while the <code>down</code> method is called when migrating &ldquo;down&rdquo; the database &ndash; or, <em>back</em> in time. In other words, <strong>the <code>up</code> method is a set of directions for running a migration, while the <code>down</code> method is a set of instructions for reverting a migration</strong>. This implies that the code in these two methods should fundamentally do the opposite things of one another.</p>
+
+<p>This also means is that only <em>one</em> of these methods can ever actually run during a migration. If we run <code>rake db:migrate</code>, all of the <code>up</code> methods will execute, and every migration that is currently set to <code>down</code> will change to a status of <code>up</code>:</p>
+
+<pre><code class="ruby">❤ rake db:migrate:status
+
+database: bookstore_development
+
+ Status   Migration ID    Migration Name
+--------------------------------------------------
+   up     20140217160517  Create users
+   up     20150424175043  Create books
+   down   20150429145355  Add media columns to books
+   down   20150430140850  Add author to books
+   down   20150430160704  Add genre to books
+   down   20150430192426  Create reading lists
+   down   20150430191950  Add user id to reading lists
+
+❤ rake db:migrate
+❤ rake db:migrate:status
+
+database: bookstore_development
+
+ Status   Migration ID    Migration Name
+--------------------------------------------------
+   up     20140217160517  Create users
+   up     20150424175043  Create books
+   up     20150429145355  Add media columns to books
+   up     20150430140850  Add author to books
+   up     20150430160704  Add genre to books
+   up     20150430192426  Create reading lists
+   up     20150430191950  Add user id to reading lists
+</code></pre>
+
+<p>And if we run <code>rake db:rollback</code>, the most <em>recent</em> migration that was run (and had its status set to <code>up</code>) will be reverted by calling the <code>down</code> method in the migration file. If we run <code>rake db:rollback STEP=</code>, the <code>down</code> method will be invoked in every migration file we specify we want to rollback (or how many steps back we want to go in the database&rsquo;s history):</p>
+
+<pre><code class="ruby">❤ rake db:migrate:status
+
+database: bookstore_development
+
+ Status   Migration ID    Migration Name
+--------------------------------------------------
+   up     20140217160517  Create users
+   up     20150424175043  Create books
+   up     20150429145355  Add media columns to books
+   up     20150430140850  Add author to books
+   up     20150430160704  Add genre to books
+   up     20150430192426  Create reading lists
+   up     20150430191950  Add user id to reading lists
+
+❤ rake db:rollback STEP=3
+❤ rake db:migrate:status
+
+database: bookstore_development
+
+ Status   Migration ID    Migration Name
+--------------------------------------------------
+   up     20140217160517  Create users
+   up     20150424175043  Create books
+   up     20150429145355  Add media columns to books
+   up     20150430140850  Add author to books
+   down   20150430160704  Add genre to books
+   down   20150430192426  Create reading lists
+   down   20150430191950  Add user id to reading lists
+</code></pre>
+
+<p>And, we could <em>even</em> run or revert a specific migration by giving ActiveRecord the version number/migration id of the migration:</p>
+
+<pre><code class="ruby">❤ rake db:migrate:down VERSION=20150429145355
+❤ rake db:migrate:status
+
+database: bookstore_development
+
+ Status   Migration ID    Migration Name
+--------------------------------------------------
+   up     20140217160517  Create users
+   up     20150424175043  Create books
+   down   20150429145355  Add media columns to books
+   up     20150430140850  Add author to books
+   up     20150430160704  Add genre to books
+   up     20150430192426  Create reading lists
+   up     20150430191950  Add user id to reading lists
+</code></pre>
+
+<p>In the example above, when we ran a <code>migrate:down</code> task, all that was happening is that only the <code>down</code> method written in the &ldquo;AddMediaColumnsToBooks&rdquo; migration file was was invoked!</p>
+
+<iframe src="//giphy.com/embed/i2gzQAinKY3hS" width="480" height="264" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Neat, right!? Or maybe just kind of mind-blowing if you&rsquo;ve never seen this before. Who knew that this is what migrations were really all about? Well, now you and I both know, so that&rsquo;s pretty rad.</p>
+
+<h2>Why Change When You Can Go Up And Down?</h2>
+
+<p>The <code>change</code> method is pretty standard when it comes to migrations partly because it&rsquo;s a newer addition to Rails. Just like <code>up</code> and <code>down</code>, the <code>change</code> method is defined on the <code>ActiveRecord::Migration</code> class. In fact, it does exactly what <code>up</code> and <code>down</code> accomplish together. The <code>change</code> method is <em>usually</em> able to automatically figure out the inverse operation you provide it; for example, if you call <code>create_table</code> inside of the <code>change</code> method, when you run <code>rake db:rollback</code>, it will <code>drop_table</code>. The same goes for <code>add_column</code> and <code>remove_column</code>.</p>
+
+<p>So, if the <code>change</code> method can do all of these things in one go (rather than in two methods), why do we sometimes see an <code>up</code> and <code>down</code> method defined together in a migration file?</p>
+
+<p>Well, there are many times when we might want Active Record to be smart and figure out when to drop a column or table. But other times, it might not be as clear.</p>
+
+<p>For example, what if we wanted a migration that just created or fixed data? We wouldn&rsquo;t want ActiveRecord to try to figure out whether to add or remove a column&hellip;or worse, drop our table! Or what if we wanted to remove columns when we migrated up, and <em>add</em> columns when we migrated down? We&rsquo;d have to specify that explicitly in our <code>up</code> and <code>down</code> methods.</p>
+
+<p>We could even get fancy with some SQL and do something a bit more granular like rename a table:</p>
+
+<pre><code class="ruby">class RenameReadingListsToWishLists &lt; ActiveRecord::Migration
+  def up
+    execute &lt;&lt;-SQL
+      ALTER TABLE reading_lists
+        RENAME TO wish_lists;
+    SQL
+  end
+
+  def down
+    execute &lt;&lt;-SQL
+      ALTER TABLE wish_lists
+        RENAME TO reading_lists;
+    SQL
+  end
+end
+</code></pre>
+
+<p>In this example, we&rsquo;re using the <code>execute</code> method, which takes either a string value of a SQL query, or a heredoc like the one we&rsquo;ve written above.</p>
+
+<p>And we might even want to make it completely impossible for someone to ever revert a migration. We could specify that kind of behavior in our <code>down</code> method by raising an ActiveRecord error:</p>
+
+<pre><code class="ruby">def down
+  raise ActiveRecord::IrreversibleMigration
+end
+</code></pre>
+
+<p>Depending on which migration file this <code>down</code> method lived in, that migration could never be &ldquo;migrated down&rdquo;. This can sometimes be dangerous, but also useful &ndash; particularly if we had many other data models that were depending on those tables existing in the first place!</p>
+
+<p>It turns out that our database is a pretty powerful thing. Rails provides us with a lot of functionality and flexibility of moulding it to be exactly the way that we want it to be. It&rsquo;s just up to us to take advantage of it in the right situations! The more we learn about shaping our database, the better equipped we&rsquo;ll be to creating effective, concise, and streamlined databases for each and every one of our applications.</p>
+
+<p>But the truth is, we&rsquo;ve only scratched the surface of databases today. Tune in again next week, when I&rsquo;ll uncover the secret life of all your&hellip;JOIN TABLES! Try and contain your enthusiasm, my friends.</p>
+
+<iframe src="//giphy.com/embed/2yAjmbCfYcQUw" width="480" height="293" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>up</code> and <code>down</code> methods are a more granular way of defining the <code>change</code> method in a Rails migration. The <code>up</code> method is a set of instructions of what to do when you migrate, and the <code>down</code> method is a set of directions of what to do when you rollback.</li>
+<li>Want to see more examples of when you might want to use the <code>up</code> and <code>down</code> methods in place of the <code>change</code> method? Check out the Rails Guides on <a href="http://api.rubyonrails.org/classes/ActiveRecord/Migration.html">Active Record Migrations</a>.</li>
+<li>Need to read more on running migrations? <a href="http://guides.rubyonrails.org/v2.3.11/migrations.html#running-migrations">Read this</a>. Gotta brush up on migrations after reading this post? Head over <a href="http://edgeguides.rubyonrails.org/active_record_migrations.html">here</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Tackling Those Tests, Part 3: Testing Made Easy With Gems]]></title>
@@ -275,33 +561,57 @@ end
 <p>But as is the case with most of programming, there&rsquo;s a better way to do that. Now that we&rsquo;ve implemented FactoryGirl, we can cut out some of those blocks, and only call them when we need them. And, we don&rsquo;t need to create an instance with the attributes explicitly defined in a block &ndash; instead, we just tell FactoryGirl to create it for us!</p>
 
 <p>Here&rsquo;s a refactored version of last week&rsquo;s tests, now with the <code>factory_girl_rails</code> to help us out:
-&#8220;`ruby
-require &lsquo;rails_helper&rsquo;</p>
-
-<p>Describe ReadingList do
-  let(:reading_list) { create(:reading_list) }</p>
-
-<p>  it &lsquo;belongs to a user&rsquo; do
-    user = create(:user)
-    expect(reading_list.user).to include(:user)
-  end</p>
-
-<p>  it &lsquo;has a title&rsquo; do
-    expect(reading_list.title).to eq(&ldquo;Books I Want To Read&rdquo;)
-  end</p>
-
-<p>  describe &ldquo;#percentage_read&rdquo; do
-    it &ldquo;calculates the percentage of books read in a list&rdquo; do
-      book1 = create(:book1)
-      book2 = create(:book2)</p>
-
-<pre><code>  expect(reading_list.percentage_read).to eq(50.00)
-end
-</code></pre>
-
-<p>  end
-end
-&#8220;`</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="p">;</span><span class="n">rails_helper</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;Describe ReadingList do</span>
+</span><span class='line'><span class="sr">  let(:reading_list) { create(:reading_list) }&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="n">it</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="p">;</span><span class="n">belongs</span> <span class="n">to</span> <span class="n">a</span> <span class="n">user</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">user</span> <span class="o">=</span> <span class="n">create</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">expect</span><span class="p">(</span><span class="n">reading_list</span><span class="o">.</span><span class="n">user</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="kp">include</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  it &amp;lsquo;has a title&amp;rsquo; do</span>
+</span><span class='line'><span class="sr">    expect(reading_list.title).to eq(&amp;ldquo;Books I Want To Read&amp;rdquo;)</span>
+</span><span class='line'><span class="sr">  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="n">describe</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="c1">#percentage_read&amp;rdquo; do</span>
+</span><span class='line'>    <span class="n">it</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">calculates</span> <span class="n">the</span> <span class="n">percentage</span> <span class="n">of</span> <span class="n">books</span> <span class="n">read</span> <span class="k">in</span> <span class="n">a</span> <span class="n">list</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">book1</span> <span class="o">=</span> <span class="n">create</span><span class="p">(</span><span class="ss">:book1</span><span class="p">)</span>
+</span><span class='line'>      <span class="n">book2</span> <span class="o">=</span> <span class="n">create</span><span class="p">(</span><span class="ss">:book2</span><span class="p">)</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;  expect(reading_list.percentage_read).to eq(50.00)</span>
+</span><span class='line'><span class="sr">end</span>
+</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  end</span>
+</span><span class='line'><span class="sr">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
 
 <p>You&rsquo;ll notice that I&rsquo;ve replaced <code>build</code> with <code>create</code> in this iteration of tests. I initially had used <code>build</code>, but when I started implementing FactoryGirl, I hit a wall. In fact, I spent an unmentionable number of hours trying to figure out what on earth I was doing wrong!</p>
 
@@ -437,16 +747,23 @@ end
 
 <ul>
 <li>We&rsquo;ll start by first requiring <code>rails_helper</code> in our <code>reading_list_spec.rb</code>, and stubbing out our tests with a block:
-&#8220;`ruby
-require &lsquo;rails_helper&rsquo;</li>
-</ul>
-
-
-<p>RSpec.describe ReadingList, :type => :model do
-  describe &ldquo;#percentage_read&rdquo; do
-  end
-end
-&#8220;`</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="p">;</span><span class="n">rails_helper</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span><span class="o">&lt;</span><span class="sr">/li&gt;</span>
+</span><span class='line'><span class="sr">&lt;/u</span><span class="n">l</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="no">RSpec</span><span class="o">.</span><span class="n">describe</span> <span class="no">ReadingList</span><span class="p">,</span> <span class="ss">:type</span> <span class="o">=&gt;</span> <span class="ss">:model</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">describe</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="c1">#percentage_read&amp;rdquo; do</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
 
 <p>We can use a <code>describe</code> block to break up our tests into different sections. They will come in handy as our tests start to grow, and will make our test suite easier to read &ndash; not just when we come back to look at them later, but also when another developer digs through our code. The <code>#</code> symbol before our method name denotes that <code>percentage_read</code> is an instance method, another important distinction to make as we go about adding more tests.</p>
 
@@ -576,26 +893,43 @@ end
 <h2>Inquiries on Querying</h2>
 
 <p>The best way to know how to make your code run at warp drive is by first figuring out how fast it is to start with. But before we get into the issue of speed, let&rsquo;s check out what our code base looks like:
-&#8220;`ruby
-class Order &lt; ActiveRecord::Base
-  belongs_to :user
-  attr_accessor :details
-end</p>
-
-<p>class User &lt; ActiveRecord::Base
-  has_many :orders</p>
-
-<p>  class &lt;&lt; self
-    def all_order_details
-      User.all.each |user|
-        user.orders.each do |order|
-          order.details
-        end
-      end
-    end
-  end
-end
-&#8220;`</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">belongs_to</span> <span class="ss">:user</span>
+</span><span class='line'>  <span class="kp">attr_accessor</span> <span class="ss">:details</span>
+</span><span class='line'><span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;class User &amp;lt; ActiveRecord::Base</span>
+</span><span class='line'><span class="sr">  has_many :orders&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">class</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="nb">self</span>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">all_order_details</span>
+</span><span class='line'>      <span class="no">User</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">each</span> <span class="o">|</span><span class="n">user</span><span class="o">|</span>
+</span><span class='line'>        <span class="n">user</span><span class="o">.</span><span class="n">orders</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">order</span><span class="o">|</span>
+</span><span class='line'>          <span class="n">order</span><span class="o">.</span><span class="n">details</span>
+</span><span class='line'>        <span class="k">end</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
 
 <p>Nothing <em>too</em> fancy happening here. We&rsquo;ve got a one-to-many relationship here, with a <code>User</code> object having many <code>Orders</code>, and each <code>Order</code> belonging to a <code>User</code>. There&rsquo;s also a class method called <code>all_order_details</code> in our <code>User</code> class. This method queries for all of the <code>User</code> objects in our database, and loops through each <code>User</code> instance, grabbing each order, and calling <code>details</code> on it. And if we take a look at our <code>Order</code> class, we&rsquo;ll see that <code>details</code> is just an attribute on <code>Order</code>. (Forget what that weird <code>class &lt;&lt; self</code> syntax means? Jog your memory with <a href="http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my/">this post</a> from a few weeks ago.)</p>
 
@@ -633,38 +967,67 @@ User Load (1.1ms)  SELECT "users".* FROM "users"
 </code></p>
 
 <p>Loading all of our <code>Users</code> takes 1.1 milliseconds. But what about our <code>Order</code> details? We need to go through our <code>Users</code> table in order to grab each <code>Order</code>&rsquo;s details. That&rsquo;s exactly what&rsquo;s happening in each one of the queries that looks like this:
-&#8220;`ruby
-Order Load (0.6ms)  SELECT &ldquo;orders&rdquo;.<em> FROM &ldquo;orders&rdquo; WHERE &ldquo;orders&rdquo;.&ldquo;user_id&rdquo; = ?  [[&ldquo;user_id&rdquo;, 1]]
-Order Load (0.1ms)  SELECT &ldquo;orders&rdquo;.</em> FROM &ldquo;orders&rdquo; WHERE &ldquo;orders&rdquo;.&ldquo;user_id&rdquo; = ?  [[&ldquo;user_id&rdquo;, 2]]</p>
-
-<h1>more queries for each user&rsquo;s orders</h1>
-
-<pre><code>
-We're first loading all the `Orders` when we look for a `User` with an `id` of `1`, which takes us 0.6 milliseconds. And as we continue querying through the remaining 9 `Users` in our database, each query takes us 0.1 milliseconds.
-
-Right now, this might not seem like that big of a deal. But we have to keep in mind that we only have ten users so far! Hopefully, we'll have a *lot* more as our user base grows. And that's where our problem comes in. Actually, our problem is quite common, and it's even got a name: **the n + 1 problem**.
-
-The crux of the n + 1 problem is essentially this: the number of queries you make will directly correspond to the number of objects (n) that you have in your database. This means that we'll have 1 query to get all of our `User` objects, and n number of *additional* queries for each `User` object we want to get order details from.
-
-With only 10 users, we'll make 11 queries in total: 1 query for our users, and 10 for each user we query to load the user's order details. But what if we have 10,000 users? Or if we're being optimistic, 100,000 user? ...Or even a million? Making over a hundred thousand queries is just way too slow and simply not acceptable.
-
-Thankfully, this problem is so common that Rails has a fantastic solution, tailor-made to handle it.
-
-## Smarter Querying
-
-Rails is a pretty smart cookie -- it allows you to load a bunch of stuff at once ahead of time if you know exactly what you want to query. This is referred to as **eager loading**, and a really easy way to eager load your associations is by using the ActiveRecord method `includes`.
-
-You can call `includes` on an object an pass it a parameter of the table you want to load as a symbol name. We can implement this directly on our `all_order_details` method:
-</code></pre>
-
-<p>def all_order_details
-  User.all.includes(:orders).each |user|
-    user.orders.each do |order|
-      order.details
-    end
-  end
-end
-&#8220;`</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">6</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">orders</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span><span class="o">.</span><span class="n">&lt;em</span><span class="o">&gt;</span> <span class="no">FROM</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">orders</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span> <span class="no">WHERE</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">orders</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span><span class="o">.</span><span class="n">&amp;ldquo</span><span class="p">;</span><span class="n">user_id</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span> <span class="o">=</span> <span class="p">?</span>  <span class="o">[[&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">user_id</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;,</span> <span class="mi">1</span><span class="o">]]</span>
+</span><span class='line'><span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">1</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">orders</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span><span class="o">.</span><span class="n">&lt;</span><span class="sr">/em&gt; FROM &amp;ldquo;orders&amp;rdquo; WHERE &amp;ldquo;orders&amp;rdquo;.&amp;ldquo;user_id&amp;rdquo; = ?  [[&amp;ldquo;user_id&amp;rdquo;, 2]]&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">more</span> <span class="n">queries</span> <span class="k">for</span> <span class="n">each</span> <span class="n">user</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span><span class="n">s</span> <span class="n">orders</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;</span>
+</span><span class='line'><span class="sr">We&#39;re first loading all the `Orders` when we look for a `User` with an `id` of `1`, which takes us 0.6 milliseconds. And as we continue querying through the remaining 9 `Users` in our database, each query takes us 0.1 milliseconds.</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">Right now, this might not seem like that big of a deal. But we have to keep in mind that we only have ten users so far! Hopefully, we&#39;ll have a *lot* more as our user base grows. And that&#39;s where our problem comes in. Actually, our problem is quite common, and it&#39;s even got a name: **the n + 1 problem**.</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">The crux of the n + 1 problem is essentially this: the number of queries you make will directly correspond to the number of objects (n) that you have in your database. This means that we&#39;ll have 1 query to get all of our `User` objects, and n number of *additional* queries for each `User` object we want to get order details from.</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">With only 10 users, we&#39;ll make 11 queries in total: 1 query for our users, and 10 for each user we query to load the user&#39;s order details. But what if we have 10,000 users? Or if we&#39;re being optimistic, 100,000 user? ...Or even a million? Making over a hundred thousand queries is just way too slow and simply not acceptable.</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">Thankfully, this problem is so common that Rails has a fantastic solution, tailor-made to handle it.</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">## Smarter Querying</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">Rails is a pretty smart cookie -- it allows you to load a bunch of stuff at once ahead of time if you know exactly what you want to query. This is referred to as **eager loading**, and a really easy way to eager load your associations is by using the ActiveRecord method `includes`.</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">You can call `includes` on an object an pass it a parameter of the table you want to load as a symbol name. We can implement this directly on our `all_order_details` method:</span>
+</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;def all_order_details</span>
+</span><span class='line'><span class="sr">  User.all.includes(:orders).each |user|</span>
+</span><span class='line'><span class="sr">    user.orders.each do |order|</span>
+</span><span class='line'><span class="sr">      order.details</span>
+</span><span class='line'><span class="sr">    end</span>
+</span><span class='line'><span class="sr">  end</span>
+</span><span class='line'><span class="sr">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
 
 <p>This may look pretty similar to our original code at first, but when we look at our server logs, we can see a world of difference:
 <code>ruby
@@ -703,230 +1066,6 @@ end
 <li>The <code>includes</code> method can be chained on to any ActiveRecord model, and takes parameters of an association/table name, passed in as a symbol. Read more about it in the <a href="http://guides.rubyonrails.org/active_record_querying.html#eager-loading-associations">Rails docs</a>.</li>
 <li>If you&rsquo;re still curious about the n + 1 problem, check out another good example of it <a href="http://www.sitepoint.com/silver-bullet-n1-problem/">over here</a>.</li>
 <li>Big O Notation got you down? Check out <a href="http://nathanmlong.com/2015/03/understanding-big-o-notation/">this awesome resource</a>, which has graphs to go along with each code snippet example of different types of notation.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[A Machine State of Mind, Part 2: Implementing State Machines]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/03/24/a-machine-state-of-mind-part-2-implementing-state-machines/"/>
-    <updated>2015-03-24T08:03:14-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/03/24/a-machine-state-of-mind-part-2-implementing-state-machines</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/CYMzelWRqbQv6" width="480" height="345" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p><em>This blog post is part of a series on State Machines. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2015/03/17/a-machine-state-of-mind-part-1-understanding-state-machines/">here</a>.</em></p>
-
-<p>Until you encounter a state machine in a gem, framework, or within someone else&rsquo;s code, you probably won&rsquo;t find one very easily. But as we learned last week, they&rsquo;re rather pervasive. I discovered state machines while helping build a large-scale eCommerce website.</p>
-
-<p>But there actually weren&rsquo;t even that many state machines in our code! We were relying on state machines that lived in the source code of a Rails library with a variety of gems, commonly referred to as <a href="https://github.com/spree">spree</a>. (Why reinvent ecommerce platforms when so many people have already made &lsquo;em, amirite?)</p>
-
-<p>So, I did what any self-respecting, completely unaware new developer would do: I dove into the spree source code. And boy, was <em>that</em> a rabbit hole. But, I learned some things about how state machines work in Rails and how to make them. It&rsquo;s good to conceptually understand the theory behind state machines, but the best way to learn something is by doing it. It&rsquo;s time to take off the training wheels and actually <em>build</em> our own state machine!</p>
-
-<!--more-->
-
-
-<h2>Starting Up The Machine Engine</h2>
-
-<p>There are a few different options for implementing state machines in a Rails application; spree, for example, uses the <a href="https://github.com/pluginaweek/state_machine/tree/master">state_machine plugin</a>. Personally, I prefer the <a href="https://github.com/aasm/aasm">acts_as_state_machine gem</a> (aasm), as I&rsquo;ve found it to be a bit easier to use and understand.</p>
-
-<p>Once we <code>gem install aasm</code> and add it to our application&rsquo;s <code>Gemfile</code>, we&rsquo;ll want to include it in the body of the class we&rsquo;re trying to implement the state machine on. In the case of our bookstore application, our <code>Order</code> objects are what will be transitioning from one state to another. As the application begins to grow, it&rsquo;ll be useful to namespace our objects (<code>Book::Order</code>) before including the module:</p>
-
-<pre><code class="ruby">class Book::Order
-  include AASM
-end
-</code></pre>
-
-<p>Including the gem is the easy part. The next part is slightly trickier, yet remains pretty intuitive. First, we&rsquo;ll start by defining two states: an initial <code>state</code> that we want our object to start off in, and a second <code>state</code> we want our object to transition to. Then, we&rsquo;ll want to adding an <code>event</code> with an <code>from</code> and <code>to</code> in its <code>transition</code>:
-&#8220;`ruby
-aasm do
-  state :unplaced, :initial => true
-  state :submitted</p>
-
-<p>  event :submit do
-    transitions :from => :unplaced, :to => :submitted
-  end
-end
-&#8220;`</p>
-
-<p>Notice that the <code>event :submit</code> is the present tense verb form of the <code>state :submitted</code>. And when the <code>submit</code> event is called, the <code>Book::Order</code> object&rsquo;s <code>state</code> will transition from one state to the other.</p>
-
-<p>That&rsquo;s pretty much all you really need to implement a state machine. But of course, we&rsquo;ve only got two states here, which isn&rsquo;t really much of a machine and definitely doesn&rsquo;t take advantage of all the functionalities that <code>aasm</code> provides us with.</p>
-
-<p>Let&rsquo;s continue to build on the state machine based on <a href="http://i.imgur.com/Nd3ityK.png">the diagram</a> from last week&rsquo;s post and add a few more states and events:
-&#8220;`ruby
-  aasm do
-    state :unplaced, :initial => true
-    state :submitted
-    state :processing
-    state :shipped
-    state :completed
-    state :returned
-    state :deleted</p>
-
-<pre><code>event :submit do
-  transitions :from =&gt; :unplaced, :to =&gt; :submitted
-end
-
-event :process do
-  transitions :from =&gt; [:submitted, :returned], :to =&gt; :processing
-end
-
-event :ship do
-  transitions :from =&gt; :processing, :to =&gt; :shipped
-end
-
-event :complete do
-  transitions :from =&gt; :shipped, :to =&gt; :completed
-end
-
-event :return do
-  transitions :from =&gt; :complete, :to =&gt; :returned
-end
-
-event :delete do
-  transitions :from =&gt; :processing, :to =&gt; :deleted
-end
-</code></pre>
-
-<p>  end</p>
-
-<p>end
-&#8220;`</p>
-
-<p>Whoa &ndash; now we&rsquo;re talking! This state machine is even more complex than the diagram we started off with!</p>
-
-<p>You&rsquo;ll notice that we even have a <code>state :returned</code> and an <code>event :return</code>, which transition from a <code>complete</code> state to a <code>returned</code> one. And if you&rsquo;ve got a really good eye, you&rsquo;ll see that the <code>process</code> event has changed, too. Now, we can call the <code>process</code> event on the object when it&rsquo;s either in the <code>submitted</code> state or the <code>returned</code> state.</p>
-
-<p>Our state machine is now a <em>self-referential</em> structure, which means that the <code>process</code> event looks back to states within the machine to determine whether it can continue forward or not. This all seems pretty cool, but you better buckle in &ndash; it&rsquo;s about to get <em>even cooler</em>.</p>
-
-<h2>Test Driving Your Machine</h2>
-
-<p>It&rsquo;s lovely that we have this machine and all, but what&rsquo;s the fun if you can&rsquo;t take it out for a whirl? So, let&rsquo;s see what this thing can do.</p>
-
-<p>This gem in particular provides us with a variety of public methods for any instances of our <code>Book::Order</code> class, all via our state machine:</p>
-
-<pre><code>order = Book::Order.new # =&gt; =&gt; #&lt;Book::Order:0x007fad3d51aa30&gt;
-order.unplaced?         # =&gt; true
-order.may_submit?       # =&gt; true
-order.submit            # calls the `submit` event
-
-order.submitted?        # =&gt; true
-order.unplaced?         # =&gt; false
-order.may_submit?       # =&gt; false
-order.submit            # =&gt; raises AASM::InvalidTransition
-</code></pre>
-
-<p><em>Protip</em>: If you&rsquo;re not a big fan of raising exceptions in your application, just add <code>aasm :whiny_transitions =&gt; false do</code> right inside of your class, and you&rsquo;ll return basic <code>boolean</code> values instead of exceptions.</p>
-
-<p>Whew! So that&rsquo;s a lot of methods. But we didn&rsquo;t have to write <em>any</em> of them! Isn&rsquo;t that fantastic? Hopefully the usefulness of state machines is starting to come together now. Remember before we knew what a state machine was? How would we have had to handle all of this functionality?</p>
-
-<p>We would&rsquo;ve had to do all of the following, multiple times:</p>
-
-<ol>
-<li>Make a migration that adds a <code>state</code> or <code>status</code> column in our <code>Book::Object</code> class, with a <code>string</code> value.</li>
-<li>Give the <code>state</code> column an initial default value of <code>unplaced</code>.</li>
-<li>Add an instance method called <code>unplaced?</code> with a <code>boolean</code> return value.</li>
-<li>Add another instance method called <code>submit</code>, which changes the object&rsquo;s <code>state</code> property from <code>"unplaced"</code> to <code>"submitted"</code>.</li>
-<li>Add yet <em>another</em> instance method called <code>submitted?</code>, with (at the very least), a single-line <code>if</code> conditional.</li>
-<li>Add some more instance methods for good measure, all with some logic in them to keep track of our object&rsquo;s <code>state</code>.</li>
-<li>Repeat steps 3-6 for every single new <code>state</code> we wanted to add.</li>
-</ol>
-
-
-<iframe src="//giphy.com/embed/ToMjGpx9F5ktZw8qPUQ" width="480" height="391" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>If we compare this horrifying list to our state machine, it&rsquo;s pretty clear that our machine takes care of all of this! Yes, it requires a little bit of setup when we create our class, but come on, it&rsquo;s like, four lines of code for each state! So much better. And you get all these methods for free! And they&rsquo;re pretty powerful, because we can call them anywhere in our code, on any instance of our object.</p>
-
-<p>But can we customize this machine even further? Heck yes, we can!</p>
-
-<h2>Trick Out Yo&#8217; Ride</h2>
-
-<p>Now that we&rsquo;ve created a basic state machine, we can trick it out with any (or all!) of these options:</p>
-
-<h3>1. Pass a block to an <code>event</code></h3>
-
-<p>Whenever you want a specific event to call a particular method, simply pass a block to the method. The block will only be called if the transition occurs successfully.
-&#8220;`ruby
-def order_shipped_email
-  # Sends an email informing the User
-  # that their Order has been shipped
-end</p>
-
-<p>order.ship do
-  order.user.send_order_shipped_email
-end</p>
-
-<h1>Only if order.may_ship? returns <code>true</code>,</h1>
-
-<h1>will the <code>send_order_shipped_email</code></h1>
-
-<h1>method actually fire.</h1>
-
-<pre><code>
-### 2. Use a callback
-The `aasm` documentation defines a list of different callbacks you can use for your transitions; the callbacks will only be triggered when certain conditions are met (for example, when you exit a particular `state`).
-</code></pre>
-
-<p>state :shipped, :before_enter => :print_return_label
-state :deleted</p>
-
-<p>event :ship do
-  transitions :from => :processing, :to => :shipped
-end</p>
-
-<p>event :delete do, :after => :send_delete_confirmation do
-  transitions :from => :processing, :to => :deleted
-  end
-end</p>
-
-<p>def print_return_label
-  # Prints order details along with
-  # the return label information.
-end</p>
-
-<p>def send_delete_confirmation
-  # Sends a confirmation email
-  # that the <code>Order</code> has been deleted.
-end
-&#8220;`</p>
-
-<p>These callbacks work exactly as you might think, hooking into either a state or an event. Before the <code>Order</code> switches states from <code>processed</code> to <code>shipped</code>, the <code>print_return_label</code> method will fire. But the <code>send_delete_confirmation</code> method will only be called after the <code>delete event</code> is finished &ndash; only after the transition from <code>processing</code> to <code>deleted</code> occurs successfully.</p>
-
-<h3>3. Implement a guard</h3>
-
-<p>If you want to only allow a transition if a particular condition is defined; if the guard returns <code>false</code>, the transition will be denied, and will either return <code>false</code> or raise an error.</p>
-
-<pre><code class="ruby">event :submit do
-  transitions :from =&gt; :unplaced, :to =&gt; :submitted, :guard =&gt; :payment_successfully_processed?
-end
-
-def payment_successfully_processed?
-  # Returns a truthy value based on
-  # whether the user's credit card info
-  # has been processed successfully or not
-end
-</code></pre>
-
-<p>These are just three things you can do to spice up your state machine. Creating a state machine with this gem gives you a fair amount of flexibility. You can use multiple guards or build multiple transitions for a single event. As your state machine grows, you can call the <code>aasm.current_event</code> to keep track of where you are in your code.</p>
-
-<p>Now that you know how to implement a state machine, hopefully you now realize the value in them and don&rsquo;t feel too intimidated. As long as you take it a step at a time, you can create your own state machine, with the exact kind of functionality your program needs. With that said, there&rsquo;s only one thing left to do: go forth implement one yourself! Fly young grasshopper, fly!</p>
-
-<iframe src="//giphy.com/embed/dH89UD4eJuOeQ" width="480" height="269" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>State machines can be broken down into <code>states</code> and <code>events</code>. Events control the flow of one <code>state</code> to another.</li>
-<li>Each <code>event</code> has a <code>from</code> and a <code>to transition</code>. Only if a transition occurs successfully will an object&rsquo;s <code>state</code> change. You can manipulate how an event or transition works using callbacks, blocks, and guards.</li>
-<li>Find more great blog posts that implement FSM&rsquo;s <a href="http://www.sitepoint.com/state-machines-in-ruby/">here</a> and <a href="http://bits.citrusbyte.com/state-design-pattern-with-ruby/?utm_source=rubyweekly&utm_medium=email">here</a>. And if you want to get really fancy, learn how to use <a href="https://github.com/wvanbergen/state_machine-audit_trail">this</a>!</li>
 </ul>
 
 ]]></content>
