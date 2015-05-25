@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="As young developers, we often get caught up in what we don&rsquo;t know. One of the first and hardest lessons to learn when you&rsquo;re starting &hellip;">
+  <meta name="description" content="When it comes to databases, there are generally two schools of thought. There are those people who love them, and there are those people who just &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,55 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/">The Secret Life of Your Database, Part 2: Join Tables</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-05-26T08:02:30-04:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:02 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/sql/'>sql</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><img src="http://daviddickball.uk/wp-content/uploads/2015/03/sql-join.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>When it comes to databases, there are generally two schools of thought. There are those people who love them, and there are those people who just hate them. While I wholeheartedly admit that I belong to the former camp of believers, I can understand why someone would subscribe to the latter group. Databases are hard! They&rsquo;re beautiful and super fun once you understand how to manipulate them, but until you get to that point, they&rsquo;re pretty much just hard.</p>
+
+<p>I think that a large part of what makes databases hard to understand is the sheer amount of things you can do with the data it contains. Between database migrations, which we unpacked <a href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">last week</a>, and writing SQL queries that actually do what you want them to do, it&rsquo;s really easy to just throw your hands up in the air and give up completely. But, you shouldn&rsquo;t! And I hope that, after reading this post, you won&rsquo;t! Because <em>databases are beautiful</em> (that should be on a t-shirt somewhere), and you just have to get to know them a little bit.</p>
+
+<p>So, what should we get to know about them? Well, the scariest part, of course: <strong>join tables</strong>. Join tables are used to combine two sets of data from two different tables. Depending on what you query the database for, different values can be returned. No matter the size of your application, you&rsquo;re probably going to have at least a few tables, and usually many more. Most of the time, the data in a single table by itself isn&rsquo;t super useful; when it&rsquo;s combined with another database&rsquo;s information, however, then things really get cooking. Join tables are how we get specific information from two different datasets (or two different database tables). There are seven different types of join tables, but there are three in particular that I&rsquo;ve encountered time and again. Let&rsquo;s explore the differences between inner joins, left outer joins, and right outer joins.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -522,55 +571,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/03/17/a-machine-state-of-mind-part-1-understanding-state-machines/">A Machine State of Mind, Part 1: Understanding State Machines</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-03-17T08:11:22-04:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:11 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/computer-science/'>computer science</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><img src="http://www.kurzweilai.net/images/flowchart.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>My favorite thing about programming is the fact that you never run out of opportunities to be completely floored. There&rsquo;s literally <em>always</em> either a concept, theory, framework, or language that you don&rsquo;t know. This is actually fantastic, because there&rsquo;s no dearth of opportunity when it comes to learning. And you always come head-to-head with these facts when you pair program with a more experienced developer.</p>
-
-<p>One of the new concepts that I encountered this week was the idea of <strong>state machines</strong>, sometimes referred to as &ldquo;finite state machines&rdquo;. At first I thought that this was something unique to the gem that we are using in one of our large-scale applications, but it turns out it&rsquo;s not a Rails thing. In fact, it&rsquo;s not even a Ruby thing! It&rsquo;s a <em>Computer Science</em> thing; to be a bit more specific, it&rsquo;s a mathematical abstraction used to design complex algorithms. But for all intents and purposes, it&rsquo;s a Computer Science theory that we use almost all the time, whether we know it or not.</p>
-
-<p>If you got through that paragraph without freaking out, you deserve a medal. All this CS theory sounds terrifying, right? Well, don&rsquo;t worry. For programming purposes, you don&rsquo;t actually need to think too much about how state machines are constructed and what&rsquo;s being abstracted away. Even though state machines can get incredibly complex, relatively quickly, let&rsquo;s not overwhelm ourselves; we only need to think about state machines in the context of programming. So we&rsquo;ll keep it simple and focus on what state machines are, how they work, and when to use them.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/03/17/a-machine-state-of-mind-part-1-understanding-state-machines/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -586,6 +586,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/">The Secret Life of Your Database, Part 2: Join Tables</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">The Secret Life of Your Database, Part 1: Migrations</a>
       </li>
     
@@ -599,10 +603,6 @@
     
       <li class="post">
         <a href="/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems/">Tackling Those Tests, Part 3: Testing Made Easy With Gems</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/">Tackling Those Tests, Part 2: Getting Fun and Functional With FactoryGirl</a>
       </li>
     
   </ul>

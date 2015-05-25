@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/</loc>
+    <lastmod>2015-05-26T08:02:30-04:00</lastmod>
+  </url>
+  <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/</loc>
     <lastmod>2015-05-19T08:51:11-04:00</lastmod>
   </url>
@@ -149,5 +153,14 @@
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/categories/metaprogramming/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/blog/categories/sql/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/posts/2/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/posts/3/</loc>
   </url>
 </urlset>

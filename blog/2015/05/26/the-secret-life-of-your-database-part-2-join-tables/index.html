@@ -1,0 +1,355 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>The Secret Life of Your Database, Part 2: Join Tables - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="When it comes to databases, there are generally two schools of thought. There are those people who love them, and there are those people who just &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">The Secret Life of Your Database, Part 2: Join Tables</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-05-26T08:02:30-04:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:02 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/sql/'>sql</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><img src="http://daviddickball.uk/wp-content/uploads/2015/03/sql-join.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>When it comes to databases, there are generally two schools of thought. There are those people who love them, and there are those people who just hate them. While I wholeheartedly admit that I belong to the former camp of believers, I can understand why someone would subscribe to the latter group. Databases are hard! They&rsquo;re beautiful and super fun once you understand how to manipulate them, but until you get to that point, they&rsquo;re pretty much just hard.</p>
+
+<p>I think that a large part of what makes databases hard to understand is the sheer amount of things you can do with the data it contains. Between database migrations, which we unpacked <a href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">last week</a>, and writing SQL queries that actually do what you want them to do, it&rsquo;s really easy to just throw your hands up in the air and give up completely. But, you shouldn&rsquo;t! And I hope that, after reading this post, you won&rsquo;t! Because <em>databases are beautiful</em> (that should be on a t-shirt somewhere), and you just have to get to know them a little bit.</p>
+
+<p>So, what should we get to know about them? Well, the scariest part, of course: <strong>join tables</strong>. Join tables are used to combine two sets of data from two different tables. Depending on what you query the database for, different values can be returned. No matter the size of your application, you&rsquo;re probably going to have at least a few tables, and usually many more. Most of the time, the data in a single table by itself isn&rsquo;t super useful; when it&rsquo;s combined with another database&rsquo;s information, however, then things really get cooking. Join tables are how we get specific information from two different datasets (or two different database tables). There are seven different types of join tables, but there are three in particular that I&rsquo;ve encountered time and again. Let&rsquo;s explore the differences between inner joins, left outer joins, and right outer joins.</p>
+
+<!--more-->
+
+
+<h2>Know Thy Data</h2>
+
+<p>Before we get too deep into join syntax, let&rsquo;s take a look at our data! We&rsquo;ll stick with the schema from our eCommerce bookstore application. Since we don&rsquo;t have any real users yet, we can just populate our database with some fake, super fun seed data.</p>
+
+<p><em>Disclaimer</em>: I may or may not have gotten carried away when making the seed data. Anyways, here&rsquo;s what our databases look like:
+<img src="http://i.imgur.com/voemAen.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>We&rsquo;ll be working with the same two tables: a <code>Users</code> table, and an <code>Orders</code> table. Each <code>User</code> instance has a <code>first_name</code> and a <code>last_name</code> (and realistically speaking, probably a bunch of other attributes&hellip;but let&rsquo;s keep it simple for now).</p>
+
+<p>Each <code>Order</code> object <code>belongs_to</code> a <code>User</code>, which means it has a <code>user_id</code> column to store the foreign key from the <code>Users</code> table. Each <code>Order</code> also has a unique, randomly-generated <code>number</code> (think order confirmation number), and an order <code>total</code>, which is stored as a <a href="http://vaidehijoshi.github.io/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/">Ruby BigDecimal object</a>.</p>
+
+<h2>Inner Joins</h2>
+
+<p>The most common and easiest join table syntax to understand is the <em>inner join</em>. Inner joins are our tool of choice if we&rsquo;re looking for a specific set of data that only matches the parameters we identify in our query.</p>
+
+<p>For example, say we&rsquo;re looking for a subset of data that shows <em>only</em> <code>users</code> with <code>orders</code>. We&rsquo;re not interested in any <code>Users</code> that haven&rsquo;t placed an order; we only want the data of a <code>User</code> that actually <em>has</em> placed an order. This is a set of data that might be useful for something like an admin panel that we might want to build out in our next feature, so let&rsquo;s return just some basic information right now, like the <code>User</code>&rsquo;s <code>last_name</code> and their <code>user_id</code>.</p>
+
+<p>So, what would that look like in a SQL query? Well, we know that we want to select only the <code>last_name</code> and the <code>id</code> of the <code>User</code> instance. But, we don&rsquo;t want ALL <code>Users</code> by their <code>ids</code>; we actually want only the <code>Users</code> that are associated with an <code>user_id</code> on an <code>Order</code>. So, that&rsquo;s what we&rsquo;ll select:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">SELECT</span> <span class="n">users</span><span class="p">.</span><span class="n">last_name</span><span class="p">,</span> <span class="n">orders</span><span class="p">.</span><span class="n">user_id</span>
+</span><span class='line'><span class="k">FROM</span> <span class="n">users</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Cool, we&rsquo;re halfway there. Now for the join. Let&rsquo;s think for a second&hellip;we want to <em>join</em> the data in our <code>Users</code> table with the data in our <code>Orders</code> table. And, we want to match the rows by <code>ids</code>. What does that mean, exactly? Well, it means that we only want to return an <code>User</code> row where that <code>User's</code> <code>id</code> exists in a row of the <code>Order</code> database, where it&rsquo;ll be under the <code>user_id</code> foreign key column. We&rsquo;ll also order our data by the <code>Order's</code> <code>id</code> for now, but we&rsquo;ll change that as we play around a bit more. So let&rsquo;s add all that to our query:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">SELECT</span> <span class="n">users</span><span class="p">.</span><span class="n">last_name</span><span class="p">,</span> <span class="n">orders</span><span class="p">.</span><span class="n">user_id</span>
+</span><span class='line'><span class="k">FROM</span> <span class="n">users</span>
+</span><span class='line'><span class="k">INNER</span> <span class="k">JOIN</span> <span class="n">orders</span>
+</span><span class='line'><span class="k">ON</span> <span class="n">users</span><span class="p">.</span><span class="n">id</span><span class="o">=</span><span class="n">orders</span><span class="p">.</span><span class="n">user_id</span>
+</span><span class='line'><span class="k">ORDER</span> <span class="k">BY</span> <span class="n">orders</span><span class="p">.</span><span class="n">id</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And if we run this query, what&rsquo;ll happen? We&rsquo;ll get this fabulousness:
+<br><br>
+<img src="http://i.imgur.com/sWlj3zx.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>Nice! So, we get five records returned to us, and it returns exactly what we asked for: the <code>User's</code> <code>last_name</code> and the <code>Order's</code> <code>user_id</code>. But there are some <code>User</code> instances that are there twice, and one of the <code>Users</code> (which is apparently T.S. Eliot) doesn&rsquo;t even show up in our records!</p>
+
+<p>If we take a closer look at our <code>Orders</code> database table, that&rsquo;s exactly what we should <em>expect</em> to happen. The <code>User</code> with an <code>id</code> of <code>1</code> placed two <code>Orders</code>, so there are two records with his <code>last_name</code> and <code>id</code> that are returned to us. And Eliot, who hasn&rsquo;t placed any <code>Orders</code> yet, isn&rsquo;t returned to us at all! That makes sense though, since we&rsquo;re asking for a subset of information &ndash; only the rows that fit the requirements of our query &ndash; or, the inner information of our database, and nothing superfluous, meaning that all the outer, extra information is ignored.</p>
+
+<h2>Left Outer Joins</h2>
+
+<p>Now that we&rsquo;ve covered the relatively easier inner join, it&rsquo;s time to get to the slightly trickier stuff: outer joins! Outer joins come in two shapes and sizes: <strong>left outer joins</strong> and <strong>right outer joins</strong>. The concept behind the two is fundamentally the same, but they kind of work like opposites. Let&rsquo;s look at a left
+outer join to start.</p>
+
+<p>Let&rsquo;s say that our admins actually want to see all the <code>Users</code> at once in the admin panel, regardless of whether they&rsquo;ve placed an order or not. This means that we want to widen our data query to ALL <code>Users</code>, and all the <code>Orders</code> associated with any of those <code>Users</code>. We&rsquo;ll begin our SQl query the same way as before, selecting the <code>User's</code> <code>last_name</code>.</p>
+
+<p>But our admin&rsquo;s also want to see the <code>Order</code> <code>totals</code> for each <code>User</code> &ndash; if the <code>User</code> has placed an order, obviously. So, we&rsquo;ll add that to our select statement as well.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">SELECT</span> <span class="n">users</span><span class="p">.</span><span class="n">last_name</span><span class="p">,</span> <span class="n">orders</span><span class="p">.</span><span class="n">total</span>
+</span><span class='line'><span class="k">FROM</span> <span class="n">users</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, we want to join our <code>Users</code> table with our <code>Orders</code> table again. Except this time, we don&rsquo;t want to do an inner join. Instead, we want all the data from our <code>Users</code> table, and any data that might correspond to all of our <code>Users</code> from the <code>Orders</code> database. We&rsquo;ll still do something similar to before and join our tables on the <code>id</code> columns, but we&rsquo;ll order by each <code>User's</code> <code>id</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">SELECT</span> <span class="n">users</span><span class="p">.</span><span class="n">last_name</span><span class="p">,</span> <span class="n">orders</span><span class="p">.</span><span class="n">total</span>
+</span><span class='line'><span class="k">FROM</span> <span class="n">users</span>
+</span><span class='line'><span class="k">LEFT</span> <span class="k">OUTER</span> <span class="k">JOIN</span> <span class="n">orders</span>
+</span><span class='line'><span class="k">ON</span> <span class="n">users</span><span class="p">.</span><span class="n">id</span><span class="o">=</span><span class="n">orders</span><span class="p">.</span><span class="n">user_id</span>
+</span><span class='line'><span class="k">ORDER</span> <span class="k">BY</span> <span class="n">users</span><span class="p">.</span><span class="n">id</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If we look at our data, we&rsquo;ll remember that the <code>User</code> with an <code>id</code> of <code>4</code> never placed any orders! How might this affect what data is returned to us? Let&rsquo;s run our query and find out:</p>
+
+<p><br><br>
+<img src="http://i.imgur.com/STqLeW3.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>Whoa! Since our <code>User</code> T.S. Eliot never placed an order, he didn&rsquo;t have any row in the <code>Orders</code> database that corresponded to him. Because there was no <code>Order</code> <code>total</code> column that was attributed to his <code>id</code>, what got returned instead? <code>NULL</code>!</p>
+
+<p>And that&rsquo;s exactly what outer joins will do if they don&rsquo;t find anything! If there is no match on the right table that is being &ldquo;joined&rdquo; (in our case, the <code>Orders</code> database), the default return value will always be <code>NULL</code>. Now that we know that&hellip;how do you think that a right outer join might work?</p>
+
+<h2>Right Outer Joins</h2>
+
+<p>A <strong>right outer join</strong> is almost the same as a left outer join. The difference is that the table that you&rsquo;re joining is on the <em>right</em>. What does that mean for your return set of data?</p>
+
+<p>Well, it means that all the data on the <em>right</em> table will be returned &ndash; even if it doesn&rsquo;t have a corresponding value. Our query might look something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">SELECT</span> <span class="n">orders</span><span class="p">.</span><span class="nb">number</span><span class="p">,</span> <span class="n">orders</span><span class="p">.</span><span class="n">total</span>
+</span><span class='line'><span class="k">FROM</span> <span class="n">users</span>
+</span><span class='line'><span class="k">RIGHT</span> <span class="k">OUTER</span> <span class="k">JOIN</span> <span class="n">orders</span>
+</span><span class='line'><span class="k">ON</span> <span class="n">users</span><span class="p">.</span><span class="n">id</span><span class="o">=</span><span class="n">orders</span><span class="p">.</span><span class="n">user_id</span>
+</span><span class='line'><span class="k">ORDER</span> <span class="k">BY</span> <span class="n">orders</span><span class="p">.</span><span class="n">id</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Here, we are ordering by the <code>Order's</code> <code>id</code>, and we&rsquo;re only looking at the <code>Order</code> <code>number</code> and <code>total</code>. When we run our query, this is what we&rsquo;ll get:</p>
+
+<p><br><br>
+<img src="http://i.imgur.com/LJoNd8I.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>In our case, our data doesn&rsquo;t look super different with a right outer join. In fact, it looks a lot like the inner join we started with! So why do right inner joins matter, then?</p>
+
+<p>Well, what if our admins change their minds (again!) and instead want ONLY orders to be returned. And what if you have an order that doesn&rsquo;t have a <code>User</code>, because that user deleted their account? Well, in that case, our <code>Order</code> would still show up in the returned data, and if we selected the corresponding <code>User</code> <code>ids</code>, then the deleted <code>User</code> would have a <code>NULL</code> <code>id</code> value! Pretty cool, right?</p>
+
+<p>See, databases can be pretty awesome once you understand a little bit about how they work! In fact, I love them so much that I give &lsquo;em two thumbs way, way up!</p>
+
+<iframe src="//giphy.com/embed/5fBH6zoy1szfjORd14s" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Join tables allow us to combine two different sets of data. You can make your data subset be as specific or broad as you want, depending on what you query for!</li>
+<li>An inner join will only return values that exist in both tables.</li>
+<li>A left outer join will return all the values from the left database, and any values that correspond from the right database. A right outer join will return all the values from the right database, and any values that correspond form the left. Any values that don&rsquo;t have a corresponding row will be returned as <code>NULL</code>.</li>
+<li>Still curious about inner vs outer joins? Check out <a href="http://www.programmerinterview.com/index.php/database-sql/inner-vs-outer-joins/">this blog post</a>.</li>
+<li>Want to know about ALL the different join tables out there? Here&rsquo;s a dope <a href="https://raw.githubusercontent.com/equivalent/scrapbook2/master/assets/images/2014/sql-joins.png">graphic</a> that explains it well.</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-05-26T08:02:30-04:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:02 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/sql/'>sql</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/" title="Previous Post: The Secret Life Of Your Database, Part 1: Migrations">&laquo; The Secret Life Of Your Database, Part 1: Migrations</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/">The Secret Life of Your Database, Part 2: Join Tables</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">The Secret Life of Your Database, Part 1: Migrations</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/">Investigating Ruby&#8217;s Global Functions + Kernel Module With Puts</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/">Metaprogramming Dynamic Methods: Using Public_send</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems/">Tackling Those Tests, Part 3: Testing Made Easy With Gems</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

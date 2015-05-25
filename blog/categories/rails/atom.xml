@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rails | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-05-20T22:13:50-04:00</updated>
+  <updated>2015-05-25T17:57:52-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,133 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[The Secret Life of Your Database, Part 2: Join Tables]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/"/>
+    <updated>2015-05-26T08:02:30-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables</id>
+    <content type="html"><![CDATA[<p><img src="http://daviddickball.uk/wp-content/uploads/2015/03/sql-join.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>When it comes to databases, there are generally two schools of thought. There are those people who love them, and there are those people who just hate them. While I wholeheartedly admit that I belong to the former camp of believers, I can understand why someone would subscribe to the latter group. Databases are hard! They&rsquo;re beautiful and super fun once you understand how to manipulate them, but until you get to that point, they&rsquo;re pretty much just hard.</p>
+
+<p>I think that a large part of what makes databases hard to understand is the sheer amount of things you can do with the data it contains. Between database migrations, which we unpacked <a href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">last week</a>, and writing SQL queries that actually do what you want them to do, it&rsquo;s really easy to just throw your hands up in the air and give up completely. But, you shouldn&rsquo;t! And I hope that, after reading this post, you won&rsquo;t! Because <em>databases are beautiful</em> (that should be on a t-shirt somewhere), and you just have to get to know them a little bit.</p>
+
+<p>So, what should we get to know about them? Well, the scariest part, of course: <strong>join tables</strong>. Join tables are used to combine two sets of data from two different tables. Depending on what you query the database for, different values can be returned. No matter the size of your application, you&rsquo;re probably going to have at least a few tables, and usually many more. Most of the time, the data in a single table by itself isn&rsquo;t super useful; when it&rsquo;s combined with another database&rsquo;s information, however, then things really get cooking. Join tables are how we get specific information from two different datasets (or two different database tables). There are seven different types of join tables, but there are three in particular that I&rsquo;ve encountered time and again. Let&rsquo;s explore the differences between inner joins, left outer joins, and right outer joins.</p>
+
+<!--more-->
+
+
+<h2>Know Thy Data</h2>
+
+<p>Before we get too deep into join syntax, let&rsquo;s take a look at our data! We&rsquo;ll stick with the schema from our eCommerce bookstore application. Since we don&rsquo;t have any real users yet, we can just populate our database with some fake, super fun seed data.</p>
+
+<p><em>Disclaimer</em>: I may or may not have gotten carried away when making the seed data. Anyways, here&rsquo;s what our databases look like:
+<img src="http://i.imgur.com/voemAen.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>We&rsquo;ll be working with the same two tables: a <code>Users</code> table, and an <code>Orders</code> table. Each <code>User</code> instance has a <code>first_name</code> and a <code>last_name</code> (and realistically speaking, probably a bunch of other attributes&hellip;but let&rsquo;s keep it simple for now).</p>
+
+<p>Each <code>Order</code> object <code>belongs_to</code> a <code>User</code>, which means it has a <code>user_id</code> column to store the foreign key from the <code>Users</code> table. Each <code>Order</code> also has a unique, randomly-generated <code>number</code> (think order confirmation number), and an order <code>total</code>, which is stored as a <a href="http://vaidehijoshi.github.io/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/">Ruby BigDecimal object</a>.</p>
+
+<h2>Inner Joins</h2>
+
+<p>The most common and easiest join table syntax to understand is the <em>inner join</em>. Inner joins are our tool of choice if we&rsquo;re looking for a specific set of data that only matches the parameters we identify in our query.</p>
+
+<p>For example, say we&rsquo;re looking for a subset of data that shows <em>only</em> <code>users</code> with <code>orders</code>. We&rsquo;re not interested in any <code>Users</code> that haven&rsquo;t placed an order; we only want the data of a <code>User</code> that actually <em>has</em> placed an order. This is a set of data that might be useful for something like an admin panel that we might want to build out in our next feature, so let&rsquo;s return just some basic information right now, like the <code>User</code>&rsquo;s <code>last_name</code> and their <code>user_id</code>.</p>
+
+<p>So, what would that look like in a SQL query? Well, we know that we want to select only the <code>last_name</code> and the <code>id</code> of the <code>User</code> instance. But, we don&rsquo;t want ALL <code>Users</code> by their <code>ids</code>; we actually want only the <code>Users</code> that are associated with an <code>user_id</code> on an <code>Order</code>. So, that&rsquo;s what we&rsquo;ll select:</p>
+
+<pre><code class="sql">SELECT users.last_name, orders.user_id
+FROM users
+</code></pre>
+
+<p>Cool, we&rsquo;re halfway there. Now for the join. Let&rsquo;s think for a second&hellip;we want to <em>join</em> the data in our <code>Users</code> table with the data in our <code>Orders</code> table. And, we want to match the rows by <code>ids</code>. What does that mean, exactly? Well, it means that we only want to return an <code>User</code> row where that <code>User's</code> <code>id</code> exists in a row of the <code>Order</code> database, where it&rsquo;ll be under the <code>user_id</code> foreign key column. We&rsquo;ll also order our data by the <code>Order's</code> <code>id</code> for now, but we&rsquo;ll change that as we play around a bit more. So let&rsquo;s add all that to our query:</p>
+
+<pre><code class="sql">SELECT users.last_name, orders.user_id
+FROM users
+INNER JOIN orders
+ON users.id=orders.user_id
+ORDER BY orders.id;
+</code></pre>
+
+<p>And if we run this query, what&rsquo;ll happen? We&rsquo;ll get this fabulousness:
+<br><br>
+<img src="http://i.imgur.com/sWlj3zx.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>Nice! So, we get five records returned to us, and it returns exactly what we asked for: the <code>User's</code> <code>last_name</code> and the <code>Order's</code> <code>user_id</code>. But there are some <code>User</code> instances that are there twice, and one of the <code>Users</code> (which is apparently T.S. Eliot) doesn&rsquo;t even show up in our records!</p>
+
+<p>If we take a closer look at our <code>Orders</code> database table, that&rsquo;s exactly what we should <em>expect</em> to happen. The <code>User</code> with an <code>id</code> of <code>1</code> placed two <code>Orders</code>, so there are two records with his <code>last_name</code> and <code>id</code> that are returned to us. And Eliot, who hasn&rsquo;t placed any <code>Orders</code> yet, isn&rsquo;t returned to us at all! That makes sense though, since we&rsquo;re asking for a subset of information &ndash; only the rows that fit the requirements of our query &ndash; or, the inner information of our database, and nothing superfluous, meaning that all the outer, extra information is ignored.</p>
+
+<h2>Left Outer Joins</h2>
+
+<p>Now that we&rsquo;ve covered the relatively easier inner join, it&rsquo;s time to get to the slightly trickier stuff: outer joins! Outer joins come in two shapes and sizes: <strong>left outer joins</strong> and <strong>right outer joins</strong>. The concept behind the two is fundamentally the same, but they kind of work like opposites. Let&rsquo;s look at a left
+outer join to start.</p>
+
+<p>Let&rsquo;s say that our admins actually want to see all the <code>Users</code> at once in the admin panel, regardless of whether they&rsquo;ve placed an order or not. This means that we want to widen our data query to ALL <code>Users</code>, and all the <code>Orders</code> associated with any of those <code>Users</code>. We&rsquo;ll begin our SQl query the same way as before, selecting the <code>User's</code> <code>last_name</code>.</p>
+
+<p>But our admin&rsquo;s also want to see the <code>Order</code> <code>totals</code> for each <code>User</code> &ndash; if the <code>User</code> has placed an order, obviously. So, we&rsquo;ll add that to our select statement as well.</p>
+
+<pre><code class="sql">SELECT users.last_name, orders.total
+FROM users
+</code></pre>
+
+<p>Now, we want to join our <code>Users</code> table with our <code>Orders</code> table again. Except this time, we don&rsquo;t want to do an inner join. Instead, we want all the data from our <code>Users</code> table, and any data that might correspond to all of our <code>Users</code> from the <code>Orders</code> database. We&rsquo;ll still do something similar to before and join our tables on the <code>id</code> columns, but we&rsquo;ll order by each <code>User's</code> <code>id</code>:</p>
+
+<pre><code class="sql">SELECT users.last_name, orders.total
+FROM users
+LEFT OUTER JOIN orders
+ON users.id=orders.user_id
+ORDER BY users.id;
+</code></pre>
+
+<p>If we look at our data, we&rsquo;ll remember that the <code>User</code> with an <code>id</code> of <code>4</code> never placed any orders! How might this affect what data is returned to us? Let&rsquo;s run our query and find out:</p>
+
+<p><br><br>
+<img src="http://i.imgur.com/STqLeW3.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>Whoa! Since our <code>User</code> T.S. Eliot never placed an order, he didn&rsquo;t have any row in the <code>Orders</code> database that corresponded to him. Because there was no <code>Order</code> <code>total</code> column that was attributed to his <code>id</code>, what got returned instead? <code>NULL</code>!</p>
+
+<p>And that&rsquo;s exactly what outer joins will do if they don&rsquo;t find anything! If there is no match on the right table that is being &ldquo;joined&rdquo; (in our case, the <code>Orders</code> database), the default return value will always be <code>NULL</code>. Now that we know that&hellip;how do you think that a right outer join might work?</p>
+
+<h2>Right Outer Joins</h2>
+
+<p>A <strong>right outer join</strong> is almost the same as a left outer join. The difference is that the table that you&rsquo;re joining is on the <em>right</em>. What does that mean for your return set of data?</p>
+
+<p>Well, it means that all the data on the <em>right</em> table will be returned &ndash; even if it doesn&rsquo;t have a corresponding value. Our query might look something like this:</p>
+
+<pre><code class="sql">SELECT orders.number, orders.total
+FROM users
+RIGHT OUTER JOIN orders
+ON users.id=orders.user_id
+ORDER BY orders.id;
+</code></pre>
+
+<p>Here, we are ordering by the <code>Order's</code> <code>id</code>, and we&rsquo;re only looking at the <code>Order</code> <code>number</code> and <code>total</code>. When we run our query, this is what we&rsquo;ll get:</p>
+
+<p><br><br>
+<img src="http://i.imgur.com/LJoNd8I.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>In our case, our data doesn&rsquo;t look super different with a right outer join. In fact, it looks a lot like the inner join we started with! So why do right inner joins matter, then?</p>
+
+<p>Well, what if our admins change their minds (again!) and instead want ONLY orders to be returned. And what if you have an order that doesn&rsquo;t have a <code>User</code>, because that user deleted their account? Well, in that case, our <code>Order</code> would still show up in the returned data, and if we selected the corresponding <code>User</code> <code>ids</code>, then the deleted <code>User</code> would have a <code>NULL</code> <code>id</code> value! Pretty cool, right?</p>
+
+<p>See, databases can be pretty awesome once you understand a little bit about how they work! In fact, I love them so much that I give &lsquo;em two thumbs way, way up!</p>
+
+<iframe src="//giphy.com/embed/5fBH6zoy1szfjORd14s" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Join tables allow us to combine two different sets of data. You can make your data subset be as specific or broad as you want, depending on what you query for!</li>
+<li>An inner join will only return values that exist in both tables.</li>
+<li>A left outer join will return all the values from the left database, and any values that correspond from the right database. A right outer join will return all the values from the right database, and any values that correspond form the left. Any values that don&rsquo;t have a corresponding row will be returned as <code>NULL</code>.</li>
+<li>Still curious about inner vs outer joins? Check out <a href="http://www.programmerinterview.com/index.php/database-sql/inner-vs-outer-joins/">this blog post</a>.</li>
+<li>Want to know about ALL the different join tables out there? Here&rsquo;s a dope <a href="https://raw.githubusercontent.com/equivalent/scrapbook2/master/assets/images/2014/sql-joins.png">graphic</a> that explains it well.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[The Secret Life of Your Database, Part 1: Migrations]]></title>
@@ -868,204 +995,6 @@ end
 <li>The <code>let</code> syntax allows for lazy evaluation and keeps you from having to create a new instance of an object inside of every single <code>it</code> block. Check out more on the <code>let</code> and <code>let!</code> helper methods over on <a href="http://stackoverflow.com/questions/17407733/trouble-differentiating-rspecs-let-vs-let">this Stack Overflow answer</a> or on <a href="https://www.relishapp.com/rspec/rspec-core/v/2-5/docs/helper-methods/let-and-let">this blog post</a>.</li>
 <li>Use <code>describe</code> blocks to divide up your tests into sections, based on functionality and code cohesion. You can also use <code>context</code> blocks to assert different scenarios that could occur during one method call. Read about the <a href="http://lmws.net/describe-vs-context-in-rspec">difference between describe and context</a>.</li>
 <li>Find out more about different rspec testing conventions at <a href="http://betterspecs.org/">Better Specs</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Querying at Warp Drive: Using ActiveRecord Includes]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/04/07/querying-at-warp-drive-using-activerecord-includes/"/>
-    <updated>2015-04-07T08:36:54-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/04/07/querying-at-warp-drive-using-activerecord-includes</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/Wkym7gz6fu1Nu" width="480" height="271" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>There comes a time in the life of every developer when you stop thinking about whether your code works. Instead, you concern yourself with something else entirely: how <em>efficiently</em> your code works.</p>
-
-<p>In fact, you can trace this back to Kent Beck&rsquo;s <a href="http://c2.com/cgi/wiki?MakeItWorkMakeItRightMakeItFast">philosophy</a> of &ldquo;Make it work, make it right, make it fast.&rdquo; Once you&rsquo;ve got your code doing what you want it to do, you need to make it better. But what do you do with your improved code once you&rsquo;ve set it right? Make sure that it&rsquo;s working as fast as it possibly can, of course!</p>
-
-<p>Code efficiency is a bit of an advanced topic, and I&rsquo;m definitely no expert in it. But I recently learned a pretty awesome querying method that&rsquo;s neither difficult to understand nor too complex to implement. In fact, this method has always been right under your nose, hidden inside of the magic that is ActiveRecord. So what is this magical method, exactly? Well, it&rsquo;s called <strong>includes</strong>, and once you start using it, you&rsquo;ll never make database queries the same way again.</p>
-
-<!--more-->
-
-
-<h2>Inquiries on Querying</h2>
-
-<p>The best way to know how to make your code run at warp drive is by first figuring out how fast it is to start with. But before we get into the issue of speed, let&rsquo;s check out what our code base looks like:
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
-</span><span class='line'>  <span class="n">belongs_to</span> <span class="ss">:user</span>
-</span><span class='line'>  <span class="kp">attr_accessor</span> <span class="ss">:details</span>
-</span><span class='line'><span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;class User &amp;lt; ActiveRecord::Base</span>
-</span><span class='line'><span class="sr">  has_many :orders&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">class</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="nb">self</span>
-</span><span class='line'>    <span class="k">def</span> <span class="nf">all_order_details</span>
-</span><span class='line'>      <span class="no">User</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">each</span> <span class="o">|</span><span class="n">user</span><span class="o">|</span>
-</span><span class='line'>        <span class="n">user</span><span class="o">.</span><span class="n">orders</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">order</span><span class="o">|</span>
-</span><span class='line'>          <span class="n">order</span><span class="o">.</span><span class="n">details</span>
-</span><span class='line'>        <span class="k">end</span>
-</span><span class='line'>      <span class="k">end</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure></p>
-
-<p>Nothing <em>too</em> fancy happening here. We&rsquo;ve got a one-to-many relationship here, with a <code>User</code> object having many <code>Orders</code>, and each <code>Order</code> belonging to a <code>User</code>. There&rsquo;s also a class method called <code>all_order_details</code> in our <code>User</code> class. This method queries for all of the <code>User</code> objects in our database, and loops through each <code>User</code> instance, grabbing each order, and calling <code>details</code> on it. And if we take a look at our <code>Order</code> class, we&rsquo;ll see that <code>details</code> is just an attribute on <code>Order</code>. (Forget what that weird <code>class &lt;&lt; self</code> syntax means? Jog your memory with <a href="http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my/">this post</a> from a few weeks ago.)</p>
-
-<p>Our plan is to use this method in an admin panel or dashboard, which is probably the only place where someone would want to see all the order details of every single order placed by every single user in our system. But even though we&rsquo;re not going to be using this method within all of our views, it&rsquo;s still important that we take a look at what it&rsquo;s doing in order to understand whether we can refactor it and make it faster.</p>
-
-<p>So, this code does pretty much exactly what we want it to do. But how fast does it do its job? The only way to find out is by checking out what happens in our server logs when we call our method:
-<code>
-2.2.0 :001 &gt; User.all_order_details
-  User Load (1.1ms)  SELECT "users".* FROM "users"
-  Order Load (0.6ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" = ?  [["user_id", 1]]
-  Order Load (0.1ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" = ?  [["user_id", 2]]
-  Order Load (0.1ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" = ?  [["user_id", 3]]
-  Order Load (0.1ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" = ?  [["user_id", 4]]
-  Order Load (0.1ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" = ?  [["user_id", 5]]
-  Order Load (0.1ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" = ?  [["user_id", 6]]
-  Order Load (0.1ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" = ?  [["user_id", 7]]
-  Order Load (0.1ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" = ?  [["user_id", 8]]
-  Order Load (0.1ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" = ?  [["user_id", 9]]
-  Order Load (0.1ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" = ?  [["user_id", 10]]
- =&gt; # returns an array of order details
-</code></p>
-
-<p>Whoa, whoa, whoa &ndash; hold up. We&rsquo;ve got a problem.</p>
-
-<iframe src="//giphy.com/embed/iJxHzcuNcCJXi" width="480" height="360" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Sure, we got an array of <code>Order</code> details, which is great. But doesn&rsquo;t it seem kind of weird that we had to make so many queries? Are the red flags going off in your head, too? Time to investigate.</p>
-
-<h2>The N + 1 Problem</h2>
-
-<p>Okay, so maybe you didn&rsquo;t recoil in horror when you saw all those queries. But let me explain why you probably should. In our database, we currently have 10 <code>Users</code>, each of whom has one <code>Order</code>. If we look at the queries we&rsquo;re currently making, you&rsquo;ll notice that we&rsquo;re first loading all of our <code>User</code> objects:
-<code>ruby
-User Load (1.1ms)  SELECT "users".* FROM "users"
-</code></p>
-
-<p>Loading all of our <code>Users</code> takes 1.1 milliseconds. But what about our <code>Order</code> details? We need to go through our <code>Users</code> table in order to grab each <code>Order</code>&rsquo;s details. That&rsquo;s exactly what&rsquo;s happening in each one of the queries that looks like this:
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">6</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">orders</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span><span class="o">.</span><span class="n">&lt;em</span><span class="o">&gt;</span> <span class="no">FROM</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">orders</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span> <span class="no">WHERE</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">orders</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span><span class="o">.</span><span class="n">&amp;ldquo</span><span class="p">;</span><span class="n">user_id</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span> <span class="o">=</span> <span class="p">?</span>  <span class="o">[[&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">user_id</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;,</span> <span class="mi">1</span><span class="o">]]</span>
-</span><span class='line'><span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">1</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">orders</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span><span class="o">.</span><span class="n">&lt;</span><span class="sr">/em&gt; FROM &amp;ldquo;orders&amp;rdquo; WHERE &amp;ldquo;orders&amp;rdquo;.&amp;ldquo;user_id&amp;rdquo; = ?  [[&amp;ldquo;user_id&amp;rdquo;, 2]]&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">more</span> <span class="n">queries</span> <span class="k">for</span> <span class="n">each</span> <span class="n">user</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span><span class="n">s</span> <span class="n">orders</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;</span>
-</span><span class='line'><span class="sr">We&#39;re first loading all the `Orders` when we look for a `User` with an `id` of `1`, which takes us 0.6 milliseconds. And as we continue querying through the remaining 9 `Users` in our database, each query takes us 0.1 milliseconds.</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">Right now, this might not seem like that big of a deal. But we have to keep in mind that we only have ten users so far! Hopefully, we&#39;ll have a *lot* more as our user base grows. And that&#39;s where our problem comes in. Actually, our problem is quite common, and it&#39;s even got a name: **the n + 1 problem**.</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">The crux of the n + 1 problem is essentially this: the number of queries you make will directly correspond to the number of objects (n) that you have in your database. This means that we&#39;ll have 1 query to get all of our `User` objects, and n number of *additional* queries for each `User` object we want to get order details from.</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">With only 10 users, we&#39;ll make 11 queries in total: 1 query for our users, and 10 for each user we query to load the user&#39;s order details. But what if we have 10,000 users? Or if we&#39;re being optimistic, 100,000 user? ...Or even a million? Making over a hundred thousand queries is just way too slow and simply not acceptable.</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">Thankfully, this problem is so common that Rails has a fantastic solution, tailor-made to handle it.</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">## Smarter Querying</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">Rails is a pretty smart cookie -- it allows you to load a bunch of stuff at once ahead of time if you know exactly what you want to query. This is referred to as **eager loading**, and a really easy way to eager load your associations is by using the ActiveRecord method `includes`.</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">You can call `includes` on an object an pass it a parameter of the table you want to load as a symbol name. We can implement this directly on our `all_order_details` method:</span>
-</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;def all_order_details</span>
-</span><span class='line'><span class="sr">  User.all.includes(:orders).each |user|</span>
-</span><span class='line'><span class="sr">    user.orders.each do |order|</span>
-</span><span class='line'><span class="sr">      order.details</span>
-</span><span class='line'><span class="sr">    end</span>
-</span><span class='line'><span class="sr">  end</span>
-</span><span class='line'><span class="sr">end</span>
-</span></code></pre></td></tr></table></div></figure></p>
-
-<p>This may look pretty similar to our original code at first, but when we look at our server logs, we can see a world of difference:
-<code>ruby
-2.2.0 :002 &gt; User.all_order_details
-  User Load (0.2ms)  SELECT "users".* FROM "users"
-  Order Load (0.3ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
- =&gt; # returns an array of order details
-</code></p>
-
-<p>Nice. We have something really cool happening here. Instead of making &ldquo;n + 1&rdquo; number of queries, we&rsquo;re only making two queries. We spend 0.2 milliseconds getting our users, and 0.3 milliseconds loading our orders. We&rsquo;re only spending 0.5 milliseconds compared to the 2.6 milliseconds we were spending before.</p>
-
-<p>How does this work, exactly? Eager loading allows you to specify exactly which tables you want to load into memory. Just by loading them, we&rsquo;re reducing the number of queries we&rsquo;re making. It&rsquo;s like telling ActiveRecord, <em>Hey, I already know I want all the Users and I know I want to do something with their associated Orders. So instead of querying the table one instance at a time, why don&rsquo;t you just be super efficient and grab &lsquo;em all for me in one shot?</em> And that&rsquo;s pretty much exactly what Rails will do.</p>
-
-<p>I also like the way that <a href="http://www.theodinproject.com/ruby-on-rails/active-record-queries">the Odin Project</a> explains how <code>includes</code> works:</p>
-
-<blockquote><p>&ldquo;Includes basically takes the name of one or more associations that you&rsquo;d like to load at the same time as your original object and brings them into memory. You can chain it onto other methods like where or order clauses.&rdquo;</p></blockquote>
-
-<p>Other helpful methods that do similar things to solve the n + 1 problem are <code>joins</code>, used for joining multiple tables together, and <code>pluck</code>, which grabs a specific column and returns it in an array format.</p>
-
-<h2>Big O Puts the O In &ldquo;Uh Oh&rdquo;</h2>
-
-<iframe src="//giphy.com/embed/fcpJebgkQ14UE" width="480" height="192" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Dealing with issues of efficiency and speed is a pretty advanced topic, mostly because it gets into the deep depths of computer science and the dreaded concept of <strong>Big O Notation</strong>. Big O deals with the space time complexity of different algorithms.</p>
-
-<p>The n + 1 problem is actually nothing more than a Big O problem, because it has to do with how well your algorithm runs. The Big O complexity of an n + 1 problem is <strong>O(n)</strong>, pronounced &ldquo;Oh of n&rdquo;. An O(n) algorithm is one whose performance will grow linearly, and will be directly proportional to the size of input data (the more <code>Users</code> we have, the larger our query of each user&rsquo;s order details).</p>
-
-<p>Big O should always be <a href="http://rob-bell.net/2009/06/a-beginners-guide-to-big-o-notation/">taken into consideration</a> while building an app. But that being said, it should never be the first thing that you think about &ndash; particularly if you are a reatively junior developer. The space time complexity of your algorithm is something you can think about while refactoring your code, or rethinking how you&rsquo;re approaching or solving a problem.</p>
-
-<p>Being able to evaluate an algorithm&rsquo;s efficiency is definitely something to work towards, but it&rsquo;s also something that takes practice. Implementing ActiveRecord&rsquo;s <code>includes</code> method is a good way to start playing around with speed and efficiency &ndash; plus, you&rsquo;ll make some kickass queries in the process, and that always feels pretty awesome. (I mean, obviously it&rsquo;s not as awesome as going warp speed on the Enterprise, but hey, it&rsquo;s an acceptable alternative.)</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>includes</code> method can be chained on to any ActiveRecord model, and takes parameters of an association/table name, passed in as a symbol. Read more about it in the <a href="http://guides.rubyonrails.org/active_record_querying.html#eager-loading-associations">Rails docs</a>.</li>
-<li>If you&rsquo;re still curious about the n + 1 problem, check out another good example of it <a href="http://www.sitepoint.com/silver-bullet-n1-problem/">over here</a>.</li>
-<li>Big O Notation got you down? Check out <a href="http://nathanmlong.com/2015/03/understanding-big-o-notation/">this awesome resource</a>, which has graphs to go along with each code snippet example of different types of notation.</li>
 </ul>
 
 ]]></content>

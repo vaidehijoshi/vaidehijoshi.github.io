@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-05-20T22:13:50-04:00</updated>
+  <updated>2015-05-25T17:57:52-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,133 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[The Secret Life of Your Database, Part 2: Join Tables]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/"/>
+    <updated>2015-05-26T08:02:30-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables</id>
+    <content type="html"><![CDATA[<p><img src="http://daviddickball.uk/wp-content/uploads/2015/03/sql-join.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>When it comes to databases, there are generally two schools of thought. There are those people who love them, and there are those people who just hate them. While I wholeheartedly admit that I belong to the former camp of believers, I can understand why someone would subscribe to the latter group. Databases are hard! They&rsquo;re beautiful and super fun once you understand how to manipulate them, but until you get to that point, they&rsquo;re pretty much just hard.</p>
+
+<p>I think that a large part of what makes databases hard to understand is the sheer amount of things you can do with the data it contains. Between database migrations, which we unpacked <a href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">last week</a>, and writing SQL queries that actually do what you want them to do, it&rsquo;s really easy to just throw your hands up in the air and give up completely. But, you shouldn&rsquo;t! And I hope that, after reading this post, you won&rsquo;t! Because <em>databases are beautiful</em> (that should be on a t-shirt somewhere), and you just have to get to know them a little bit.</p>
+
+<p>So, what should we get to know about them? Well, the scariest part, of course: <strong>join tables</strong>. Join tables are used to combine two sets of data from two different tables. Depending on what you query the database for, different values can be returned. No matter the size of your application, you&rsquo;re probably going to have at least a few tables, and usually many more. Most of the time, the data in a single table by itself isn&rsquo;t super useful; when it&rsquo;s combined with another database&rsquo;s information, however, then things really get cooking. Join tables are how we get specific information from two different datasets (or two different database tables). There are seven different types of join tables, but there are three in particular that I&rsquo;ve encountered time and again. Let&rsquo;s explore the differences between inner joins, left outer joins, and right outer joins.</p>
+
+<!--more-->
+
+
+<h2>Know Thy Data</h2>
+
+<p>Before we get too deep into join syntax, let&rsquo;s take a look at our data! We&rsquo;ll stick with the schema from our eCommerce bookstore application. Since we don&rsquo;t have any real users yet, we can just populate our database with some fake, super fun seed data.</p>
+
+<p><em>Disclaimer</em>: I may or may not have gotten carried away when making the seed data. Anyways, here&rsquo;s what our databases look like:
+<img src="http://i.imgur.com/voemAen.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>We&rsquo;ll be working with the same two tables: a <code>Users</code> table, and an <code>Orders</code> table. Each <code>User</code> instance has a <code>first_name</code> and a <code>last_name</code> (and realistically speaking, probably a bunch of other attributes&hellip;but let&rsquo;s keep it simple for now).</p>
+
+<p>Each <code>Order</code> object <code>belongs_to</code> a <code>User</code>, which means it has a <code>user_id</code> column to store the foreign key from the <code>Users</code> table. Each <code>Order</code> also has a unique, randomly-generated <code>number</code> (think order confirmation number), and an order <code>total</code>, which is stored as a <a href="http://vaidehijoshi.github.io/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/">Ruby BigDecimal object</a>.</p>
+
+<h2>Inner Joins</h2>
+
+<p>The most common and easiest join table syntax to understand is the <em>inner join</em>. Inner joins are our tool of choice if we&rsquo;re looking for a specific set of data that only matches the parameters we identify in our query.</p>
+
+<p>For example, say we&rsquo;re looking for a subset of data that shows <em>only</em> <code>users</code> with <code>orders</code>. We&rsquo;re not interested in any <code>Users</code> that haven&rsquo;t placed an order; we only want the data of a <code>User</code> that actually <em>has</em> placed an order. This is a set of data that might be useful for something like an admin panel that we might want to build out in our next feature, so let&rsquo;s return just some basic information right now, like the <code>User</code>&rsquo;s <code>last_name</code> and their <code>user_id</code>.</p>
+
+<p>So, what would that look like in a SQL query? Well, we know that we want to select only the <code>last_name</code> and the <code>id</code> of the <code>User</code> instance. But, we don&rsquo;t want ALL <code>Users</code> by their <code>ids</code>; we actually want only the <code>Users</code> that are associated with an <code>user_id</code> on an <code>Order</code>. So, that&rsquo;s what we&rsquo;ll select:</p>
+
+<pre><code class="sql">SELECT users.last_name, orders.user_id
+FROM users
+</code></pre>
+
+<p>Cool, we&rsquo;re halfway there. Now for the join. Let&rsquo;s think for a second&hellip;we want to <em>join</em> the data in our <code>Users</code> table with the data in our <code>Orders</code> table. And, we want to match the rows by <code>ids</code>. What does that mean, exactly? Well, it means that we only want to return an <code>User</code> row where that <code>User's</code> <code>id</code> exists in a row of the <code>Order</code> database, where it&rsquo;ll be under the <code>user_id</code> foreign key column. We&rsquo;ll also order our data by the <code>Order's</code> <code>id</code> for now, but we&rsquo;ll change that as we play around a bit more. So let&rsquo;s add all that to our query:</p>
+
+<pre><code class="sql">SELECT users.last_name, orders.user_id
+FROM users
+INNER JOIN orders
+ON users.id=orders.user_id
+ORDER BY orders.id;
+</code></pre>
+
+<p>And if we run this query, what&rsquo;ll happen? We&rsquo;ll get this fabulousness:
+<br><br>
+<img src="http://i.imgur.com/sWlj3zx.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>Nice! So, we get five records returned to us, and it returns exactly what we asked for: the <code>User's</code> <code>last_name</code> and the <code>Order's</code> <code>user_id</code>. But there are some <code>User</code> instances that are there twice, and one of the <code>Users</code> (which is apparently T.S. Eliot) doesn&rsquo;t even show up in our records!</p>
+
+<p>If we take a closer look at our <code>Orders</code> database table, that&rsquo;s exactly what we should <em>expect</em> to happen. The <code>User</code> with an <code>id</code> of <code>1</code> placed two <code>Orders</code>, so there are two records with his <code>last_name</code> and <code>id</code> that are returned to us. And Eliot, who hasn&rsquo;t placed any <code>Orders</code> yet, isn&rsquo;t returned to us at all! That makes sense though, since we&rsquo;re asking for a subset of information &ndash; only the rows that fit the requirements of our query &ndash; or, the inner information of our database, and nothing superfluous, meaning that all the outer, extra information is ignored.</p>
+
+<h2>Left Outer Joins</h2>
+
+<p>Now that we&rsquo;ve covered the relatively easier inner join, it&rsquo;s time to get to the slightly trickier stuff: outer joins! Outer joins come in two shapes and sizes: <strong>left outer joins</strong> and <strong>right outer joins</strong>. The concept behind the two is fundamentally the same, but they kind of work like opposites. Let&rsquo;s look at a left
+outer join to start.</p>
+
+<p>Let&rsquo;s say that our admins actually want to see all the <code>Users</code> at once in the admin panel, regardless of whether they&rsquo;ve placed an order or not. This means that we want to widen our data query to ALL <code>Users</code>, and all the <code>Orders</code> associated with any of those <code>Users</code>. We&rsquo;ll begin our SQl query the same way as before, selecting the <code>User's</code> <code>last_name</code>.</p>
+
+<p>But our admin&rsquo;s also want to see the <code>Order</code> <code>totals</code> for each <code>User</code> &ndash; if the <code>User</code> has placed an order, obviously. So, we&rsquo;ll add that to our select statement as well.</p>
+
+<pre><code class="sql">SELECT users.last_name, orders.total
+FROM users
+</code></pre>
+
+<p>Now, we want to join our <code>Users</code> table with our <code>Orders</code> table again. Except this time, we don&rsquo;t want to do an inner join. Instead, we want all the data from our <code>Users</code> table, and any data that might correspond to all of our <code>Users</code> from the <code>Orders</code> database. We&rsquo;ll still do something similar to before and join our tables on the <code>id</code> columns, but we&rsquo;ll order by each <code>User's</code> <code>id</code>:</p>
+
+<pre><code class="sql">SELECT users.last_name, orders.total
+FROM users
+LEFT OUTER JOIN orders
+ON users.id=orders.user_id
+ORDER BY users.id;
+</code></pre>
+
+<p>If we look at our data, we&rsquo;ll remember that the <code>User</code> with an <code>id</code> of <code>4</code> never placed any orders! How might this affect what data is returned to us? Let&rsquo;s run our query and find out:</p>
+
+<p><br><br>
+<img src="http://i.imgur.com/STqLeW3.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>Whoa! Since our <code>User</code> T.S. Eliot never placed an order, he didn&rsquo;t have any row in the <code>Orders</code> database that corresponded to him. Because there was no <code>Order</code> <code>total</code> column that was attributed to his <code>id</code>, what got returned instead? <code>NULL</code>!</p>
+
+<p>And that&rsquo;s exactly what outer joins will do if they don&rsquo;t find anything! If there is no match on the right table that is being &ldquo;joined&rdquo; (in our case, the <code>Orders</code> database), the default return value will always be <code>NULL</code>. Now that we know that&hellip;how do you think that a right outer join might work?</p>
+
+<h2>Right Outer Joins</h2>
+
+<p>A <strong>right outer join</strong> is almost the same as a left outer join. The difference is that the table that you&rsquo;re joining is on the <em>right</em>. What does that mean for your return set of data?</p>
+
+<p>Well, it means that all the data on the <em>right</em> table will be returned &ndash; even if it doesn&rsquo;t have a corresponding value. Our query might look something like this:</p>
+
+<pre><code class="sql">SELECT orders.number, orders.total
+FROM users
+RIGHT OUTER JOIN orders
+ON users.id=orders.user_id
+ORDER BY orders.id;
+</code></pre>
+
+<p>Here, we are ordering by the <code>Order's</code> <code>id</code>, and we&rsquo;re only looking at the <code>Order</code> <code>number</code> and <code>total</code>. When we run our query, this is what we&rsquo;ll get:</p>
+
+<p><br><br>
+<img src="http://i.imgur.com/LJoNd8I.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>In our case, our data doesn&rsquo;t look super different with a right outer join. In fact, it looks a lot like the inner join we started with! So why do right inner joins matter, then?</p>
+
+<p>Well, what if our admins change their minds (again!) and instead want ONLY orders to be returned. And what if you have an order that doesn&rsquo;t have a <code>User</code>, because that user deleted their account? Well, in that case, our <code>Order</code> would still show up in the returned data, and if we selected the corresponding <code>User</code> <code>ids</code>, then the deleted <code>User</code> would have a <code>NULL</code> <code>id</code> value! Pretty cool, right?</p>
+
+<p>See, databases can be pretty awesome once you understand a little bit about how they work! In fact, I love them so much that I give &lsquo;em two thumbs way, way up!</p>
+
+<iframe src="//giphy.com/embed/5fBH6zoy1szfjORd14s" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Join tables allow us to combine two different sets of data. You can make your data subset be as specific or broad as you want, depending on what you query for!</li>
+<li>An inner join will only return values that exist in both tables.</li>
+<li>A left outer join will return all the values from the left database, and any values that correspond from the right database. A right outer join will return all the values from the right database, and any values that correspond form the left. Any values that don&rsquo;t have a corresponding row will be returned as <code>NULL</code>.</li>
+<li>Still curious about inner vs outer joins? Check out <a href="http://www.programmerinterview.com/index.php/database-sql/inner-vs-outer-joins/">this blog post</a>.</li>
+<li>Want to know about ALL the different join tables out there? Here&rsquo;s a dope <a href="https://raw.githubusercontent.com/equivalent/scrapbook2/master/assets/images/2014/sql-joins.png">graphic</a> that explains it well.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[The Secret Life of Your Database, Part 1: Migrations]]></title>
@@ -775,225 +902,6 @@ end
 <li>The <code>shoulda-matchers</code> gem helps you keep your code DRY and test for associations and validations. The <code>database_cleaner</code> gem keeps your database clean between tests and helps you avoid problems related to repeat data.</li>
 <li>Both of these gems have well-written and maintained documentation. Read them both! (<a href="http://matchers.shoulda.io/docs/v2.8.0/">shoulda</a> docs and <a href="https://github.com/DatabaseCleaner/database_cleaner">database cleaner</a> docs)</li>
 <li>If you&rsquo;re curious about the difference between transactions, truncations, and deletions, check out <a href="http://makandracards.com/makandra/13045-understanding-database-cleaning-strategies-in-tests">this post</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Tackling Those Tests, Part 2: Getting Fun and Functional With FactoryGirl]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/"/>
-    <updated>2015-04-21T08:34:19-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl</id>
-    <content type="html"><![CDATA[<p><img src="https://33.media.tumblr.com/0b9992ca5a259a54c16199c2de69c903/tumblr_mtjab8Yo0U1rlp47to1_500.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p><em>This blog post is part of a series on testing. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/">here</a>.</em></p>
-
-<p>Good things always come in pairs, and that couldn&rsquo;t be more true when it comes to testing. Like milk and cookies or peanut butter and jelly, test suites and test data are at their best when they&rsquo;re put together. As we discovered last week, a thoughtful test suite is important when it comes to checking our assumptions. But even the most comprehensive test suite is nothing without the appropriate amount &ndash; and type &ndash; of test data to support it.</p>
-
-<p>Every Rails application comes with a production, development, and test environment, and good test data is an indication of a well-constructed testing environment. But not all data is created equally. To take a cue from George Orwell, we could go so far as to claim that some forms of test data are more equal than others.</p>
-
-<p>Enter <strong>FactoryGirl</strong>, a gem that I&rsquo;ve recently discovered to be the most efficient way and painless way of creating test data within a Rails application. Generating test data is often the culprit for not only a great deal of pain and sufferring, but also some annoying bugs that are hard to catch. In fact, one of the most excruciating bugs I&rsquo;ve ever dealt with came from a single line of code, meant to create some test data. So it seems fitting that this week we tackle the most dangerous (yet thrilling!) part of testing: generating test data.</p>
-
-<!--more-->
-
-
-<h2>Setting Up The Factory Floor</h2>
-
-<p>Since we&rsquo;re implementing <code>FactoryGirl</code> on top of a Rails application, we&rsquo;ll work exclusively with the <code>factory_girl_rails</code> gem, which has been built specifically for this purpose.</p>
-
-<p>Once we&rsquo;ve added <code>gem 'factory_girl_rails'</code> to our <code>Gemfile</code> and run a <code>bundle install</code> in the terminal, we&rsquo;re ready to start setting up our factories. We&rsquo;ll start by creating factories for our <code>ReadingList</code> model from last week&rsquo;s post.</p>
-
-<ul>
-<li><p>Within our <code>/spec</code> directory, we&rsquo;ll need to create a <code>factories</code> directory. This is where each of the factories for each model will live.</p></li>
-<li><p>Inside of our <code>/spec/factories/</code> subdirectory, we&rsquo;ll create a file for our <code>ReadingList</code> factory. The convention for naming factories is to use the plural form of the model name in snake case, with the word &ldquo;factory&rdquo; appended to the end. In our case, that file would be named <code>reading_lists_factory.rb</code>.</p></li>
-<li><p>In our newly-created <code>ReadingList</code> Factory, we&rsquo;ll add a block that defines what our <code>FactoryGirl</code> object will look like. Every single factory you make for any instance of test data will begin with a block exactly like this one:</p></li>
-</ul>
-
-
-<pre><code class="ruby">FactoryGirl.define do
-end
-</code></pre>
-
-<ul>
-<li>Next, we&rsquo;ll want to give this test object a name. For this very basic test suite, we only want to test one <code>ReadingList</code> object, so we&rsquo;ll stick with a simple name: <code>reading_list</code>. Keep in mind that whatever name we give this test object is what we&rsquo;ll be using to refer to it inside of our tests. Inside of our initial <code>FactoryGirl</code> block, we&rsquo;ll define this specific object like this:</li>
-</ul>
-
-
-<pre><code class="ruby">FactoryGirl.define do
-  factory :reading_list,  do
-  end
-end
-</code></pre>
-
-<ul>
-<li>Lastly, we need to define some attributes for our test object. For now, our <code>ReadingList</code> test object needs only three columns in the database: one for its <code>id</code>, one for its <code>title</code>, and a foreign key of the <code>User</code> it belongs to. Here&rsquo;s what our final test object definition looks like:</li>
-</ul>
-
-
-<pre><code class="ruby">FactoryGirl.define do
-  factory :reading_list,  do
-    user
-    title "Books I Want To Read"
-  end
-end
-</code></pre>
-
-<p>Pretty cool, right? We don&rsquo;t have to give our test object an <code>id</code>, because <code>FactoryGirl</code> will generate one when we call on it to create a new test object. So what&rsquo;s that <code>user</code> line doing in there? Well, it&rsquo;s creating an association between two factories! When <code>FactoryGirl</code> sees <code>user</code>, it looks for a file with the path <code>/spec/factories/user_factory.rb</code>, and creates an instance of a <code>User</code> test object, which it then uses to build our <code>ReadingList</code> object.</p>
-
-<p>But right now, our code will give us a big, nasty error. Can you guess the reason behind that? Why, we don&rsquo;t have a <code>User</code> factory, of course! I guess we better get on that.</p>
-
-<iframe src="//giphy.com/embed/W6vq5qLStzYys" width="480" height="244" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>Form Follows Function</h2>
-
-<p>Now that we know how to set up our factories pretty quickly, we can hop on making a <code>users_factory</code>. For now, our <code>User</code> objects have only a <code>first_name</code> and a <code>last_name</code> attribute, so we&rsquo;ll create a <code>User</code> test object that satisfies these requirements.</p>
-
-<p>But, some <code>Users</code> can also be <code>admin</code>s, but this is an optional trait that not all <code>User</code>s will have. This is something we definitely want to test, but we also want to keep our code DRY. How do we handle this? By nesting factories!</p>
-
-<pre><code class="ruby">FactoryGirl.define do
-  factory :user do
-    first_name "Vaidehi"
-    last_name "Joshi"
-
-    factory :admin do
-      admin true
-    end
-  end
-end
-</code></pre>
-
-<p>This tells FactoryGirl to define two different <code>user</code> instances: a <code>user</code> test object, and an <code>admin</code> test object, which inherits the traits of the <code>user</code> object &ndash; namely, its <code>first_name</code> and <code>last_name</code> attributes.</p>
-
-<p>While we&rsquo;re at it, why don&rsquo;t we set up our <code>books_factory</code> as well? That might look something a little like this:</p>
-
-<pre><code class="ruby">FactoryGirl.define do
-  factory :book1, class: Book do
-    title "A Game Of Thrones"
-    reading_list
-    read true
-  end
-
-  factory :book2, class: Book do
-    title "A Storm Of Swords"
-    reading_list
-    read false
-  end
-end
-</code></pre>
-
-<p>Wait, what&rsquo;s up with the <code>class: Book</code> syntax? We haven&rsquo;t seen that yet! Well, not to worry &ndash; you only have to use it in a specific situation! What exactly <em>is</em> that situation, you might ask? Well, the only time you ever need to explicitly define a FactoryGirl object&rsquo;s class is if the name of the object &ndash; <code>book1</code> or <code>book2</code> in our case &ndash; is different from the object&rsquo;s class name. If we had only a single <code>book</code> test object, we wouldn&rsquo;t have to define the class name, since FactoryGirl will know to look for it in the <code>books_factory.rb</code> file.</p>
-
-<p>Remember last week when we had to manually create two different <code>Book</code> objects every single time we wanted to create a new test object? Well, here we&rsquo;re defining two test objects in a singular, isolated place.</p>
-
-<iframe src="//giphy.com/embed/Q6gPyUYrCk76g" width="480" height="550" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p></p>
-
-
-<p>Awesome! Now it&rsquo;s time to bring it all together in our cleaned-up test suite!</p>
-
-<h2>Bypassing Testing Bugs</h2>
-
-<p>When we wrote out the first iteration of our test suite last week, we had a few different <code>let</code> blocks, inside of which we called <code>create!</code> and <code>build</code> on our different objects. Our <code>let</code> blocks definintely helped us tidy up our tests, since we built and created all of our test objects at once, at the very top of our <code>do</code> block.</p>
-
-<p>But as is the case with most of programming, there&rsquo;s a better way to do that. Now that we&rsquo;ve implemented FactoryGirl, we can cut out some of those blocks, and only call them when we need them. And, we don&rsquo;t need to create an instance with the attributes explicitly defined in a block &ndash; instead, we just tell FactoryGirl to create it for us!</p>
-
-<p>Here&rsquo;s a refactored version of last week&rsquo;s tests, now with the <code>factory_girl_rails</code> to help us out:
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="p">;</span><span class="n">rails_helper</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;Describe ReadingList do</span>
-</span><span class='line'><span class="sr">  let(:reading_list) { create(:reading_list) }&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="n">it</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="p">;</span><span class="n">belongs</span> <span class="n">to</span> <span class="n">a</span> <span class="n">user</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="n">user</span> <span class="o">=</span> <span class="n">create</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span>
-</span><span class='line'>    <span class="n">expect</span><span class="p">(</span><span class="n">reading_list</span><span class="o">.</span><span class="n">user</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="kp">include</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span>
-</span><span class='line'>  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;  it &amp;lsquo;has a title&amp;rsquo; do</span>
-</span><span class='line'><span class="sr">    expect(reading_list.title).to eq(&amp;ldquo;Books I Want To Read&amp;rdquo;)</span>
-</span><span class='line'><span class="sr">  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="n">describe</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="c1">#percentage_read&amp;rdquo; do</span>
-</span><span class='line'>    <span class="n">it</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">calculates</span> <span class="n">the</span> <span class="n">percentage</span> <span class="n">of</span> <span class="n">books</span> <span class="n">read</span> <span class="k">in</span> <span class="n">a</span> <span class="n">list</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span> <span class="k">do</span>
-</span><span class='line'>      <span class="n">book1</span> <span class="o">=</span> <span class="n">create</span><span class="p">(</span><span class="ss">:book1</span><span class="p">)</span>
-</span><span class='line'>      <span class="n">book2</span> <span class="o">=</span> <span class="n">create</span><span class="p">(</span><span class="ss">:book2</span><span class="p">)</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;  expect(reading_list.percentage_read).to eq(50.00)</span>
-</span><span class='line'><span class="sr">end</span>
-</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;  end</span>
-</span><span class='line'><span class="sr">end</span>
-</span></code></pre></td></tr></table></div></figure></p>
-
-<p>You&rsquo;ll notice that I&rsquo;ve replaced <code>build</code> with <code>create</code> in this iteration of tests. I initially had used <code>build</code>, but when I started implementing FactoryGirl, I hit a wall. In fact, I spent an unmentionable number of hours trying to figure out what on earth I was doing wrong!</p>
-
-<p>It turns out I was using the wrong tool for the job. The <code>build</code> method creates an instance, but <em>does not</em> save it. The <code>create</code> method, on the other hand, both creates <em>and</em> persists the object. This was one of the most important debugging lesson I learned while writing tests, and it was not a fun lesson to learn. I hope that at the very least, <em>you</em> won&rsquo;t have to struggle through that bug like I did!</p>
-
-<p>The thing that I valued the most during this debugging process was learning how <code>FactoryGirl</code> actualy works. If those <code>build</code> and <code>create</code> methods seem an awful lot like ActiveRecord to you, that&rsquo;s because it IS ActiveRecord!</p>
-
-<p>In fact, when we call <code>create(:book1)</code>, the magic of <code>FactoryGirl</code> actually does the following:</p>
-
-<ol>
-<li>Creates a new <code>ReadingList</code>.</li>
-<li>Saves the <code>ReadingList</code>.</li>
-<li>Creates a new <code>Book</code>.</li>
-<li>Associates that <code>Book</code> with the <code>ReadingList</code>.</li>
-<li>Saves the <code>Book</code>.</li>
-</ol>
-
-
-<p>Amazing, right? We get so much functionality, all in a single method call! Learning this made me appreciate what <code>FactoryGirl</code> does so much more than if I had just included it blindly in my <code>Gemfile</code> without giving it a second though.</p>
-
-<p>Thoughtbot, the creators of the <code>factory_girl</code> gem, has a great post explaining how it <a href="https://github.com/thoughtbot/factory_girl/wiki/How-factory_girl-interacts-with-ActiveRecord">interacts with ActiveRecord</a>. I found their explaination super helpful when I was first learning about FactoryGirl:</p>
-
-<blockquote><p>When you invoke a factory, factory_girl uses your definitions to compile a list of attributes that should be assigned to that instance, as well as any associated factories. It saves associations first so that foreign keys will be properly set on dependent models. To create an instance, it calls new without any arguments, assigns each attribute (including associations), and then calls save!. factory_girl doesn’t do anything special to create ActiveRecord instances. It doesn’t interact with the database or extend ActiveRecord or your models in any way.</p></blockquote>
-
-<p>Sure, when it comes to the world of testing, the night may be dark and full of terrors. But with <code>FactoryGirl</code> on your side, you&rsquo;ll feel safer, as though you&rsquo;ve got an army of dragons to back you up. In my head, they&rsquo;re super cute ones kinda like these:</p>
-
-<iframe src="//giphy.com/embed/WmqnGHr3oYGR2" width="480" height="259" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p></p>
-
-
-<p>Tune in again next week, when I&rsquo;ll cap off this series by sharing two more gems we can add to our army of testing dragons: <code>shoulda-matchers</code> for writing quick and easy validations, and <code>database_cleaner</code>, the key to unlocking your dreams of a neat and tidy testing database. Until then, test on, my friends &ndash; test on!</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>factory_girl_rails</code> gem is used to generate test data for a Rails application, and each factory defines the attributes and associations of a test object. All factory files should be created in the <code>./spec/factories</code> subdirectory.</li>
-<li>This post only covers a couple of the tricks that <code>FactoryGirl</code> has up her sleeve. To read them all, check out the gem&rsquo;s <a href="http://www.rubydoc.info/gems/factory_girl/file/GETTING_STARTED.md">extensive documentation</a>.</li>
-<li>This tutorial is super detailed and I referred to it frequently while writing this blog post. If you want to learn more about testing and implementing <code>FactoryGirl</code>, <a href="http://everydayrails.com/2012/03/19/testing-series-rspec-models-factory-girl.html">give it a read</a>.</li>
-<li>Did you know that factories and fixtures are actually quite different? No? Well then, you should read <a href="https://semaphoreci.com/blog/2014/01/14/rails-testing-antipatterns-fixtures-and-factories.html">this post</a> and get all caught up.</li>
 </ul>
 
 ]]></content>
