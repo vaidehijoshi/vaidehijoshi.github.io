@@ -249,7 +249,9 @@
 
 <p>So all the <code>&amp;</code> is doing is: <code>:to_f.to_proc</code>. It turns the symbol into a proc, and whatever object you pass to it, it&rsquo;ll call that method on that object. You&rsquo;re basically telling the <code>map</code> function, <em>Hey, I already have this method I want to call on every single item you&rsquo;re iterating over. So when you invoke yourself on the receiving object, run this code that I&rsquo;m passing you.</em></p>
 
-<p>Because <code>:to_f</code> isn&rsquo;t actually a block, the ampersand tries to make it a block by calling <code>to_proc</code> on it. But what if you pass it a block explicitly?</p>
+<p>Because <code>:to_f</code> isn&rsquo;t actually a block, the ampersand tries to make it a block by calling <code>to_proc</code> on it. This means that you can pass any method to <code>&amp;</code> in symbol form, and it will convert it to and invoke that proc.</p>
+
+<p>But what if you didn&rsquo;t want to pass it a defined method in Ruby as a symbol? What if, instead, you wanted to write your own block and pass it to <code>&amp;</code> explicitly? That would look something like this:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -262,7 +264,7 @@
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>Pretty cool, right? In this case, we created a <code>half_off_sale</code> proc, that we passed directly to the ampersand. It didn&rsquo;t have to make it a proc since we already passed it one. So when <code>map</code> iterated through all the amounts, it yielded to our <code>half_off_sale</code> proc, and ran that code on every single element in our array of amounts.</p>
+<p>Pretty cool, right? In this case, we created a <code>half_off_sale</code> proc, that we passed directly to the ampersand. The <code>&amp;</code> didn&rsquo;t have to make it a proc (meaning that it didn&rsquo;t have to invoke <code>to_proc</code>) since we already passed it one. So when <code>map</code> iterated through all the amounts, it yielded to our <code>half_off_sale</code> proc, and ran that code on every single element in our array of amounts.</p>
 
 <p>As you can see, the ampersand and object and <code>to_proc</code> methods can be pretty powerful &ndash; particularly when they&rsquo;re combined into this handy little shortcut! That doesn&rsquo;t mean you have to use them all the time, but if you understand the fundamentals of how they work, they can really help clean up your code, especially when it&rsquo;s pretty smelly.</p>
 
@@ -277,7 +279,7 @@
 <li>The <code>&amp;</code> (ampersand) can be used with an iterator like <code>map</code>, and will call <code>to_proc</code> on whatever symbol you pass it, unless you pass it a block explicitly.</li>
 <li>More examples and explanations on <a href="http://stackoverflow.com/questions/9429819/what-is-the-functionality-of-operator-in-ruby">these</a> <a href="http://stackoverflow.com/questions/2259775/what-do-you-call-the-operator-in-ruby">two</a> StackOverflow posts.</li>
 <li>Here&rsquo;s a <a href="http://www.dan-manges.com/blog/29">great blog post</a> on all the ways you can use <code>&amp;</code> to manipulate ActiveRecord models.</li>
-<li>If you&rsquo;re still curious about different ways to pass around procs, check out <a href="https://andrewjgrimm.wordpress.com/2011/10/03/in-ruby-method-passes-you/">this post</a>, which is what I used when I was learning about them!</li>
+<li>If you&rsquo;re still curious about different ways to pass around procs, check out <a href="http://ablogaboutcode.com/2012/01/04/the-ampersand-operator-in-ruby/">this post</a>, which is what I used when I was learning about them!</li>
 </ul>
 
 </div>
