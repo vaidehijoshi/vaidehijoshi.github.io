@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Ruby | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-05-25T17:57:52-04:00</updated>
+  <updated>2015-06-02T15:39:55+08:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -14,9 +14,158 @@
 
   
   <entry>
+    <title type="html"><![CDATA[Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/"/>
+    <updated>2015-06-02T20:45:24+08:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/918rCUjV2XWhi" width="480" height="360" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>There aren&rsquo;t too many things that bring me down when I&rsquo;m deep into programming. But there&rsquo;s always one thing that&rsquo;ll stop me dead in my tracks: a code smell. In the context of programming, a code smell is something that tells you that your code is&hellip;well, a bit <em>off</em>.</p>
+
+<p>Whether you&rsquo;ve been programming for months or for decades, you&rsquo;ll run into &ldquo;code that smells&rdquo; again and again. Except the better that you get, you&rsquo;ll anticipate your code smelling, or before you even write it, you&rsquo;ll know that it&rsquo;s going to stink. For me, a lot of my code that tends to smell are sections where I&rsquo;ve duplicated what I&rsquo;ve written, which is to say that I&rsquo;ve written something that&rsquo;s identical or at least very, very similar to another piece of code in my application. I&rsquo;ve noticed that I&rsquo;ve started catching myself as I write duplicated code, which is a sign that I&rsquo;m getting better as a developer &ndash; hooray!</p>
+
+<p>But, there are a lot of <a href="http://en.wikipedia.org/wiki/Code_smell#Common_code_smells">common code smells</a>, and I definitely still can&rsquo;t catch all of them in my own code. Generally, if any part of your program has a common code smell, it&rsquo;s a sign that you need to rethink how your system is structured on a deeper level, and that it&rsquo;s probably time to start refactoring.</p>
+
+<p>Recently, I&rsquo;ve noticed that I&rsquo;ve been sniffing out the same issue in my code: long methods. So I did a bit of investigating and found that there are some cool ways to shorten up your longer methods. Thanks to Ruby magic, we have easy access to methods like <code>to_proc</code> in the form of &ldquo;ampersand and object&rdquo;, or the <strong>&amp;:</strong> syntax. If you have no clue what those are, don&rsquo;t worry. I didn&rsquo;t either! Until I wrote this post, obvs.</p>
+
+<!--more-->
+
+
+<h2>A Slim Method Is A Beautiful Method</h2>
+
+<p>In our eCommerce bookstore app, we&rsquo;re storing our <code>Order</code> <code>amount</code> totals as BigDecimals. You might remember why BigDecimals <a href="http://vaidehijoshi.github.io/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/">are better than floats</a> when it comes to performing accurate monetary calculations. But even though we&rsquo;re using BigDecimal on the backend, there may be times when we want to convert our decimals back into floats. Like what if we want to start integrating a JavaScript frontend? (yes, I went there). The point is, we should be able to do something like that pretty easily, especially if we wanted to serialize and return a JSON object that has the correct object type.</p>
+
+<p>We&rsquo;d probably start by iterating through all of our order amounts and turn them into floats, like this:</p>
+
+<pre><code class="ruby">class Order
+    class &lt;&lt; self
+        def amounts_to_floats
+            Order.all.map do |order|
+                order.amount.to_f
+            end
+        end
+    end
+end
+</code></pre>
+
+<p>Well, it does the job. But&hellip;it doesn&rsquo;t look so great, does it? Let&rsquo;s cut it down:</p>
+
+<pre><code class="ruby">class Order
+    class &lt;&lt; self
+        def amounts_to_floats
+            Order.all.map {|order| order.amount.to_f }
+        end
+    end
+end
+</code></pre>
+
+<p>Okay, let&rsquo;s make it a little fancier and throw in the <code>pluck</code> method, which will query for only the to grab <em>only</em> an <code>Order</code>&rsquo;s <code>amount</code>?</p>
+
+<pre><code class="ruby">class Order
+    class &lt;&lt; self
+        def amounts_to_floats
+            Order.pluck(:amount).map {|amount| amount.to_f }
+        end
+    end
+end
+</code></pre>
+
+<p>I guess it&rsquo;s better, but still not as good as it could be. Are you thinking what I&rsquo;m thinking? There&rsquo;s <em>gotta</em> be a better way!</p>
+
+<p><img src="http://provensal.com/lbb/wp-content/uploads/2013/03/better_way.jpg" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<h2>A Proc And An Object Walk Into A Bar&hellip;</h2>
+
+<p>As is the case with most things in programming, if we wish for a better way to do something, we can generally assume that there is! And in our case, the better way to do it is by using something called <strong>ampersand and object</strong>.</p>
+
+<p>And we can implement it on our <code>amounts_to_floats</code> method like so:</p>
+
+<pre><code class="ruby">class Order
+    class &lt;&lt; self
+        def amounts_to_floats
+            Order.pluck(:amount).map(&amp;:to_f)
+        end
+    end
+end
+</code></pre>
+
+<p>The result of this will be the exact same thing as the <code>map</code> we wrote above:</p>
+
+<pre><code class="ruby">&gt; Order.amounts_to_floats
+=&gt; [210.99, 150.5, 24.99, 391.99, 120.25]
+</code></pre>
+
+<p>So, what happened here? Well, let&rsquo;s just start with what we know for sure.</p>
+
+<ol>
+<li><p>We took all the <code>Order</code> objects and queried for just their <code>amounts</code>, which are in <code>BigDecimal</code> format.</p></li>
+<li><p>The <code>pluck</code> method returns an array of the attributes that you query for, so, which would mean that our array would look something like this:
+<code>[#&lt;BigDecimal:7f87ed12b2f0,'0.21099E3',18(18)&gt;, #&lt;BigDecimal:7f87ed121700,'0.1505E3',18(18)&gt;, #&lt;BigDecimal:7f87ed119348,'0.2499E2',18(18)&gt;...]</code></p></li>
+<li><p>Okay, so then we mapped over all of these amounts, right? And somehow we called <code>.to_f</code> on all of them. Which returned the array that we were hoping for:
+<code>[210.99, 150.5, 24.99, 391.99, 120.25]</code></p></li>
+</ol>
+
+
+<p>All of this begs one question: how on earth did the <code>&amp;</code> (ampersand) know to call <code>to_f</code> on each of our objects? And how did <code>map</code> know what to do with the ampersand that we passed it?</p>
+
+<p>Time to find out.</p>
+
+<h2>Procs on Procs</h2>
+
+<iframe src="//giphy.com/embed/umwRSMxcXW31m" width="480" height="244" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Whenever something seems super daunting, I go back to the basics. Which is exactly what I think we should do here, too. We can all agree that in Ruby is an object, right? And methods are how we send messages to objects. With that in mind, let&rsquo;s look back at that confusing line of code:</p>
+
+<pre><code class="ruby">Order.pluck(:amount).map(&amp;:to_f)
+</code></pre>
+
+<p>We know <code>Order.pluck(:amount)</code> to be an array &ndash; it&rsquo;s an object, which means it&rsquo;s the <em>receiver</em> of our method. That means that <code>.map</code> is our method. And <code>map</code> has been passed <code>&amp;:to_f</code>, which seems to have replaced the usual <code>do end</code> or <code>{}</code> blocks that generally accompany the <code>map</code> iterator.</p>
+
+<p>At this point, if you&rsquo;re thinking that the <code>&amp;</code> ampersand is responsible for executing that <code>to_f</code> method on each of the elements of the array, you&rsquo;re definitely onto something.</p>
+
+<p>In fact, the <code>&amp;</code> calls <em>another</em> method on the object: <code>to_proc</code>. The ampersand calls <code>to_proc</code> on whatever comes after it. In our case, it&rsquo;s the <code>to_f</code>. But it&rsquo;s not just the plain old method <code>to_f</code> &ndash; it&rsquo;s actually the <em>symbol</em>, <code>:to_f</code>.</p>
+
+<p>And we can double check this by looking at <a href="http://ruby-doc.org/core-1.9.3/Symbol.html#method-i-to_proc">the Ruby docs</a>! The <code>to_proc</code> method is defined on the <code>Symbol</code> class:</p>
+
+<blockquote><p><code>to_proc</code> Returns a Proc object which responds to the given method by sym.</p></blockquote>
+
+<p>So all the <code>&amp;</code> is doing is: <code>:to_f.to_proc</code>. It turns the symbol into a proc, and whatever object you pass to it, it&rsquo;ll call that method on that object. You&rsquo;re basically telling the <code>map</code> function, <em>Hey, I already have this method I want to call on every single item you&rsquo;re iterating over. So when you invoke yourself on the receiving object, run this code that I&rsquo;m passing you.</em></p>
+
+<p>Because <code>:to_f</code> isn&rsquo;t actually a block, the ampersand tries to make it a block by calling <code>to_proc</code> on it. But what if you pass it a block explicitly?</p>
+
+<pre><code class="ruby">half_off_sale = Proc.new { |amount| amount/2 }
+
+Order.pluck(:amount).map &amp;half_off_sale
+=&gt; [#&lt;BigDecimal:7f87ec20e4c0,'0.105495E3',18(45)&gt;, #&lt;BigDecimal:7f87ec20e3d0,'0.7525E2',18(45)&gt;, #&lt;BigDecimal:7f87ec20e2e0,'0.12495E2',18(45)&gt;...]
+</code></pre>
+
+<p>Pretty cool, right? In this case, we created a <code>half_off_sale</code> proc, that we passed directly to the ampersand. It didn&rsquo;t have to make it a proc since we already passed it one. So when <code>map</code> iterated through all the amounts, it yielded to our <code>half_off_sale</code> proc, and ran that code on every single element in our array of amounts.</p>
+
+<p>As you can see, the ampersand and object and <code>to_proc</code> methods can be pretty powerful &ndash; particularly when they&rsquo;re combined into this handy little shortcut! That doesn&rsquo;t mean you have to use them all the time, but if you understand the fundamentals of how they work, they can really help clean up your code, especially when it&rsquo;s pretty smelly.</p>
+
+<p>This is just a primary introduction to the concepts of ampersand and object and <code>to_proc</code>. There&rsquo;s definitely a lot more to them, and they can get quite complicated. I&rsquo;m still learning about them myself! But, I&rsquo;m going to keep reading about how procs work and, hopefully, there&rsquo;ll be a forthcoming Technical Tuesday post about how to pass methods to procs! Until then, keep sniffin&#8217; out those code smells, my friends!</p>
+
+<iframe src="//giphy.com/embed/LeaMGoMmMGrf2" width="480" height="360" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>&amp;</code> (ampersand) can be used with an iterator like <code>map</code>, and will call <code>to_proc</code> on whatever symbol you pass it, unless you pass it a block explicitly.</li>
+<li>More examples and explanations on <a href="http://stackoverflow.com/questions/9429819/what-is-the-functionality-of-operator-in-ruby">these</a> <a href="http://stackoverflow.com/questions/2259775/what-do-you-call-the-operator-in-ruby">two</a> StackOverflow posts.</li>
+<li>Here&rsquo;s a <a href="http://www.dan-manges.com/blog/29">great blog post</a> on all the ways you can use <code>&amp;</code> to manipulate ActiveRecord models.</li>
+<li>If you&rsquo;re still curious about different ways to pass around procs, check out <a href="https://andrewjgrimm.wordpress.com/2011/10/03/in-ruby-method-passes-you/">this post</a>, which is what I used when I was learning about them!</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
     <title type="html"><![CDATA[Investigating Ruby's Global Functions + Kernel Module With Puts]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/"/>
-    <updated>2015-05-12T08:09:27-04:00</updated>
+    <updated>2015-05-12T20:09:27+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/10Vy7fN9fr7dD2" width="480" height="361" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -192,7 +341,7 @@ Waddle waddle
   <entry>
     <title type="html"><![CDATA[Metaprogramming Dynamic Methods: Using Public_send]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/"/>
-    <updated>2015-05-05T08:38:29-04:00</updated>
+    <updated>2015-05-05T20:38:29+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send</id>
     <content type="html"><![CDATA[<p><img src="http://imgs.xkcd.com/comics/hofstadter.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -357,7 +506,7 @@ end
   <entry>
     <title type="html"><![CDATA[Tackling Those Tests, Part 1: The How, When, and What of Rspec Testing]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/"/>
-    <updated>2015-04-14T08:17:03-04:00</updated>
+    <updated>2015-04-14T20:17:03+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing</id>
     <content type="html"><![CDATA[<p><img src="http://www.datamation.com/imagesvr_ce/306/philosophy-geeks.jpg" style="display: block; margin-left: auto; margin-right: auto; width: 50%; height: 50%;"></p>
 
@@ -572,7 +721,7 @@ end
   <entry>
     <title type="html"><![CDATA[Delegating All of the Things With Ruby Forwardable]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable/"/>
-    <updated>2015-03-31T08:35:27-04:00</updated>
+    <updated>2015-03-31T20:35:27+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable</id>
     <content type="html"><![CDATA[<p><img src="http://assets.amuniversal.com/77c6dce06d5c01301d80001dd8b71c47" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -892,166 +1041,6 @@ vaidehis_list.size
 <li>The Forwardable module uses <code>def_delegators</code> to delegate methods to another Ruby object, and <code>def_delegator</code> to rename a method that&rsquo;s being delegated to another object.</li>
 <li>For another example of this module, read this <a href="http://oneofthesedaysblog.com/ruby-day-4-forwardable">incredibly thorough</a> blog post on implementing Forwardable.</li>
 <li>Curious about delegation patterns in Object-Oriented Programming? <a href="http://radar.oreilly.com/2014/02/delegation-patterns-in-ruby.html">This post</a> has gotcha covered.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Bundle Up &amp; Let Your Objects Do the Freezing: Frozen Hashes]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes/"/>
-    <updated>2015-03-03T08:43:04-05:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/b7pVN1KY8ycg0" width="480" height="213" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Snowmageddon. Snowpocalypse. The Deep Freeze of 2015. You can call it whatever you want, but we can all agree on one thing: it&rsquo;s so damn cold outside. In fact, it&rsquo;s so cold that I recently saw this error message while debugging a Postgres issue:
-<code>RuntimeError: can't modify frozen Hash</code></p>
-
-<p>My first thought was, naturally, <em>holy shit, even my hashes are frozen</em>. I did a little digging, and it turns out that we aren&rsquo;t the only ones susceptible to these chilly temperatures. Apparently, objects can also freeze!</p>
-
-<p>So, in honor of the frozen tundra that we all seem to currently inhabit, I decided to explore the icy-cold depths of Rails frozen objects. Before you read on though, you should know: I&rsquo;m going to use only gifs from the Disney animated film, <em>Frozen</em> — don&rsquo;t say I didn&rsquo;t warn you.</p>
-
-<!-- more -->
-
-
-<h2>Objects As Cold As Ice</h2>
-
-<p>First things first: what&rsquo;s a frozen object? Well, they&rsquo;re frozen, which means they can&rsquo;t change &ndash; they&rsquo;re immutable and cannot be modified. There are some objects in Ruby that are perpetually frozen, such as any <code>Fixnum</code>, <code>Bignum</code>, <code>Float</code>, and <code>Symbol</code> objects.</p>
-
-<iframe src="//giphy.com/embed/Fjy5XItIvYjEQ" width="480" height="269" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>You&rsquo;ve probably worked with all of these objects before, but may not know that they&rsquo;re actually frozen! Don&rsquo;t believe me? Well, you can check for yourself. Just call the <code>frozen?</code> method on any object of this class:</p>
-
-<pre><code>$ irb
-2.2.0 :001 &gt; 1.frozen?
- =&gt; true
-2.2.0 :002 &gt; a = :im_a_symbol
- =&gt; :im_a_symbol
-2.2.0 :003 &gt; a.frozen?
- =&gt; true
-2.2.0 :004 &gt; 3.14.frozen?
- =&gt; true
-</code></pre>
-
-<p>This kind of makes sense though, right? Imagine if I could just start rewriting values all over the damn place. I could set <code>1</code> equal to <code>nil</code> and make <code>2</code> equal <code>3</code>, and then we&rsquo;d really hit crazytown.</p>
-
-<p>Frozen objects keep certain things secure and certain in Ruby (and also in Rails!) So, freezing objects is a&hellip;good thing? Well, yes. But also, no.</p>
-
-<h2>The Freeze Method: A Cold Piece Of Work</h2>
-
-<p>Just as there&rsquo;s a method to check whether an object is <code>frozen?</code> or not, there&rsquo;s also a method to freeze mutable objects and make them immutable called &ndash; you guessed it &ndash; <code>freeze</code>. This method is pretty simple: yuo just call it on an object in order to rpevent further modifications to said object. If you <em>do</em> try to modify the object after freezing it, you&rsquo;ll get a <code>RuntimeError</code>:
-<code>
-2.2.0 :005 &gt; x = {1 =&gt; 'a', 2 =&gt; 'b', 3 =&gt; 'c'}
- =&gt; {1=&gt;"a", 2=&gt;"b", 3=&gt;"c"}
-2.2.0 :006 &gt; x.freeze
- =&gt; {1=&gt;"a", 2=&gt;"b", 3=&gt;"c"}
-2.2.0 :007 &gt; x.frozen?
- =&gt; true
-2.2.0 :008 &gt; x[1] = 'b'
-RuntimeError: can't modify frozen Hash
-</code></p>
-
-<iframe src="//giphy.com/embed/oYKesMM459o4w" width="480" height="200" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>But before you get all Elsa on me and start freezing everything, you should know some things about how to use the <code>freeze</code> method as a responsible developer:</p>
-
-<ol>
-<li><p>First and foremost: don&rsquo;t try to call a <code>defrost</code> or <code>thaw</code> method, because there&rsquo;s no such thing. In fact, there is <em>absolutely no way</em> to unfreeze an object. It simply cannot be undone. So, proceed with great caution when freezing things. Or maybe just don&rsquo;t do it at all.</p></li>
-<li><p>The <code>freeze</code> method operates on an object reference, not on a variable. Wait, whut? If this sounds like Ruby objects aren&rsquo;t actually being modified, but their references are instead, well&hellip;that&rsquo;s totally right.</p></li>
-</ol>
-
-
-<p>I really liked the way that Michael Morin explained this in <a href="http://ruby.about.com/od/qa/ss/Can-T-Modify-Frozen-String.htm">his post</a> on frozen objects:</p>
-
-<blockquote><p>When you freeze a hash, it just freezes the references to the objects it already has, it doesn&rsquo;t actually freeze the objects themselves. The frozen hash won&rsquo;t know the difference here. This is an important thing to understand about freezing objects, it&rsquo;s not recursive. All freezing does is prevent the references the object holds from being modified.</p></blockquote>
-
-<p>While we can&rsquo;t unfreeze &ldquo;frozen&rdquo; objects, this particular quality gives us a little bit leeway to get around the lack of a thaw method.</p>
-
-<h2>Chill Out, But Don&rsquo;t Freeze</h2>
-
-<p>There are a few different ways to change an immutable frozen object (which, hello, aren&rsquo;t actually frozen, just their references are). One thing you can do is create a duplicated object, which will <em>not</em> be frozen and therefore, completely mutable:
-<code>
-2.2.0 :009 &gt; x.dup
- =&gt; {1=&gt;"a", 2=&gt;"b", 3=&gt;"c"}
-2.2.0 :010 &gt; y = _
- =&gt; {1=&gt;"a", 2=&gt;"b", 3=&gt;"c"}
-2.2.0 :011 &gt; y.frozen?
- =&gt; false
-2.2.0 :012 &gt; x.frozen?
- =&gt; true
-2.2.0 :013 &gt; y[1] = 'b'
- =&gt; "b"
-2.2.0 :014 &gt; y
- =&gt; {1=&gt;"b", 2=&gt;"b", 3=&gt;"c"}
-</code></p>
-
-<p>Keep in mind, however, that this only changes the data in the duplicated object, not the original one! So&hellip;what now? Well, since only the reference to an object is frozen, that means that you can modify the actual data inside of the frozen object:
-<code>
-2.2.0 :015 &gt; x[1] &lt;&lt; 'bc'
- =&gt; "ab"
-2.2.0 :016 &gt; x
- =&gt; {1=&gt;"abc", 2=&gt;"b", 3=&gt;"c"}
-2.2.0 :017 &gt; x.frozen?
- =&gt; true
-</code></p>
-
-<p>Weird, right!? Our <code>x</code> variable, which points to the <code>Hash</code> object, is still very much frozen. But, we can modify the data and values inside of the object itself. Since we don&rsquo;t want to make an actual copy of the variable, we can instead modify the objects held within that variable (in our case, we&rsquo;re directly modifying the <code>String</code> object, which is a the value of a key in this frozen Hash)</p>
-
-<h2>Freezing Out Those Error Messages</h2>
-
-<p>Cool, so this I guess this is a thing in Ruby. But wait &ndash; it&rsquo;s also a pretty important thing in Rails! Objects in Rails are infinitely more complicated than in Ruby, mostly because you&rsquo;re dealing with ActiveRecord and its methods. Whenever you&rsquo;re trying to delete an ActiveRecord object, you depend on the <code>destroy</code> method.</p>
-
-<p>For example, I use this method in my bookstore app, and I have a <code>delete</code> action in my <code>BooksController</code> that contains code that looks something like this:
-<code>ruby
-@book = Book.find(1)
-@book.destroy
-</code></p>
-
-<p>Now if I wanted to modfiy this book&rsquo;s type after I delete it, I&rsquo;d get an error:
-<code>
-[1] pry(main)&gt; @book.type = 'hardcover'
-TypeError: can't modify frozen hash
-</code></p>
-
-<p>Why is this? Well, even though I deleted the object, it still exists in the <code>@book</code> variable, which still retains all the attributes of the object. Once I destroy the record, the object became frozen. Since the object&rsquo;s attributes hash is frozen, when I try to modify it, I get this error.</p>
-
-<p>The <a href="http://api.rubyonrails.org/classes/ActiveRecord/Persistence.html#method-i-destroy">Rails documentation</a> explains how it implements the <code>freeze</code> method, stating that <code>destroy</code> method:</p>
-
-<blockquote><p>Deletes the record in the database and freezes this instance to reflect that no changes should be made (since they can&rsquo;t be persisted).</p></blockquote>
-
-<p>To avoid creating a <code>@book</code> object that&rsquo;s frozen and still hanging around for no apparent reason, I could instead implicitly delete the object in a single line. Either this:
-<code>ruby
-Book.find(1)destroy
-</code>
-or
-<code>ruby
-Book.destroy(1)
-</code>
-would work.</p>
-
-<p>Alternatively, I could just use the <code>delete</code> method, which doesn&rsquo;t instantiate an object, but isntead directly removes the row from the database.</p>
-
-<p>Frozen objects are in front of us everyday. Ruby actually uses the <code>freeze</code> method when you copy certain objects. According to <a href="http://rubylearning.com/satishtalim/mutable_and_immutable_objects.html">this post</a>, when you use a string as a key of a <code>Hash</code> object, the string is copied, frozen, and then that duplicated copy is used as the key of the hash. This is pretty cool because this means that even if the original string is modified, the duplicated one isn&rsquo;t affected because it has been frozen! The same goes for filenames: internal operations of an application rely on a frozen copy of a filename, rather than the original one.</p>
-
-<p>Once you understand the functionality of <code>freeze</code>, it becomes a lot easier to understand those weird error messages. Soon, you&rsquo;ll no longer fear the ice, but instead bask in the sun. Or&hellip;something more poetic.</p>
-
-<p>Anyways, here&rsquo;s a dancing snowman:</p>
-
-<iframe src="//giphy.com/embed/N80v6XYayA5vG" width="480" height="213" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>You can use the <code>freeze</code> method to make mutable objects immutable. To check whether an object can be modified or not, use the <code>frozen?</code> method, which will return a boolean value.</li>
-<li>Certain Ruby objects, such as integers, floats, and symbols, are always frozen and cannot be modified.</li>
-<li>Someone made a <a href="https://github.com/zizkovrb/melt">melt gem</a> &ndash; for realsies!</li>
-<li>Some people are <a href="http://m.onkey.org/ruby-i-don-t-like-3-object-freeze">not big fans</a> of the weird functionality of Ruby <code>freeze</code>. But it&rsquo;s still worth it to <a href="http://blog.adamstegman.com/activerecord-hangs-on-to-destroyed-relations.html">learn how it works</a>, especially since it can be <a href="http://blog.adamstegman.com/activerecord-hangs-on-to-destroyed-relations.html">super helpful</a> for <a href="http://www.devarticles.com/c/a/Ruby-on-Rails/Updating-and-Deleting-with-the-Active-Record/2/">debugging Rails apps</a>.</li>
 </ul>
 
 ]]></content>

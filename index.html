@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="When it comes to databases, there are generally two schools of thought. There are those people who love them, and there are those people who just &hellip;">
+  <meta name="description" content="There aren&rsquo;t too many things that bring me down when I&rsquo;m deep into programming. But there&rsquo;s always one thing that&rsquo;ll stop me &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -73,6 +73,58 @@
       
   <header>
     
+      <h1 class="entry-title"><a href="/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/">Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-06-02T20:45:24+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>8:45 pm</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/refactoring/'>refactoring&#8221;</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/918rCUjV2XWhi" width="480" height="360" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>There aren&rsquo;t too many things that bring me down when I&rsquo;m deep into programming. But there&rsquo;s always one thing that&rsquo;ll stop me dead in my tracks: a code smell. In the context of programming, a code smell is something that tells you that your code is&hellip;well, a bit <em>off</em>.</p>
+
+<p>Whether you&rsquo;ve been programming for months or for decades, you&rsquo;ll run into &ldquo;code that smells&rdquo; again and again. Except the better that you get, you&rsquo;ll anticipate your code smelling, or before you even write it, you&rsquo;ll know that it&rsquo;s going to stink. For me, a lot of my code that tends to smell are sections where I&rsquo;ve duplicated what I&rsquo;ve written, which is to say that I&rsquo;ve written something that&rsquo;s identical or at least very, very similar to another piece of code in my application. I&rsquo;ve noticed that I&rsquo;ve started catching myself as I write duplicated code, which is a sign that I&rsquo;m getting better as a developer &ndash; hooray!</p>
+
+<p>But, there are a lot of <a href="http://en.wikipedia.org/wiki/Code_smell#Common_code_smells">common code smells</a>, and I definitely still can&rsquo;t catch all of them in my own code. Generally, if any part of your program has a common code smell, it&rsquo;s a sign that you need to rethink how your system is structured on a deeper level, and that it&rsquo;s probably time to start refactoring.</p>
+
+<p>Recently, I&rsquo;ve noticed that I&rsquo;ve been sniffing out the same issue in my code: long methods. So I did a bit of investigating and found that there are some cool ways to shorten up your longer methods. Thanks to Ruby magic, we have easy access to methods like <code>to_proc</code> in the form of &ldquo;ampersand and object&rdquo;, or the <strong>&amp;:</strong> syntax. If you have no clue what those are, don&rsquo;t worry. I didn&rsquo;t either! Until I wrote this post, obvs.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
       <h1 class="entry-title"><a href="/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/">The Secret Life of Your Database, Part 2: Join Tables</a></h1>
     
     
@@ -82,7 +134,7 @@
 
 
 
-<time class='entry-date' datetime='2015-05-26T08:02:30-04:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:02 am</span></time>
+<time class='entry-date' datetime='2015-05-26T20:02:30+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:02 pm</span></time>
         
 
 <span class="categories">
@@ -131,7 +183,7 @@
 
 
 
-<time class='entry-date' datetime='2015-05-19T08:51:11-04:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:51 am</span></time>
+<time class='entry-date' datetime='2015-05-19T20:51:11+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:51 pm</span></time>
         
 
 <span class="categories">
@@ -180,7 +232,7 @@
 
 
 
-<time class='entry-date' datetime='2015-05-12T08:09:27-04:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:09 am</span></time>
+<time class='entry-date' datetime='2015-05-12T20:09:27+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:09 pm</span></time>
         
 
 <span class="categories">
@@ -232,7 +284,7 @@
 
 
 
-<time class='entry-date' datetime='2015-05-05T08:38:29-04:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:38 am</span></time>
+<time class='entry-date' datetime='2015-05-05T20:38:29+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:38 pm</span></time>
         
 
 <span class="categories">
@@ -281,7 +333,7 @@
 
 
 
-<time class='entry-date' datetime='2015-04-28T08:50:59-04:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:50 am</span></time>
+<time class='entry-date' datetime='2015-04-28T20:50:59+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:50 pm</span></time>
         
 
 <span class="categories">
@@ -332,7 +384,7 @@
 
 
 
-<time class='entry-date' datetime='2015-04-21T08:34:19-04:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>8:34 am</span></time>
+<time class='entry-date' datetime='2015-04-21T20:34:19+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>8:34 pm</span></time>
         
 
 <span class="categories">
@@ -383,7 +435,7 @@
 
 
 
-<time class='entry-date' datetime='2015-04-14T08:17:03-04:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:17 am</span></time>
+<time class='entry-date' datetime='2015-04-14T20:17:03+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:17 pm</span></time>
         
 
 <span class="categories">
@@ -432,7 +484,7 @@
 
 
 
-<time class='entry-date' datetime='2015-04-07T08:36:54-04:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:36 am</span></time>
+<time class='entry-date' datetime='2015-04-07T20:36:54+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:36 pm</span></time>
         
 
 <span class="categories">
@@ -482,7 +534,7 @@
 
 
 
-<time class='entry-date' datetime='2015-03-31T08:35:27-04:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>8:35 am</span></time>
+<time class='entry-date' datetime='2015-03-31T20:35:27+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>8:35 pm</span></time>
         
 
 <span class="categories">
@@ -517,60 +569,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/03/24/a-machine-state-of-mind-part-2-implementing-state-machines/">A Machine State of Mind, Part 2: Implementing State Machines</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-03-24T08:03:14-04:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:03 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/computer-science/'>computer science</a>, <a class='category' href='/blog/categories/rails/'>rails</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><iframe src="//giphy.com/embed/CYMzelWRqbQv6" width="480" height="345" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p><em>This blog post is part of a series on State Machines. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2015/03/17/a-machine-state-of-mind-part-1-understanding-state-machines/">here</a>.</em></p>
-
-<p>Until you encounter a state machine in a gem, framework, or within someone else&rsquo;s code, you probably won&rsquo;t find one very easily. But as we learned last week, they&rsquo;re rather pervasive. I discovered state machines while helping build a large-scale eCommerce website.</p>
-
-<p>But there actually weren&rsquo;t even that many state machines in our code! We were relying on state machines that lived in the source code of a Rails library with a variety of gems, commonly referred to as <a href="https://github.com/spree">spree</a>. (Why reinvent ecommerce platforms when so many people have already made &lsquo;em, amirite?)</p>
-
-<p>So, I did what any self-respecting, completely unaware new developer would do: I dove into the spree source code. And boy, was <em>that</em> a rabbit hole. But, I learned some things about how state machines work in Rails and how to make them. It&rsquo;s good to conceptually understand the theory behind state machines, but the best way to learn something is by doing it. It&rsquo;s time to take off the training wheels and actually <em>build</em> our own state machine!</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/03/24/a-machine-state-of-mind-part-2-implementing-state-machines/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -586,6 +584,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/">Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/">The Secret Life of Your Database, Part 2: Join Tables</a>
       </li>
     
@@ -599,10 +601,6 @@
     
       <li class="post">
         <a href="/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/">Metaprogramming Dynamic Methods: Using Public_send</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems/">Tackling Those Tests, Part 3: Testing Made Easy With Gems</a>
       </li>
     
   </ul>

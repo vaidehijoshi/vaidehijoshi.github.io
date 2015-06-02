@@ -1,0 +1,355 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>The Final Countdown: Using JavaScript&#8217;s setInterval + clearInterval Methods - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="It&rsquo;s a brand new year, and with that comes a renewed sense of self. Also: a rather lengthy todo list. Enter #technicaltuesdays, or my attempt &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/01/07/the-final-countdown-using-javascripts-setinterval-plus-clearinterval-methods">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">The Final Countdown: Using JavaScript&#8217;s setInterval + clearInterval Methods</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-01-07T05:30:53+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>5:30 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/javascript/'>javascript</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>It&rsquo;s a brand new year, and with that comes a renewed sense of self. Also: a rather lengthy todo list. Enter <strong>#technicaltuesdays</strong>, or my attempt at beefing up my technical chops by posting a blog post every week &mdash; specifically on Tuesdays, in case it wasn&rsquo;t obvious. (Sorry, Thursday, you were a close second, but you just didn&rsquo;t make the cut.)</p>
+
+<p>So, what&rsquo;s on the menu this week? JavaScript! New year = new me, you guys. Actually, some of my technical interviews have been a bit JavaScript-heavy, so I&rsquo;ve been stepping up my curly bracket game.</p>
+
+<p>In honor of the new year, I wanted to use JavaScript to create a quick &ldquo;New Year&rsquo;s Countdown&rdquo; function. Suffice it to say, <em>it was neither quick nor easy</em>. But I learned about two cool timing events in JavaScript &ndash; <strong>setInterval</strong> and <strong>clearInterval</strong> &ndash; and now you can learn about them, too!</p>
+
+<!-- more -->
+
+
+<p></p>
+
+<h2>setInterval()</h2>
+
+<p>Okay, so what exactly was my goal with this function? I wanted to it to countdown from 10 to 1 and then print out &ldquo;Happy New Year!&rdquo;. JavaScript has a couple different time events, but the trick is figuring out which one works best for your purposes.</p>
+
+<p>I first started off trying to use the setTimeout() method, which waits a certain amount of time before executing the function that you pass it as a parameter. I was stuck for a long time trying to figure out how to get my code to execute again after every second. I quickly realized that this method wasn&rsquo;t the best tool for the job.</p>
+
+<p>Luckily, one method did just the trick: <strong>setInterval()</strong>. The setInterval method executes a function that you pass in as a parameter at a deteremined interval. The interval is also a parameter, and is passed in as milliseconds. <em>Protip: 1000 milliseconds = 1 second</em>. A generic setInterval method might look something like <code>setInterval(functionYouWantToRun(), 1000)</code>.</p>
+
+<p>This was perfect for my countdown function, which needed to do the same thing &ndash; namely, count down from ten to zero &ndash; every one second.</p>
+
+<p>Here&rsquo;s what my function looked like in the first iteration:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">counter</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+</span><span class='line'><span class="nx">setInterval</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+</span><span class='line'>  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">counter</span><span class="p">);</span>
+</span><span class='line'>  <span class="nx">counter</span><span class="o">--</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="nx">counter</span> <span class="o">===</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;HAPPY NEW YEAR!!&quot;</span><span class="p">);</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">},</span> <span class="mi">1000</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>I first created a <code>counter</code> variable, which I logged to the console, and then decremented by one each time the function ran. I passed in the two parameters that setInterval requires: a function to execute (in my case, an anonymous, unnamed function), and an interval at which it should be executed (every one second). I also added a conditional to log &ldquo;Happy New Year!&rdquo; once the counter hit zero.</p>
+
+<p>So, did it work? YES! But also, NO. This code <em>does</em> count down from 10, and prints out &ldquo;HAPPY NEW YEAR!!&rdquo; when it hits zero. But now, there was another problem: it just WOULD. NOT. STOP.</p>
+
+<p><img src="http://i.imgur.com/tGznKSo.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<h2>Make it stop!! Or, clearInterval()</h2>
+
+<p>The setInterval method is great and all, until you hit an infinite loop and your code runs forever and ever and ever and &ndash; you get the idea. This method on its own doesn&rsquo;t do much more than loop by default. But, when it&rsquo;s combined with its twin method <strong>clearInterval()</strong>, which &ndash; you guessed it &ndash; clears the function at a certain interval, you it can acutally be quite handy.</p>
+
+<p>So, how does clearInterval work? Well, it takes just one parameter: the function that you want to clear. This is important for remember for two reasons:</p>
+
+<ol>
+<li>You have to save your setInterval method to a variable</li>
+<li>This variable must be accessible (in scope) by the clearInterval method</li>
+</ol>
+
+
+<p>A clearInterval method might look something like <code>clearInterval(func)</code>, where <code>var func = setInterval(functionYouWantToRun(), 1000)</code>.</p>
+
+<p>Here&rsquo;s what the second iteration of my function looked like:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="kd">var</span> <span class="nx">counter</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+</span><span class='line'><span class="kd">var</span> <span class="nx">newYearCountdown</span> <span class="o">=</span> <span class="nx">setInterval</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+</span><span class='line'>  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">counter</span><span class="p">);</span>
+</span><span class='line'>  <span class="nx">counter</span><span class="o">--</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="nx">counter</span> <span class="o">===</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;HAPPY NEW YEAR!!&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="nx">clearInterval</span><span class="p">(</span><span class="nx">newYearCountdown</span><span class="p">);</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">},</span> <span class="mi">1000</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>I saved my function to variable called <code>newYearCountdown</code>, and then passed that variable in as a parameter to my clearInterval method, which will only fire when the <code>counter</code> variable is set to zero. When <code>var counter</code> is set to zero, a couple things will happen:</p>
+
+<ol>
+<li>The string <code>HAPPY NEW YEAR!!</code> will be logged to the console</li>
+<li>The clearInterval method will execute</li>
+<li>The setInterval method will stop running</li>
+</ol>
+
+
+<p>And this is what will be printed out:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='javascript'><span class='line'><span class="mi">10</span>
+</span><span class='line'><span class="mi">9</span>
+</span><span class='line'><span class="mi">8</span>
+</span><span class='line'><span class="mi">7</span>
+</span><span class='line'><span class="mi">6</span>
+</span><span class='line'><span class="mi">5</span>
+</span><span class='line'><span class="mi">4</span>
+</span><span class='line'><span class="mi">3</span>
+</span><span class='line'><span class="mi">2</span>
+</span><span class='line'><span class="mi">1</span>
+</span><span class='line'><span class="nx">HAPPY</span> <span class="nx">NEW</span> <span class="nx">YEAR</span><span class="o">!!</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<iframe src="//giphy.com/embed/7tE1zKt2AwOsM" width="480" height="192" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Maybe my next blog post should be figuring out how to change that gif from &ldquo;2012&rdquo; to &ldquo;2015&rdquo;&hellip;</p>
+
+<p>Hope you had a wonderful New Year&rsquo;s! Here&rsquo;s to 2015 and many more Technical Tuesdays! (I hope.)</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <strong>setInterval</strong> method takes a function to execute and a interval in milliseconds.</li>
+<li>The <strong>clearInterval</strong> method takes an in-scope variable which points to the setInterval method.</li>
+<li>Both of these timing events work together as a pair.</li>
+<li>Want to read more about timing events in JavaScript? Check out setInterval + clearInterval&rsquo;s cousins, <a href="http://javascript.info/tutorial/settimeout-setinterval">setTimeout and clearTimeout</a>.</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-01-07T05:30:53+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>5:30 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/javascript/'>javascript</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/01/07/the-final-countdown-using-javascripts-setinterval-plus-clearinterval-methods/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/01/07/the-final-countdown-using-javascripts-setinterval-plus-clearinterval-methods/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/12/15/to-understand-recursion-you-must-first-understand-recursion/" title="Previous Post: To understand recursion, you must first understand recursion">&laquo; To understand recursion, you must first understand recursion</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2015/01/14/tidying-up-those-views-using-decorators-in-rails/" title="Next Post: Tidying Up Those Views: Using Decorators in Rails">Tidying Up Those Views: Using Decorators in Rails &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/">Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/">The Secret Life of Your Database, Part 2: Join Tables</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">The Secret Life of Your Database, Part 1: Migrations</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/">Investigating Ruby&#8217;s Global Functions + Kernel Module With Puts</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/">Metaprogramming Dynamic Methods: Using Public_send</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

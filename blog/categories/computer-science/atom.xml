@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Computer Science | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/computer-science/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-05-25T17:57:52-04:00</updated>
+  <updated>2015-06-02T15:39:55+08:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -16,7 +16,7 @@
   <entry>
     <title type="html"><![CDATA[Querying at Warp Drive: Using ActiveRecord Includes]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/04/07/querying-at-warp-drive-using-activerecord-includes/"/>
-    <updated>2015-04-07T08:36:54-04:00</updated>
+    <updated>2015-04-07T20:36:54+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/04/07/querying-at-warp-drive-using-activerecord-includes</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/Wkym7gz6fu1Nu" width="480" height="271" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -214,7 +214,7 @@ User Load (1.1ms)  SELECT "users".* FROM "users"
   <entry>
     <title type="html"><![CDATA[A Machine State of Mind, Part 2: Implementing State Machines]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/03/24/a-machine-state-of-mind-part-2-implementing-state-machines/"/>
-    <updated>2015-03-24T08:03:14-04:00</updated>
+    <updated>2015-03-24T20:03:14+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/03/24/a-machine-state-of-mind-part-2-implementing-state-machines</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/CYMzelWRqbQv6" width="480" height="345" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -521,7 +521,7 @@ end
   <entry>
     <title type="html"><![CDATA[A Machine State of Mind, Part 1: Understanding State Machines]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/03/17/a-machine-state-of-mind-part-1-understanding-state-machines/"/>
-    <updated>2015-03-17T08:11:22-04:00</updated>
+    <updated>2015-03-17T20:11:22+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/03/17/a-machine-state-of-mind-part-1-understanding-state-machines</id>
     <content type="html"><![CDATA[<p><img src="http://www.kurzweilai.net/images/flowchart.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
 

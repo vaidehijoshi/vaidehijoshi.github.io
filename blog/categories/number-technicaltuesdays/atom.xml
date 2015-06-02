@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-05-25T17:57:52-04:00</updated>
+  <updated>2015-06-02T15:39:55+08:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -14,9 +14,158 @@
 
   
   <entry>
+    <title type="html"><![CDATA[Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/"/>
+    <updated>2015-06-02T20:45:24+08:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/918rCUjV2XWhi" width="480" height="360" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>There aren&rsquo;t too many things that bring me down when I&rsquo;m deep into programming. But there&rsquo;s always one thing that&rsquo;ll stop me dead in my tracks: a code smell. In the context of programming, a code smell is something that tells you that your code is&hellip;well, a bit <em>off</em>.</p>
+
+<p>Whether you&rsquo;ve been programming for months or for decades, you&rsquo;ll run into &ldquo;code that smells&rdquo; again and again. Except the better that you get, you&rsquo;ll anticipate your code smelling, or before you even write it, you&rsquo;ll know that it&rsquo;s going to stink. For me, a lot of my code that tends to smell are sections where I&rsquo;ve duplicated what I&rsquo;ve written, which is to say that I&rsquo;ve written something that&rsquo;s identical or at least very, very similar to another piece of code in my application. I&rsquo;ve noticed that I&rsquo;ve started catching myself as I write duplicated code, which is a sign that I&rsquo;m getting better as a developer &ndash; hooray!</p>
+
+<p>But, there are a lot of <a href="http://en.wikipedia.org/wiki/Code_smell#Common_code_smells">common code smells</a>, and I definitely still can&rsquo;t catch all of them in my own code. Generally, if any part of your program has a common code smell, it&rsquo;s a sign that you need to rethink how your system is structured on a deeper level, and that it&rsquo;s probably time to start refactoring.</p>
+
+<p>Recently, I&rsquo;ve noticed that I&rsquo;ve been sniffing out the same issue in my code: long methods. So I did a bit of investigating and found that there are some cool ways to shorten up your longer methods. Thanks to Ruby magic, we have easy access to methods like <code>to_proc</code> in the form of &ldquo;ampersand and object&rdquo;, or the <strong>&amp;:</strong> syntax. If you have no clue what those are, don&rsquo;t worry. I didn&rsquo;t either! Until I wrote this post, obvs.</p>
+
+<!--more-->
+
+
+<h2>A Slim Method Is A Beautiful Method</h2>
+
+<p>In our eCommerce bookstore app, we&rsquo;re storing our <code>Order</code> <code>amount</code> totals as BigDecimals. You might remember why BigDecimals <a href="http://vaidehijoshi.github.io/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/">are better than floats</a> when it comes to performing accurate monetary calculations. But even though we&rsquo;re using BigDecimal on the backend, there may be times when we want to convert our decimals back into floats. Like what if we want to start integrating a JavaScript frontend? (yes, I went there). The point is, we should be able to do something like that pretty easily, especially if we wanted to serialize and return a JSON object that has the correct object type.</p>
+
+<p>We&rsquo;d probably start by iterating through all of our order amounts and turn them into floats, like this:</p>
+
+<pre><code class="ruby">class Order
+    class &lt;&lt; self
+        def amounts_to_floats
+            Order.all.map do |order|
+                order.amount.to_f
+            end
+        end
+    end
+end
+</code></pre>
+
+<p>Well, it does the job. But&hellip;it doesn&rsquo;t look so great, does it? Let&rsquo;s cut it down:</p>
+
+<pre><code class="ruby">class Order
+    class &lt;&lt; self
+        def amounts_to_floats
+            Order.all.map {|order| order.amount.to_f }
+        end
+    end
+end
+</code></pre>
+
+<p>Okay, let&rsquo;s make it a little fancier and throw in the <code>pluck</code> method, which will query for only the to grab <em>only</em> an <code>Order</code>&rsquo;s <code>amount</code>?</p>
+
+<pre><code class="ruby">class Order
+    class &lt;&lt; self
+        def amounts_to_floats
+            Order.pluck(:amount).map {|amount| amount.to_f }
+        end
+    end
+end
+</code></pre>
+
+<p>I guess it&rsquo;s better, but still not as good as it could be. Are you thinking what I&rsquo;m thinking? There&rsquo;s <em>gotta</em> be a better way!</p>
+
+<p><img src="http://provensal.com/lbb/wp-content/uploads/2013/03/better_way.jpg" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<h2>A Proc And An Object Walk Into A Bar&hellip;</h2>
+
+<p>As is the case with most things in programming, if we wish for a better way to do something, we can generally assume that there is! And in our case, the better way to do it is by using something called <strong>ampersand and object</strong>.</p>
+
+<p>And we can implement it on our <code>amounts_to_floats</code> method like so:</p>
+
+<pre><code class="ruby">class Order
+    class &lt;&lt; self
+        def amounts_to_floats
+            Order.pluck(:amount).map(&amp;:to_f)
+        end
+    end
+end
+</code></pre>
+
+<p>The result of this will be the exact same thing as the <code>map</code> we wrote above:</p>
+
+<pre><code class="ruby">&gt; Order.amounts_to_floats
+=&gt; [210.99, 150.5, 24.99, 391.99, 120.25]
+</code></pre>
+
+<p>So, what happened here? Well, let&rsquo;s just start with what we know for sure.</p>
+
+<ol>
+<li><p>We took all the <code>Order</code> objects and queried for just their <code>amounts</code>, which are in <code>BigDecimal</code> format.</p></li>
+<li><p>The <code>pluck</code> method returns an array of the attributes that you query for, so, which would mean that our array would look something like this:
+<code>[#&lt;BigDecimal:7f87ed12b2f0,'0.21099E3',18(18)&gt;, #&lt;BigDecimal:7f87ed121700,'0.1505E3',18(18)&gt;, #&lt;BigDecimal:7f87ed119348,'0.2499E2',18(18)&gt;...]</code></p></li>
+<li><p>Okay, so then we mapped over all of these amounts, right? And somehow we called <code>.to_f</code> on all of them. Which returned the array that we were hoping for:
+<code>[210.99, 150.5, 24.99, 391.99, 120.25]</code></p></li>
+</ol>
+
+
+<p>All of this begs one question: how on earth did the <code>&amp;</code> (ampersand) know to call <code>to_f</code> on each of our objects? And how did <code>map</code> know what to do with the ampersand that we passed it?</p>
+
+<p>Time to find out.</p>
+
+<h2>Procs on Procs</h2>
+
+<iframe src="//giphy.com/embed/umwRSMxcXW31m" width="480" height="244" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Whenever something seems super daunting, I go back to the basics. Which is exactly what I think we should do here, too. We can all agree that in Ruby is an object, right? And methods are how we send messages to objects. With that in mind, let&rsquo;s look back at that confusing line of code:</p>
+
+<pre><code class="ruby">Order.pluck(:amount).map(&amp;:to_f)
+</code></pre>
+
+<p>We know <code>Order.pluck(:amount)</code> to be an array &ndash; it&rsquo;s an object, which means it&rsquo;s the <em>receiver</em> of our method. That means that <code>.map</code> is our method. And <code>map</code> has been passed <code>&amp;:to_f</code>, which seems to have replaced the usual <code>do end</code> or <code>{}</code> blocks that generally accompany the <code>map</code> iterator.</p>
+
+<p>At this point, if you&rsquo;re thinking that the <code>&amp;</code> ampersand is responsible for executing that <code>to_f</code> method on each of the elements of the array, you&rsquo;re definitely onto something.</p>
+
+<p>In fact, the <code>&amp;</code> calls <em>another</em> method on the object: <code>to_proc</code>. The ampersand calls <code>to_proc</code> on whatever comes after it. In our case, it&rsquo;s the <code>to_f</code>. But it&rsquo;s not just the plain old method <code>to_f</code> &ndash; it&rsquo;s actually the <em>symbol</em>, <code>:to_f</code>.</p>
+
+<p>And we can double check this by looking at <a href="http://ruby-doc.org/core-1.9.3/Symbol.html#method-i-to_proc">the Ruby docs</a>! The <code>to_proc</code> method is defined on the <code>Symbol</code> class:</p>
+
+<blockquote><p><code>to_proc</code> Returns a Proc object which responds to the given method by sym.</p></blockquote>
+
+<p>So all the <code>&amp;</code> is doing is: <code>:to_f.to_proc</code>. It turns the symbol into a proc, and whatever object you pass to it, it&rsquo;ll call that method on that object. You&rsquo;re basically telling the <code>map</code> function, <em>Hey, I already have this method I want to call on every single item you&rsquo;re iterating over. So when you invoke yourself on the receiving object, run this code that I&rsquo;m passing you.</em></p>
+
+<p>Because <code>:to_f</code> isn&rsquo;t actually a block, the ampersand tries to make it a block by calling <code>to_proc</code> on it. But what if you pass it a block explicitly?</p>
+
+<pre><code class="ruby">half_off_sale = Proc.new { |amount| amount/2 }
+
+Order.pluck(:amount).map &amp;half_off_sale
+=&gt; [#&lt;BigDecimal:7f87ec20e4c0,'0.105495E3',18(45)&gt;, #&lt;BigDecimal:7f87ec20e3d0,'0.7525E2',18(45)&gt;, #&lt;BigDecimal:7f87ec20e2e0,'0.12495E2',18(45)&gt;...]
+</code></pre>
+
+<p>Pretty cool, right? In this case, we created a <code>half_off_sale</code> proc, that we passed directly to the ampersand. It didn&rsquo;t have to make it a proc since we already passed it one. So when <code>map</code> iterated through all the amounts, it yielded to our <code>half_off_sale</code> proc, and ran that code on every single element in our array of amounts.</p>
+
+<p>As you can see, the ampersand and object and <code>to_proc</code> methods can be pretty powerful &ndash; particularly when they&rsquo;re combined into this handy little shortcut! That doesn&rsquo;t mean you have to use them all the time, but if you understand the fundamentals of how they work, they can really help clean up your code, especially when it&rsquo;s pretty smelly.</p>
+
+<p>This is just a primary introduction to the concepts of ampersand and object and <code>to_proc</code>. There&rsquo;s definitely a lot more to them, and they can get quite complicated. I&rsquo;m still learning about them myself! But, I&rsquo;m going to keep reading about how procs work and, hopefully, there&rsquo;ll be a forthcoming Technical Tuesday post about how to pass methods to procs! Until then, keep sniffin&#8217; out those code smells, my friends!</p>
+
+<iframe src="//giphy.com/embed/LeaMGoMmMGrf2" width="480" height="360" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>&amp;</code> (ampersand) can be used with an iterator like <code>map</code>, and will call <code>to_proc</code> on whatever symbol you pass it, unless you pass it a block explicitly.</li>
+<li>More examples and explanations on <a href="http://stackoverflow.com/questions/9429819/what-is-the-functionality-of-operator-in-ruby">these</a> <a href="http://stackoverflow.com/questions/2259775/what-do-you-call-the-operator-in-ruby">two</a> StackOverflow posts.</li>
+<li>Here&rsquo;s a <a href="http://www.dan-manges.com/blog/29">great blog post</a> on all the ways you can use <code>&amp;</code> to manipulate ActiveRecord models.</li>
+<li>If you&rsquo;re still curious about different ways to pass around procs, check out <a href="https://andrewjgrimm.wordpress.com/2011/10/03/in-ruby-method-passes-you/">this post</a>, which is what I used when I was learning about them!</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
     <title type="html"><![CDATA[The Secret Life of Your Database, Part 2: Join Tables]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/"/>
-    <updated>2015-05-26T08:02:30-04:00</updated>
+    <updated>2015-05-26T20:02:30+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables</id>
     <content type="html"><![CDATA[<p><img src="http://daviddickball.uk/wp-content/uploads/2015/03/sql-join.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -143,7 +292,7 @@ ORDER BY orders.id;
   <entry>
     <title type="html"><![CDATA[The Secret Life of Your Database, Part 1: Migrations]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/"/>
-    <updated>2015-05-19T08:51:11-04:00</updated>
+    <updated>2015-05-19T20:51:11+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations</id>
     <content type="html"><![CDATA[<p><img src="http://31.media.tumblr.com/tumblr_mcsccsfcnn1qz9l5so1_1280.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -429,7 +578,7 @@ end
   <entry>
     <title type="html"><![CDATA[Investigating Ruby's Global Functions + Kernel Module With Puts]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/"/>
-    <updated>2015-05-12T08:09:27-04:00</updated>
+    <updated>2015-05-12T20:09:27+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/10Vy7fN9fr7dD2" width="480" height="361" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -605,7 +754,7 @@ Waddle waddle
   <entry>
     <title type="html"><![CDATA[Metaprogramming Dynamic Methods: Using Public_send]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/"/>
-    <updated>2015-05-05T08:38:29-04:00</updated>
+    <updated>2015-05-05T20:38:29+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send</id>
     <content type="html"><![CDATA[<p><img src="http://imgs.xkcd.com/comics/hofstadter.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -762,146 +911,6 @@ end
 <li>We can use dynamic dispatching to send a method to an object without being explicit about the method&rsquo;s contents within our application. The <code>send</code> and <code>public_send</code> method are two ways of doing this, and both take a string or symbol as a parameter, and use that to call a method of the same name upon the receiving object.</li>
 <li>Learn the basics of metaprogramming over <a href="http://ruby-metaprogramming.rubylearning.com/html/ruby_metaprogramming_2.html">here</a>, and check out the docs on <a href="http://ruby-doc.org/core-2.2.2/Object.html#method-i-send">send</a> and <a href="http://apidock.com/ruby/Object/public_send">public_send</a>.</li>
 <li>Curious about the different types of dynamic method calls out there? This <a href="http://ruby.about.com/od/oo/ss/Dynamic-Method-Calls.htm">blog post</a> covers a few different kinds in depth.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Tackling Those Tests, Part 3: Testing Made Easy With Gems]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems/"/>
-    <updated>2015-04-28T08:50:59-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems</id>
-    <content type="html"><![CDATA[<p><img src="https://imgs.xkcd.com/comics/shouldnt_be_hard.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p><em>This blog post is part of a series on testing. Read Part 2 <a href="http://vaidehijoshi.github.io/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/">here</a>.</em></p>
-
-<p>If there&rsquo;s anything that I&rsquo;ve learned about testing while writing this three-part blog post series, it&rsquo;s this: testing is freaking hard! It&rsquo;s tough to figure out the correct syntax and conventions, particularly when you&rsquo;re just starting out. Figuring out when to write a test is also a tricky business. And then sitting down to actually write the test is pretty difficult, too.</p>
-
-<p>But there are ways to make it easier on yourself. And I should know, because I tried to write my tests the hard way, and I definitely do not recommend it. Here&rsquo;s what I <em>do</em> recommend: GEMS! And lots of &lsquo;em. There are a lot of Ruby gems out there, specifically designed to make your testing life easier.</p>
-
-<p>So, to close off this epic series on testing in Rails, I&rsquo;m going to share my two favorite testing gems: <code>shoulda-matchers</code> and <code>database_cleaner</code>. Once you know how to implement them, your testing life will forever be easier. Because, let&rsquo;s be real &ndash; isn&rsquo;t that the way testing <em>should</em> be?</p>
-
-<!--more-->
-
-
-<h2>You Shoulda Used Shoulda</h2>
-
-<p>Last week, we wrote some tests for a <code>ReadingList</code> object, which we tested using factories. To refresh your memory, every <code>ReadingList</code> has a <code>title</code> attribute, which is just a <code>string</code> value. An important test for this object is a <code>title</code> validation. But what would that look like? Probably something like this:</p>
-
-<pre><code class="ruby">require 'rails_helper'
-
-describe ReadingList do
-  context 'has a title' do
-
-    let(:real_list) { create(:reading_list, title: "my list") }
-
-    it 'has a title' do
-      expect(reading_list.title).to eq("Books I Want To Read")
-    end
-  end
-
-  context 'doesn't have a title' do
-    let(:fake_list) { create(:reading_list) }
-
-    it 'raises an error' do
-      expect(fake_list.save!)to raise_error
-    end
-  end
-end
-</code></pre>
-
-<p>Man, that&rsquo;s a lot of work for a single line of Rails code, isn&rsquo;t it? Wait a second &ndash; what if we could shorten this huge test into one line of code? Is is possible? Of course it is! And it&rsquo;s easy too, because the <code>shoulda</code> gem does just that.</p>
-
-<p>To actually use the gem, you just need to add it to the <code>test</code> group within your <code>Gemfile</code>:</p>
-
-<pre><code class="ruby">group :test do
-  gem 'rspec-rails'
-  gem 'shoulda-matchers'
-end
-</code></pre>
-
-<p>You also need to add <code>require 'shoulda/matchers'</code> to your <code>rails_helper.rb</code> file. Now we can rewrite our validation test as a single line:</p>
-
-<pre><code class="ruby">require 'rails_helper'
-
-describe ReadingList do
-  it { should validate_presence_of(:title) } 
-end
-</code></pre>
-
-<p>Pretty awesome, right? We can do this for all of our validations now! But wait &ndash; there&rsquo;s more! The <code>shoulda</code> gem takes care of more than just validations. It can also test for associations in ActiveRecord and actions in our controllers! You can even write super specific validations scoped to a particular attribute or object, like this:</p>
-
-<pre><code class="ruby">it { should validate_uniqueness_of(:reading_list).scoped_to(:title, :user) }
-</code></pre>
-
-<p>YAHHHHSSS we are on a test-writing roll!</p>
-
-<iframe src="//giphy.com/embed/NaNHdFMPAoL2E" width="480" height="241" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>Clean Yo Database</h2>
-
-<p>Now that you can write tests like a pro, you probably have an overwhelming desire to write all the tests and create all the objects and build all the factories. And you totally should. But you should also make sure they don&rsquo;t come back to haunt you.</p>
-
-<p>What do I mean by that, exactly? Well, whenever you run your test suite, you want to be sure that you clean out your database and get rid of any old or repeat data. This is super important when you have a lot of tests. You want to be sure that your test database is getting cleaned after each test, so that the next test starts with an blank database.</p>
-
-<p>Enter <code>database_cleaner</code>, a gem that does exactly what you think it does. Although we&rsquo;re using this gem in conjunction with Rails and RSpec, it also comes in handy for testing with <a href="https://github.com/jnicklas/capybara">capybara</a> and <a href="http://docs.seleniumhq.org/">selenium</a>. I was introduced to this gem by another developer who took one look at my failing test and asked me whether or not I had repeat data. I didn&rsquo;t even realize that database inconsistencies were thing. But they are! And that&rsquo;s why we&rsquo;ll want to use the <code>database_cleaner</code> gem.</p>
-
-<p>Inside of our <code>/spec/rails_helper.rb</code> file, there&rsquo;s a large block that starts with the line <code>RSpec.configure do |config|</code>. That&rsquo;s exactly where our <code>database_cleaner</code> gem code is going to live &ndash; inside of that block.</p>
-
-<p>Inside of that block, we&rsquo;ll stick in this little bit of code:</p>
-
-<pre><code class="ruby">config.before(:suite) do
-end
-
-config.around(:each) do |example|
-end
-</code></pre>
-
-<p>Our <code>config.before(:suite)</code> block is for all the things we want to do before our entire test suite runs. We&rsquo;ll probably want to put in some code that will get rid of old data from previous test suites that we ran earlier.</p>
-
-<p>The <code>config.around(:each)</code> block is for each individual test example that runs in our suite. This is where we would put certain lines of that only need to run for more specific tests (like a capybara test, for example).</p>
-
-<p>But our tests are relatively simple in this example. So, inside of our <code>before(:suite)</code> block, we&rsquo;ll add some instructions:</p>
-
-<pre><code class="ruby">config.before(:suite) do
-  begin
-    DatabaseCleaner.strategy = :transaction
-    DatabaseCleaner.clean_with(:truncation)
-    DatabaseCleaner.start
-  ensure
-    DatabaseCleaner.clean
-  end
-end
-</code></pre>
-
-<p>The <code>start</code> and <code>clean</code> methods hook into the beginning and end of our test suite, ensuring that whatever lines are above actually get executed properly. But what do the two lines above <em>do</em>, exactly?</p>
-
-<p>Well, the <code>clean_with(:truncation)</code> method clears out our test database completely, and the <code>strategy = :transaction</code> method sets the behavior of the database &ldquo;cleaning strategy&rdquo; to be a transaction. Avdi Grimm has a <a href="http://devblog.avdi.org/2012/08/31/configuring-database_cleaner-with-rails-rspec-capybara-and-selenium/">great blog post</a> on what all of this means, and his explanation of transactions is easy to understand:</p>
-
-<blockquote><p>Transactions are very fast, and for all the tests where they do work—that is, any test where the entire test runs in the RSpec process—they are preferable.</p></blockquote>
-
-<p>Okay, cool. But what about our other block? We gotta put some stuff in there, too. But since we don&rsquo;t have any specific instructions or strategies for any of our tests, we&rsquo;ll just run each of our examples normally, inside of a single block:</p>
-
-<pre><code class="ruby">config.around(:each) do |example|
-  DatabaseCleaner.cleaning do
-    example.run
-  end
-end
-</code></pre>
-
-<p>Nice! In just a handful of lines, we&rsquo;ve saved ourselves hours of heartache trying to figure out why one of our tests isn&rsquo;t passing. Well, at least <em>you</em> saved yourself hours of heartache. I already went through the pain of that while trying to debug my poorly-written tests! But one of us will never have to go through that, which I think is a cause for celebration!</p>
-
-<iframe src="//giphy.com/embed/rO7Rqg58ZbJLO" width="480" height="259" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>shoulda-matchers</code> gem helps you keep your code DRY and test for associations and validations. The <code>database_cleaner</code> gem keeps your database clean between tests and helps you avoid problems related to repeat data.</li>
-<li>Both of these gems have well-written and maintained documentation. Read them both! (<a href="http://matchers.shoulda.io/docs/v2.8.0/">shoulda</a> docs and <a href="https://github.com/DatabaseCleaner/database_cleaner">database cleaner</a> docs)</li>
-<li>If you&rsquo;re curious about the difference between transactions, truncations, and deletions, check out <a href="http://makandracards.com/makandra/13045-understanding-database-cleaning-strategies-in-tests">this post</a>.</li>
 </ul>
 
 ]]></content>

@@ -1,0 +1,445 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Class Inheritance: Part 1 - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="Confession time: I&rsquo;m kind of in love with object-oriented programming. I should probably clarify that I don&rsquo;t always understand OOP, and &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2014/10/17/class-inheritance-part-1">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Class Inheritance: Part 1</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-17T09:00:34+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:00 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/flatiron/'>flatiron</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Confession time: I&rsquo;m kind of in love with object-oriented programming.</p>
+
+<p>I should probably clarify that I don&rsquo;t always understand OOP, and I sometimes even confuse myself for no good reason whenever the topic of &ldquo;self&rdquo; comes up. But hey, every relationship has its ups and downs, and I&rsquo;ve only really been committed to this one for the past week or so.</p>
+
+<p>OOP is easy to understand mostly because of its strong connection to real life &ndash; everything is an object, all objects have properties/traits/characteristics, so on and so forth. But dealing with multiple <em>types</em> of objects across different types of <em>classes</em> gets real tricky, <em>real</em> fast. This especially holds true when it comes to class inheritance.</p>
+
+<!-- more -->
+
+
+<h2>WTF is inheritance?</h2>
+
+<p>Inheritance in object-oriented programming is pretty much exactly what it sounds like: when one class <strong>inherits</strong> the properties of another class, just like how you inherit traits from your parents (even if you might wish otherwise).</p>
+
+<p>Okay, maybe an example here will help:</p>
+
+<p>Imagine that you have a class called <code>BakedStuff</code>, which includes all the baked goods your heart could ever desire. Every instance (every <em>object</em>) of this <code>BakedStuff</code> class has a <code>name</code>, baking <code>time</code>, and <code>baking_temperature</code>, which we&rsquo;ll set to default at 375 degrees.</p>
+
+<p>And for good measure, let&rsquo;s also throw in a little method in there called <code>bake_for</code>, which is just going to return a string that will tell us how much time to bake our treats for, and at what temperature.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">BakedStuff</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">attr_reader</span> <span class="ss">:name</span><span class="p">,</span> <span class="ss">:time</span><span class="p">,</span> <span class="ss">:baking_temperature</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="nb">name</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">baking_temperature</span><span class="o">=</span><span class="mi">375</span><span class="p">)</span>
+</span><span class='line'>    <span class="vi">@name</span> <span class="o">=</span> <span class="nb">name</span>
+</span><span class='line'>    <span class="vi">@time</span> <span class="o">=</span> <span class="n">time</span>
+</span><span class='line'>    <span class="vi">@baking_temperature</span> <span class="o">=</span> <span class="n">baking_temperature</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">bake_for</span>
+</span><span class='line'>    <span class="s2">&quot;To make </span><span class="si">#{</span><span class="nb">name</span><span class="si">}</span><span class="s2">, bake for </span><span class="si">#{</span><span class="n">time</span><span class="si">}</span><span class="s2"> at </span><span class="si">#{</span><span class="n">baking_temperature</span><span class="si">}</span><span class="s2"> degrees Fahrenheit.&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Nothing <em>too</em> complicated about it, right?</p>
+
+<p>Now I can create an actual object and pass in the correct parameters. I can even ask the cake how long I should bake it for, which would look something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">cake</span> <span class="o">=</span> <span class="no">BakedStuff</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s2">&quot;cake&quot;</span><span class="p">,</span> <span class="s2">&quot;30 min&quot;</span><span class="p">)</span>
+</span><span class='line'><span class="nb">puts</span> <span class="n">cake</span><span class="o">.</span><span class="n">bake_for</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>would output: <code>To make cake, bake for 30 min at 375 degrees Fahrenheit.</code></p>
+
+<p>Awesome. I love cake. But you know what I like even more than cake? Cookies! Just like in my first class, I want to make a new <code>Cookie</code> class, which will also have a name, time, baking temperature, and <code>bake_for</code> method. Now, I could theoretically rewrite all of my code from the <code>BakedStuff</code> class, but then I&rsquo;d have less time to bake and I&rsquo;m also pretty sure that goes against the whole &ldquo;DRY&rdquo; concept in Ruby.</p>
+
+<p>What I <em>could</em> do is have my new <code>Cookie</code> class <em>inherit</em> everything from my <code>BakedStuff</code> class, since I want all my new instances of <code>Cookie</code> to share the same methods as my <code>BakedStuff</code> class.</p>
+
+<p>Let me try it:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Cookie</span> <span class="o">&lt;</span> <span class="no">BakedStuff</span>
+</span><span class='line'>  <span class="kp">attr_reader</span> <span class="ss">:cookies_made</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="nb">name</span><span class="p">,</span> <span class="n">cookies_made</span><span class="p">,</span> <span class="n">baking_temperature</span><span class="o">=</span><span class="mi">375</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">super</span>
+</span><span class='line'>    <span class="vi">@time</span> <span class="o">=</span> <span class="s2">&quot;20 min&quot;</span>
+</span><span class='line'>    <span class="vi">@cookies_made</span> <span class="o">=</span> <span class="n">cookies_made</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">bake_for</span>
+</span><span class='line'>    <span class="k">super</span> <span class="o">+</span> <span class="s2">&quot; This recipe will yield </span><span class="si">#{</span><span class="n">cookies_made</span><span class="si">}</span><span class="s2"> cookies.&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Whoa! New code!</p>
+
+<ul>
+<li>That <code>&lt;</code> sign is what we use to denote inheritance. All it means is that my <code>Cookie</code> class is now <em>inheriting</em> all the methods from my <code>BakedStuff</code> class.</li>
+<li>Notice that this class has some additional features, including a new instance method that sets the <code>cookies_made</code>.</li>
+<li>But wait, what&rsquo;s that <code>super</code> thing doing in there??</li>
+</ul>
+
+
+<h2>WHUT is <code>super</code>?</h2>
+
+<p>The <code>super</code> keyword in Ruby is, well, pretty super. Okay, okay, what it <em>really</em> does is allow you to call methods up the &ldquo;inheritance hierarchy&rdquo;, which means that you can use methods that were previously defined in classes that this class now inherits from.</p>
+
+<p>In fact, <code>super</code> is what allows me to pull down everything from my <code>initialize</code> and <code>bake_for</code> methods in my parent class, which in this case is my <code>BakedStuff</code> class. You&rsquo;ll also notice that I&rsquo;ve reassigned my <code>@time</code> variable to equal 20 minutes, and that I&rsquo;ve added a string interpolation into my <code>bake_for</code> method. And I didn&rsquo;t have to retype any of the code from my parent class in the process!</p>
+
+<p>Let&rsquo;s look at what an object of the Cookie class could look like:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">cookies</span> <span class="o">=</span> <span class="no">Cookie</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s2">&quot;cookies&quot;</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+</span><span class='line'><span class="nb">puts</span> <span class="n">cookies</span><span class="o">.</span><span class="n">bake_for</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>would output: <code>To make cookies, bake for 20 min at 400 degrees fahrenheit. This recipe will yield 15 cookies.</code></p>
+
+<p>Okay, one last example. Let&rsquo;s say that my favorite kind of cookie is a Snickerdoodle. I want it to inherit from its parent class, <code>Cookie</code>, but I also want to jazz the <code>Snickerdoodle</code> class up a little bit. I&rsquo;m going to change its <code>bake_for</code> method and make a little counter that will tell me exactly how many snickerdoodles I&rsquo;ve got left.</p>
+
+<p>This would look something like:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Snickerdoodle</span> <span class="o">&lt;</span> <span class="no">Cookie</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="nb">name</span><span class="p">,</span> <span class="n">baking_temperature</span><span class="o">=</span><span class="mi">375</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">super</span>
+</span><span class='line'>    <span class="vi">@time</span> <span class="o">=</span> <span class="s2">&quot;25 min&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">bake_for</span>
+</span><span class='line'>    <span class="k">while</span> <span class="n">cookies_made</span> <span class="o">&gt;</span> <span class="mi">0</span>
+</span><span class='line'>    <span class="nb">puts</span> <span class="s2">&quot;There&#39;s only </span><span class="si">#{</span><span class="vi">@cookies_made</span><span class="si">}</span><span class="s2"> snickerdoodles left!&quot;</span>
+</span><span class='line'>    <span class="vi">@cookies_made</span> <span class="o">=</span> <span class="n">cookies_made</span><span class="o">.</span><span class="n">to_i</span> <span class="o">-</span> <span class="mi">1</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now let me actually create a batch of snickerdoodles:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">snickerdoodle</span> <span class="o">=</span> <span class="no">Snickerdoodle</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s2">&quot;snickerdoodles&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+</span><span class='line'><span class="nb">puts</span> <span class="n">snickerdoodle</span><span class="o">.</span><span class="n">bake_for</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>which outputs:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">There</span><span class="s1">&#39;s only 10 snickerdoodles left!</span>
+</span><span class='line'><span class="s1">There&#39;</span><span class="n">s</span> <span class="n">only</span> <span class="mi">9</span> <span class="n">snickerdoodles</span> <span class="n">left!</span>
+</span><span class='line'><span class="no">There</span><span class="s1">&#39;s only 8 snickerdoodles left!</span>
+</span><span class='line'><span class="s1">There&#39;</span><span class="n">s</span> <span class="n">only</span> <span class="mi">7</span> <span class="n">snickerdoodles</span> <span class="n">left!</span>
+</span><span class='line'><span class="no">There</span><span class="s1">&#39;s only 6 snickerdoodles left!</span>
+</span><span class='line'><span class="s1">There&#39;</span><span class="n">s</span> <span class="n">only</span> <span class="mi">5</span> <span class="n">snickerdoodles</span> <span class="n">left!</span>
+</span><span class='line'><span class="no">There</span><span class="s1">&#39;s only 4 snickerdoodles left!</span>
+</span><span class='line'><span class="s1">There&#39;</span><span class="n">s</span> <span class="n">only</span> <span class="mi">3</span> <span class="n">snickerdoodles</span> <span class="n">left!</span>
+</span><span class='line'><span class="no">There</span><span class="s1">&#39;s only 2 snickerdoodles left!</span>
+</span><span class='line'><span class="s1">There&#39;</span><span class="n">s</span> <span class="n">only</span> <span class="mi">1</span> <span class="n">snickerdoodles</span> <span class="n">left!</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now for the tricky part. What do you think will happen if I create a new batch of cookies in my <code>Cookie</code> class? Do you think I&rsquo;ll get a cookie counter? Do you think my <code>Cookie</code> class will be affected by my <code>Snickerdoodle</code> class? Let&rsquo;s try it and see:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">chocolate_chip_cookie</span> <span class="o">=</span> <span class="no">Cookie</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s2">&quot;chocolate chip cookies&quot;</span><span class="p">,</span> <span class="mi">24</span><span class="p">)</span>
+</span><span class='line'><span class="nb">puts</span> <span class="n">chocolate_chip_cookie</span><span class="o">.</span><span class="n">bake_for</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>which outputs: <code>To make chocolate chip cookies, bake for 20 min at 375 degrees Fahrenheit. This recipe will yield 24 cookies.</code></p>
+
+<p>And what about if I create a new pie?</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">pie</span> <span class="o">=</span> <span class="no">BakedStuff</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s2">&quot;pie&quot;</span><span class="p">,</span> <span class="s2">&quot;45 min&quot;</span><span class="p">,</span> <span class="mi">450</span><span class="p">)</span>
+</span><span class='line'><span class="nb">puts</span> <span class="n">pie</span><span class="o">.</span><span class="n">bake_for</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>outputs: <code>To make pie, bake for 45 min at 450 degrees Fahrenheit.</code></p>
+
+<p>Interesting. It doesn&rsquo;t seem to matter at all that I changed my <code>Cookie</code> class &ndash; <code>BakedStuff</code> stayed the same. And all the edits I made to my <code>Snickerdoodle</code> class didn&rsquo;t fall up to my <code>Cookie</code> class, either. That&rsquo;s because inheritance only works in one direction, from the parent class, down to its children.</p>
+
+<p>I should also mention that <code>super</code> didn&rsquo;t change my parent classes either; all it did was bring the already-created methods from my parent classes down to its children. It&rsquo;s actually passing all the arguments to the parent class&#8217; method.</p>
+
+<p>Finally, it&rsquo;s crucial to remember that a class can only inherit from one class at a time. Something like <code>Snickerdoodle &lt; Cookie &lt; BakedStuff</code> would have raised an error. Also, remember that instance variables have nothing to do with class inheritance, since they are not defined by the class itself!</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Class inheritance is an incredibly powerful tool. Use it.</li>
+<li>The <code>super</code> keyword can save you a ton of time. Remember that it only works with methods of a class, and <em>not</em> instance variables. Read more about it <a href="http://rubylearning.com/satishtalim/ruby_inheritance.html">here</a> and <a href="http://rubylearning.com/satishtalim/ruby_overriding_methods.html">here</a></li>
+<li>Cookies just make everything better (just in case it wasn&rsquo;t obvious already).</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2014-10-17T09:00:34+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:00 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/flatiron/'>flatiron</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2014/10/17/class-inheritance-part-1/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2014/10/17/class-inheritance-part-1/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+      
+        <a class="basic-alignment right" href="/blog/2014/10/31/have-you-met-your-controller-yet/" title="Next Post: Have you met your controller yet?">Have you met your controller yet? &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/">Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/">The Secret Life of Your Database, Part 2: Join Tables</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">The Secret Life of Your Database, Part 1: Migrations</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/">Investigating Ruby&#8217;s Global Functions + Kernel Module With Puts</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/">Metaprogramming Dynamic Methods: Using Public_send</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

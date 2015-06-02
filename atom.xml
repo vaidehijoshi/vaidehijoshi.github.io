@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-05-25T17:57:52-04:00</updated>
+  <updated>2015-06-02T15:39:55+08:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -14,9 +14,202 @@
 
   
   <entry>
+    <title type="html"><![CDATA[Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/"/>
+    <updated>2015-06-02T20:45:24+08:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/918rCUjV2XWhi" width="480" height="360" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>There aren&rsquo;t too many things that bring me down when I&rsquo;m deep into programming. But there&rsquo;s always one thing that&rsquo;ll stop me dead in my tracks: a code smell. In the context of programming, a code smell is something that tells you that your code is&hellip;well, a bit <em>off</em>.</p>
+
+<p>Whether you&rsquo;ve been programming for months or for decades, you&rsquo;ll run into &ldquo;code that smells&rdquo; again and again. Except the better that you get, you&rsquo;ll anticipate your code smelling, or before you even write it, you&rsquo;ll know that it&rsquo;s going to stink. For me, a lot of my code that tends to smell are sections where I&rsquo;ve duplicated what I&rsquo;ve written, which is to say that I&rsquo;ve written something that&rsquo;s identical or at least very, very similar to another piece of code in my application. I&rsquo;ve noticed that I&rsquo;ve started catching myself as I write duplicated code, which is a sign that I&rsquo;m getting better as a developer &ndash; hooray!</p>
+
+<p>But, there are a lot of <a href="http://en.wikipedia.org/wiki/Code_smell#Common_code_smells">common code smells</a>, and I definitely still can&rsquo;t catch all of them in my own code. Generally, if any part of your program has a common code smell, it&rsquo;s a sign that you need to rethink how your system is structured on a deeper level, and that it&rsquo;s probably time to start refactoring.</p>
+
+<p>Recently, I&rsquo;ve noticed that I&rsquo;ve been sniffing out the same issue in my code: long methods. So I did a bit of investigating and found that there are some cool ways to shorten up your longer methods. Thanks to Ruby magic, we have easy access to methods like <code>to_proc</code> in the form of &ldquo;ampersand and object&rdquo;, or the <strong>&amp;:</strong> syntax. If you have no clue what those are, don&rsquo;t worry. I didn&rsquo;t either! Until I wrote this post, obvs.</p>
+
+<!--more-->
+
+
+<h2>A Slim Method Is A Beautiful Method</h2>
+
+<p>In our eCommerce bookstore app, we&rsquo;re storing our <code>Order</code> <code>amount</code> totals as BigDecimals. You might remember why BigDecimals <a href="http://vaidehijoshi.github.io/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/">are better than floats</a> when it comes to performing accurate monetary calculations. But even though we&rsquo;re using BigDecimal on the backend, there may be times when we want to convert our decimals back into floats. Like what if we want to start integrating a JavaScript frontend? (yes, I went there). The point is, we should be able to do something like that pretty easily, especially if we wanted to serialize and return a JSON object that has the correct object type.</p>
+
+<p>We&rsquo;d probably start by iterating through all of our order amounts and turn them into floats, like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span>
+</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">amounts_to_floats</span>
+</span><span class='line'>          <span class="no">Order</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">order</span><span class="o">|</span>
+</span><span class='line'>              <span class="n">order</span><span class="o">.</span><span class="n">amount</span><span class="o">.</span><span class="n">to_f</span>
+</span><span class='line'>          <span class="k">end</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Well, it does the job. But&hellip;it doesn&rsquo;t look so great, does it? Let&rsquo;s cut it down:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span>
+</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">amounts_to_floats</span>
+</span><span class='line'>          <span class="no">Order</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">map</span> <span class="p">{</span><span class="o">|</span><span class="n">order</span><span class="o">|</span> <span class="n">order</span><span class="o">.</span><span class="n">amount</span><span class="o">.</span><span class="n">to_f</span> <span class="p">}</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Okay, let&rsquo;s make it a little fancier and throw in the <code>pluck</code> method, which will query for only the to grab <em>only</em> an <code>Order</code>&rsquo;s <code>amount</code>?</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span>
+</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">amounts_to_floats</span>
+</span><span class='line'>          <span class="no">Order</span><span class="o">.</span><span class="n">pluck</span><span class="p">(</span><span class="ss">:amount</span><span class="p">)</span><span class="o">.</span><span class="n">map</span> <span class="p">{</span><span class="o">|</span><span class="n">amount</span><span class="o">|</span> <span class="n">amount</span><span class="o">.</span><span class="n">to_f</span> <span class="p">}</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>I guess it&rsquo;s better, but still not as good as it could be. Are you thinking what I&rsquo;m thinking? There&rsquo;s <em>gotta</em> be a better way!</p>
+
+<p><img src="http://provensal.com/lbb/wp-content/uploads/2013/03/better_way.jpg" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<h2>A Proc And An Object Walk Into A Bar&hellip;</h2>
+
+<p>As is the case with most things in programming, if we wish for a better way to do something, we can generally assume that there is! And in our case, the better way to do it is by using something called <strong>ampersand and object</strong>.</p>
+
+<p>And we can implement it on our <code>amounts_to_floats</code> method like so:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span>
+</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">amounts_to_floats</span>
+</span><span class='line'>          <span class="no">Order</span><span class="o">.</span><span class="n">pluck</span><span class="p">(</span><span class="ss">:amount</span><span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:to_f</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The result of this will be the exact same thing as the <code>map</code> we wrote above:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">&gt;</span> <span class="no">Order</span><span class="o">.</span><span class="n">amounts_to_floats</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="o">[</span><span class="mi">210</span><span class="o">.</span><span class="mi">99</span><span class="p">,</span> <span class="mi">150</span><span class="o">.</span><span class="mi">5</span><span class="p">,</span> <span class="mi">24</span><span class="o">.</span><span class="mi">99</span><span class="p">,</span> <span class="mi">391</span><span class="o">.</span><span class="mi">99</span><span class="p">,</span> <span class="mi">120</span><span class="o">.</span><span class="mi">25</span><span class="o">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So, what happened here? Well, let&rsquo;s just start with what we know for sure.</p>
+
+<ol>
+<li><p>We took all the <code>Order</code> objects and queried for just their <code>amounts</code>, which are in <code>BigDecimal</code> format.</p></li>
+<li><p>The <code>pluck</code> method returns an array of the attributes that you query for, so, which would mean that our array would look something like this:
+<code>[#&lt;BigDecimal:7f87ed12b2f0,'0.21099E3',18(18)&gt;, #&lt;BigDecimal:7f87ed121700,'0.1505E3',18(18)&gt;, #&lt;BigDecimal:7f87ed119348,'0.2499E2',18(18)&gt;...]</code></p></li>
+<li><p>Okay, so then we mapped over all of these amounts, right? And somehow we called <code>.to_f</code> on all of them. Which returned the array that we were hoping for:
+<code>[210.99, 150.5, 24.99, 391.99, 120.25]</code></p></li>
+</ol>
+
+
+<p>All of this begs one question: how on earth did the <code>&amp;</code> (ampersand) know to call <code>to_f</code> on each of our objects? And how did <code>map</code> know what to do with the ampersand that we passed it?</p>
+
+<p>Time to find out.</p>
+
+<h2>Procs on Procs</h2>
+
+<iframe src="//giphy.com/embed/umwRSMxcXW31m" width="480" height="244" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Whenever something seems super daunting, I go back to the basics. Which is exactly what I think we should do here, too. We can all agree that in Ruby is an object, right? And methods are how we send messages to objects. With that in mind, let&rsquo;s look back at that confusing line of code:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Order</span><span class="o">.</span><span class="n">pluck</span><span class="p">(</span><span class="ss">:amount</span><span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:to_f</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We know <code>Order.pluck(:amount)</code> to be an array &ndash; it&rsquo;s an object, which means it&rsquo;s the <em>receiver</em> of our method. That means that <code>.map</code> is our method. And <code>map</code> has been passed <code>&amp;:to_f</code>, which seems to have replaced the usual <code>do end</code> or <code>{}</code> blocks that generally accompany the <code>map</code> iterator.</p>
+
+<p>At this point, if you&rsquo;re thinking that the <code>&amp;</code> ampersand is responsible for executing that <code>to_f</code> method on each of the elements of the array, you&rsquo;re definitely onto something.</p>
+
+<p>In fact, the <code>&amp;</code> calls <em>another</em> method on the object: <code>to_proc</code>. The ampersand calls <code>to_proc</code> on whatever comes after it. In our case, it&rsquo;s the <code>to_f</code>. But it&rsquo;s not just the plain old method <code>to_f</code> &ndash; it&rsquo;s actually the <em>symbol</em>, <code>:to_f</code>.</p>
+
+<p>And we can double check this by looking at <a href="http://ruby-doc.org/core-1.9.3/Symbol.html#method-i-to_proc">the Ruby docs</a>! The <code>to_proc</code> method is defined on the <code>Symbol</code> class:</p>
+
+<blockquote><p><code>to_proc</code> Returns a Proc object which responds to the given method by sym.</p></blockquote>
+
+<p>So all the <code>&amp;</code> is doing is: <code>:to_f.to_proc</code>. It turns the symbol into a proc, and whatever object you pass to it, it&rsquo;ll call that method on that object. You&rsquo;re basically telling the <code>map</code> function, <em>Hey, I already have this method I want to call on every single item you&rsquo;re iterating over. So when you invoke yourself on the receiving object, run this code that I&rsquo;m passing you.</em></p>
+
+<p>Because <code>:to_f</code> isn&rsquo;t actually a block, the ampersand tries to make it a block by calling <code>to_proc</code> on it. But what if you pass it a block explicitly?</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">half_off_sale</span> <span class="o">=</span> <span class="no">Proc</span><span class="o">.</span><span class="n">new</span> <span class="p">{</span> <span class="o">|</span><span class="n">amount</span><span class="o">|</span> <span class="n">amount</span><span class="o">/</span><span class="mi">2</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="no">Order</span><span class="o">.</span><span class="n">pluck</span><span class="p">(</span><span class="ss">:amount</span><span class="p">)</span><span class="o">.</span><span class="n">map</span> <span class="o">&amp;</span><span class="n">half_off_sale</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="o">[</span><span class="c1">#&lt;BigDecimal:7f87ec20e4c0,&#39;0.105495E3&#39;,18(45)&gt;, #&lt;BigDecimal:7f87ec20e3d0,&#39;0.7525E2&#39;,18(45)&gt;, #&lt;BigDecimal:7f87ec20e2e0,&#39;0.12495E2&#39;,18(45)&gt;...]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pretty cool, right? In this case, we created a <code>half_off_sale</code> proc, that we passed directly to the ampersand. It didn&rsquo;t have to make it a proc since we already passed it one. So when <code>map</code> iterated through all the amounts, it yielded to our <code>half_off_sale</code> proc, and ran that code on every single element in our array of amounts.</p>
+
+<p>As you can see, the ampersand and object and <code>to_proc</code> methods can be pretty powerful &ndash; particularly when they&rsquo;re combined into this handy little shortcut! That doesn&rsquo;t mean you have to use them all the time, but if you understand the fundamentals of how they work, they can really help clean up your code, especially when it&rsquo;s pretty smelly.</p>
+
+<p>This is just a primary introduction to the concepts of ampersand and object and <code>to_proc</code>. There&rsquo;s definitely a lot more to them, and they can get quite complicated. I&rsquo;m still learning about them myself! But, I&rsquo;m going to keep reading about how procs work and, hopefully, there&rsquo;ll be a forthcoming Technical Tuesday post about how to pass methods to procs! Until then, keep sniffin&#8217; out those code smells, my friends!</p>
+
+<iframe src="//giphy.com/embed/LeaMGoMmMGrf2" width="480" height="360" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>&amp;</code> (ampersand) can be used with an iterator like <code>map</code>, and will call <code>to_proc</code> on whatever symbol you pass it, unless you pass it a block explicitly.</li>
+<li>More examples and explanations on <a href="http://stackoverflow.com/questions/9429819/what-is-the-functionality-of-operator-in-ruby">these</a> <a href="http://stackoverflow.com/questions/2259775/what-do-you-call-the-operator-in-ruby">two</a> StackOverflow posts.</li>
+<li>Here&rsquo;s a <a href="http://www.dan-manges.com/blog/29">great blog post</a> on all the ways you can use <code>&amp;</code> to manipulate ActiveRecord models.</li>
+<li>If you&rsquo;re still curious about different ways to pass around procs, check out <a href="https://andrewjgrimm.wordpress.com/2011/10/03/in-ruby-method-passes-you/">this post</a>, which is what I used when I was learning about them!</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
     <title type="html"><![CDATA[The Secret Life of Your Database, Part 2: Join Tables]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/"/>
-    <updated>2015-05-26T08:02:30-04:00</updated>
+    <updated>2015-05-26T20:02:30+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables</id>
     <content type="html"><![CDATA[<p><img src="http://daviddickball.uk/wp-content/uploads/2015/03/sql-join.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -167,7 +360,7 @@ outer join to start.</p>
   <entry>
     <title type="html"><![CDATA[The Secret Life of Your Database, Part 1: Migrations]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/"/>
-    <updated>2015-05-19T08:51:11-04:00</updated>
+    <updated>2015-05-19T20:51:11+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations</id>
     <content type="html"><![CDATA[<p><img src="http://31.media.tumblr.com/tumblr_mcsccsfcnn1qz9l5so1_1280.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -614,7 +807,7 @@ outer join to start.</p>
   <entry>
     <title type="html"><![CDATA[Investigating Ruby's Global Functions + Kernel Module With Puts]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/"/>
-    <updated>2015-05-12T08:09:27-04:00</updated>
+    <updated>2015-05-12T20:09:27+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/10Vy7fN9fr7dD2" width="480" height="361" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -833,7 +1026,7 @@ outer join to start.</p>
   <entry>
     <title type="html"><![CDATA[Metaprogramming Dynamic Methods: Using Public_send]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/"/>
-    <updated>2015-05-05T08:38:29-04:00</updated>
+    <updated>2015-05-05T20:38:29+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send</id>
     <content type="html"><![CDATA[<p><img src="http://imgs.xkcd.com/comics/hofstadter.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -1043,7 +1236,7 @@ outer join to start.</p>
   <entry>
     <title type="html"><![CDATA[Tackling Those Tests, Part 3: Testing Made Easy With Gems]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems/"/>
-    <updated>2015-04-28T08:50:59-04:00</updated>
+    <updated>2015-04-28T20:50:59+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems</id>
     <content type="html"><![CDATA[<p><img src="https://imgs.xkcd.com/comics/shouldnt_be_hard.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -1239,7 +1432,7 @@ outer join to start.</p>
   <entry>
     <title type="html"><![CDATA[Tackling Those Tests, Part 2: Getting Fun and Functional With FactoryGirl]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/"/>
-    <updated>2015-04-21T08:34:19-04:00</updated>
+    <updated>2015-04-21T20:34:19+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl</id>
     <content type="html"><![CDATA[<p><img src="https://33.media.tumblr.com/0b9992ca5a259a54c16199c2de69c903/tumblr_mtjab8Yo0U1rlp47to1_500.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -1496,7 +1689,7 @@ outer join to start.</p>
   <entry>
     <title type="html"><![CDATA[Tackling Those Tests, Part 1: The How, When, and What of Rspec Testing]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/"/>
-    <updated>2015-04-14T08:17:03-04:00</updated>
+    <updated>2015-04-14T20:17:03+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing</id>
     <content type="html"><![CDATA[<p><img src="http://www.datamation.com/imagesvr_ce/306/philosophy-geeks.jpg" style="display: block; margin-left: auto; margin-right: auto; width: 50%; height: 50%;"></p>
 
@@ -1790,7 +1983,7 @@ outer join to start.</p>
   <entry>
     <title type="html"><![CDATA[Querying at Warp Drive: Using ActiveRecord Includes]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/04/07/querying-at-warp-drive-using-activerecord-includes/"/>
-    <updated>2015-04-07T08:36:54-04:00</updated>
+    <updated>2015-04-07T20:36:54+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/04/07/querying-at-warp-drive-using-activerecord-includes</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/Wkym7gz6fu1Nu" width="480" height="271" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -1994,7 +2187,7 @@ outer join to start.</p>
   <entry>
     <title type="html"><![CDATA[Delegating All of the Things With Ruby Forwardable]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable/"/>
-    <updated>2015-03-31T08:35:27-04:00</updated>
+    <updated>2015-03-31T20:35:27+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable</id>
     <content type="html"><![CDATA[<p><img src="http://assets.amuniversal.com/77c6dce06d5c01301d80001dd8b71c47" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -2374,7 +2567,7 @@ outer join to start.</p>
   <entry>
     <title type="html"><![CDATA[A Machine State of Mind, Part 2: Implementing State Machines]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/03/24/a-machine-state-of-mind-part-2-implementing-state-machines/"/>
-    <updated>2015-03-24T08:03:14-04:00</updated>
+    <updated>2015-03-24T20:03:14+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/03/24/a-machine-state-of-mind-part-2-implementing-state-machines</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/CYMzelWRqbQv6" width="480" height="345" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -2698,7 +2891,7 @@ outer join to start.</p>
   <entry>
     <title type="html"><![CDATA[A Machine State of Mind, Part 1: Understanding State Machines]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/03/17/a-machine-state-of-mind-part-1-understanding-state-machines/"/>
-    <updated>2015-03-17T08:11:22-04:00</updated>
+    <updated>2015-03-17T20:11:22+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/03/17/a-machine-state-of-mind-part-1-understanding-state-machines</id>
     <content type="html"><![CDATA[<p><img src="http://www.kurzweilai.net/images/flowchart.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -2783,7 +2976,7 @@ outer join to start.</p>
   <entry>
     <title type="html"><![CDATA[It's All in the Family: Using Acts_as_tree]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree/"/>
-    <updated>2015-03-10T08:27:54-04:00</updated>
+    <updated>2015-03-10T20:27:54+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/eWYGCVTJuOcg0" width="480" height="360" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -2990,7 +3183,7 @@ outer join to start.</p>
   <entry>
     <title type="html"><![CDATA[Bundle Up &amp; Let Your Objects Do the Freezing: Frozen Hashes]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes/"/>
-    <updated>2015-03-03T08:43:04-05:00</updated>
+    <updated>2015-03-03T21:43:04+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/b7pVN1KY8ycg0" width="480" height="213" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -3199,7 +3392,7 @@ outer join to start.</p>
   <entry>
     <title type="html"><![CDATA[Class Inheritance: Part 2 (Singletons and Eigens, Oh My!)]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my/"/>
-    <updated>2015-02-24T08:13:49-05:00</updated>
+    <updated>2015-02-24T21:13:49+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my</id>
     <content type="html"><![CDATA[<p><em>This blog post is part of a series on Class Inheritance. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance/">here</a>.</em></p>
 
@@ -3496,7 +3689,7 @@ outer join to start.</p>
   <entry>
     <title type="html"><![CDATA[Time: The Black Sheep of the Programming Family]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/02/17/time-the-black-sheep-of-the-programming-family/"/>
-    <updated>2015-02-17T08:30:24-05:00</updated>
+    <updated>2015-02-17T21:30:24+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/02/17/time-the-black-sheep-of-the-programming-family</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/FHuIOZoauNXXO" width="480" height="480" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -3628,7 +3821,7 @@ outer join to start.</p>
   <entry>
     <title type="html"><![CDATA[Money Makes the World Go Round: Using Money-Rails and BigDecimal]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/"/>
-    <updated>2015-02-10T08:07:09-05:00</updated>
+    <updated>2015-02-10T21:07:09+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal</id>
     <content type="html"><![CDATA[<p><img src="http://s3-ec.buzzfed.com/static/enhanced/webdr02/2013/3/26/12/enhanced-buzz-19756-1364314697-15.jpg" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -3817,7 +4010,7 @@ outer join to start.</p>
   <entry>
     <title type="html"><![CDATA[When Enough Is Enough: How to Know When to Use Enums]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/02/03/when-enough-is-enough-how-to-know-when-to-use-enums/"/>
-    <updated>2015-02-03T08:32:19-05:00</updated>
+    <updated>2015-02-03T21:32:19+08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/02/03/when-enough-is-enough-how-to-know-when-to-use-enums</id>
     <content type="html"><![CDATA[<p>NERD ALERT: I love databases. God, they&rsquo;re just <em>fantastic</em>. Few things give me as much joy as an empty whiteboard and a couple of intricate join tables that need to be sketched out. But there&rsquo;s also an art to understanding how to handle data &ndash; particularly when you have a shit ton of it.</p>
 
@@ -4019,9 +4212,9 @@ outer join to start.</p>
   
   <entry>
     <title type="html"><![CDATA[Embrace Your Inner Paranoia: Using Acts_as_paranoid]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/01/27/embrace-your-inner-paranoia-use-acts-as-paranoid/"/>
-    <updated>2015-01-27T19:36:16-05:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/01/27/embrace-your-inner-paranoia-use-acts-as-paranoid</id>
+    <link href="http://vaidehijoshi.github.io/blog/2015/01/28/embrace-your-inner-paranoia-use-acts-as-paranoid/"/>
+    <updated>2015-01-28T08:36:16+08:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/01/28/embrace-your-inner-paranoia-use-acts-as-paranoid</id>
     <content type="html"><![CDATA[<p>Yesterday, I started my very first job as a software engineer! It&rsquo;s been super exciting, slightly terrifying, and sometimes overwhelming. I think one of the trickiest parts of starting as a new engineer at a company is the onboarding process.</p>
 
 <p>It might seem kind of scary, but if you think about it, it&rsquo;s actually pretty fun. You get to dive down a rabbit hole and look at production code that you didn&rsquo;t write. It&rsquo;s getting a new puzzle that you haven&rsquo;t solved yet: you try to figure out how one thing connects to another, where modules and methods exist, how things are namespaced, not to mention learning about new frameworks and gems. I feel like I&rsquo;m entering into new dimensions and travelling through a space-time continuum or something. This also might be attributed to the fact that I&rsquo;ve been listening exclusively to the <a href="https://www.youtube.com/watch?v=YOWSTtXxf9s">Interstellar soundtrack</a> for the past two days, but whatever &ndash; you get the point.</p>
@@ -4111,9 +4304,9 @@ outer join to start.</p>
   
   <entry>
     <title type="html"><![CDATA[The Fog Creek Fellowship: Lessons in Fearlessness and Fortitude]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/01/23/the-fog-creek-fellowship-lessons-in-fearlessness-and-fortitude/"/>
-    <updated>2015-01-23T14:04:16-05:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/01/23/the-fog-creek-fellowship-lessons-in-fearlessness-and-fortitude</id>
+    <link href="http://vaidehijoshi.github.io/blog/2015/01/24/the-fog-creek-fellowship-lessons-in-fearlessness-and-fortitude/"/>
+    <updated>2015-01-24T03:04:16+08:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/01/24/the-fog-creek-fellowship-lessons-in-fearlessness-and-fortitude</id>
     <content type="html"><![CDATA[<p>There are a lot of scary things out there. To start, there are lions and tigers and bears. But if you go a bit below the surface, that&rsquo;s where you&rsquo;ll hit the dark stuff &ndash; the kind of stuff that I was forced to confront when I started as a student at <a href="http://www.flatironschool.com">The Flatiron School</a>.</p>
 
 <p>Sure, learning how to program is really hard &ndash; it&rsquo;s not just learning another language, it&rsquo;s learning an entirely new way to think. But, working on code is far easier than working on yourself. My twelve weeks at The Flatiron School pushed me to deal with some tough thoughts, most of which had always lurked in the skeleton closets of my mind: <em>I don&rsquo;t know if I can do this. I&rsquo;m not cut out for this. I&rsquo;m not prepared. I&rsquo;m not smart enough. I won&rsquo;t fit in. I can&rsquo;t undersand. I won&rsquo;t understand.</em></p>
@@ -4166,166 +4359,6 @@ outer join to start.</p>
 <p>I&rsquo;d consider myself one of the lucky few who has been a part of this incremental change. The Flatiron School and the Fog Creek Fellowship opened so many doors for me &ndash; doors that I know I could have never opened on my own. As I take my first step and start a new job as a developer, I&rsquo;m realizing that the fellowship isn&rsquo;t really over. It&rsquo;s just that my role in it is changing. Soon, it&rsquo;ll be my turn to help open the very same doors for someone else.</p>
 
 <p>Hopefully, she&rsquo;ll be even more fearless than me.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Implementing REM in CSS (or, How to Be a Shiny Happy Developer)]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/01/20/implementing-rem-in-css-or-how-to-be-a-shiny-happy-developer/"/>
-    <updated>2015-01-20T17:39:10-05:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/01/20/implementing-rem-in-css-or-how-to-be-a-shiny-happy-developer</id>
-    <content type="html"><![CDATA[<p>During a recent pair programming session, I came to the tough realization that I really know <em>nothing</em> about CSS. Granted, I can add in a <code>div</code> tag here and there, and yes, I can make a responsive page using Twitter Bootstrap like no one&rsquo;s business. But, what do I really know about design? Not as much as I thought I did.</p>
-
-<p>I figured out that this was the case when the designer I was pairing with started using <strong>ems</strong> and <strong>rems</strong>. I should probably preface this and say that I have always been a pixel kind of girl. I was formerly of the mindset that you can have any font size you like &ndash;  as long as it&rsquo;s defined in pixels.</p>
-
-<p>But, after doing a bit of research, I found that ems and rems actually have an interesting history behind them, and are super helpful when it comes to elastic layouts and responsive design.</p>
-
-<!-- more -->
-
-
-<h2>wait. there are different types of layouts?</h2>
-
-<p>Yes! Trying to make your web applications responsive can be a nightmare, and kind of feels like this:</p>
-
-<iframe src="//giphy.com/embed/13FrpeVH09Zrb2" width="480" height="462" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Designers have long debated <a href="http://www.smashingmagazine.com/2009/06/02/fixed-vs-fluid-vs-elastic-layout-whats-the-right-one-for-you/">what kind of page layouts</a> are the best solution for this problem. The most interesting one is the elastic layout, which combines fluid and fixed layouts, and relies completely on sizing all the elements on a page by using <strong>ems</strong>. This is a pretty popular layout amongst designers and developers alike because, when it&rsquo;s properly implemented, the entire page grows or shrinks in proportion with the user&rsquo;s window size.</p>
-
-<p>By now, you&rsquo;re probably thinking to yourself, <em>Okay, that&rsquo;s all great, but dear lord please tell me what ems and rems are!</em></p>
-
-<p>Well, your wish is my command.</p>
-
-<h2>Getting down with ems</h2>
-
-<p>An <a href="http://en.wikipedia.org/wiki/Em_%28typography%29"><em>em</em></a> is nothing more than a unit of measurement. Ems have actually been around for awhile and date back to the early days of typography. The em was originally a point of reference to the width of the metal block used to make a capital &ldquo;M&rdquo; in any particular size of typeface.</p>
-
-<p>But for our purposes, we only need to think about ems in the context of CSS, which is a vertical measurement. <a href="http://v1.jontangerine.com/log/2007/09/the-incredible-em-and-elastic-layouts-with-css">Jon Tan</a>, designer and typographer extrordinaire, describes em units pretty clearly:</p>
-
-<blockquote><p>&ldquo;One em equals the vertical space needed for any given letter in a font, regardless of the horizontal space it occupies. Therefore:<br> If the font size is 16px, then 1em = 16px.&rdquo;</p></blockquote>
-
-<p>Protip: most popular web browsers have a default font size of 16 pixels. So, if you wanted to have a font size that was half that size, or 8 pixels, you could specify that in ems as &ldquo;0.5em&rdquo; (in other words, 50% of the original font size).</p>
-
-<h2>But do i really need to use &lsquo;em?</h2>
-
-<p>You don&rsquo;t <em>have</em> to use ems. Case in point: I&rsquo;d never used them until a week ago. But using them can save you lines of code. The most important thing to remember about ems is how they are different from pixels: <strong>ems are relative, pixels are not.</strong> This is especially helpful when you have nested elements.</p>
-
-<p>Imagine you have a file that needs to have four different font sizes:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-</pre></td><td class='code'><pre><code class='css'><span class='line'><span class="nc">.regular_font</span> <span class="p">{</span>
-</span><span class='line'>  <span class="k">font-size</span><span class="o">:</span> <span class="m">14px</span><span class="p">;</span>
-</span><span class='line'><span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="nc">.big_font</span> <span class="p">{</span>
-</span><span class='line'>  <span class="k">font-size</span><span class="o">:</span> <span class="m">28px</span><span class="p">;</span>
-</span><span class='line'><span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="nc">.med_font</span> <span class="p">{</span>
-</span><span class='line'>  <span class="k">font-size</span><span class="o">:</span> <span class="m">21px</span><span class="p">;</span>
-</span><span class='line'><span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="nc">.small_font</span> <span class="p">{</span>
-</span><span class='line'>  <span class="k">font-size</span><span class="o">:</span> <span class="m">7px</span><span class="p">;</span>
-</span><span class='line'><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>The <code>regular_font</code> class is the parent type, from which the three other classes will inherit. This code is perfectly fine, but imagine that you need six different font sizes or, for a larger app, ten or twenty. And what if you decided at the last minute that you wanted to make the parent element 16px, rather than 14px? Since pixel values don&rsquo;t inherit, you&rsquo;d have to go back and change <em>every single font size</em> to make all the styling to scale. No bueno, amirite?</p>
-
-<p>The same styling could be rewritten using ems, like so:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-</pre></td><td class='code'><pre><code class='css'><span class='line'><span class="nc">.regular_font</span> <span class="p">{</span>
-</span><span class='line'>  <span class="k">font-size</span><span class="o">:</span> <span class="m">1.0em</span><span class="p">;</span>
-</span><span class='line'><span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="nc">.big_font</span> <span class="p">{</span>
-</span><span class='line'>  <span class="k">font-size</span><span class="o">:</span> <span class="m">2.0em</span><span class="p">;</span>
-</span><span class='line'><span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="nc">.med_font</span> <span class="p">{</span>
-</span><span class='line'>  <span class="k">font-size</span><span class="o">:</span> <span class="m">1.5em</span><span class="p">;</span>
-</span><span class='line'><span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="nc">.small_font</span> <span class="p">{</span>
-</span><span class='line'>  <span class="k">font-size</span><span class="o">:</span> <span class="m">0.5em</span><span class="p">;</span>
-</span><span class='line'><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>All of the font sizes now inherit from their parent element, which means that they will scale (think perecentages) depending on the size of the parent element. If you wanted to change the styling of all these font sizes, you&rsquo;d only actually have to change the parent element. Muy bueno, si?</p>
-
-<h2>Okay, Okay &ndash; but what&rsquo;s this rem nonsense?</h2>
-
-<p>Rems are almost the same as ems, except that there&rsquo;s no parent element that&rsquo;s defined. Instead, all the font sizes are based on the root <code>html</code> element. Don&rsquo;t freak out &ndash; all this really means is that you define a font size on the html element, and then all other elements will scale in font size relative to that.</p>
-
-<p>In this example, the <code>.small_font</code> class inherits directly from the <code>html</code> parent element:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class='css'><span class='line'><span class="nt">html</span> <span class="p">{</span>
-</span><span class='line'>  <span class="k">font-size</span><span class="o">:</span> <span class="m">1.0em</span><span class="p">;</span>
-</span><span class='line'><span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="nc">.small_font</span> <span class="p">{</span>
-</span><span class='line'>  <span class="k">font-size</span><span class="o">:</span> <span class="m">0</span><span class="o">.</span><span class="m">5</span><span class="n">rem</span><span class="p">;</span>
-</span><span class='line'><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<h2>But, but&hellip;I&rsquo;m really bad at math!</h2>
-
-<p>Don&rsquo;t worry: there&rsquo;s an app for that. More specifically, a website that helps you calculate your ems. You can head on over to <a href="http://pxtoem.com/">PXtoEm.com</a>, and play around with pixels and ems and become a styling wizard.</p>
-
-<p>Now, GO FORTH and style away!</p>
-
-<iframe src="//giphy.com/embed/f0SFw1gXlmkc8" width="480" height="564" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>Ems are relative units of measurement, and pixels are not. Rems are basically just like ems, except that they inherit from the <code>html</code> element directly.</li>
-<li>You don&rsquo;t have to use ems, but they can be helpful. A good way to start is by using pixels in development, and then assess whether your application actually <em>needs</em> to be responsive before heading over into em territory.</li>
-<li>For more clarity on <strong>ems vs rems</strong>, check out <a href="https://j.eremy.net/confused-about-rem-and-em/">Jeremy Church&rsquo;s awesome post</a> on exactly that.</li>
-</ul>
-
 ]]></content>
   </entry>
   

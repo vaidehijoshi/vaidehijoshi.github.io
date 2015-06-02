@@ -1,0 +1,308 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Have You Met Your Controller Yet? - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="Controllers: we all have &lsquo;em. Sure, they put the C in MVC, but how much do we really know about these mysterious creatures? Probably not a lot &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2014/10/31/have-you-met-your-controller-yet">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Have You Met Your Controller Yet?</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-31T11:28:43+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>11:28 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/flatiron/'>flatiron</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Controllers: we all have &lsquo;em. Sure, they put the C in MVC, but how much do we really <em>know</em> about these mysterious creatures? Probably not a lot. Don&rsquo;t you wish you could just look your Controller in the eye and be all, &ldquo;Hey dude, what <em>are</em> you?&rdquo; Well, you can. All you have to do is just poke around a bit in your code.</p>
+
+<p>Let&rsquo;s start with what we <em>do</em> know. Given the MVC orientation of Rails, we already know that the Controller acts as a kind of mediator, intercepting messages between the client and the server, and passing information between the model and view. But ultimately, Controllers are nothing more than Ruby classes (that inherit from ActionController::Base) with class methods called &ldquo; actions&rdquo;, which are simply meant to render a template for the user to see. But don&rsquo;t mistake them as simple chunks of code; there are also some pretty amazing things that Controllers can do.</p>
+
+<!-- more -->
+
+
+<h2>1. Controllers can have empty actions and STILL work.</h2>
+
+<p>Okay, time to break the ice. Let&rsquo;s get to know our Controllers. Below is some generic code for a Controller for a guacamole app. First off is my main ApplicationController, which becomes a parent class for my GuacController to inherit from:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ApplicationController</span> <span class="o">&lt;</span> <span class="no">ActionController</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="k">class</span> <span class="nc">GuacController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">index</span>
+</span><span class='line'>    <span class="n">render</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>See that <code>render()</code> method? All it does is render the default template for the current controller and action. And since I&rsquo;m in the index action of the GuacController, this code would render the template <code>app/views/guac/index.html.erb</code></p>
+
+<p>But what would happen if I had an empty <code>index</code> method?</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">GuacController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">index</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This would also render <code>app/views/guac/index.html.erb</code>. But&hellip;why? Well, the cool thing about Controllers is that they will call <code>render</code> by default, even if the action (in this case, <code>index</code>) doesn&rsquo;t call the <code>render</code> method explicitly. In fact, every single Controller action already has the render method implicitly within it!</p>
+
+<p>And you know what&rsquo;s really crazy? This code would <em>also</em> render the same index page:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">GuacController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>When Rails gets a request for the <code>index</code> action and sees that there&rsquo;s no such action in the GuacController, it assumes that if there <em>were</em> an <code>index</code> action, it would render <code>app/views/guac/index.html.erb</code>. So that&rsquo;s exactly what it does, even though you haven&rsquo;t even given it the code to do so explicitly.</p>
+
+<p>Obie Fernandez explains why exactly this works in his book, <em>The Rails 4 Way</em>:</p>
+
+<blockquote><p>&ldquo;The goal of the typical controller action is to render a view template—that is, to fill out the template and hand the results, usually an HTML document, back to the server for delivery to the client. Oddly—at least it might strike you as a bit odd, though not illogical—you don’t actually need to define a controller action, as long as you’ve got a template that matches the action name.&rdquo;</p></blockquote>
+
+<h2>2. Controllers can render almost anything:</h2>
+
+<p>Even though the <code>render</code> method is implicit and doesn&rsquo;t actually ever have to be written out by you, the programmer, it can actually be quite a handy little tool. You can use this method within a Controller action if you want it to render something <em>other</em> than its default template. For example, I could tell my GuacController to render any other file in my <code>app/views</code> directory by just using the <code>render</code> method.</p>
+
+<p>This is useful for two different reasons:</p>
+
+<ul>
+<li><p>You can render another action&rsquo;s template:
+⋅⋅*For example, my <code>create</code> action in my GuacController could have something like <code>render action:'new'</code>, which would render my <code>app/views/guac/new.html.erb</code>. This could be super awesome if a new instance of <code>@guac</code> hadn&rsquo;t been saved.</p></li>
+<li><p>You can render a different template entirely:
+⋅⋅*If I was out of guac and I wanted my guac index page to actually render the template for my salsa index, I could explicitly render it by putting the following code in the <code>index</code> action of my GuacController: <code>render template:'/salsa/index.html.haml'</code>. Of course, this doesn&rsquo;t really answer the question of where all my guacamole went, but that&rsquo;s neither here nor there.</p></li>
+</ul>
+
+
+<h2>3. Controllers are all for Convention over Configuration:</h2>
+
+<p>Because of naming conventions for Controllers, if I have a Guac Controller, Rails assumes that there is a class called GuacController saved as a file <code>guac_controller.rb</code> in my <code>app/controllers</code> directory. It will also look for corresponding view templates for my GuacController in <code>app/views/guac</code>, and it will take the output of these views and save them as <code>guac.html.erb</code>.</p>
+
+<p>Basically, your Controller makes a lot of assumptions whenever it gets a single web request. But, this also means that <em>you</em> can anticipate how your Controller might react by simply understanding what your Controller already knows and assumes about your code.</p>
+
+<p>I guess what I&rsquo;m trying to say is&hellip;get to know each other.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Your Controller does a lot of stuff for you without you even realizing it. To make the most of its magical powers, learn as much as you can about its conventions.</li>
+<li>Play around with the <code>render</code> method to understand when it can be used and for what purposes.</li>
+<li>Get to know your Controller. I&rsquo;m telling you: it will be the beginning of a beautiful friendship.</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2014-10-31T11:28:43+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>11:28 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/flatiron/'>flatiron</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2014/10/31/have-you-met-your-controller-yet/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2014/10/31/have-you-met-your-controller-yet/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/10/17/class-inheritance-part-1/" title="Previous Post: Class Inheritance: Part 1">&laquo; Class Inheritance: Part 1</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2014/11/17/the-asset-whutline-revisiting-the-asset-pipeline-after-javascript/" title="Next Post: The Asset WHUTline?: Revisiting the Asset Pipeline After JavaScript">The Asset WHUTline?: Revisiting the Asset Pipeline After JavaScript &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/">Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/">The Secret Life of Your Database, Part 2: Join Tables</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">The Secret Life of Your Database, Part 1: Migrations</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/">Investigating Ruby&#8217;s Global Functions + Kernel Module With Puts</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/">Metaprogramming Dynamic Methods: Using Public_send</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

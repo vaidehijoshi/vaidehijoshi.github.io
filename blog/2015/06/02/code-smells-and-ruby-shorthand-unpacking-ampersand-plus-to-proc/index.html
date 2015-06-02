@@ -1,0 +1,397 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="There aren&rsquo;t too many things that bring me down when I&rsquo;m deep into programming. But there&rsquo;s always one thing that&rsquo;ll stop me &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-06-02T20:45:24+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>8:45 pm</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/refactoring/'>refactoring&#8221;</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><iframe src="//giphy.com/embed/918rCUjV2XWhi" width="480" height="360" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>There aren&rsquo;t too many things that bring me down when I&rsquo;m deep into programming. But there&rsquo;s always one thing that&rsquo;ll stop me dead in my tracks: a code smell. In the context of programming, a code smell is something that tells you that your code is&hellip;well, a bit <em>off</em>.</p>
+
+<p>Whether you&rsquo;ve been programming for months or for decades, you&rsquo;ll run into &ldquo;code that smells&rdquo; again and again. Except the better that you get, you&rsquo;ll anticipate your code smelling, or before you even write it, you&rsquo;ll know that it&rsquo;s going to stink. For me, a lot of my code that tends to smell are sections where I&rsquo;ve duplicated what I&rsquo;ve written, which is to say that I&rsquo;ve written something that&rsquo;s identical or at least very, very similar to another piece of code in my application. I&rsquo;ve noticed that I&rsquo;ve started catching myself as I write duplicated code, which is a sign that I&rsquo;m getting better as a developer &ndash; hooray!</p>
+
+<p>But, there are a lot of <a href="http://en.wikipedia.org/wiki/Code_smell#Common_code_smells">common code smells</a>, and I definitely still can&rsquo;t catch all of them in my own code. Generally, if any part of your program has a common code smell, it&rsquo;s a sign that you need to rethink how your system is structured on a deeper level, and that it&rsquo;s probably time to start refactoring.</p>
+
+<p>Recently, I&rsquo;ve noticed that I&rsquo;ve been sniffing out the same issue in my code: long methods. So I did a bit of investigating and found that there are some cool ways to shorten up your longer methods. Thanks to Ruby magic, we have easy access to methods like <code>to_proc</code> in the form of &ldquo;ampersand and object&rdquo;, or the <strong>&amp;:</strong> syntax. If you have no clue what those are, don&rsquo;t worry. I didn&rsquo;t either! Until I wrote this post, obvs.</p>
+
+<!--more-->
+
+
+<h2>A Slim Method Is A Beautiful Method</h2>
+
+<p>In our eCommerce bookstore app, we&rsquo;re storing our <code>Order</code> <code>amount</code> totals as BigDecimals. You might remember why BigDecimals <a href="http://vaidehijoshi.github.io/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/">are better than floats</a> when it comes to performing accurate monetary calculations. But even though we&rsquo;re using BigDecimal on the backend, there may be times when we want to convert our decimals back into floats. Like what if we want to start integrating a JavaScript frontend? (yes, I went there). The point is, we should be able to do something like that pretty easily, especially if we wanted to serialize and return a JSON object that has the correct object type.</p>
+
+<p>We&rsquo;d probably start by iterating through all of our order amounts and turn them into floats, like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span>
+</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">amounts_to_floats</span>
+</span><span class='line'>          <span class="no">Order</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">order</span><span class="o">|</span>
+</span><span class='line'>              <span class="n">order</span><span class="o">.</span><span class="n">amount</span><span class="o">.</span><span class="n">to_f</span>
+</span><span class='line'>          <span class="k">end</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Well, it does the job. But&hellip;it doesn&rsquo;t look so great, does it? Let&rsquo;s cut it down:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span>
+</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">amounts_to_floats</span>
+</span><span class='line'>          <span class="no">Order</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">map</span> <span class="p">{</span><span class="o">|</span><span class="n">order</span><span class="o">|</span> <span class="n">order</span><span class="o">.</span><span class="n">amount</span><span class="o">.</span><span class="n">to_f</span> <span class="p">}</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Okay, let&rsquo;s make it a little fancier and throw in the <code>pluck</code> method, which will query for only the to grab <em>only</em> an <code>Order</code>&rsquo;s <code>amount</code>?</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span>
+</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">amounts_to_floats</span>
+</span><span class='line'>          <span class="no">Order</span><span class="o">.</span><span class="n">pluck</span><span class="p">(</span><span class="ss">:amount</span><span class="p">)</span><span class="o">.</span><span class="n">map</span> <span class="p">{</span><span class="o">|</span><span class="n">amount</span><span class="o">|</span> <span class="n">amount</span><span class="o">.</span><span class="n">to_f</span> <span class="p">}</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>I guess it&rsquo;s better, but still not as good as it could be. Are you thinking what I&rsquo;m thinking? There&rsquo;s <em>gotta</em> be a better way!</p>
+
+<p><img src="http://provensal.com/lbb/wp-content/uploads/2013/03/better_way.jpg" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<h2>A Proc And An Object Walk Into A Bar&hellip;</h2>
+
+<p>As is the case with most things in programming, if we wish for a better way to do something, we can generally assume that there is! And in our case, the better way to do it is by using something called <strong>ampersand and object</strong>.</p>
+
+<p>And we can implement it on our <code>amounts_to_floats</code> method like so:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span>
+</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">amounts_to_floats</span>
+</span><span class='line'>          <span class="no">Order</span><span class="o">.</span><span class="n">pluck</span><span class="p">(</span><span class="ss">:amount</span><span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:to_f</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The result of this will be the exact same thing as the <code>map</code> we wrote above:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">&gt;</span> <span class="no">Order</span><span class="o">.</span><span class="n">amounts_to_floats</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="o">[</span><span class="mi">210</span><span class="o">.</span><span class="mi">99</span><span class="p">,</span> <span class="mi">150</span><span class="o">.</span><span class="mi">5</span><span class="p">,</span> <span class="mi">24</span><span class="o">.</span><span class="mi">99</span><span class="p">,</span> <span class="mi">391</span><span class="o">.</span><span class="mi">99</span><span class="p">,</span> <span class="mi">120</span><span class="o">.</span><span class="mi">25</span><span class="o">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So, what happened here? Well, let&rsquo;s just start with what we know for sure.</p>
+
+<ol>
+<li><p>We took all the <code>Order</code> objects and queried for just their <code>amounts</code>, which are in <code>BigDecimal</code> format.</p></li>
+<li><p>The <code>pluck</code> method returns an array of the attributes that you query for, so, which would mean that our array would look something like this:
+<code>[#&lt;BigDecimal:7f87ed12b2f0,'0.21099E3',18(18)&gt;, #&lt;BigDecimal:7f87ed121700,'0.1505E3',18(18)&gt;, #&lt;BigDecimal:7f87ed119348,'0.2499E2',18(18)&gt;...]</code></p></li>
+<li><p>Okay, so then we mapped over all of these amounts, right? And somehow we called <code>.to_f</code> on all of them. Which returned the array that we were hoping for:
+<code>[210.99, 150.5, 24.99, 391.99, 120.25]</code></p></li>
+</ol>
+
+
+<p>All of this begs one question: how on earth did the <code>&amp;</code> (ampersand) know to call <code>to_f</code> on each of our objects? And how did <code>map</code> know what to do with the ampersand that we passed it?</p>
+
+<p>Time to find out.</p>
+
+<h2>Procs on Procs</h2>
+
+<iframe src="//giphy.com/embed/umwRSMxcXW31m" width="480" height="244" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Whenever something seems super daunting, I go back to the basics. Which is exactly what I think we should do here, too. We can all agree that in Ruby is an object, right? And methods are how we send messages to objects. With that in mind, let&rsquo;s look back at that confusing line of code:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Order</span><span class="o">.</span><span class="n">pluck</span><span class="p">(</span><span class="ss">:amount</span><span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:to_f</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We know <code>Order.pluck(:amount)</code> to be an array &ndash; it&rsquo;s an object, which means it&rsquo;s the <em>receiver</em> of our method. That means that <code>.map</code> is our method. And <code>map</code> has been passed <code>&amp;:to_f</code>, which seems to have replaced the usual <code>do end</code> or <code>{}</code> blocks that generally accompany the <code>map</code> iterator.</p>
+
+<p>At this point, if you&rsquo;re thinking that the <code>&amp;</code> ampersand is responsible for executing that <code>to_f</code> method on each of the elements of the array, you&rsquo;re definitely onto something.</p>
+
+<p>In fact, the <code>&amp;</code> calls <em>another</em> method on the object: <code>to_proc</code>. The ampersand calls <code>to_proc</code> on whatever comes after it. In our case, it&rsquo;s the <code>to_f</code>. But it&rsquo;s not just the plain old method <code>to_f</code> &ndash; it&rsquo;s actually the <em>symbol</em>, <code>:to_f</code>.</p>
+
+<p>And we can double check this by looking at <a href="http://ruby-doc.org/core-1.9.3/Symbol.html#method-i-to_proc">the Ruby docs</a>! The <code>to_proc</code> method is defined on the <code>Symbol</code> class:</p>
+
+<blockquote><p><code>to_proc</code> Returns a Proc object which responds to the given method by sym.</p></blockquote>
+
+<p>So all the <code>&amp;</code> is doing is: <code>:to_f.to_proc</code>. It turns the symbol into a proc, and whatever object you pass to it, it&rsquo;ll call that method on that object. You&rsquo;re basically telling the <code>map</code> function, <em>Hey, I already have this method I want to call on every single item you&rsquo;re iterating over. So when you invoke yourself on the receiving object, run this code that I&rsquo;m passing you.</em></p>
+
+<p>Because <code>:to_f</code> isn&rsquo;t actually a block, the ampersand tries to make it a block by calling <code>to_proc</code> on it. But what if you pass it a block explicitly?</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">half_off_sale</span> <span class="o">=</span> <span class="no">Proc</span><span class="o">.</span><span class="n">new</span> <span class="p">{</span> <span class="o">|</span><span class="n">amount</span><span class="o">|</span> <span class="n">amount</span><span class="o">/</span><span class="mi">2</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="no">Order</span><span class="o">.</span><span class="n">pluck</span><span class="p">(</span><span class="ss">:amount</span><span class="p">)</span><span class="o">.</span><span class="n">map</span> <span class="o">&amp;</span><span class="n">half_off_sale</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="o">[</span><span class="c1">#&lt;BigDecimal:7f87ec20e4c0,&#39;0.105495E3&#39;,18(45)&gt;, #&lt;BigDecimal:7f87ec20e3d0,&#39;0.7525E2&#39;,18(45)&gt;, #&lt;BigDecimal:7f87ec20e2e0,&#39;0.12495E2&#39;,18(45)&gt;...]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pretty cool, right? In this case, we created a <code>half_off_sale</code> proc, that we passed directly to the ampersand. It didn&rsquo;t have to make it a proc since we already passed it one. So when <code>map</code> iterated through all the amounts, it yielded to our <code>half_off_sale</code> proc, and ran that code on every single element in our array of amounts.</p>
+
+<p>As you can see, the ampersand and object and <code>to_proc</code> methods can be pretty powerful &ndash; particularly when they&rsquo;re combined into this handy little shortcut! That doesn&rsquo;t mean you have to use them all the time, but if you understand the fundamentals of how they work, they can really help clean up your code, especially when it&rsquo;s pretty smelly.</p>
+
+<p>This is just a primary introduction to the concepts of ampersand and object and <code>to_proc</code>. There&rsquo;s definitely a lot more to them, and they can get quite complicated. I&rsquo;m still learning about them myself! But, I&rsquo;m going to keep reading about how procs work and, hopefully, there&rsquo;ll be a forthcoming Technical Tuesday post about how to pass methods to procs! Until then, keep sniffin&#8217; out those code smells, my friends!</p>
+
+<iframe src="//giphy.com/embed/LeaMGoMmMGrf2" width="480" height="360" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>&amp;</code> (ampersand) can be used with an iterator like <code>map</code>, and will call <code>to_proc</code> on whatever symbol you pass it, unless you pass it a block explicitly.</li>
+<li>More examples and explanations on <a href="http://stackoverflow.com/questions/9429819/what-is-the-functionality-of-operator-in-ruby">these</a> <a href="http://stackoverflow.com/questions/2259775/what-do-you-call-the-operator-in-ruby">two</a> StackOverflow posts.</li>
+<li>Here&rsquo;s a <a href="http://www.dan-manges.com/blog/29">great blog post</a> on all the ways you can use <code>&amp;</code> to manipulate ActiveRecord models.</li>
+<li>If you&rsquo;re still curious about different ways to pass around procs, check out <a href="https://andrewjgrimm.wordpress.com/2011/10/03/in-ruby-method-passes-you/">this post</a>, which is what I used when I was learning about them!</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-06-02T20:45:24+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>8:45 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/refactoring/'>refactoring&#8221;</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/" title="Previous Post: The Secret Life Of Your Database, Part 2: Join Tables">&laquo; The Secret Life Of Your Database, Part 2: Join Tables</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/">Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/">The Secret Life of Your Database, Part 2: Join Tables</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">The Secret Life of Your Database, Part 1: Migrations</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/">Investigating Ruby&#8217;s Global Functions + Kernel Module With Puts</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/">Metaprogramming Dynamic Methods: Using Public_send</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
