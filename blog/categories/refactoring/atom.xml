@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 
-  <title><![CDATA[Category: Refactoring" | Words and Code]]></title>
+  <title><![CDATA[Category: Refactoring | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/refactoring/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-06-02T18:22:56+08:00</updated>
+  <updated>2015-06-02T18:27:22+08:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -147,7 +147,7 @@ Order.pluck(:amount).map &amp;half_off_sale
 
 <p>As you can see, the ampersand and object and <code>to_proc</code> methods can be pretty powerful &ndash; particularly when they&rsquo;re combined into this handy little shortcut! That doesn&rsquo;t mean you have to use them all the time, but if you understand the fundamentals of how they work, they can really help clean up your code, especially when it&rsquo;s pretty smelly.</p>
 
-<p>This is just a primary introduction to the concepts of ampersand and object and <code>to_proc</code>. There&rsquo;s definitely a lot more to them, and they can get quite complicated. I&rsquo;m still learning about them myself! But, I&rsquo;m going to keep reading about how procs work and, hopefully, there&rsquo;ll be a forthcoming Technical Tuesday post about how to pass methods to procs! Until then, keep sniffin&#8217; out those code smells, my friends!</p>
+<p>This is just a primary introduction to the concepts of ampersand and object and <code>to_proc</code>. There&rsquo;s definitely a lot more to them, and they can get quite complicated. I&rsquo;m still learning about them myself! But, I&rsquo;m going to keep reading about how procs work and, hopefully, there&rsquo;ll be a forthcoming Technical Tuesdays post about how to pass methods to procs! Until then, keep sniffin&#8217; out those code smells, my friends!</p>
 
 <iframe src="//giphy.com/embed/LeaMGoMmMGrf2" width="480" height="360" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -159,6 +159,697 @@ Order.pluck(:amount).map &amp;half_off_sale
 <li>More examples and explanations on <a href="http://stackoverflow.com/questions/9429819/what-is-the-functionality-of-operator-in-ruby">these</a> <a href="http://stackoverflow.com/questions/2259775/what-do-you-call-the-operator-in-ruby">two</a> StackOverflow posts.</li>
 <li>Here&rsquo;s a <a href="http://www.dan-manges.com/blog/29">great blog post</a> on all the ways you can use <code>&amp;</code> to manipulate ActiveRecord models.</li>
 <li>If you&rsquo;re still curious about different ways to pass around procs, check out <a href="http://ablogaboutcode.com/2012/01/04/the-ampersand-operator-in-ruby/">this post</a>, which is what I used when I was learning about them!</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Metaprogramming Dynamic Methods: Using Public_send]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/"/>
+    <updated>2015-05-05T20:38:29+08:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send</id>
+    <content type="html"><![CDATA[<p><img src="http://imgs.xkcd.com/comics/hofstadter.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>A really amazing thing happened to me last week: I wrote some code that I was actually proud of! I was trying to solve an interesting problem for an application I started building at work recently, and I implemented the first solution that came into my mind. And after I took a step back from my text editor and actually looked at what I had written, I realized something. My code was actually <em>good</em>.</p>
+
+<p>The very fact that I was so surprised and thrilled at the prospect of writing good code speaks volumes to the nature of programming. Most of the time I abhor the methods I write because I know they could be written better, but I don&rsquo;t have the syntactical flow (yet!) to write them well. So last week&rsquo;s incident of &ldquo;code pride&rdquo;, however fleeting, was rather noteworthy.</p>
+
+<p>I looked back on my code over the weekend and thought about what made it seem so beautiful to me. What did I do differently that made me beam with pride knowing that I had been the one to write that particular method? The short answer to that question is: metaprogramming. <strong>Metaprogramming</strong> is nothing more than abstraction of code, which often means that your code will write more code for you! Of course, there are a lot of different techniques and approaches to this, and I&rsquo;m certainly no expert. But I did learn a little something about a meta method called <code>public_send</code>, and I&rsquo;ll show you just how I used it!</p>
+
+<!--more-->
+
+
+<h2>Gotta Dispatch? Do It Dynamically.</h2>
+
+<p>Everything in Ruby &ndash; everything in programming, really &ndash; is just an abstraction. We sprinkle some syntactic sugar to make our lives easier and code simpler, but it&rsquo;s all just an abstraction of something else. When we&rsquo;re refactoring by metaprogramming, it&rsquo;s this same concept of abstraction that we have to keep in mind. And when we look for and find patterns within our code, it&rsquo;s generally a sign that we could be encapsulating and abstracting away that piece of functionality.</p>
+
+<p>My favorite example of abstraction is <strong>method dispatching</strong>. Method dispatching is how we send a message to an object. And boy, do we do that a lot. Since everything in Ruby is an object, whenever you want an object to do something, you have to send it a message. And luckily, because Ruby is so great, the method we use to &ldquo;send&rdquo; messages is called just that: <code>send</code>.</p>
+
+<p>The <code>send</code> method is called in our programs way more than we might realize. For example, if we open up our console and do some simple math:
+<code>
+2.2.0 &gt; 3 + 4
+ =&gt; 7
+</code>
+what we&rsquo;re <em>really</em> doing is sending a message to the <code>3</code> Integer object, and telling it to perform an action (<code>+</code>) in terms of another object (the <code>4</code> Integer object):
+<code>
+2.2.0 &gt; 3.send(:+, 4)
+ =&gt; 7
+</code></p>
+
+<p>The <code>send</code> method takes a parameter of either a string or symbol, which is the method name. The method name will always be the first parameter, and the second  parameters is passed to the method as an argument.</p>
+
+<p>Now, this is great when you know that you want to add 3 and 4. But who is going to add 3 and 4 all of the time? No one, that&rsquo;s who. You&rsquo;re probably going to want to add 3 to 5, and 6, and on and on&hellip;</p>
+
+<p>Enter <strong>dynamic dispatching</strong> to save the day!</p>
+
+<iframe src="//giphy.com/embed/144RafbwKkBDva" width="480" height="269" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Dynamic dispatching, as the slightly odd yet adorable gif above demonstrates, involves sending various messages (read: methods) to objects, with the added caveat that our methods keep changing, depending on the situation. Dynamic dispatching also allows us to send different methods to objects in our program without any other object knowing the contents of that message. A good indicator for using dynamic dispatching is if you have call a method in a specific situation, but don&rsquo;t know what exactly that method will be.</p>
+
+<p>Confused yet? Okay, okay, let me give you an example.</p>
+
+<h2>You Can Send Whuteva You Like</h2>
+
+<p>Knowing that you can use <code>send</code> to &ldquo;send&rdquo; different methods to an object is only half the fun. The other half is figuring out when to pull out this tool from your Toolbelt of Knowledge™ &ndash; yes, I&rsquo;m trademarking this phrase &ndash; and actually use it.</p>
+
+<p>So&hellip;I guess it&rsquo;s time for me to show you a real-life example of how I used recently dynamic dispatch to invoke specific methods in my application! Hopefully to neither your surprise nor chagrin, I&rsquo;ll be using my eCommerce Bookstore example.</p>
+
+<p>In my store, I have a paginated list of different books available for purchase. Each book has only a limited amount of space it can take up in the view, so as an admin of the site, it&rsquo;ll be up to me to decide how I want different books to show up. Some of my books have awesome book covers, so I want to use thumbnail images of their cover as the main &ldquo;viewable attribute&rdquo; in my store. Since I&rsquo;m using the <code>paperclip</code> gem, this will be pretty easy.</p>
+
+<p>However, some books in my store don&rsquo;t even have book covers! My vast collection of Shakespearean plays, for example, would be much better served by making the author as the &ldquo;visible attribute&rdquo;, rather than nonexistent covers. And I think the <em>Game of Thrones</em> book series should have the book title as the &ldquo;visible attribute&rdquo;.</p>
+
+<p>So, how can we handle this? Well, let&rsquo;s first look for any patterns.</p>
+
+<h3>1. Look For Patterns</h3>
+
+<p>In our view, we want to be able to show each <code>Book</code> object using its primary viewable attribute. The problem we&rsquo;re dealing with here is that an admin will mark different attributes for a <code>Book</code> object as &ldquo;viewable&rdquo;, which means that we can&rsquo;t predict whether it&rsquo;ll be a <code>title</code>, <code>author</code>, or an image. But we do know that every <code>Book</code> object has to have <em>some</em> &ldquo;viewable attribute&rdquo;.</p>
+
+<p>Cool, so there is <em>some</em> sort of pattern emerging here: we need to render an attribute, and we don&rsquo;t know what it will be. Or&hellip;do we?</p>
+
+<h3>2. Consider The Data</h3>
+
+<p>Since we&rsquo;re building out an admin panel for this application, we know that every book needs to have a <code>title</code> and an <code>author</code>. The book cover (which we&rsquo;ll refer to as <code>media</code>) is optional, but the other two are not, which means we&rsquo;ll have a validation for our <code>Book</code> objects:</p>
+
+<pre><code class="ruby">class Book &lt; ActiveRecord::Base
+  validates_presence_of :title, :author
+end
+</code></pre>
+
+<p>This validation makes me think about the other things that will <em>always</em> be present on a <code>Book</code> object, and the first thing that comes to mind is a <code>viewable_by</code> attribute. If we think about it, an admin always has to mark <em>something</em> as &ldquo;viewable&rdquo;, and that &ldquo;viewable&rdquo; property can change when they update an object. So this is really a property unique to each <code>Book</code>, which means that it could very well be a column saved in the database.</p>
+
+<p>So, we&rsquo;ll write a migration that adds a <code>viewable_by</code> column, which can never be <code>null</code>, and will always default to a <code>Book</code>&rsquo;s <code>title</code>:</p>
+
+<pre><code class="ruby">class AddViewableByToBooks &lt; ActiveRecord::Migration
+  def change
+    add_column :books, :viewable_by, :string, null: false, default: "title"
+  end
+end
+</code></pre>
+
+<p>This migration might look pretty simple, but it is its very simplicity that lends itself so elegantly to some serious metaprogramming that we&rsquo;ll do next.</p>
+
+<h3>3. Encapsulate And Abstract</h3>
+
+<p>This last part can be the hardest to wrap our minds around, but it also happens to be the coolest. As it stands, our database has a column that will be populated with either a string value <code>"title"</code>, <code>"author"</code>, or <code>"media"</code>. These values will be changed and updated by an admin, and they will obviously and inevitably change. But here&rsquo;s what&rsquo;s not going to change: we&rsquo;re still going to want to render the value of whatever attribute is marked as &ldquo;visible&rdquo; &ndash; that is to say, whatever string value is saved as <code>viewable_by</code>.</p>
+
+<p>If we think back to the pattern we just identified, we realize that the attribute changes, but what we want to do with it stays the same. No matter what the <code>Book</code> is <code>viewable_by</code>, we want to render it. We want to send a message to this object and tell it, <em>Hey Book! Whatever you are viewable by is exactly what you should show yourself as!</em></p>
+
+<p>And this is where we can use <code>send</code> to encapsulate and abstract this away into a single method call. First, we&rsquo;ll want to add a method that checks whether this is an image &ndash; if it is, we&rsquo;ll hand it off to the <code>paperclip</code> gem to render the image:</p>
+
+<pre><code class="ruby">def show_cover?
+  self.viewable_by == 'media'
+end
+</code></pre>
+
+<p>This method will return <code>true</code> if we the <code>viewable_by</code> attribute is set to <code>media</code>, and <code>false</code> if it&rsquo;s not. We can use this <code>boolean</code> return value in a conditional statement:</p>
+
+<pre><code class="ruby">def book_html
+  if show_cover?
+    # Code here will generate and return
+    # an html image tag to render in view.
+  else
+    send(self.viewable_by)
+  end
+end
+</code></pre>
+
+<p>Whoaaaaa, whut is happening? The answer is: something cool! This <code>book_html</code> method will render either a thumbnail image (which we let some other code worry about generating), or it returns a <code>title</code> or an <code>author</code>. And what&rsquo;s really cool is that, we could add other attributes to our table &ndash; like <code>year</code> or <code>genre</code> and render html based on that, as long as it was saved in our <code>viewable</code> column.</p>
+
+<p>How does this work exactly? Well, whenever we create a new column in our database, we get two important methods for free: a reader and a writer. That means that we have both a <code>title=</code> and a <code>title</code> method.</p>
+
+<p>If we look back to how the <code>send</code> method works, we&rsquo;ll remember that the <code>send</code> method takes a parameter of a string or a symbol, which is the name of the method to be called. When we call <code>send</code> and pass it the value of <code>self.viewable_by</code>, we&rsquo;ll actually be calling <code>send("title")</code> on an instance of <code>Book</code>. This will then call <code>title</code> on that instance of <code>Book</code>, returning that particular book&rsquo;s title as a string.</p>
+
+<p>The cool thing about this code is that it&rsquo;s flexible, and has abstracted away a pattern into a dynamic method call, which is dispatched to the appropriate object at the appropriate time. But there&rsquo;s still one major issue with this code that I can see. Let&rsquo;s fix that.</p>
+
+<h2>To Send Or To Public Send? That Is The Question.</h2>
+
+<p>A lot of the most incriminating evidence against using the <code>send</code> method stems from the fact that <code>send</code> can even send <em>private</em> methods to an object. This can be dangerous for your application internally, and also leaves it vulnerable to external, malicious attacks.</p>
+
+<p>A quick fix for this is to instead use <code>public_send</code>, which does exactly what you think it does: send only publicly-accessible methods to the object that is its receiver. Our final code now looks something like this:</p>
+
+<pre><code class="ruby">class Book &lt; ActiveRecord::Base
+  validates_presence_of :title, :author
+
+  def show_cover?
+    self.viewable_by == 'media'
+  end
+
+  def book_html
+    if show_cover?
+      # Code here will generate and return
+      # an html image tag to render in view.
+    else
+      public_send(self.viewable_by)
+    end
+  end
+end
+</code></pre>
+
+<p>Nice! Not too shabby for our first attempt at metaprogramming all the things (or at least one thing).</p>
+
+<p>As hard as it is to do, you can&rsquo;t be too hard on yourself when it comes to refactoring and metaprogramming. I honestly think it just comes with time, practice, and exposure. Eventually, you&rsquo;ll start to recognize the same patterns again and again, and you&rsquo;ll start to learn which tools are the right ones for the job.</p>
+
+<p>Even though it takes a bit more effort, I think learning the different techniques of metaprogramming makes you better and both reading and writing code. By rewriting your old code and implementing some of those metaprogramming techniques, you take away some of the otherwise hard-coded lines in your application, and make it more flexible and dynamic.</p>
+
+<p>If any or all of this sounds intimidating, that&rsquo;s because it is! But it&rsquo;s also not impossible, as I&rsquo;ve recently proven to myself (and hopefully to you). Luckily, Ruby gives us a lot of tools to meta program away our boilerplate code. It&rsquo;s just a question of knowing what those tools are so that you can use them when you see the perfect opportunity. And when you finally metaprogram something, you&rsquo;ll be so impressed with yourself that you&rsquo;ll let out a little squeal of glee like this little kitty and it&rsquo;ll be the cutest thing ever:</p>
+
+<iframe src="//giphy.com/embed/117j1ldyb838Zi" width="480" height="382" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>We can use dynamic dispatching to send a method to an object without being explicit about the method&rsquo;s contents within our application. The <code>send</code> and <code>public_send</code> method are two ways of doing this, and both take a string or symbol as a parameter, and use that to call a method of the same name upon the receiving object.</li>
+<li>Learn the basics of metaprogramming over <a href="http://ruby-metaprogramming.rubylearning.com/html/ruby_metaprogramming_2.html">here</a>, and check out the docs on <a href="http://ruby-doc.org/core-2.2.2/Object.html#method-i-send">send</a> and <a href="http://apidock.com/ruby/Object/public_send">public_send</a>.</li>
+<li>Curious about the different types of dynamic method calls out there? This <a href="http://ruby.about.com/od/oo/ss/Dynamic-Method-Calls.htm">blog post</a> covers a few different kinds in depth.</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Querying at Warp Drive: Using ActiveRecord Includes]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/04/07/querying-at-warp-drive-using-activerecord-includes/"/>
+    <updated>2015-04-07T20:36:54+08:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/04/07/querying-at-warp-drive-using-activerecord-includes</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/Wkym7gz6fu1Nu" width="480" height="271" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>There comes a time in the life of every developer when you stop thinking about whether your code works. Instead, you concern yourself with something else entirely: how <em>efficiently</em> your code works.</p>
+
+<p>In fact, you can trace this back to Kent Beck&rsquo;s <a href="http://c2.com/cgi/wiki?MakeItWorkMakeItRightMakeItFast">philosophy</a> of &ldquo;Make it work, make it right, make it fast.&rdquo; Once you&rsquo;ve got your code doing what you want it to do, you need to make it better. But what do you do with your improved code once you&rsquo;ve set it right? Make sure that it&rsquo;s working as fast as it possibly can, of course!</p>
+
+<p>Code efficiency is a bit of an advanced topic, and I&rsquo;m definitely no expert in it. But I recently learned a pretty awesome querying method that&rsquo;s neither difficult to understand nor too complex to implement. In fact, this method has always been right under your nose, hidden inside of the magic that is ActiveRecord. So what is this magical method, exactly? Well, it&rsquo;s called <strong>includes</strong>, and once you start using it, you&rsquo;ll never make database queries the same way again.</p>
+
+<!--more-->
+
+
+<h2>Inquiries on Querying</h2>
+
+<p>The best way to know how to make your code run at warp drive is by first figuring out how fast it is to start with. But before we get into the issue of speed, let&rsquo;s check out what our code base looks like:
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">belongs_to</span> <span class="ss">:user</span>
+</span><span class='line'>  <span class="kp">attr_accessor</span> <span class="ss">:details</span>
+</span><span class='line'><span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;class User &amp;lt; ActiveRecord::Base</span>
+</span><span class='line'><span class="sr">  has_many :orders&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">class</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="nb">self</span>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">all_order_details</span>
+</span><span class='line'>      <span class="no">User</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">each</span> <span class="o">|</span><span class="n">user</span><span class="o">|</span>
+</span><span class='line'>        <span class="n">user</span><span class="o">.</span><span class="n">orders</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">order</span><span class="o">|</span>
+</span><span class='line'>          <span class="n">order</span><span class="o">.</span><span class="n">details</span>
+</span><span class='line'>        <span class="k">end</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>Nothing <em>too</em> fancy happening here. We&rsquo;ve got a one-to-many relationship here, with a <code>User</code> object having many <code>Orders</code>, and each <code>Order</code> belonging to a <code>User</code>. There&rsquo;s also a class method called <code>all_order_details</code> in our <code>User</code> class. This method queries for all of the <code>User</code> objects in our database, and loops through each <code>User</code> instance, grabbing each order, and calling <code>details</code> on it. And if we take a look at our <code>Order</code> class, we&rsquo;ll see that <code>details</code> is just an attribute on <code>Order</code>. (Forget what that weird <code>class &lt;&lt; self</code> syntax means? Jog your memory with <a href="http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my/">this post</a> from a few weeks ago.)</p>
+
+<p>Our plan is to use this method in an admin panel or dashboard, which is probably the only place where someone would want to see all the order details of every single order placed by every single user in our system. But even though we&rsquo;re not going to be using this method within all of our views, it&rsquo;s still important that we take a look at what it&rsquo;s doing in order to understand whether we can refactor it and make it faster.</p>
+
+<p>So, this code does pretty much exactly what we want it to do. But how fast does it do its job? The only way to find out is by checking out what happens in our server logs when we call our method:
+<code>
+2.2.0 :001 &gt; User.all_order_details
+  User Load (1.1ms)  SELECT "users".* FROM "users"
+  Order Load (0.6ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" = ?  [["user_id", 1]]
+  Order Load (0.1ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" = ?  [["user_id", 2]]
+  Order Load (0.1ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" = ?  [["user_id", 3]]
+  Order Load (0.1ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" = ?  [["user_id", 4]]
+  Order Load (0.1ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" = ?  [["user_id", 5]]
+  Order Load (0.1ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" = ?  [["user_id", 6]]
+  Order Load (0.1ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" = ?  [["user_id", 7]]
+  Order Load (0.1ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" = ?  [["user_id", 8]]
+  Order Load (0.1ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" = ?  [["user_id", 9]]
+  Order Load (0.1ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" = ?  [["user_id", 10]]
+ =&gt; # returns an array of order details
+</code></p>
+
+<p>Whoa, whoa, whoa &ndash; hold up. We&rsquo;ve got a problem.</p>
+
+<iframe src="//giphy.com/embed/iJxHzcuNcCJXi" width="480" height="360" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Sure, we got an array of <code>Order</code> details, which is great. But doesn&rsquo;t it seem kind of weird that we had to make so many queries? Are the red flags going off in your head, too? Time to investigate.</p>
+
+<h2>The N + 1 Problem</h2>
+
+<p>Okay, so maybe you didn&rsquo;t recoil in horror when you saw all those queries. But let me explain why you probably should. In our database, we currently have 10 <code>Users</code>, each of whom has one <code>Order</code>. If we look at the queries we&rsquo;re currently making, you&rsquo;ll notice that we&rsquo;re first loading all of our <code>User</code> objects:
+<code>ruby
+User Load (1.1ms)  SELECT "users".* FROM "users"
+</code></p>
+
+<p>Loading all of our <code>Users</code> takes 1.1 milliseconds. But what about our <code>Order</code> details? We need to go through our <code>Users</code> table in order to grab each <code>Order</code>&rsquo;s details. That&rsquo;s exactly what&rsquo;s happening in each one of the queries that looks like this:
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">6</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">orders</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span><span class="o">.</span><span class="n">&lt;em</span><span class="o">&gt;</span> <span class="no">FROM</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">orders</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span> <span class="no">WHERE</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">orders</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span><span class="o">.</span><span class="n">&amp;ldquo</span><span class="p">;</span><span class="n">user_id</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span> <span class="o">=</span> <span class="p">?</span>  <span class="o">[[&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">user_id</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;,</span> <span class="mi">1</span><span class="o">]]</span>
+</span><span class='line'><span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">1</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">orders</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span><span class="o">.</span><span class="n">&lt;</span><span class="sr">/em&gt; FROM &amp;ldquo;orders&amp;rdquo; WHERE &amp;ldquo;orders&amp;rdquo;.&amp;ldquo;user_id&amp;rdquo; = ?  [[&amp;ldquo;user_id&amp;rdquo;, 2]]&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">more</span> <span class="n">queries</span> <span class="k">for</span> <span class="n">each</span> <span class="n">user</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span><span class="n">s</span> <span class="n">orders</span><span class="o">&lt;</span><span class="sr">/h1&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;</span>
+</span><span class='line'><span class="sr">We&#39;re first loading all the `Orders` when we look for a `User` with an `id` of `1`, which takes us 0.6 milliseconds. And as we continue querying through the remaining 9 `Users` in our database, each query takes us 0.1 milliseconds.</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">Right now, this might not seem like that big of a deal. But we have to keep in mind that we only have ten users so far! Hopefully, we&#39;ll have a *lot* more as our user base grows. And that&#39;s where our problem comes in. Actually, our problem is quite common, and it&#39;s even got a name: **the n + 1 problem**.</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">The crux of the n + 1 problem is essentially this: the number of queries you make will directly correspond to the number of objects (n) that you have in your database. This means that we&#39;ll have 1 query to get all of our `User` objects, and n number of *additional* queries for each `User` object we want to get order details from.</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">With only 10 users, we&#39;ll make 11 queries in total: 1 query for our users, and 10 for each user we query to load the user&#39;s order details. But what if we have 10,000 users? Or if we&#39;re being optimistic, 100,000 user? ...Or even a million? Making over a hundred thousand queries is just way too slow and simply not acceptable.</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">Thankfully, this problem is so common that Rails has a fantastic solution, tailor-made to handle it.</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">## Smarter Querying</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">Rails is a pretty smart cookie -- it allows you to load a bunch of stuff at once ahead of time if you know exactly what you want to query. This is referred to as **eager loading**, and a really easy way to eager load your associations is by using the ActiveRecord method `includes`.</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">You can call `includes` on an object an pass it a parameter of the table you want to load as a symbol name. We can implement this directly on our `all_order_details` method:</span>
+</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;def all_order_details</span>
+</span><span class='line'><span class="sr">  User.all.includes(:orders).each |user|</span>
+</span><span class='line'><span class="sr">    user.orders.each do |order|</span>
+</span><span class='line'><span class="sr">      order.details</span>
+</span><span class='line'><span class="sr">    end</span>
+</span><span class='line'><span class="sr">  end</span>
+</span><span class='line'><span class="sr">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>This may look pretty similar to our original code at first, but when we look at our server logs, we can see a world of difference:
+<code>ruby
+2.2.0 :002 &gt; User.all_order_details
+  User Load (0.2ms)  SELECT "users".* FROM "users"
+  Order Load (0.3ms)  SELECT "orders".* FROM "orders" WHERE "orders"."user_id" IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+ =&gt; # returns an array of order details
+</code></p>
+
+<p>Nice. We have something really cool happening here. Instead of making &ldquo;n + 1&rdquo; number of queries, we&rsquo;re only making two queries. We spend 0.2 milliseconds getting our users, and 0.3 milliseconds loading our orders. We&rsquo;re only spending 0.5 milliseconds compared to the 2.6 milliseconds we were spending before.</p>
+
+<p>How does this work, exactly? Eager loading allows you to specify exactly which tables you want to load into memory. Just by loading them, we&rsquo;re reducing the number of queries we&rsquo;re making. It&rsquo;s like telling ActiveRecord, <em>Hey, I already know I want all the Users and I know I want to do something with their associated Orders. So instead of querying the table one instance at a time, why don&rsquo;t you just be super efficient and grab &lsquo;em all for me in one shot?</em> And that&rsquo;s pretty much exactly what Rails will do.</p>
+
+<p>I also like the way that <a href="http://www.theodinproject.com/ruby-on-rails/active-record-queries">the Odin Project</a> explains how <code>includes</code> works:</p>
+
+<blockquote><p>&ldquo;Includes basically takes the name of one or more associations that you&rsquo;d like to load at the same time as your original object and brings them into memory. You can chain it onto other methods like where or order clauses.&rdquo;</p></blockquote>
+
+<p>Other helpful methods that do similar things to solve the n + 1 problem are <code>joins</code>, used for joining multiple tables together, and <code>pluck</code>, which grabs a specific column and returns it in an array format.</p>
+
+<h2>Big O Puts the O In &ldquo;Uh Oh&rdquo;</h2>
+
+<iframe src="//giphy.com/embed/fcpJebgkQ14UE" width="480" height="192" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Dealing with issues of efficiency and speed is a pretty advanced topic, mostly because it gets into the deep depths of computer science and the dreaded concept of <strong>Big O Notation</strong>. Big O deals with the space time complexity of different algorithms.</p>
+
+<p>The n + 1 problem is actually nothing more than a Big O problem, because it has to do with how well your algorithm runs. The Big O complexity of an n + 1 problem is <strong>O(n)</strong>, pronounced &ldquo;Oh of n&rdquo;. An O(n) algorithm is one whose performance will grow linearly, and will be directly proportional to the size of input data (the more <code>Users</code> we have, the larger our query of each user&rsquo;s order details).</p>
+
+<p>Big O should always be <a href="http://rob-bell.net/2009/06/a-beginners-guide-to-big-o-notation/">taken into consideration</a> while building an app. But that being said, it should never be the first thing that you think about &ndash; particularly if you are a reatively junior developer. The space time complexity of your algorithm is something you can think about while refactoring your code, or rethinking how you&rsquo;re approaching or solving a problem.</p>
+
+<p>Being able to evaluate an algorithm&rsquo;s efficiency is definitely something to work towards, but it&rsquo;s also something that takes practice. Implementing ActiveRecord&rsquo;s <code>includes</code> method is a good way to start playing around with speed and efficiency &ndash; plus, you&rsquo;ll make some kickass queries in the process, and that always feels pretty awesome. (I mean, obviously it&rsquo;s not as awesome as going warp speed on the Enterprise, but hey, it&rsquo;s an acceptable alternative.)</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>includes</code> method can be chained on to any ActiveRecord model, and takes parameters of an association/table name, passed in as a symbol. Read more about it in the <a href="http://guides.rubyonrails.org/active_record_querying.html#eager-loading-associations">Rails docs</a>.</li>
+<li>If you&rsquo;re still curious about the n + 1 problem, check out another good example of it <a href="http://www.sitepoint.com/silver-bullet-n1-problem/">over here</a>.</li>
+<li>Big O Notation got you down? Check out <a href="http://nathanmlong.com/2015/03/understanding-big-o-notation/">this awesome resource</a>, which has graphs to go along with each code snippet example of different types of notation.</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Delegating All of the Things With Ruby Forwardable]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable/"/>
+    <updated>2015-03-31T20:35:27+08:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable</id>
+    <content type="html"><![CDATA[<p><img src="http://assets.amuniversal.com/77c6dce06d5c01301d80001dd8b71c47" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>It was the best of times. It was the worst of times. It was&hellip;refactoring time! Well it was for me yesterday, at least.</p>
+
+<p>Refactoring your own code has a great payoff at the end, but boy, does it take some work to get there. Something I&rsquo;ve noticed about my own code recently is that I&rsquo;m now able to know that something needs to be refactored pretty easily. I&rsquo;ve been having a lot of gut feelings about parts of my code that just <em>feel</em> wrong, inefficient, and repetitive. The problem is, even though I know where my code is weak, I don&rsquo;t usually know <em>how</em> to go about making my code better.</p>
+
+<p>And this is where making effective use of resources (read: The Art Of Effective Googling) comes quite in handy. Yesterday, however, I used even better resource &ndash; a more experienced developer! We took a look at my code and came up with some ways I could refactor it. I learned about a pretty interesting module that could save me lines of code and keep my application <a href="http://en.wikipedia.org/wiki/Don%27t_repeat_yourself">DRY</a>. And now I get to share it with you! This module is called <a href="http://ruby-doc.org/stdlib-2.0/libdoc/forwardable/rdoc/Forwardable.html">Forwardable</a>, and trust me when I say that it&rsquo;s going to make you want to delegate all the things.</p>
+
+<!--more-->
+
+
+<h2>Infatuation With Delegation</h2>
+
+<p>Before we even get to Ruby&rsquo;s Forwardable module, let&rsquo;s first make sure we understand delegation. So, <em>whut</em> exactly is delegation? It&rsquo;s probably exactly what you imagine it to be. In plain English, when you delegate something to someone else, you divide up responsibilities amongst yourselves. For example, if I had someone to delegate all these blog posts to, I wouldn&rsquo;t have to write all of them myself! But I digress; back to programming.</p>
+
+<p>Delegation in programming is not too different. When an object has a lot of responsibilities and things to do, it&rsquo;s generally easier to give some of those responsibilities to another object &ndash; a &ldquo;helper&rdquo; object &ndash; to avoid repetition and keep things working efficiently. Let&rsquo;s put this in some technical context for a hot minute: we can use a technique called <strong>encapsulation</strong> to pack a bunch of functionality into a single object&rsquo;s class and instance methods.</p>
+
+<iframe src="//giphy.com/embed/UOpdmwKA7la0g" width="480" height="207" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Ok, maybe you&rsquo;re not a fan of technical jargon. Maybe you&rsquo;d much rather prefer a real-life example of delegation? Alright, here you are:
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Product</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">sku</span>
+</span><span class='line'>    <span class="c1"># Returns a sku specific to a</span>
+</span><span class='line'>    <span class="c1"># particular instance of a product.</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;class Book &amp;lt;&amp;lt; Product</span>
+</span><span class='line'><span class="sr">  def author</span>
+</span><span class='line'><span class="sr">    # Returns an Author object</span>
+</span><span class='line'><span class="sr">    # associated with that book.</span>
+</span><span class='line'><span class="sr">  end</span>
+</span><span class='line'><span class="sr">end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span>
+</span><span class='line'><span class="no">Yup</span><span class="p">,</span> <span class="n">that</span><span class="s1">&#39;s right. Class inheritance, a concept I&#39;</span><span class="n">ve</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="n">a</span> <span class="n">href</span><span class="o">=</span><span class="s2">&quot;http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my/&quot;</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">written</span> <span class="n">about</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">/</span><span class="n">a</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="n">a</span> <span class="n">href</span><span class="o">=</span><span class="s2">&quot;http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance-part-1/&quot;</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">a</span> <span class="n">couple</span> <span class="n">times</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">/</span><span class="n">a</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="n">that</span> <span class="n">you</span><span class="s1">&#39;re probably pretty familiar with at this point, is a type of delegation. </span>
+</span><span class='line'>
+</span><span class='line'><span class="s1">Since a `Book` object inherits from a `Product` object, it has both an `author` method an a `sku` method. When you ask a `Book` for its `sku`, it first looks in the `Book` class, and when it doesn&#39;</span><span class="n">t</span> <span class="n">find</span> <span class="n">the</span> <span class="nb">method</span> <span class="k">in</span> <span class="n">there</span><span class="p">,</span> <span class="n">it</span> <span class="n">delegates</span> <span class="n">up</span> <span class="n">to</span> <span class="n">its</span> <span class="n">parent</span> <span class="n">class</span><span class="p">,</span> <span class="n">which</span> <span class="n">is</span> <span class="n">the</span> <span class="sb">`Product`</span> <span class="n">class</span><span class="o">.</span> <span class="no">Instead</span> <span class="n">of</span> <span class="n">making</span> <span class="n">the</span> <span class="sb">`Book`</span> <span class="n">responsible</span> <span class="k">for</span> <span class="n">all</span> <span class="n">the</span> <span class="n">functionality</span><span class="p">,</span> <span class="n">we</span><span class="s1">&#39;re using the `Product` object to take care of doing the logic and finding and returning the correct `sku`.</span>
+</span><span class='line'>
+</span><span class='line'><span class="s1">See, you&#39;</span><span class="n">ve</span> <span class="n">already</span> <span class="n">worked</span> <span class="n">with</span> <span class="n">delegation!</span> <span class="no">Nothing</span> <span class="n">to</span> <span class="n">fear</span> <span class="n">here</span><span class="o">.</span> <span class="no">Now</span> <span class="n">let</span><span class="s1">&#39;s apply delegation to the Forwardable module.</span>
+</span><span class='line'>
+</span><span class='line'><span class="s1">##Put Your Best Foot Forward</span>
+</span><span class='line'>
+</span><span class='line'><span class="s1">The best way to see Ruby Forwardable in action is by using it to actually refactor something. So, let&#39;</span><span class="n">s</span> <span class="n">take</span> <span class="n">a</span> <span class="n">look</span> <span class="n">at</span> <span class="n">what</span> <span class="n">our</span> <span class="n">raw</span> <span class="n">code</span> <span class="n">looks</span> <span class="n">like</span> <span class="n">right</span> <span class="ss">now</span><span class="p">:</span>
+</span><span class='line'><span class="o">&lt;</span><span class="sr">/code&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="k">class</span> <span class="nc">Book</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">language</span>
+</span><span class='line'>    <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="no">English</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span>
+</span><span class='line'>  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  def year</span>
+</span><span class='line'><span class="sr">    &amp;ldquo;1926&amp;rdquo;</span>
+</span><span class='line'><span class="sr">  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">def</span> <span class="nf">author</span>
+</span><span class='line'>    <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="no">Ernest</span> <span class="no">Hemingway</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span>
+</span><span class='line'>  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  def title</span>
+</span><span class='line'><span class="sr">    &amp;ldquo;The Sun Also Rises&amp;rdquo;</span>
+</span><span class='line'><span class="sr">  end</span>
+</span><span class='line'><span class="sr">end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="k">class</span> <span class="nc">Product</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  def initialize</span>
+</span><span class='line'><span class="sr">    @book = Book.new</span>
+</span><span class='line'><span class="sr">  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">def</span> <span class="nf">language</span>
+</span><span class='line'>    <span class="vi">@book</span><span class="o">.</span><span class="n">language</span>
+</span><span class='line'>  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  def year</span>
+</span><span class='line'><span class="sr">    @book.year</span>
+</span><span class='line'><span class="sr">  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">def</span> <span class="nf">author</span>
+</span><span class='line'>    <span class="vi">@book</span><span class="o">.</span><span class="n">author</span>
+</span><span class='line'>  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;  def info</span>
+</span><span class='line'><span class="sr">    @book.title</span>
+</span><span class='line'><span class="sr">  end</span>
+</span><span class='line'><span class="sr">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>Ugh. You&rsquo;ve probably already recoiled in horror. We have a <code>Book</code> object, which has a <code>language</code>, <code>year</code>, <code>author</code>, and <code>title</code>. And we have a <code>Product</code> object, which creates a new instance of a <code>Book</code> object, and then pretty much repeats all those methods again, using the instance it creates in the <code>initialize</code> method.</p>
+
+<p>We already know this code is bad. But how to go about refactoring it? Use Forwardable, obvs, and do some forwarding! We&rsquo;ll delegate all the handling of information to the <code>Book</code> object. Our <code>Product</code> class doesn&rsquo;t need to worry about that!</p>
+
+<p>Cool. So how do we do this? Like so:</p>
+
+<ul>
+<li>Let&rsquo;s first get rid of all of those methods in the <code>Product</code> class. We&rsquo;ll keep our <code>initialize</code> method, since that&rsquo;s how we&rsquo;ll create a new instance of <code>Book</code> in order to have something that we can call methods on. Now our class looks pretty empty:</li>
+</ul>
+
+
+<pre><code class="ruby">class Product 
+  def initialize
+    @book = Book.new
+  end
+end
+</code></pre>
+
+<ul>
+<li>We&rsquo;ll add the Forwardable module, part of the Ruby standard library, by extending it in the first line of the class:</li>
+</ul>
+
+
+<pre><code class="ruby">extend Forwardable
+</code></pre>
+
+<ul>
+<li>Now we&rsquo;ll specify the methods that we to call on a <code>Book</code> object <em>through</em> our <code>Product</code> class by using the <code>def_delegators</code> method, available through Forwardable:</li>
+</ul>
+
+
+<pre><code class="ruby">def_delegators :@book, :language, :year, :author
+</code></pre>
+
+<ul>
+<li>We also want to get the title as well, but we want to rename that method as <code>info</code>. We can use <code>def_delegator</code> in order to do that:</li>
+</ul>
+
+
+<pre><code class="ruby">def_delegator :@book, :title, :info
+</code></pre>
+
+<p>Now we&rsquo;ve cut down these two classes a lot. Our refactored code looks like this:</p>
+
+<pre><code class="ruby">class Book
+  def language
+    "English"
+  end
+
+  def year
+    "1926"
+  end
+
+  def author
+    "Ernest Hemingway"
+  end
+
+  def title
+    "The Sun Also Rises"
+  end
+end
+
+class Product
+  extend Forwardable
+
+  def_delegators :@book, :language, :year, :author
+    def_delegator :@book, :title, :info
+
+  def initialize
+    @book = Book.new
+  end
+end
+</code></pre>
+
+<p>What can this refactored code actually do? Well, it lets us call <code>info</code> on a <code>Product</code> and get back the title of the book! And it allows us to call <code>year</code> directly on an instance of <code>Product</code>:
+<code>
+p = Product.new
+ =&gt; #&lt;Product:0x007feb2183ea78 @book=#&lt;Book:0x007feb2183e9d8&gt;&gt;
+p.year
+ =&gt; "1926"
+p.info
+ =&gt; "The Sun Also Rises"
+</code></p>
+
+<p>But wait &ndash; we didn&rsquo;t write a <code>year</code> method in the <code>Product</code> class! Well, okay, we <em>kind</em> of did. We used <code>def_delegators</code>, to tell the <code>Product</code> class that it should respond to three methods: <code>language</code>, <code>author</code>, and <code>year</code>. And, we&rsquo;re telling the <code>Product</code> class to respond to each of these methods by calling it on an instance of <code>@book</code>.</p>
+
+<p>And how did we rewrite that <code>title</code> method, exactly? We used <code>def_delegator</code> (singular, not plural!) to tell the <code>Product</code> class to respond to a method called <code>info</code> by calling <code>title</code> on <code>@book</code>. The reason that this works is only because we already have a <code>title</code> method defined on all instances of the <code>Book</code> class.</p>
+
+<h2>Delegate Like You Mean It</h2>
+
+<p>Using the Forwardable module comes in handy not just for refactoring, but also for your initial structuring of an application. Anytime you have an object handling lots of functionality, think about whether you can encapsulate that functionality into another class, and delegate the methods that aren&rsquo;t directly required into that &ldquo;helper&rdquo; class.</p>
+
+<p>There are some great blog posts with examples of how to use the Forwardable module effectively. Here&rsquo;s an implementation on a Reading List class (think Goodreads):
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ReadingList</span>
+</span><span class='line'>    <span class="kp">extend</span> <span class="no">Forwardable</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;def_delegators :@books, :map, :size, :&amp;lt;&amp;lt;, :shuffle</span>
+</span><span class='line'><span class="sr">def_delegator :@books, :shift, :remove_book</span>
+</span><span class='line'><span class="sr">def_delegator :@books, :push, :add_book</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">def initialize</span>
+</span><span class='line'><span class="sr">    @books = []</span>
+</span><span class='line'><span class="sr">end      </span>
+</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;end</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>There&rsquo;s some pretty bomb stuff happening in such few lines. The <code>ReadingList</code> class gets initialized with an empty array, which we save as an instance variable, <code>@books</code>. Then we&rsquo;ve also our <code>def_delegators</code>, which delegate <code>map</code>, <code>size</code>, <code>&lt;&lt;</code>, and <code>shuffle</code> to the <code>@books</code>. And we have two methods that we (kinda) wrote: <code>remove_book</code> and <code>add_book</code>.</p>
+
+<p>That&rsquo;s a lot of stuff for 9 lines of code! So what can this do, exactly? Well, let&rsquo;s see our reading list in action:
+<code>
+vaidehis_list = ReadingList.new
+ =&gt; #&lt;ReadingList:0x007feb21a6d0b0 @books=[]&gt;
+vaidehis_list.add_book('For Whom The Bell Tolls')
+ =&gt; ["For Whom The Bell Tolls"]
+vaidehis_list.add_book('The Old Man And The Sea')
+ =&gt; ["For Whom The Bell Tolls", "The Old Man And The Sea"]
+ vaidehis_list.add_book('To Have And To Have Not')
+ =&gt; ["For Whom The Bell Tolls", "The Old Man And The Sea", "To Have And To Have Not"]
+vaidehis_list.size
+ =&gt; 3
+vaidehis_list.shuffle
+ =&gt; ["For Whom The Bell Tolls", "To Have And To Have Not", "The Old Man And The Sea"]
+vaidehis_list.remove_book
+ =&gt; "For Whom The Bell Tolls"
+vaidehis_list.size
+ =&gt;
+</code></p>
+
+<p><em>Dayummmmm</em>. Pretty sweet, right? We get to call all these methods directly on our <code>ReadingList</code> class! But what are they actually getting called on? Well, by using <code>def_delegators</code> and <code>def_delegator</code>, we&rsquo;re telling our <code>ReadingList</code> class to call methods like <code>shift</code> and <code>shuffle</code> on our <code>@books</code> instance. And here&rsquo;s where it gets pretty cool: our <code>@books</code> variable is&hellip;an ARRAY.</p>
+
+<p>Just in case you&rsquo;re not as enthused about this fact as I am, let me explain what this means. It means that we can have access to every single method available on an array instance. Just in case you&rsquo;re wondering, all instance of <code>Array</code>s have 113 methods available to them (not including the 54 methods available to all instance of <code>Object</code>)! All we&rsquo;d have to do is add a method (literally, you can choose any method available on an array) like <code>flat_map</code> to our <code>def_delegators</code> line, and tada! It&rsquo;s ours to use on our <code>ReadingList</code> object.</p>
+
+<p>You can see how this can get pretty powerful, pretty fast. In just a few lines of code, we&rsquo;re exercising the functionality of an entire plain old ruby object (PORO), simply by delegating methods through Forwardable.</p>
+
+<p>Okay, that was a lot of refactoring magic. I told you, right? Lots of effort, but lots of payoff! Now, if you&rsquo;ll excuse me, I apparently have some books to read.</p>
+
+<iframe src="//giphy.com/embed/112iFz2Y2b1Pwc" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Delegation is the idea that an object can delegate a task to an associated &ldquo;helper&rdquo; object.</li>
+<li>The Forwardable module uses <code>def_delegators</code> to delegate methods to another Ruby object, and <code>def_delegator</code> to rename a method that&rsquo;s being delegated to another object.</li>
+<li>For another example of this module, read this <a href="http://oneofthesedaysblog.com/ruby-day-4-forwardable">incredibly thorough</a> blog post on implementing Forwardable.</li>
+<li>Curious about delegation patterns in Object-Oriented Programming? <a href="http://radar.oreilly.com/2014/02/delegation-patterns-in-ruby.html">This post</a> has gotcha covered.</li>
 </ul>
 
 ]]></content>
