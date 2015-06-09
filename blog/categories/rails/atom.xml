@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rails | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-06-02T18:27:22+08:00</updated>
+  <updated>2015-06-08T22:34:56-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -14,9 +14,191 @@
 
   
   <entry>
+    <title type="html"><![CDATA[Refactoring to Reveal Rails Group_by]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/06/09/refactoring-to-reveal-rails-group-by/"/>
+    <updated>2015-06-09T08:43:24-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/06/09/refactoring-to-reveal-rails-group-by</id>
+    <content type="html"><![CDATA[<p><img src="http://img.pandawhale.com/post-10513-Code-Refactoring-Cat-in-Bathtu-U295.gif" style="display: block; margin-left: auto; margin-right: auto;"/></p>
+
+<p>There are a lot of opportunities in programming to feel pretty silly about yourself. I&rsquo;m sure that the more coding experience you have, the less often these moments actually occur. But early on in your career, they seem to happen quite often &ndash; or they do to <em>me</em>, at least.</p>
+
+<p>I had one of those moments a couple weeks ago, when I wrote a super long method and then asked a senior developer to take a look at it. While I was writing it, something seemed inherently wrong. I was sure there was a better way to do it, but I guess my Googling skills aren&rsquo;t quite superb yet, because I couldn&rsquo;t find quite the right answer anywhere. It was then that I decided to ask someone who would know exactly which tool to reach for.</p>
+
+<p>What happened next was pretty awesome, albeit slightly depressing. I watched my code be refactored from ten lines down to a single line. It blew my mind &ndash; and not just because I didn&rsquo;t know that this method even <em>existed</em>, but because I wanted to know how it worked! So, I did some digging and learned a bit about the method that I wrote which, as it turns out, already existed: the Rails <code>group_by</code> method on Enumerables.</p>
+
+<!--more-->
+
+
+<h2>Data Is For Manipulating</h2>
+
+<p>I started off writing my super long method because I wanted to structure my data in a very specific way. In fact, we&rsquo;ll probably want to structure the data in our Bookstore eCommerce app in a very similar way, too, so let&rsquo;s use that as our working example.</p>
+
+<p>For our admin panel, we want a list of <code>Author</code> objects, categorized by <code>genre</code>. Because our collection of <code>Books</code> is going to grow extensively, it would be helpful for an admin to know which authors are included in a <code>genre</code> or time period. Eventually, this could be used by admins to add new authors by a genre, to filter or sort by a genre, or to calculate an author count per genre, and figure out which authors to add to our collection of books.</p>
+
+<p>Right now, our collection of <code>Author</code> objects isn&rsquo;t very big, but has just enough information for us to start implementing this functionality:</p>
+
+<pre><code class="ruby">&gt; Author.all
+=&gt; [{#&lt;Author:0x192ajk21a6d0b0 last_name: "Shakespeare", genre: "Renaissance"&gt;}, 
+{#&lt;Author:0w917qwl38f6s8v6 last_name: "Homer", genre: "Classics"&gt;}, 
+{#&lt;Author:0x390akd23a5d9m4 last_name: "Faulkner", genre: "Southern Gothic"&gt;}, 
+{#&lt;Author:1r103aur58b7c4r2 last_name: "Marlowe", genre: "Renaissance"&gt;}]
+</code></pre>
+
+<p>Even though our data is easy to read now, we can be sure that it isn&rsquo;t going to stay that way. But we know that if we structure each of our objects correctly, we could have something simple, like this, in our view:</p>
+
+<pre><code class="ruby">div
+  - Author.sort_by_genre.each do |genre, author|
+    h2 = genre
+    - author.each do |a|
+      p = a.last_name
+</code></pre>
+
+<p>I&rsquo;m a big fan of slim, which is what I&rsquo;ve used above, but this view would still be pretty minimal when using another templating language such as erb.</p>
+
+<p>Given that this is the view we want to render, we can use this information to structure our data. I&rsquo;m thinking a hash is the tool for the job, with each key being a <code>genre</code> name, and the value being an array of <code>Author</code> objects that we can iterate through for each specific <code>genre</code>.</p>
+
+<p>It would be nice if we could call something like <code>Author.sort_by_genre</code> and have it return a structure like this:</p>
+
+<pre><code class="ruby">=&gt; {"Renaissance": [Shakespeare, Marlowe], 
+"Southern Gothic": [Faulkner], 
+"Classics": [Homer]}
+</code></pre>
+
+<p>So now that we know what we <em>want</em> our data to look like, let&rsquo;s write it the ugly way, just like I did!</p>
+
+<h2>The First Iteration</h2>
+
+<p>To start with, we know that we want to return a hash. So we can start by instantiating a hash, which will be our <code>authors_by_genre</code>. We also know that we&rsquo;ll need all the <code>Author</code> objects in an array; since we&rsquo;re specifically looking for an author&rsquo;s <code>last_name</code> and <code>genre</code>, we can query for those directly. And we can return our empty hash, since that will eventually be filled up:</p>
+
+<pre><code class="ruby">def sort_by_genre
+  authors_by_genre = {}
+  authors = Author.all.collect { |author| [author.last_name, author.genre] }
+
+  authors_by_genre
+end
+</code></pre>
+
+<p>Okay, so now we need to fill up our hash. We have our <code>authors</code> variable, which is set to the collection of all <code>Author</code> objects. We will need to iterate through all of them, and put that <code>Author</code> in the correct array for the right <code>genre</code> key. If the right <code>genre</code> key doesn&rsquo;t exist, we&rsquo;ll need to create a key for that author&rsquo;s <code>genre</code>. We can accomplish this with another iteration. Now our method looks like this:</p>
+
+<pre><code class="ruby">class Author
+  class &lt;&lt; self
+    def sort_by_genre
+      authors_by_genre = {}
+      authors = Author.all.collect { |author| [author.last_name, author.genre] }
+
+      authors.each do |genre, author|
+        if authors_by_genre[genre]
+          authors_by_genre[genre] &lt;&lt; author
+        else
+          authors_by_genre[genre] = [author]
+        end
+      end
+
+      authors_by_genre
+      end
+    end
+  end
+end
+</code></pre>
+
+<p>Okay&hellip;so hopefully, by this point, you should be thinking to yourself: <em>This isn&rsquo;t just ugly, it&rsquo;s also <strong>super</strong> inefficient</em>. And you&rsquo;d be right. It&rsquo;s pretty bad.</p>
+
+<iframe src="//giphy.com/embed/asIa0FVaBSQNO" width="480" height="307" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>If you weren&rsquo;t sure how bad it really is, think about all the queries we&rsquo;re making! And how many times we&rsquo;re iterating! As soon as I finished writing this and got it working, I knew it was <em>definitely</em> not the right approach. But the first step is to get it working. Now, we need to seriously consider how we can make it right and make it fast.</p>
+
+<p>You know what what this means, right? Refactoring time.</p>
+
+<h2>Group All The Things</h2>
+
+<p>A quick way to refactor some of the messiness from our first iteration is by first changing how we initialize our hash object, and also modifying how we go about deciding whether to create a new key or add to a key that already exists.</p>
+
+<p>Enter the <code>each_with_object</code> method! This is a pretty rad method I learned about while refactoring my first iteration of this <code>sort_by_genre</code> method. The <code>each_with_object</code> method requires a single argument: the object that you want to pass to it in each iteration. In our case, we&rsquo;ll pass it a hash. And since the items we want to actually &ldquo;categorize&rdquo; are our <code>Author</code> objects, we&rsquo;ll call <code>each_with_object</code> on our collection of <code>Authors</code>:</p>
+
+<pre><code class="ruby">class Author
+  class &lt;&lt; self
+    def sort_by_genre
+      Author.all.each_with_object({}) {  }
+    end
+  end
+end
+</code></pre>
+
+<p>Now, what about that block &ndash; what goes inside? Well, we can think about what we want to do with each of our <code>Author</code> objects that we&rsquo;re iterating over. Inside of our hash, which we&rsquo;re passing explicitly as an argument to <code>each_with_object</code>, we want to either find the correct key and put the correct <code>Author</code> into that array, or create a new key based on the current <code>Author</code> object&rsquo;s genre. We can write that quite nicely by using the <code>||=</code> <strong>or equals</strong> operator, which will assign a new object, or whatever is to the right of the operator, equal to the left side of the pipes, or whatever is to the left of the operator:</p>
+
+<pre><code class="ruby">class Author
+  class &lt;&lt; self
+    def sort_by_genre
+      Author.all.each_with_object({}) { |author, hash| (hash[author.genre] ||= []) &lt;&lt; author }
+    end
+  end
+end
+</code></pre>
+
+<p>Much better, right? In this second iteration, we&rsquo;re passing a hash directly to the <code>each_with_object</code> method, and basically telling it, <em>Find the key in the hash I just passed you that is equal to this author&rsquo;s genre. And if no such key exists, make one, set it equal to an empty array, and then put this current author into that array</em>.</p>
+
+<p>The order of our or equals operator is particularly important, because if it were switched, it would never run what is on the right side of the pipes. The <code>||=</code> operator is exactly like the <code>||</code> operator in that it will run what is to its right <em>only</em> if what is to its left evaluates to <code>false</code>. This is what keeps our method from trying to create multiple keys again and again, and instead forces it to find an existing key first. The super cool thing about the <code>||=</code> operator is that it is actually assigning a new key value to an empty array, which cuts out a lot of extra lines we had in our first iteration!</p>
+
+<p>Okay, so this second iteration has been a vast improvement. But I think it&rsquo;s time for some serious refactoring magic. Are you ready? Okay. This <em>entire</em> method can be rewritten into a single, simple line:</p>
+
+<pre><code class="ruby">class Author
+  class &lt;&lt; self
+    def sort_by_genre
+      Author.all.group_by(&amp;:genre)
+    end
+  end
+end
+</code></pre>
+
+<p>Yup. I kid you not.</p>
+
+<iframe src="//giphy.com/embed/sHytgXD2vlNVC" width="480" height="376" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>This is the magic of the Rails <code>group_by</code> method, which collects an enumerable into sets, grouping it by the result of a block. This method takes a proc using the ampersand shortcut as an argument (which we started using last week!). The <code>group_by</code> method is passed the symbol <code>:genre</code>, which is an attribute on each <code>Author</code> object, and corresponds to a <code>genre</code> column in the <code>authors</code> table. So, we are effectively grouping all of our <code>Author</code> objects by the result of calling <code>.genre</code> on each object. In other words, we&rsquo;re grouping by the <code>genre</code> attribute since the attribute corresponds to an <code>attr_accessor</code> method in the class.</p>
+
+<p>And now, if we call our <code>sort_by_genre</code> class method, we get the exact data structure we were hoping for:</p>
+
+<pre><code class="ruby">&gt; Author.sort_by_genre
+=&gt; {"Renaissance": [{#&lt;Author:0x192ajk21a6d0b0 last_name: "Shakespeare", genre: "Renaissance"&gt;}, 
+{#&lt;Author:1r103aur58b7c4r2 last_name: "Marlowe", genre: "Renaissance"&gt;}], 
+"Southern Gothic": [{#&lt;Author:0x390akd23a5d9m4 last_name: "Faulkner", genre: "Southern Gothic"&gt;}], 
+"Classics": [{#&lt;Author:0w917qwl38f6s8v6 last_name: "Homer", genre: "Classics"&gt;}]}
+</code></pre>
+
+<p>Hooray! Or maybe not hooray. Maybe instead of hooray, you feel like I did when I realized that you could refactor all of this into one line:</p>
+
+<blockquote class="twitter-tweet tw-align-center" lang="en"><p lang="en" dir="ltr">PROGRAMMING:&#10;Write a 10-line method.&#10;Feel proud when it works.&#10;Find out you can write the same thing in a single line.&#10;Cry in the corner.</p>&mdash; Vaidehi Joshi (@vaidehijoshi) <a href="https://twitter.com/vaidehijoshi/status/601156228723642369">May 20, 2015</a></blockquote>
+
+
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+<p><br></p>
+
+<p>Although it made me feel pretty silly, the actual process of writing the <code>group_by</code> method from scratch was a really great learning experience. I ended up using the examples above in a talk I gave on refactoring at <a href="http://www.twitter.com/reddotrubyconf">Red Dot Ruby Conference</a> in Singapore last week. And I actually recreated the <em>exact same</em> functionality when I had to write my <em>own</em> <code>groupBy</code> function in JavaScript for a React component I had to build! I guess that however deep of a rabbit hole refactoring can be, sometimes it&rsquo;s exactly the right kind of deep dive you need to learn how something works under the hood. I still totally feel like that cat in the bathtub whenever I do it &ndash; but I&rsquo;m kind of okay with that.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>group_by</code> method takes a block, which it uses to group a collection of objects. The <code>each_with_object</code> method takes an object as an argument, and a block which tells it how to sort the collection you call the method upon.</li>
+<li>Read more on the <code>group_by</code> method in the <a href="http://apidock.com/rails/Enumerable/group_by">Rails docs</a>, which also has a great example!</li>
+<li>Looking for another example of how to implement Rails&#8217; <code>group_by</code> in a view? Check out <a href="https://ariejan.net/2007/01/12/rails-group-results-by-week-using-group_by/">this blog post</a>.</li>
+<li>Did you know that Ruby also has a similar <code>group_by</code> method? It&rsquo;s great when you want to <a href="http://ruby-doc.org/core-2.2.2/Enumerable.html#method-i-group_by">return a hash</a> where the keys are evaluated by a block!</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
     <title type="html"><![CDATA[Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/"/>
-    <updated>2015-06-02T20:45:24+08:00</updated>
+    <updated>2015-06-02T08:45:24-04:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/918rCUjV2XWhi" width="480" height="360" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -167,7 +349,7 @@ Order.pluck(:amount).map &amp;half_off_sale
   <entry>
     <title type="html"><![CDATA[The Secret Life of Your Database, Part 2: Join Tables]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/"/>
-    <updated>2015-05-26T20:02:30+08:00</updated>
+    <updated>2015-05-26T08:02:30-04:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables</id>
     <content type="html"><![CDATA[<p><img src="http://daviddickball.uk/wp-content/uploads/2015/03/sql-join.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -294,7 +476,7 @@ ORDER BY orders.id;
   <entry>
     <title type="html"><![CDATA[The Secret Life of Your Database, Part 1: Migrations]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/"/>
-    <updated>2015-05-19T20:51:11+08:00</updated>
+    <updated>2015-05-19T08:51:11-04:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations</id>
     <content type="html"><![CDATA[<p><img src="http://31.media.tumblr.com/tumblr_mcsccsfcnn1qz9l5so1_1280.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -580,7 +762,7 @@ end
   <entry>
     <title type="html"><![CDATA[Tackling Those Tests, Part 3: Testing Made Easy With Gems]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems/"/>
-    <updated>2015-04-28T20:50:59+08:00</updated>
+    <updated>2015-04-28T08:50:59-04:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems</id>
     <content type="html"><![CDATA[<p><img src="https://imgs.xkcd.com/comics/shouldnt_be_hard.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -712,225 +894,6 @@ end
 <li>The <code>shoulda-matchers</code> gem helps you keep your code DRY and test for associations and validations. The <code>database_cleaner</code> gem keeps your database clean between tests and helps you avoid problems related to repeat data.</li>
 <li>Both of these gems have well-written and maintained documentation. Read them both! (<a href="http://matchers.shoulda.io/docs/v2.8.0/">shoulda</a> docs and <a href="https://github.com/DatabaseCleaner/database_cleaner">database cleaner</a> docs)</li>
 <li>If you&rsquo;re curious about the difference between transactions, truncations, and deletions, check out <a href="http://makandracards.com/makandra/13045-understanding-database-cleaning-strategies-in-tests">this post</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Tackling Those Tests, Part 2: Getting Fun and Functional With FactoryGirl]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/"/>
-    <updated>2015-04-21T20:34:19+08:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl</id>
-    <content type="html"><![CDATA[<p><img src="https://33.media.tumblr.com/0b9992ca5a259a54c16199c2de69c903/tumblr_mtjab8Yo0U1rlp47to1_500.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p><em>This blog post is part of a series on testing. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/">here</a>.</em></p>
-
-<p>Good things always come in pairs, and that couldn&rsquo;t be more true when it comes to testing. Like milk and cookies or peanut butter and jelly, test suites and test data are at their best when they&rsquo;re put together. As we discovered last week, a thoughtful test suite is important when it comes to checking our assumptions. But even the most comprehensive test suite is nothing without the appropriate amount &ndash; and type &ndash; of test data to support it.</p>
-
-<p>Every Rails application comes with a production, development, and test environment, and good test data is an indication of a well-constructed testing environment. But not all data is created equally. To take a cue from George Orwell, we could go so far as to claim that some forms of test data are more equal than others.</p>
-
-<p>Enter <strong>FactoryGirl</strong>, a gem that I&rsquo;ve recently discovered to be the most efficient way and painless way of creating test data within a Rails application. Generating test data is often the culprit for not only a great deal of pain and sufferring, but also some annoying bugs that are hard to catch. In fact, one of the most excruciating bugs I&rsquo;ve ever dealt with came from a single line of code, meant to create some test data. So it seems fitting that this week we tackle the most dangerous (yet thrilling!) part of testing: generating test data.</p>
-
-<!--more-->
-
-
-<h2>Setting Up The Factory Floor</h2>
-
-<p>Since we&rsquo;re implementing <code>FactoryGirl</code> on top of a Rails application, we&rsquo;ll work exclusively with the <code>factory_girl_rails</code> gem, which has been built specifically for this purpose.</p>
-
-<p>Once we&rsquo;ve added <code>gem 'factory_girl_rails'</code> to our <code>Gemfile</code> and run a <code>bundle install</code> in the terminal, we&rsquo;re ready to start setting up our factories. We&rsquo;ll start by creating factories for our <code>ReadingList</code> model from last week&rsquo;s post.</p>
-
-<ul>
-<li><p>Within our <code>/spec</code> directory, we&rsquo;ll need to create a <code>factories</code> directory. This is where each of the factories for each model will live.</p></li>
-<li><p>Inside of our <code>/spec/factories/</code> subdirectory, we&rsquo;ll create a file for our <code>ReadingList</code> factory. The convention for naming factories is to use the plural form of the model name in snake case, with the word &ldquo;factory&rdquo; appended to the end. In our case, that file would be named <code>reading_lists_factory.rb</code>.</p></li>
-<li><p>In our newly-created <code>ReadingList</code> Factory, we&rsquo;ll add a block that defines what our <code>FactoryGirl</code> object will look like. Every single factory you make for any instance of test data will begin with a block exactly like this one:</p></li>
-</ul>
-
-
-<pre><code class="ruby">FactoryGirl.define do
-end
-</code></pre>
-
-<ul>
-<li>Next, we&rsquo;ll want to give this test object a name. For this very basic test suite, we only want to test one <code>ReadingList</code> object, so we&rsquo;ll stick with a simple name: <code>reading_list</code>. Keep in mind that whatever name we give this test object is what we&rsquo;ll be using to refer to it inside of our tests. Inside of our initial <code>FactoryGirl</code> block, we&rsquo;ll define this specific object like this:</li>
-</ul>
-
-
-<pre><code class="ruby">FactoryGirl.define do
-  factory :reading_list,  do
-  end
-end
-</code></pre>
-
-<ul>
-<li>Lastly, we need to define some attributes for our test object. For now, our <code>ReadingList</code> test object needs only three columns in the database: one for its <code>id</code>, one for its <code>title</code>, and a foreign key of the <code>User</code> it belongs to. Here&rsquo;s what our final test object definition looks like:</li>
-</ul>
-
-
-<pre><code class="ruby">FactoryGirl.define do
-  factory :reading_list,  do
-    user
-    title "Books I Want To Read"
-  end
-end
-</code></pre>
-
-<p>Pretty cool, right? We don&rsquo;t have to give our test object an <code>id</code>, because <code>FactoryGirl</code> will generate one when we call on it to create a new test object. So what&rsquo;s that <code>user</code> line doing in there? Well, it&rsquo;s creating an association between two factories! When <code>FactoryGirl</code> sees <code>user</code>, it looks for a file with the path <code>/spec/factories/user_factory.rb</code>, and creates an instance of a <code>User</code> test object, which it then uses to build our <code>ReadingList</code> object.</p>
-
-<p>But right now, our code will give us a big, nasty error. Can you guess the reason behind that? Why, we don&rsquo;t have a <code>User</code> factory, of course! I guess we better get on that.</p>
-
-<iframe src="//giphy.com/embed/W6vq5qLStzYys" width="480" height="244" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>Form Follows Function</h2>
-
-<p>Now that we know how to set up our factories pretty quickly, we can hop on making a <code>users_factory</code>. For now, our <code>User</code> objects have only a <code>first_name</code> and a <code>last_name</code> attribute, so we&rsquo;ll create a <code>User</code> test object that satisfies these requirements.</p>
-
-<p>But, some <code>Users</code> can also be <code>admin</code>s, but this is an optional trait that not all <code>User</code>s will have. This is something we definitely want to test, but we also want to keep our code DRY. How do we handle this? By nesting factories!</p>
-
-<pre><code class="ruby">FactoryGirl.define do
-  factory :user do
-    first_name "Vaidehi"
-    last_name "Joshi"
-
-    factory :admin do
-      admin true
-    end
-  end
-end
-</code></pre>
-
-<p>This tells FactoryGirl to define two different <code>user</code> instances: a <code>user</code> test object, and an <code>admin</code> test object, which inherits the traits of the <code>user</code> object &ndash; namely, its <code>first_name</code> and <code>last_name</code> attributes.</p>
-
-<p>While we&rsquo;re at it, why don&rsquo;t we set up our <code>books_factory</code> as well? That might look something a little like this:</p>
-
-<pre><code class="ruby">FactoryGirl.define do
-  factory :book1, class: Book do
-    title "A Game Of Thrones"
-    reading_list
-    read true
-  end
-
-  factory :book2, class: Book do
-    title "A Storm Of Swords"
-    reading_list
-    read false
-  end
-end
-</code></pre>
-
-<p>Wait, what&rsquo;s up with the <code>class: Book</code> syntax? We haven&rsquo;t seen that yet! Well, not to worry &ndash; you only have to use it in a specific situation! What exactly <em>is</em> that situation, you might ask? Well, the only time you ever need to explicitly define a FactoryGirl object&rsquo;s class is if the name of the object &ndash; <code>book1</code> or <code>book2</code> in our case &ndash; is different from the object&rsquo;s class name. If we had only a single <code>book</code> test object, we wouldn&rsquo;t have to define the class name, since FactoryGirl will know to look for it in the <code>books_factory.rb</code> file.</p>
-
-<p>Remember last week when we had to manually create two different <code>Book</code> objects every single time we wanted to create a new test object? Well, here we&rsquo;re defining two test objects in a singular, isolated place.</p>
-
-<iframe src="//giphy.com/embed/Q6gPyUYrCk76g" width="480" height="550" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p></p>
-
-
-<p>Awesome! Now it&rsquo;s time to bring it all together in our cleaned-up test suite!</p>
-
-<h2>Bypassing Testing Bugs</h2>
-
-<p>When we wrote out the first iteration of our test suite last week, we had a few different <code>let</code> blocks, inside of which we called <code>create!</code> and <code>build</code> on our different objects. Our <code>let</code> blocks definintely helped us tidy up our tests, since we built and created all of our test objects at once, at the very top of our <code>do</code> block.</p>
-
-<p>But as is the case with most of programming, there&rsquo;s a better way to do that. Now that we&rsquo;ve implemented FactoryGirl, we can cut out some of those blocks, and only call them when we need them. And, we don&rsquo;t need to create an instance with the attributes explicitly defined in a block &ndash; instead, we just tell FactoryGirl to create it for us!</p>
-
-<p>Here&rsquo;s a refactored version of last week&rsquo;s tests, now with the <code>factory_girl_rails</code> to help us out:
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="p">;</span><span class="n">rails_helper</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;Describe ReadingList do</span>
-</span><span class='line'><span class="sr">  let(:reading_list) { create(:reading_list) }&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="n">it</span> <span class="o">&amp;</span><span class="n">lsquo</span><span class="p">;</span><span class="n">belongs</span> <span class="n">to</span> <span class="n">a</span> <span class="n">user</span><span class="o">&amp;</span><span class="n">rsquo</span><span class="p">;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="n">user</span> <span class="o">=</span> <span class="n">create</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span>
-</span><span class='line'>    <span class="n">expect</span><span class="p">(</span><span class="n">reading_list</span><span class="o">.</span><span class="n">user</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="kp">include</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span>
-</span><span class='line'>  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;  it &amp;lsquo;has a title&amp;rsquo; do</span>
-</span><span class='line'><span class="sr">    expect(reading_list.title).to eq(&amp;ldquo;Books I Want To Read&amp;rdquo;)</span>
-</span><span class='line'><span class="sr">  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="n">describe</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="c1">#percentage_read&amp;rdquo; do</span>
-</span><span class='line'>    <span class="n">it</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">calculates</span> <span class="n">the</span> <span class="n">percentage</span> <span class="n">of</span> <span class="n">books</span> <span class="n">read</span> <span class="k">in</span> <span class="n">a</span> <span class="n">list</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span> <span class="k">do</span>
-</span><span class='line'>      <span class="n">book1</span> <span class="o">=</span> <span class="n">create</span><span class="p">(</span><span class="ss">:book1</span><span class="p">)</span>
-</span><span class='line'>      <span class="n">book2</span> <span class="o">=</span> <span class="n">create</span><span class="p">(</span><span class="ss">:book2</span><span class="p">)</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;  expect(reading_list.percentage_read).to eq(50.00)</span>
-</span><span class='line'><span class="sr">end</span>
-</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;  end</span>
-</span><span class='line'><span class="sr">end</span>
-</span></code></pre></td></tr></table></div></figure></p>
-
-<p>You&rsquo;ll notice that I&rsquo;ve replaced <code>build</code> with <code>create</code> in this iteration of tests. I initially had used <code>build</code>, but when I started implementing FactoryGirl, I hit a wall. In fact, I spent an unmentionable number of hours trying to figure out what on earth I was doing wrong!</p>
-
-<p>It turns out I was using the wrong tool for the job. The <code>build</code> method creates an instance, but <em>does not</em> save it. The <code>create</code> method, on the other hand, both creates <em>and</em> persists the object. This was one of the most important debugging lesson I learned while writing tests, and it was not a fun lesson to learn. I hope that at the very least, <em>you</em> won&rsquo;t have to struggle through that bug like I did!</p>
-
-<p>The thing that I valued the most during this debugging process was learning how <code>FactoryGirl</code> actualy works. If those <code>build</code> and <code>create</code> methods seem an awful lot like ActiveRecord to you, that&rsquo;s because it IS ActiveRecord!</p>
-
-<p>In fact, when we call <code>create(:book1)</code>, the magic of <code>FactoryGirl</code> actually does the following:</p>
-
-<ol>
-<li>Creates a new <code>ReadingList</code>.</li>
-<li>Saves the <code>ReadingList</code>.</li>
-<li>Creates a new <code>Book</code>.</li>
-<li>Associates that <code>Book</code> with the <code>ReadingList</code>.</li>
-<li>Saves the <code>Book</code>.</li>
-</ol>
-
-
-<p>Amazing, right? We get so much functionality, all in a single method call! Learning this made me appreciate what <code>FactoryGirl</code> does so much more than if I had just included it blindly in my <code>Gemfile</code> without giving it a second though.</p>
-
-<p>Thoughtbot, the creators of the <code>factory_girl</code> gem, has a great post explaining how it <a href="https://github.com/thoughtbot/factory_girl/wiki/How-factory_girl-interacts-with-ActiveRecord">interacts with ActiveRecord</a>. I found their explaination super helpful when I was first learning about FactoryGirl:</p>
-
-<blockquote><p>When you invoke a factory, factory_girl uses your definitions to compile a list of attributes that should be assigned to that instance, as well as any associated factories. It saves associations first so that foreign keys will be properly set on dependent models. To create an instance, it calls new without any arguments, assigns each attribute (including associations), and then calls save!. factory_girl doesn’t do anything special to create ActiveRecord instances. It doesn’t interact with the database or extend ActiveRecord or your models in any way.</p></blockquote>
-
-<p>Sure, when it comes to the world of testing, the night may be dark and full of terrors. But with <code>FactoryGirl</code> on your side, you&rsquo;ll feel safer, as though you&rsquo;ve got an army of dragons to back you up. In my head, they&rsquo;re super cute ones kinda like these:</p>
-
-<iframe src="//giphy.com/embed/WmqnGHr3oYGR2" width="480" height="259" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p></p>
-
-
-<p>Tune in again next week, when I&rsquo;ll cap off this series by sharing two more gems we can add to our army of testing dragons: <code>shoulda-matchers</code> for writing quick and easy validations, and <code>database_cleaner</code>, the key to unlocking your dreams of a neat and tidy testing database. Until then, test on, my friends &ndash; test on!</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>factory_girl_rails</code> gem is used to generate test data for a Rails application, and each factory defines the attributes and associations of a test object. All factory files should be created in the <code>./spec/factories</code> subdirectory.</li>
-<li>This post only covers a couple of the tricks that <code>FactoryGirl</code> has up her sleeve. To read them all, check out the gem&rsquo;s <a href="http://www.rubydoc.info/gems/factory_girl/file/GETTING_STARTED.md">extensive documentation</a>.</li>
-<li>This tutorial is super detailed and I referred to it frequently while writing this blog post. If you want to learn more about testing and implementing <code>FactoryGirl</code>, <a href="http://everydayrails.com/2012/03/19/testing-series-rspec-models-factory-girl.html">give it a read</a>.</li>
-<li>Did you know that factories and fixtures are actually quite different? No? Well then, you should read <a href="https://semaphoreci.com/blog/2014/01/14/rails-testing-antipatterns-fixtures-and-factories.html">this post</a> and get all caught up.</li>
 </ul>
 
 ]]></content>

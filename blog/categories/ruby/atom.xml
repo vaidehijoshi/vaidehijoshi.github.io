@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Ruby | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-06-02T18:27:22+08:00</updated>
+  <updated>2015-06-08T22:34:56-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -14,9 +14,191 @@
 
   
   <entry>
+    <title type="html"><![CDATA[Refactoring to Reveal Rails Group_by]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/06/09/refactoring-to-reveal-rails-group-by/"/>
+    <updated>2015-06-09T08:43:24-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/06/09/refactoring-to-reveal-rails-group-by</id>
+    <content type="html"><![CDATA[<p><img src="http://img.pandawhale.com/post-10513-Code-Refactoring-Cat-in-Bathtu-U295.gif" style="display: block; margin-left: auto; margin-right: auto;"/></p>
+
+<p>There are a lot of opportunities in programming to feel pretty silly about yourself. I&rsquo;m sure that the more coding experience you have, the less often these moments actually occur. But early on in your career, they seem to happen quite often &ndash; or they do to <em>me</em>, at least.</p>
+
+<p>I had one of those moments a couple weeks ago, when I wrote a super long method and then asked a senior developer to take a look at it. While I was writing it, something seemed inherently wrong. I was sure there was a better way to do it, but I guess my Googling skills aren&rsquo;t quite superb yet, because I couldn&rsquo;t find quite the right answer anywhere. It was then that I decided to ask someone who would know exactly which tool to reach for.</p>
+
+<p>What happened next was pretty awesome, albeit slightly depressing. I watched my code be refactored from ten lines down to a single line. It blew my mind &ndash; and not just because I didn&rsquo;t know that this method even <em>existed</em>, but because I wanted to know how it worked! So, I did some digging and learned a bit about the method that I wrote which, as it turns out, already existed: the Rails <code>group_by</code> method on Enumerables.</p>
+
+<!--more-->
+
+
+<h2>Data Is For Manipulating</h2>
+
+<p>I started off writing my super long method because I wanted to structure my data in a very specific way. In fact, we&rsquo;ll probably want to structure the data in our Bookstore eCommerce app in a very similar way, too, so let&rsquo;s use that as our working example.</p>
+
+<p>For our admin panel, we want a list of <code>Author</code> objects, categorized by <code>genre</code>. Because our collection of <code>Books</code> is going to grow extensively, it would be helpful for an admin to know which authors are included in a <code>genre</code> or time period. Eventually, this could be used by admins to add new authors by a genre, to filter or sort by a genre, or to calculate an author count per genre, and figure out which authors to add to our collection of books.</p>
+
+<p>Right now, our collection of <code>Author</code> objects isn&rsquo;t very big, but has just enough information for us to start implementing this functionality:</p>
+
+<pre><code class="ruby">&gt; Author.all
+=&gt; [{#&lt;Author:0x192ajk21a6d0b0 last_name: "Shakespeare", genre: "Renaissance"&gt;}, 
+{#&lt;Author:0w917qwl38f6s8v6 last_name: "Homer", genre: "Classics"&gt;}, 
+{#&lt;Author:0x390akd23a5d9m4 last_name: "Faulkner", genre: "Southern Gothic"&gt;}, 
+{#&lt;Author:1r103aur58b7c4r2 last_name: "Marlowe", genre: "Renaissance"&gt;}]
+</code></pre>
+
+<p>Even though our data is easy to read now, we can be sure that it isn&rsquo;t going to stay that way. But we know that if we structure each of our objects correctly, we could have something simple, like this, in our view:</p>
+
+<pre><code class="ruby">div
+  - Author.sort_by_genre.each do |genre, author|
+    h2 = genre
+    - author.each do |a|
+      p = a.last_name
+</code></pre>
+
+<p>I&rsquo;m a big fan of slim, which is what I&rsquo;ve used above, but this view would still be pretty minimal when using another templating language such as erb.</p>
+
+<p>Given that this is the view we want to render, we can use this information to structure our data. I&rsquo;m thinking a hash is the tool for the job, with each key being a <code>genre</code> name, and the value being an array of <code>Author</code> objects that we can iterate through for each specific <code>genre</code>.</p>
+
+<p>It would be nice if we could call something like <code>Author.sort_by_genre</code> and have it return a structure like this:</p>
+
+<pre><code class="ruby">=&gt; {"Renaissance": [Shakespeare, Marlowe], 
+"Southern Gothic": [Faulkner], 
+"Classics": [Homer]}
+</code></pre>
+
+<p>So now that we know what we <em>want</em> our data to look like, let&rsquo;s write it the ugly way, just like I did!</p>
+
+<h2>The First Iteration</h2>
+
+<p>To start with, we know that we want to return a hash. So we can start by instantiating a hash, which will be our <code>authors_by_genre</code>. We also know that we&rsquo;ll need all the <code>Author</code> objects in an array; since we&rsquo;re specifically looking for an author&rsquo;s <code>last_name</code> and <code>genre</code>, we can query for those directly. And we can return our empty hash, since that will eventually be filled up:</p>
+
+<pre><code class="ruby">def sort_by_genre
+  authors_by_genre = {}
+  authors = Author.all.collect { |author| [author.last_name, author.genre] }
+
+  authors_by_genre
+end
+</code></pre>
+
+<p>Okay, so now we need to fill up our hash. We have our <code>authors</code> variable, which is set to the collection of all <code>Author</code> objects. We will need to iterate through all of them, and put that <code>Author</code> in the correct array for the right <code>genre</code> key. If the right <code>genre</code> key doesn&rsquo;t exist, we&rsquo;ll need to create a key for that author&rsquo;s <code>genre</code>. We can accomplish this with another iteration. Now our method looks like this:</p>
+
+<pre><code class="ruby">class Author
+  class &lt;&lt; self
+    def sort_by_genre
+      authors_by_genre = {}
+      authors = Author.all.collect { |author| [author.last_name, author.genre] }
+
+      authors.each do |genre, author|
+        if authors_by_genre[genre]
+          authors_by_genre[genre] &lt;&lt; author
+        else
+          authors_by_genre[genre] = [author]
+        end
+      end
+
+      authors_by_genre
+      end
+    end
+  end
+end
+</code></pre>
+
+<p>Okay&hellip;so hopefully, by this point, you should be thinking to yourself: <em>This isn&rsquo;t just ugly, it&rsquo;s also <strong>super</strong> inefficient</em>. And you&rsquo;d be right. It&rsquo;s pretty bad.</p>
+
+<iframe src="//giphy.com/embed/asIa0FVaBSQNO" width="480" height="307" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>If you weren&rsquo;t sure how bad it really is, think about all the queries we&rsquo;re making! And how many times we&rsquo;re iterating! As soon as I finished writing this and got it working, I knew it was <em>definitely</em> not the right approach. But the first step is to get it working. Now, we need to seriously consider how we can make it right and make it fast.</p>
+
+<p>You know what what this means, right? Refactoring time.</p>
+
+<h2>Group All The Things</h2>
+
+<p>A quick way to refactor some of the messiness from our first iteration is by first changing how we initialize our hash object, and also modifying how we go about deciding whether to create a new key or add to a key that already exists.</p>
+
+<p>Enter the <code>each_with_object</code> method! This is a pretty rad method I learned about while refactoring my first iteration of this <code>sort_by_genre</code> method. The <code>each_with_object</code> method requires a single argument: the object that you want to pass to it in each iteration. In our case, we&rsquo;ll pass it a hash. And since the items we want to actually &ldquo;categorize&rdquo; are our <code>Author</code> objects, we&rsquo;ll call <code>each_with_object</code> on our collection of <code>Authors</code>:</p>
+
+<pre><code class="ruby">class Author
+  class &lt;&lt; self
+    def sort_by_genre
+      Author.all.each_with_object({}) {  }
+    end
+  end
+end
+</code></pre>
+
+<p>Now, what about that block &ndash; what goes inside? Well, we can think about what we want to do with each of our <code>Author</code> objects that we&rsquo;re iterating over. Inside of our hash, which we&rsquo;re passing explicitly as an argument to <code>each_with_object</code>, we want to either find the correct key and put the correct <code>Author</code> into that array, or create a new key based on the current <code>Author</code> object&rsquo;s genre. We can write that quite nicely by using the <code>||=</code> <strong>or equals</strong> operator, which will assign a new object, or whatever is to the right of the operator, equal to the left side of the pipes, or whatever is to the left of the operator:</p>
+
+<pre><code class="ruby">class Author
+  class &lt;&lt; self
+    def sort_by_genre
+      Author.all.each_with_object({}) { |author, hash| (hash[author.genre] ||= []) &lt;&lt; author }
+    end
+  end
+end
+</code></pre>
+
+<p>Much better, right? In this second iteration, we&rsquo;re passing a hash directly to the <code>each_with_object</code> method, and basically telling it, <em>Find the key in the hash I just passed you that is equal to this author&rsquo;s genre. And if no such key exists, make one, set it equal to an empty array, and then put this current author into that array</em>.</p>
+
+<p>The order of our or equals operator is particularly important, because if it were switched, it would never run what is on the right side of the pipes. The <code>||=</code> operator is exactly like the <code>||</code> operator in that it will run what is to its right <em>only</em> if what is to its left evaluates to <code>false</code>. This is what keeps our method from trying to create multiple keys again and again, and instead forces it to find an existing key first. The super cool thing about the <code>||=</code> operator is that it is actually assigning a new key value to an empty array, which cuts out a lot of extra lines we had in our first iteration!</p>
+
+<p>Okay, so this second iteration has been a vast improvement. But I think it&rsquo;s time for some serious refactoring magic. Are you ready? Okay. This <em>entire</em> method can be rewritten into a single, simple line:</p>
+
+<pre><code class="ruby">class Author
+  class &lt;&lt; self
+    def sort_by_genre
+      Author.all.group_by(&amp;:genre)
+    end
+  end
+end
+</code></pre>
+
+<p>Yup. I kid you not.</p>
+
+<iframe src="//giphy.com/embed/sHytgXD2vlNVC" width="480" height="376" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>This is the magic of the Rails <code>group_by</code> method, which collects an enumerable into sets, grouping it by the result of a block. This method takes a proc using the ampersand shortcut as an argument (which we started using last week!). The <code>group_by</code> method is passed the symbol <code>:genre</code>, which is an attribute on each <code>Author</code> object, and corresponds to a <code>genre</code> column in the <code>authors</code> table. So, we are effectively grouping all of our <code>Author</code> objects by the result of calling <code>.genre</code> on each object. In other words, we&rsquo;re grouping by the <code>genre</code> attribute since the attribute corresponds to an <code>attr_accessor</code> method in the class.</p>
+
+<p>And now, if we call our <code>sort_by_genre</code> class method, we get the exact data structure we were hoping for:</p>
+
+<pre><code class="ruby">&gt; Author.sort_by_genre
+=&gt; {"Renaissance": [{#&lt;Author:0x192ajk21a6d0b0 last_name: "Shakespeare", genre: "Renaissance"&gt;}, 
+{#&lt;Author:1r103aur58b7c4r2 last_name: "Marlowe", genre: "Renaissance"&gt;}], 
+"Southern Gothic": [{#&lt;Author:0x390akd23a5d9m4 last_name: "Faulkner", genre: "Southern Gothic"&gt;}], 
+"Classics": [{#&lt;Author:0w917qwl38f6s8v6 last_name: "Homer", genre: "Classics"&gt;}]}
+</code></pre>
+
+<p>Hooray! Or maybe not hooray. Maybe instead of hooray, you feel like I did when I realized that you could refactor all of this into one line:</p>
+
+<blockquote class="twitter-tweet tw-align-center" lang="en"><p lang="en" dir="ltr">PROGRAMMING:&#10;Write a 10-line method.&#10;Feel proud when it works.&#10;Find out you can write the same thing in a single line.&#10;Cry in the corner.</p>&mdash; Vaidehi Joshi (@vaidehijoshi) <a href="https://twitter.com/vaidehijoshi/status/601156228723642369">May 20, 2015</a></blockquote>
+
+
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+<p><br></p>
+
+<p>Although it made me feel pretty silly, the actual process of writing the <code>group_by</code> method from scratch was a really great learning experience. I ended up using the examples above in a talk I gave on refactoring at <a href="http://www.twitter.com/reddotrubyconf">Red Dot Ruby Conference</a> in Singapore last week. And I actually recreated the <em>exact same</em> functionality when I had to write my <em>own</em> <code>groupBy</code> function in JavaScript for a React component I had to build! I guess that however deep of a rabbit hole refactoring can be, sometimes it&rsquo;s exactly the right kind of deep dive you need to learn how something works under the hood. I still totally feel like that cat in the bathtub whenever I do it &ndash; but I&rsquo;m kind of okay with that.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>group_by</code> method takes a block, which it uses to group a collection of objects. The <code>each_with_object</code> method takes an object as an argument, and a block which tells it how to sort the collection you call the method upon.</li>
+<li>Read more on the <code>group_by</code> method in the <a href="http://apidock.com/rails/Enumerable/group_by">Rails docs</a>, which also has a great example!</li>
+<li>Looking for another example of how to implement Rails&#8217; <code>group_by</code> in a view? Check out <a href="https://ariejan.net/2007/01/12/rails-group-results-by-week-using-group_by/">this blog post</a>.</li>
+<li>Did you know that Ruby also has a similar <code>group_by</code> method? It&rsquo;s great when you want to <a href="http://ruby-doc.org/core-2.2.2/Enumerable.html#method-i-group_by">return a hash</a> where the keys are evaluated by a block!</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
     <title type="html"><![CDATA[Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/"/>
-    <updated>2015-06-02T20:45:24+08:00</updated>
+    <updated>2015-06-02T08:45:24-04:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/918rCUjV2XWhi" width="480" height="360" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -167,7 +349,7 @@ Order.pluck(:amount).map &amp;half_off_sale
   <entry>
     <title type="html"><![CDATA[Investigating Ruby's Global Functions + Kernel Module With Puts]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/"/>
-    <updated>2015-05-12T20:09:27+08:00</updated>
+    <updated>2015-05-12T08:09:27-04:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/10Vy7fN9fr7dD2" width="480" height="361" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -343,7 +525,7 @@ Waddle waddle
   <entry>
     <title type="html"><![CDATA[Metaprogramming Dynamic Methods: Using Public_send]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/"/>
-    <updated>2015-05-05T20:38:29+08:00</updated>
+    <updated>2015-05-05T08:38:29-04:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send</id>
     <content type="html"><![CDATA[<p><img src="http://imgs.xkcd.com/comics/hofstadter.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -508,7 +690,7 @@ end
   <entry>
     <title type="html"><![CDATA[Tackling Those Tests, Part 1: The How, When, and What of Rspec Testing]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/"/>
-    <updated>2015-04-14T20:17:03+08:00</updated>
+    <updated>2015-04-14T08:17:03-04:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing</id>
     <content type="html"><![CDATA[<p><img src="http://www.datamation.com/imagesvr_ce/306/philosophy-geeks.jpg" style="display: block; margin-left: auto; margin-right: auto; width: 50%; height: 50%;"></p>
 
@@ -715,334 +897,6 @@ end
 <li>The <code>let</code> syntax allows for lazy evaluation and keeps you from having to create a new instance of an object inside of every single <code>it</code> block. Check out more on the <code>let</code> and <code>let!</code> helper methods over on <a href="http://stackoverflow.com/questions/17407733/trouble-differentiating-rspecs-let-vs-let">this Stack Overflow answer</a> or on <a href="https://www.relishapp.com/rspec/rspec-core/v/2-5/docs/helper-methods/let-and-let">this blog post</a>.</li>
 <li>Use <code>describe</code> blocks to divide up your tests into sections, based on functionality and code cohesion. You can also use <code>context</code> blocks to assert different scenarios that could occur during one method call. Read about the <a href="http://lmws.net/describe-vs-context-in-rspec">difference between describe and context</a>.</li>
 <li>Find out more about different rspec testing conventions at <a href="http://betterspecs.org/">Better Specs</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Delegating All of the Things With Ruby Forwardable]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable/"/>
-    <updated>2015-03-31T20:35:27+08:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable</id>
-    <content type="html"><![CDATA[<p><img src="http://assets.amuniversal.com/77c6dce06d5c01301d80001dd8b71c47" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>It was the best of times. It was the worst of times. It was&hellip;refactoring time! Well it was for me yesterday, at least.</p>
-
-<p>Refactoring your own code has a great payoff at the end, but boy, does it take some work to get there. Something I&rsquo;ve noticed about my own code recently is that I&rsquo;m now able to know that something needs to be refactored pretty easily. I&rsquo;ve been having a lot of gut feelings about parts of my code that just <em>feel</em> wrong, inefficient, and repetitive. The problem is, even though I know where my code is weak, I don&rsquo;t usually know <em>how</em> to go about making my code better.</p>
-
-<p>And this is where making effective use of resources (read: The Art Of Effective Googling) comes quite in handy. Yesterday, however, I used even better resource &ndash; a more experienced developer! We took a look at my code and came up with some ways I could refactor it. I learned about a pretty interesting module that could save me lines of code and keep my application <a href="http://en.wikipedia.org/wiki/Don%27t_repeat_yourself">DRY</a>. And now I get to share it with you! This module is called <a href="http://ruby-doc.org/stdlib-2.0/libdoc/forwardable/rdoc/Forwardable.html">Forwardable</a>, and trust me when I say that it&rsquo;s going to make you want to delegate all the things.</p>
-
-<!--more-->
-
-
-<h2>Infatuation With Delegation</h2>
-
-<p>Before we even get to Ruby&rsquo;s Forwardable module, let&rsquo;s first make sure we understand delegation. So, <em>whut</em> exactly is delegation? It&rsquo;s probably exactly what you imagine it to be. In plain English, when you delegate something to someone else, you divide up responsibilities amongst yourselves. For example, if I had someone to delegate all these blog posts to, I wouldn&rsquo;t have to write all of them myself! But I digress; back to programming.</p>
-
-<p>Delegation in programming is not too different. When an object has a lot of responsibilities and things to do, it&rsquo;s generally easier to give some of those responsibilities to another object &ndash; a &ldquo;helper&rdquo; object &ndash; to avoid repetition and keep things working efficiently. Let&rsquo;s put this in some technical context for a hot minute: we can use a technique called <strong>encapsulation</strong> to pack a bunch of functionality into a single object&rsquo;s class and instance methods.</p>
-
-<iframe src="//giphy.com/embed/UOpdmwKA7la0g" width="480" height="207" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Ok, maybe you&rsquo;re not a fan of technical jargon. Maybe you&rsquo;d much rather prefer a real-life example of delegation? Alright, here you are:
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-<span class='line-number'>49</span>
-<span class='line-number'>50</span>
-<span class='line-number'>51</span>
-<span class='line-number'>52</span>
-<span class='line-number'>53</span>
-<span class='line-number'>54</span>
-<span class='line-number'>55</span>
-<span class='line-number'>56</span>
-<span class='line-number'>57</span>
-<span class='line-number'>58</span>
-<span class='line-number'>59</span>
-<span class='line-number'>60</span>
-<span class='line-number'>61</span>
-<span class='line-number'>62</span>
-<span class='line-number'>63</span>
-<span class='line-number'>64</span>
-<span class='line-number'>65</span>
-<span class='line-number'>66</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Product</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">sku</span>
-</span><span class='line'>    <span class="c1"># Returns a sku specific to a</span>
-</span><span class='line'>    <span class="c1"># particular instance of a product.</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;class Book &amp;lt;&amp;lt; Product</span>
-</span><span class='line'><span class="sr">  def author</span>
-</span><span class='line'><span class="sr">    # Returns an Author object</span>
-</span><span class='line'><span class="sr">    # associated with that book.</span>
-</span><span class='line'><span class="sr">  end</span>
-</span><span class='line'><span class="sr">end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="n">pre</span><span class="o">&gt;&lt;</span><span class="n">code</span><span class="o">&gt;</span>
-</span><span class='line'><span class="no">Yup</span><span class="p">,</span> <span class="n">that</span><span class="s1">&#39;s right. Class inheritance, a concept I&#39;</span><span class="n">ve</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="n">a</span> <span class="n">href</span><span class="o">=</span><span class="s2">&quot;http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my/&quot;</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">written</span> <span class="n">about</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">/</span><span class="n">a</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="n">a</span> <span class="n">href</span><span class="o">=</span><span class="s2">&quot;http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance-part-1/&quot;</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">a</span> <span class="n">couple</span> <span class="n">times</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">/</span><span class="n">a</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="n">that</span> <span class="n">you</span><span class="s1">&#39;re probably pretty familiar with at this point, is a type of delegation. </span>
-</span><span class='line'>
-</span><span class='line'><span class="s1">Since a `Book` object inherits from a `Product` object, it has both an `author` method an a `sku` method. When you ask a `Book` for its `sku`, it first looks in the `Book` class, and when it doesn&#39;</span><span class="n">t</span> <span class="n">find</span> <span class="n">the</span> <span class="nb">method</span> <span class="k">in</span> <span class="n">there</span><span class="p">,</span> <span class="n">it</span> <span class="n">delegates</span> <span class="n">up</span> <span class="n">to</span> <span class="n">its</span> <span class="n">parent</span> <span class="n">class</span><span class="p">,</span> <span class="n">which</span> <span class="n">is</span> <span class="n">the</span> <span class="sb">`Product`</span> <span class="n">class</span><span class="o">.</span> <span class="no">Instead</span> <span class="n">of</span> <span class="n">making</span> <span class="n">the</span> <span class="sb">`Book`</span> <span class="n">responsible</span> <span class="k">for</span> <span class="n">all</span> <span class="n">the</span> <span class="n">functionality</span><span class="p">,</span> <span class="n">we</span><span class="s1">&#39;re using the `Product` object to take care of doing the logic and finding and returning the correct `sku`.</span>
-</span><span class='line'>
-</span><span class='line'><span class="s1">See, you&#39;</span><span class="n">ve</span> <span class="n">already</span> <span class="n">worked</span> <span class="n">with</span> <span class="n">delegation!</span> <span class="no">Nothing</span> <span class="n">to</span> <span class="n">fear</span> <span class="n">here</span><span class="o">.</span> <span class="no">Now</span> <span class="n">let</span><span class="s1">&#39;s apply delegation to the Forwardable module.</span>
-</span><span class='line'>
-</span><span class='line'><span class="s1">##Put Your Best Foot Forward</span>
-</span><span class='line'>
-</span><span class='line'><span class="s1">The best way to see Ruby Forwardable in action is by using it to actually refactor something. So, let&#39;</span><span class="n">s</span> <span class="n">take</span> <span class="n">a</span> <span class="n">look</span> <span class="n">at</span> <span class="n">what</span> <span class="n">our</span> <span class="n">raw</span> <span class="n">code</span> <span class="n">looks</span> <span class="n">like</span> <span class="n">right</span> <span class="ss">now</span><span class="p">:</span>
-</span><span class='line'><span class="o">&lt;</span><span class="sr">/code&gt;&lt;/</span><span class="n">pre</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="k">class</span> <span class="nc">Book</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">language</span>
-</span><span class='line'>    <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="no">English</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span>
-</span><span class='line'>  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;  def year</span>
-</span><span class='line'><span class="sr">    &amp;ldquo;1926&amp;rdquo;</span>
-</span><span class='line'><span class="sr">  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">def</span> <span class="nf">author</span>
-</span><span class='line'>    <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="no">Ernest</span> <span class="no">Hemingway</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span>
-</span><span class='line'>  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;  def title</span>
-</span><span class='line'><span class="sr">    &amp;ldquo;The Sun Also Rises&amp;rdquo;</span>
-</span><span class='line'><span class="sr">  end</span>
-</span><span class='line'><span class="sr">end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="k">class</span> <span class="nc">Product</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;  def initialize</span>
-</span><span class='line'><span class="sr">    @book = Book.new</span>
-</span><span class='line'><span class="sr">  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">def</span> <span class="nf">language</span>
-</span><span class='line'>    <span class="vi">@book</span><span class="o">.</span><span class="n">language</span>
-</span><span class='line'>  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;  def year</span>
-</span><span class='line'><span class="sr">    @book.year</span>
-</span><span class='line'><span class="sr">  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">def</span> <span class="nf">author</span>
-</span><span class='line'>    <span class="vi">@book</span><span class="o">.</span><span class="n">author</span>
-</span><span class='line'>  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;  def info</span>
-</span><span class='line'><span class="sr">    @book.title</span>
-</span><span class='line'><span class="sr">  end</span>
-</span><span class='line'><span class="sr">end</span>
-</span></code></pre></td></tr></table></div></figure></p>
-
-<p>Ugh. You&rsquo;ve probably already recoiled in horror. We have a <code>Book</code> object, which has a <code>language</code>, <code>year</code>, <code>author</code>, and <code>title</code>. And we have a <code>Product</code> object, which creates a new instance of a <code>Book</code> object, and then pretty much repeats all those methods again, using the instance it creates in the <code>initialize</code> method.</p>
-
-<p>We already know this code is bad. But how to go about refactoring it? Use Forwardable, obvs, and do some forwarding! We&rsquo;ll delegate all the handling of information to the <code>Book</code> object. Our <code>Product</code> class doesn&rsquo;t need to worry about that!</p>
-
-<p>Cool. So how do we do this? Like so:</p>
-
-<ul>
-<li>Let&rsquo;s first get rid of all of those methods in the <code>Product</code> class. We&rsquo;ll keep our <code>initialize</code> method, since that&rsquo;s how we&rsquo;ll create a new instance of <code>Book</code> in order to have something that we can call methods on. Now our class looks pretty empty:</li>
-</ul>
-
-
-<pre><code class="ruby">class Product 
-  def initialize
-    @book = Book.new
-  end
-end
-</code></pre>
-
-<ul>
-<li>We&rsquo;ll add the Forwardable module, part of the Ruby standard library, by extending it in the first line of the class:</li>
-</ul>
-
-
-<pre><code class="ruby">extend Forwardable
-</code></pre>
-
-<ul>
-<li>Now we&rsquo;ll specify the methods that we to call on a <code>Book</code> object <em>through</em> our <code>Product</code> class by using the <code>def_delegators</code> method, available through Forwardable:</li>
-</ul>
-
-
-<pre><code class="ruby">def_delegators :@book, :language, :year, :author
-</code></pre>
-
-<ul>
-<li>We also want to get the title as well, but we want to rename that method as <code>info</code>. We can use <code>def_delegator</code> in order to do that:</li>
-</ul>
-
-
-<pre><code class="ruby">def_delegator :@book, :title, :info
-</code></pre>
-
-<p>Now we&rsquo;ve cut down these two classes a lot. Our refactored code looks like this:</p>
-
-<pre><code class="ruby">class Book
-  def language
-    "English"
-  end
-
-  def year
-    "1926"
-  end
-
-  def author
-    "Ernest Hemingway"
-  end
-
-  def title
-    "The Sun Also Rises"
-  end
-end
-
-class Product
-  extend Forwardable
-
-  def_delegators :@book, :language, :year, :author
-    def_delegator :@book, :title, :info
-
-  def initialize
-    @book = Book.new
-  end
-end
-</code></pre>
-
-<p>What can this refactored code actually do? Well, it lets us call <code>info</code> on a <code>Product</code> and get back the title of the book! And it allows us to call <code>year</code> directly on an instance of <code>Product</code>:
-<code>
-p = Product.new
- =&gt; #&lt;Product:0x007feb2183ea78 @book=#&lt;Book:0x007feb2183e9d8&gt;&gt;
-p.year
- =&gt; "1926"
-p.info
- =&gt; "The Sun Also Rises"
-</code></p>
-
-<p>But wait &ndash; we didn&rsquo;t write a <code>year</code> method in the <code>Product</code> class! Well, okay, we <em>kind</em> of did. We used <code>def_delegators</code>, to tell the <code>Product</code> class that it should respond to three methods: <code>language</code>, <code>author</code>, and <code>year</code>. And, we&rsquo;re telling the <code>Product</code> class to respond to each of these methods by calling it on an instance of <code>@book</code>.</p>
-
-<p>And how did we rewrite that <code>title</code> method, exactly? We used <code>def_delegator</code> (singular, not plural!) to tell the <code>Product</code> class to respond to a method called <code>info</code> by calling <code>title</code> on <code>@book</code>. The reason that this works is only because we already have a <code>title</code> method defined on all instances of the <code>Book</code> class.</p>
-
-<h2>Delegate Like You Mean It</h2>
-
-<p>Using the Forwardable module comes in handy not just for refactoring, but also for your initial structuring of an application. Anytime you have an object handling lots of functionality, think about whether you can encapsulate that functionality into another class, and delegate the methods that aren&rsquo;t directly required into that &ldquo;helper&rdquo; class.</p>
-
-<p>There are some great blog posts with examples of how to use the Forwardable module effectively. Here&rsquo;s an implementation on a Reading List class (think Goodreads):
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ReadingList</span>
-</span><span class='line'>    <span class="kp">extend</span> <span class="no">Forwardable</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;pre&gt;&lt;code&gt;def_delegators :@books, :map, :size, :&amp;lt;&amp;lt;, :shuffle</span>
-</span><span class='line'><span class="sr">def_delegator :@books, :shift, :remove_book</span>
-</span><span class='line'><span class="sr">def_delegator :@books, :push, :add_book</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">def initialize</span>
-</span><span class='line'><span class="sr">    @books = []</span>
-</span><span class='line'><span class="sr">end      </span>
-</span><span class='line'><span class="sr">&lt;/</span><span class="n">code</span><span class="o">&gt;&lt;</span><span class="sr">/pre&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;end</span>
-</span></code></pre></td></tr></table></div></figure></p>
-
-<p>There&rsquo;s some pretty bomb stuff happening in such few lines. The <code>ReadingList</code> class gets initialized with an empty array, which we save as an instance variable, <code>@books</code>. Then we&rsquo;ve also our <code>def_delegators</code>, which delegate <code>map</code>, <code>size</code>, <code>&lt;&lt;</code>, and <code>shuffle</code> to the <code>@books</code>. And we have two methods that we (kinda) wrote: <code>remove_book</code> and <code>add_book</code>.</p>
-
-<p>That&rsquo;s a lot of stuff for 9 lines of code! So what can this do, exactly? Well, let&rsquo;s see our reading list in action:
-<code>
-vaidehis_list = ReadingList.new
- =&gt; #&lt;ReadingList:0x007feb21a6d0b0 @books=[]&gt;
-vaidehis_list.add_book('For Whom The Bell Tolls')
- =&gt; ["For Whom The Bell Tolls"]
-vaidehis_list.add_book('The Old Man And The Sea')
- =&gt; ["For Whom The Bell Tolls", "The Old Man And The Sea"]
- vaidehis_list.add_book('To Have And To Have Not')
- =&gt; ["For Whom The Bell Tolls", "The Old Man And The Sea", "To Have And To Have Not"]
-vaidehis_list.size
- =&gt; 3
-vaidehis_list.shuffle
- =&gt; ["For Whom The Bell Tolls", "To Have And To Have Not", "The Old Man And The Sea"]
-vaidehis_list.remove_book
- =&gt; "For Whom The Bell Tolls"
-vaidehis_list.size
- =&gt;
-</code></p>
-
-<p><em>Dayummmmm</em>. Pretty sweet, right? We get to call all these methods directly on our <code>ReadingList</code> class! But what are they actually getting called on? Well, by using <code>def_delegators</code> and <code>def_delegator</code>, we&rsquo;re telling our <code>ReadingList</code> class to call methods like <code>shift</code> and <code>shuffle</code> on our <code>@books</code> instance. And here&rsquo;s where it gets pretty cool: our <code>@books</code> variable is&hellip;an ARRAY.</p>
-
-<p>Just in case you&rsquo;re not as enthused about this fact as I am, let me explain what this means. It means that we can have access to every single method available on an array instance. Just in case you&rsquo;re wondering, all instance of <code>Array</code>s have 113 methods available to them (not including the 54 methods available to all instance of <code>Object</code>)! All we&rsquo;d have to do is add a method (literally, you can choose any method available on an array) like <code>flat_map</code> to our <code>def_delegators</code> line, and tada! It&rsquo;s ours to use on our <code>ReadingList</code> object.</p>
-
-<p>You can see how this can get pretty powerful, pretty fast. In just a few lines of code, we&rsquo;re exercising the functionality of an entire plain old ruby object (PORO), simply by delegating methods through Forwardable.</p>
-
-<p>Okay, that was a lot of refactoring magic. I told you, right? Lots of effort, but lots of payoff! Now, if you&rsquo;ll excuse me, I apparently have some books to read.</p>
-
-<iframe src="//giphy.com/embed/112iFz2Y2b1Pwc" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>Delegation is the idea that an object can delegate a task to an associated &ldquo;helper&rdquo; object.</li>
-<li>The Forwardable module uses <code>def_delegators</code> to delegate methods to another Ruby object, and <code>def_delegator</code> to rename a method that&rsquo;s being delegated to another object.</li>
-<li>For another example of this module, read this <a href="http://oneofthesedaysblog.com/ruby-day-4-forwardable">incredibly thorough</a> blog post on implementing Forwardable.</li>
-<li>Curious about delegation patterns in Object-Oriented Programming? <a href="http://radar.oreilly.com/2014/02/delegation-patterns-in-ruby.html">This post</a> has gotcha covered.</li>
 </ul>
 
 ]]></content>

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Css | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/css/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-06-02T18:27:22+08:00</updated>
+  <updated>2015-06-08T22:34:56-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -15,9 +15,9 @@
   
   <entry>
     <title type="html"><![CDATA[Implementing REM in CSS (or, How to Be a Shiny Happy Developer)]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/01/21/implementing-rem-in-css-or-how-to-be-a-shiny-happy-developer/"/>
-    <updated>2015-01-21T06:39:10+08:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/01/21/implementing-rem-in-css-or-how-to-be-a-shiny-happy-developer</id>
+    <link href="http://vaidehijoshi.github.io/blog/2015/01/20/implementing-rem-in-css-or-how-to-be-a-shiny-happy-developer/"/>
+    <updated>2015-01-20T17:39:10-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/01/20/implementing-rem-in-css-or-how-to-be-a-shiny-happy-developer</id>
     <content type="html"><![CDATA[<p>During a recent pair programming session, I came to the tough realization that I really know <em>nothing</em> about CSS. Granted, I can add in a <code>div</code> tag here and there, and yes, I can make a responsive page using Twitter Bootstrap like no one&rsquo;s business. But, what do I really know about design? Not as much as I thought I did.</p>
 
 <p>I figured out that this was the case when the designer I was pairing with started using <strong>ems</strong> and <strong>rems</strong>. I should probably preface this and say that I have always been a pixel kind of girl. I was formerly of the mindset that you can have any font size you like &ndash;  as long as it&rsquo;s defined in pixels.</p>

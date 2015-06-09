@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Javascript | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/javascript/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-06-02T18:27:22+08:00</updated>
+  <updated>2015-06-08T22:34:56-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -15,9 +15,9 @@
   
   <entry>
     <title type="html"><![CDATA[The Final Countdown: Using JavaScript's setInterval + clearInterval Methods]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/01/07/the-final-countdown-using-javascripts-setinterval-plus-clearinterval-methods/"/>
-    <updated>2015-01-07T05:30:53+08:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/01/07/the-final-countdown-using-javascripts-setinterval-plus-clearinterval-methods</id>
+    <link href="http://vaidehijoshi.github.io/blog/2015/01/06/the-final-countdown-using-javascripts-setinterval-plus-clearinterval-methods/"/>
+    <updated>2015-01-06T16:30:53-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/01/06/the-final-countdown-using-javascripts-setinterval-plus-clearinterval-methods</id>
     <content type="html"><![CDATA[<p>It&rsquo;s a brand new year, and with that comes a renewed sense of self. Also: a rather lengthy todo list. Enter <strong>#technicaltuesdays</strong>, or my attempt at beefing up my technical chops by posting a blog post every week &mdash; specifically on Tuesdays, in case it wasn&rsquo;t obvious. (Sorry, Thursday, you were a close second, but you just didn&rsquo;t make the cut.)</p>
 
 <p>So, what&rsquo;s on the menu this week? JavaScript! New year = new me, you guys. Actually, some of my technical interviews have been a bit JavaScript-heavy, so I&rsquo;ve been stepping up my curly bracket game.</p>

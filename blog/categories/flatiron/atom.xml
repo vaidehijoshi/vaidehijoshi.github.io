@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Flatiron | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/flatiron/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-06-02T18:27:22+08:00</updated>
+  <updated>2015-06-08T22:34:56-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -15,9 +15,9 @@
   
   <entry>
     <title type="html"><![CDATA[The Fog Creek Fellowship: Lessons in Fearlessness and Fortitude]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/01/24/the-fog-creek-fellowship-lessons-in-fearlessness-and-fortitude/"/>
-    <updated>2015-01-24T03:04:16+08:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/01/24/the-fog-creek-fellowship-lessons-in-fearlessness-and-fortitude</id>
+    <link href="http://vaidehijoshi.github.io/blog/2015/01/23/the-fog-creek-fellowship-lessons-in-fearlessness-and-fortitude/"/>
+    <updated>2015-01-23T14:04:16-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/01/23/the-fog-creek-fellowship-lessons-in-fearlessness-and-fortitude</id>
     <content type="html"><![CDATA[<p>There are a lot of scary things out there. To start, there are lions and tigers and bears. But if you go a bit below the surface, that&rsquo;s where you&rsquo;ll hit the dark stuff &ndash; the kind of stuff that I was forced to confront when I started as a student at <a href="http://www.flatironschool.com">The Flatiron School</a>.</p>
 
 <p>Sure, learning how to program is really hard &ndash; it&rsquo;s not just learning another language, it&rsquo;s learning an entirely new way to think. But, working on code is far easier than working on yourself. My twelve weeks at The Flatiron School pushed me to deal with some tough thoughts, most of which had always lurked in the skeleton closets of my mind: <em>I don&rsquo;t know if I can do this. I&rsquo;m not cut out for this. I&rsquo;m not prepared. I&rsquo;m not smart enough. I won&rsquo;t fit in. I can&rsquo;t undersand. I won&rsquo;t understand.</em></p>
@@ -75,9 +75,9 @@
   
   <entry>
     <title type="html"><![CDATA[To Understand Recursion, You Must First Understand Recursion]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2014/12/15/to-understand-recursion-you-must-first-understand-recursion/"/>
-    <updated>2014-12-15T11:32:29+08:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2014/12/15/to-understand-recursion-you-must-first-understand-recursion</id>
+    <link href="http://vaidehijoshi.github.io/blog/2014/12/14/to-understand-recursion-you-must-first-understand-recursion/"/>
+    <updated>2014-12-14T22:32:29-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2014/12/14/to-understand-recursion-you-must-first-understand-recursion</id>
     <content type="html"><![CDATA[<p><img src="http://xkcdsw.com/content/img/1105.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
 <p>Recursion is kind of like the cloud &ndash; it&rsquo;s hard to explain and you might not ever see it, but it definitely is a thing. Yet we deal directly with recursion more than we may realize.</p>
@@ -194,9 +194,9 @@ end
   
   <entry>
     <title type="html"><![CDATA[So You Wanna Ship Some Software, Eh?]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2014/12/01/so-you-wanna-ship-some-software-eh/"/>
-    <updated>2014-12-01T07:05:55+08:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2014/12/01/so-you-wanna-ship-some-software-eh</id>
+    <link href="http://vaidehijoshi.github.io/blog/2014/11/30/so-you-wanna-ship-some-software-eh/"/>
+    <updated>2014-11-30T18:05:55-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2014/11/30/so-you-wanna-ship-some-software-eh</id>
     <content type="html"><![CDATA[<p>Disheveled hair. Bags under your eyes. Hermit-like tendencies. Suffice it to say, project mode can do a <em>lot</em> of things to a person. It&rsquo;s the first time you&rsquo;re on your own, and the feeling of &ldquo;sink or swim&rdquo; will, inevitably, hit you in the face at some point or another.</p>
 
 <p>But, project mode also teaches you a lot about what it means to focus and ship software. And it doesn&rsquo;t really matter that you&rsquo;ve only been coding for 9 weeks and that your application has only four models and that you&rsquo;re missing a ton of <code>&lt;div&gt;</code> tags. Why? Because the mistakes you make in your first application are ones that you&rsquo;ll never make again. So, inspired by <a href="http://blakedeboer.ghost.io/recent-lessons-learned/">Blake&rsquo;s post on lessons learned</a> from building a web application, here are a few things I learned in the process of shipping my first piece of software:</p>
@@ -243,7 +243,7 @@ end
   <entry>
     <title type="html"><![CDATA[How Programming Makes You a Better Writer]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2014/11/19/how-programming-makes-you-a-better-writer/"/>
-    <updated>2014-11-19T21:08:47+08:00</updated>
+    <updated>2014-11-19T08:08:47-05:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2014/11/19/how-programming-makes-you-a-better-writer</id>
     <content type="html"><![CDATA[<p>When I was in my terrible twos, my mom walked in on me writing all over the white walls of our living room with a pencil. I didn&rsquo;t even know how to write, much less <em>what</em> to write. But apparently, even as a toddler, I knew that writing was exactly what I wanted to do. (Side note: when my dad got home, he made me erase everything I&rsquo;d written. But I digress.)</p>
 
@@ -286,9 +286,9 @@ end
   
   <entry>
     <title type="html"><![CDATA[The Asset WHUTline?: Revisiting the Asset Pipeline After JavaScript]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2014/11/17/the-asset-whutline-revisiting-the-asset-pipeline-after-javascript/"/>
-    <updated>2014-11-17T12:14:13+08:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2014/11/17/the-asset-whutline-revisiting-the-asset-pipeline-after-javascript</id>
+    <link href="http://vaidehijoshi.github.io/blog/2014/11/16/the-asset-whutline-revisiting-the-asset-pipeline-after-javascript/"/>
+    <updated>2014-11-16T23:14:13-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2014/11/16/the-asset-whutline-revisiting-the-asset-pipeline-after-javascript</id>
     <content type="html"><![CDATA[<p>Two weeks ago, I was introduced to the Asset Pipeline. I didn&rsquo;t really think much of it at first, and part of me even assumed that I&rsquo;d never really have to see it again. It was a little like going out on a pretty forgettable first date &ndash; nothing particularly intriguing about the whole thing, but it somehow leaves you feeling kind of confused and generally rather perplexed.</p>
 
 <p>But here&rsquo;s the thing: I <em>did</em> see the Asset Pipeline again. And boy was it awkward. After learning JavaScript this week and brushing up on my Rails, I realized that I&rsquo;m going to run into the Asset Pipeline at some point or another, so I might as well get to know it a little better. Here&rsquo;s a little refresher just in case you haven&rsquo;t seen the Asset Pipeline in awhile, either.</p>

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-06-02T18:27:22+08:00</updated>
+  <updated>2015-06-08T22:34:56-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -14,9 +14,191 @@
 
   
   <entry>
+    <title type="html"><![CDATA[Refactoring to Reveal Rails Group_by]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/06/09/refactoring-to-reveal-rails-group-by/"/>
+    <updated>2015-06-09T08:43:24-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/06/09/refactoring-to-reveal-rails-group-by</id>
+    <content type="html"><![CDATA[<p><img src="http://img.pandawhale.com/post-10513-Code-Refactoring-Cat-in-Bathtu-U295.gif" style="display: block; margin-left: auto; margin-right: auto;"/></p>
+
+<p>There are a lot of opportunities in programming to feel pretty silly about yourself. I&rsquo;m sure that the more coding experience you have, the less often these moments actually occur. But early on in your career, they seem to happen quite often &ndash; or they do to <em>me</em>, at least.</p>
+
+<p>I had one of those moments a couple weeks ago, when I wrote a super long method and then asked a senior developer to take a look at it. While I was writing it, something seemed inherently wrong. I was sure there was a better way to do it, but I guess my Googling skills aren&rsquo;t quite superb yet, because I couldn&rsquo;t find quite the right answer anywhere. It was then that I decided to ask someone who would know exactly which tool to reach for.</p>
+
+<p>What happened next was pretty awesome, albeit slightly depressing. I watched my code be refactored from ten lines down to a single line. It blew my mind &ndash; and not just because I didn&rsquo;t know that this method even <em>existed</em>, but because I wanted to know how it worked! So, I did some digging and learned a bit about the method that I wrote which, as it turns out, already existed: the Rails <code>group_by</code> method on Enumerables.</p>
+
+<!--more-->
+
+
+<h2>Data Is For Manipulating</h2>
+
+<p>I started off writing my super long method because I wanted to structure my data in a very specific way. In fact, we&rsquo;ll probably want to structure the data in our Bookstore eCommerce app in a very similar way, too, so let&rsquo;s use that as our working example.</p>
+
+<p>For our admin panel, we want a list of <code>Author</code> objects, categorized by <code>genre</code>. Because our collection of <code>Books</code> is going to grow extensively, it would be helpful for an admin to know which authors are included in a <code>genre</code> or time period. Eventually, this could be used by admins to add new authors by a genre, to filter or sort by a genre, or to calculate an author count per genre, and figure out which authors to add to our collection of books.</p>
+
+<p>Right now, our collection of <code>Author</code> objects isn&rsquo;t very big, but has just enough information for us to start implementing this functionality:</p>
+
+<pre><code class="ruby">&gt; Author.all
+=&gt; [{#&lt;Author:0x192ajk21a6d0b0 last_name: "Shakespeare", genre: "Renaissance"&gt;}, 
+{#&lt;Author:0w917qwl38f6s8v6 last_name: "Homer", genre: "Classics"&gt;}, 
+{#&lt;Author:0x390akd23a5d9m4 last_name: "Faulkner", genre: "Southern Gothic"&gt;}, 
+{#&lt;Author:1r103aur58b7c4r2 last_name: "Marlowe", genre: "Renaissance"&gt;}]
+</code></pre>
+
+<p>Even though our data is easy to read now, we can be sure that it isn&rsquo;t going to stay that way. But we know that if we structure each of our objects correctly, we could have something simple, like this, in our view:</p>
+
+<pre><code class="ruby">div
+  - Author.sort_by_genre.each do |genre, author|
+    h2 = genre
+    - author.each do |a|
+      p = a.last_name
+</code></pre>
+
+<p>I&rsquo;m a big fan of slim, which is what I&rsquo;ve used above, but this view would still be pretty minimal when using another templating language such as erb.</p>
+
+<p>Given that this is the view we want to render, we can use this information to structure our data. I&rsquo;m thinking a hash is the tool for the job, with each key being a <code>genre</code> name, and the value being an array of <code>Author</code> objects that we can iterate through for each specific <code>genre</code>.</p>
+
+<p>It would be nice if we could call something like <code>Author.sort_by_genre</code> and have it return a structure like this:</p>
+
+<pre><code class="ruby">=&gt; {"Renaissance": [Shakespeare, Marlowe], 
+"Southern Gothic": [Faulkner], 
+"Classics": [Homer]}
+</code></pre>
+
+<p>So now that we know what we <em>want</em> our data to look like, let&rsquo;s write it the ugly way, just like I did!</p>
+
+<h2>The First Iteration</h2>
+
+<p>To start with, we know that we want to return a hash. So we can start by instantiating a hash, which will be our <code>authors_by_genre</code>. We also know that we&rsquo;ll need all the <code>Author</code> objects in an array; since we&rsquo;re specifically looking for an author&rsquo;s <code>last_name</code> and <code>genre</code>, we can query for those directly. And we can return our empty hash, since that will eventually be filled up:</p>
+
+<pre><code class="ruby">def sort_by_genre
+  authors_by_genre = {}
+  authors = Author.all.collect { |author| [author.last_name, author.genre] }
+
+  authors_by_genre
+end
+</code></pre>
+
+<p>Okay, so now we need to fill up our hash. We have our <code>authors</code> variable, which is set to the collection of all <code>Author</code> objects. We will need to iterate through all of them, and put that <code>Author</code> in the correct array for the right <code>genre</code> key. If the right <code>genre</code> key doesn&rsquo;t exist, we&rsquo;ll need to create a key for that author&rsquo;s <code>genre</code>. We can accomplish this with another iteration. Now our method looks like this:</p>
+
+<pre><code class="ruby">class Author
+  class &lt;&lt; self
+    def sort_by_genre
+      authors_by_genre = {}
+      authors = Author.all.collect { |author| [author.last_name, author.genre] }
+
+      authors.each do |genre, author|
+        if authors_by_genre[genre]
+          authors_by_genre[genre] &lt;&lt; author
+        else
+          authors_by_genre[genre] = [author]
+        end
+      end
+
+      authors_by_genre
+      end
+    end
+  end
+end
+</code></pre>
+
+<p>Okay&hellip;so hopefully, by this point, you should be thinking to yourself: <em>This isn&rsquo;t just ugly, it&rsquo;s also <strong>super</strong> inefficient</em>. And you&rsquo;d be right. It&rsquo;s pretty bad.</p>
+
+<iframe src="//giphy.com/embed/asIa0FVaBSQNO" width="480" height="307" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>If you weren&rsquo;t sure how bad it really is, think about all the queries we&rsquo;re making! And how many times we&rsquo;re iterating! As soon as I finished writing this and got it working, I knew it was <em>definitely</em> not the right approach. But the first step is to get it working. Now, we need to seriously consider how we can make it right and make it fast.</p>
+
+<p>You know what what this means, right? Refactoring time.</p>
+
+<h2>Group All The Things</h2>
+
+<p>A quick way to refactor some of the messiness from our first iteration is by first changing how we initialize our hash object, and also modifying how we go about deciding whether to create a new key or add to a key that already exists.</p>
+
+<p>Enter the <code>each_with_object</code> method! This is a pretty rad method I learned about while refactoring my first iteration of this <code>sort_by_genre</code> method. The <code>each_with_object</code> method requires a single argument: the object that you want to pass to it in each iteration. In our case, we&rsquo;ll pass it a hash. And since the items we want to actually &ldquo;categorize&rdquo; are our <code>Author</code> objects, we&rsquo;ll call <code>each_with_object</code> on our collection of <code>Authors</code>:</p>
+
+<pre><code class="ruby">class Author
+  class &lt;&lt; self
+    def sort_by_genre
+      Author.all.each_with_object({}) {  }
+    end
+  end
+end
+</code></pre>
+
+<p>Now, what about that block &ndash; what goes inside? Well, we can think about what we want to do with each of our <code>Author</code> objects that we&rsquo;re iterating over. Inside of our hash, which we&rsquo;re passing explicitly as an argument to <code>each_with_object</code>, we want to either find the correct key and put the correct <code>Author</code> into that array, or create a new key based on the current <code>Author</code> object&rsquo;s genre. We can write that quite nicely by using the <code>||=</code> <strong>or equals</strong> operator, which will assign a new object, or whatever is to the right of the operator, equal to the left side of the pipes, or whatever is to the left of the operator:</p>
+
+<pre><code class="ruby">class Author
+  class &lt;&lt; self
+    def sort_by_genre
+      Author.all.each_with_object({}) { |author, hash| (hash[author.genre] ||= []) &lt;&lt; author }
+    end
+  end
+end
+</code></pre>
+
+<p>Much better, right? In this second iteration, we&rsquo;re passing a hash directly to the <code>each_with_object</code> method, and basically telling it, <em>Find the key in the hash I just passed you that is equal to this author&rsquo;s genre. And if no such key exists, make one, set it equal to an empty array, and then put this current author into that array</em>.</p>
+
+<p>The order of our or equals operator is particularly important, because if it were switched, it would never run what is on the right side of the pipes. The <code>||=</code> operator is exactly like the <code>||</code> operator in that it will run what is to its right <em>only</em> if what is to its left evaluates to <code>false</code>. This is what keeps our method from trying to create multiple keys again and again, and instead forces it to find an existing key first. The super cool thing about the <code>||=</code> operator is that it is actually assigning a new key value to an empty array, which cuts out a lot of extra lines we had in our first iteration!</p>
+
+<p>Okay, so this second iteration has been a vast improvement. But I think it&rsquo;s time for some serious refactoring magic. Are you ready? Okay. This <em>entire</em> method can be rewritten into a single, simple line:</p>
+
+<pre><code class="ruby">class Author
+  class &lt;&lt; self
+    def sort_by_genre
+      Author.all.group_by(&amp;:genre)
+    end
+  end
+end
+</code></pre>
+
+<p>Yup. I kid you not.</p>
+
+<iframe src="//giphy.com/embed/sHytgXD2vlNVC" width="480" height="376" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>This is the magic of the Rails <code>group_by</code> method, which collects an enumerable into sets, grouping it by the result of a block. This method takes a proc using the ampersand shortcut as an argument (which we started using last week!). The <code>group_by</code> method is passed the symbol <code>:genre</code>, which is an attribute on each <code>Author</code> object, and corresponds to a <code>genre</code> column in the <code>authors</code> table. So, we are effectively grouping all of our <code>Author</code> objects by the result of calling <code>.genre</code> on each object. In other words, we&rsquo;re grouping by the <code>genre</code> attribute since the attribute corresponds to an <code>attr_accessor</code> method in the class.</p>
+
+<p>And now, if we call our <code>sort_by_genre</code> class method, we get the exact data structure we were hoping for:</p>
+
+<pre><code class="ruby">&gt; Author.sort_by_genre
+=&gt; {"Renaissance": [{#&lt;Author:0x192ajk21a6d0b0 last_name: "Shakespeare", genre: "Renaissance"&gt;}, 
+{#&lt;Author:1r103aur58b7c4r2 last_name: "Marlowe", genre: "Renaissance"&gt;}], 
+"Southern Gothic": [{#&lt;Author:0x390akd23a5d9m4 last_name: "Faulkner", genre: "Southern Gothic"&gt;}], 
+"Classics": [{#&lt;Author:0w917qwl38f6s8v6 last_name: "Homer", genre: "Classics"&gt;}]}
+</code></pre>
+
+<p>Hooray! Or maybe not hooray. Maybe instead of hooray, you feel like I did when I realized that you could refactor all of this into one line:</p>
+
+<blockquote class="twitter-tweet tw-align-center" lang="en"><p lang="en" dir="ltr">PROGRAMMING:&#10;Write a 10-line method.&#10;Feel proud when it works.&#10;Find out you can write the same thing in a single line.&#10;Cry in the corner.</p>&mdash; Vaidehi Joshi (@vaidehijoshi) <a href="https://twitter.com/vaidehijoshi/status/601156228723642369">May 20, 2015</a></blockquote>
+
+
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+<p><br></p>
+
+<p>Although it made me feel pretty silly, the actual process of writing the <code>group_by</code> method from scratch was a really great learning experience. I ended up using the examples above in a talk I gave on refactoring at <a href="http://www.twitter.com/reddotrubyconf">Red Dot Ruby Conference</a> in Singapore last week. And I actually recreated the <em>exact same</em> functionality when I had to write my <em>own</em> <code>groupBy</code> function in JavaScript for a React component I had to build! I guess that however deep of a rabbit hole refactoring can be, sometimes it&rsquo;s exactly the right kind of deep dive you need to learn how something works under the hood. I still totally feel like that cat in the bathtub whenever I do it &ndash; but I&rsquo;m kind of okay with that.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>group_by</code> method takes a block, which it uses to group a collection of objects. The <code>each_with_object</code> method takes an object as an argument, and a block which tells it how to sort the collection you call the method upon.</li>
+<li>Read more on the <code>group_by</code> method in the <a href="http://apidock.com/rails/Enumerable/group_by">Rails docs</a>, which also has a great example!</li>
+<li>Looking for another example of how to implement Rails&#8217; <code>group_by</code> in a view? Check out <a href="https://ariejan.net/2007/01/12/rails-group-results-by-week-using-group_by/">this blog post</a>.</li>
+<li>Did you know that Ruby also has a similar <code>group_by</code> method? It&rsquo;s great when you want to <a href="http://ruby-doc.org/core-2.2.2/Enumerable.html#method-i-group_by">return a hash</a> where the keys are evaluated by a block!</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
     <title type="html"><![CDATA[Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/"/>
-    <updated>2015-06-02T20:45:24+08:00</updated>
+    <updated>2015-06-02T08:45:24-04:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/918rCUjV2XWhi" width="480" height="360" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -167,7 +349,7 @@ Order.pluck(:amount).map &amp;half_off_sale
   <entry>
     <title type="html"><![CDATA[The Secret Life of Your Database, Part 2: Join Tables]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/"/>
-    <updated>2015-05-26T20:02:30+08:00</updated>
+    <updated>2015-05-26T08:02:30-04:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables</id>
     <content type="html"><![CDATA[<p><img src="http://daviddickball.uk/wp-content/uploads/2015/03/sql-join.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -294,7 +476,7 @@ ORDER BY orders.id;
   <entry>
     <title type="html"><![CDATA[The Secret Life of Your Database, Part 1: Migrations]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/"/>
-    <updated>2015-05-19T20:51:11+08:00</updated>
+    <updated>2015-05-19T08:51:11-04:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations</id>
     <content type="html"><![CDATA[<p><img src="http://31.media.tumblr.com/tumblr_mcsccsfcnn1qz9l5so1_1280.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -580,7 +762,7 @@ end
   <entry>
     <title type="html"><![CDATA[Investigating Ruby's Global Functions + Kernel Module With Puts]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/"/>
-    <updated>2015-05-12T20:09:27+08:00</updated>
+    <updated>2015-05-12T08:09:27-04:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/10Vy7fN9fr7dD2" width="480" height="361" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -748,171 +930,6 @@ Waddle waddle
 <li>The <code>Kernel</code> module is mixed into the <code>Object</code> class, which means all methods (including private methods!) defined on this module are accesible to all Ruby objects, making them &ldquo;global&rdquo; functions.</li>
 <li>Even though a method&rsquo;s implicit receiver is <code>self</code>, the context of <code>self</code> changes depending on which class you are in; this is particularly important when dealing with &ldquo;global&rdquo; functions.</li>
 <li>Curious about <code>main</code> and <code>self</code> in <code>irb</code>? Check out these two great <a href="http://www.sitepoint.com/rubys-top-self-object/">blog</a> <a href="https://banisterfiend.wordpress.com/2010/11/23/what-is-the-ruby-top-level/">posts</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Metaprogramming Dynamic Methods: Using Public_send]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/"/>
-    <updated>2015-05-05T20:38:29+08:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send</id>
-    <content type="html"><![CDATA[<p><img src="http://imgs.xkcd.com/comics/hofstadter.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>A really amazing thing happened to me last week: I wrote some code that I was actually proud of! I was trying to solve an interesting problem for an application I started building at work recently, and I implemented the first solution that came into my mind. And after I took a step back from my text editor and actually looked at what I had written, I realized something. My code was actually <em>good</em>.</p>
-
-<p>The very fact that I was so surprised and thrilled at the prospect of writing good code speaks volumes to the nature of programming. Most of the time I abhor the methods I write because I know they could be written better, but I don&rsquo;t have the syntactical flow (yet!) to write them well. So last week&rsquo;s incident of &ldquo;code pride&rdquo;, however fleeting, was rather noteworthy.</p>
-
-<p>I looked back on my code over the weekend and thought about what made it seem so beautiful to me. What did I do differently that made me beam with pride knowing that I had been the one to write that particular method? The short answer to that question is: metaprogramming. <strong>Metaprogramming</strong> is nothing more than abstraction of code, which often means that your code will write more code for you! Of course, there are a lot of different techniques and approaches to this, and I&rsquo;m certainly no expert. But I did learn a little something about a meta method called <code>public_send</code>, and I&rsquo;ll show you just how I used it!</p>
-
-<!--more-->
-
-
-<h2>Gotta Dispatch? Do It Dynamically.</h2>
-
-<p>Everything in Ruby &ndash; everything in programming, really &ndash; is just an abstraction. We sprinkle some syntactic sugar to make our lives easier and code simpler, but it&rsquo;s all just an abstraction of something else. When we&rsquo;re refactoring by metaprogramming, it&rsquo;s this same concept of abstraction that we have to keep in mind. And when we look for and find patterns within our code, it&rsquo;s generally a sign that we could be encapsulating and abstracting away that piece of functionality.</p>
-
-<p>My favorite example of abstraction is <strong>method dispatching</strong>. Method dispatching is how we send a message to an object. And boy, do we do that a lot. Since everything in Ruby is an object, whenever you want an object to do something, you have to send it a message. And luckily, because Ruby is so great, the method we use to &ldquo;send&rdquo; messages is called just that: <code>send</code>.</p>
-
-<p>The <code>send</code> method is called in our programs way more than we might realize. For example, if we open up our console and do some simple math:
-<code>
-2.2.0 &gt; 3 + 4
- =&gt; 7
-</code>
-what we&rsquo;re <em>really</em> doing is sending a message to the <code>3</code> Integer object, and telling it to perform an action (<code>+</code>) in terms of another object (the <code>4</code> Integer object):
-<code>
-2.2.0 &gt; 3.send(:+, 4)
- =&gt; 7
-</code></p>
-
-<p>The <code>send</code> method takes a parameter of either a string or symbol, which is the method name. The method name will always be the first parameter, and the second  parameters is passed to the method as an argument.</p>
-
-<p>Now, this is great when you know that you want to add 3 and 4. But who is going to add 3 and 4 all of the time? No one, that&rsquo;s who. You&rsquo;re probably going to want to add 3 to 5, and 6, and on and on&hellip;</p>
-
-<p>Enter <strong>dynamic dispatching</strong> to save the day!</p>
-
-<iframe src="//giphy.com/embed/144RafbwKkBDva" width="480" height="269" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Dynamic dispatching, as the slightly odd yet adorable gif above demonstrates, involves sending various messages (read: methods) to objects, with the added caveat that our methods keep changing, depending on the situation. Dynamic dispatching also allows us to send different methods to objects in our program without any other object knowing the contents of that message. A good indicator for using dynamic dispatching is if you have call a method in a specific situation, but don&rsquo;t know what exactly that method will be.</p>
-
-<p>Confused yet? Okay, okay, let me give you an example.</p>
-
-<h2>You Can Send Whuteva You Like</h2>
-
-<p>Knowing that you can use <code>send</code> to &ldquo;send&rdquo; different methods to an object is only half the fun. The other half is figuring out when to pull out this tool from your Toolbelt of Knowledge™ &ndash; yes, I&rsquo;m trademarking this phrase &ndash; and actually use it.</p>
-
-<p>So&hellip;I guess it&rsquo;s time for me to show you a real-life example of how I used recently dynamic dispatch to invoke specific methods in my application! Hopefully to neither your surprise nor chagrin, I&rsquo;ll be using my eCommerce Bookstore example.</p>
-
-<p>In my store, I have a paginated list of different books available for purchase. Each book has only a limited amount of space it can take up in the view, so as an admin of the site, it&rsquo;ll be up to me to decide how I want different books to show up. Some of my books have awesome book covers, so I want to use thumbnail images of their cover as the main &ldquo;viewable attribute&rdquo; in my store. Since I&rsquo;m using the <code>paperclip</code> gem, this will be pretty easy.</p>
-
-<p>However, some books in my store don&rsquo;t even have book covers! My vast collection of Shakespearean plays, for example, would be much better served by making the author as the &ldquo;visible attribute&rdquo;, rather than nonexistent covers. And I think the <em>Game of Thrones</em> book series should have the book title as the &ldquo;visible attribute&rdquo;.</p>
-
-<p>So, how can we handle this? Well, let&rsquo;s first look for any patterns.</p>
-
-<h3>1. Look For Patterns</h3>
-
-<p>In our view, we want to be able to show each <code>Book</code> object using its primary viewable attribute. The problem we&rsquo;re dealing with here is that an admin will mark different attributes for a <code>Book</code> object as &ldquo;viewable&rdquo;, which means that we can&rsquo;t predict whether it&rsquo;ll be a <code>title</code>, <code>author</code>, or an image. But we do know that every <code>Book</code> object has to have <em>some</em> &ldquo;viewable attribute&rdquo;.</p>
-
-<p>Cool, so there is <em>some</em> sort of pattern emerging here: we need to render an attribute, and we don&rsquo;t know what it will be. Or&hellip;do we?</p>
-
-<h3>2. Consider The Data</h3>
-
-<p>Since we&rsquo;re building out an admin panel for this application, we know that every book needs to have a <code>title</code> and an <code>author</code>. The book cover (which we&rsquo;ll refer to as <code>media</code>) is optional, but the other two are not, which means we&rsquo;ll have a validation for our <code>Book</code> objects:</p>
-
-<pre><code class="ruby">class Book &lt; ActiveRecord::Base
-  validates_presence_of :title, :author
-end
-</code></pre>
-
-<p>This validation makes me think about the other things that will <em>always</em> be present on a <code>Book</code> object, and the first thing that comes to mind is a <code>viewable_by</code> attribute. If we think about it, an admin always has to mark <em>something</em> as &ldquo;viewable&rdquo;, and that &ldquo;viewable&rdquo; property can change when they update an object. So this is really a property unique to each <code>Book</code>, which means that it could very well be a column saved in the database.</p>
-
-<p>So, we&rsquo;ll write a migration that adds a <code>viewable_by</code> column, which can never be <code>null</code>, and will always default to a <code>Book</code>&rsquo;s <code>title</code>:</p>
-
-<pre><code class="ruby">class AddViewableByToBooks &lt; ActiveRecord::Migration
-  def change
-    add_column :books, :viewable_by, :string, null: false, default: "title"
-  end
-end
-</code></pre>
-
-<p>This migration might look pretty simple, but it is its very simplicity that lends itself so elegantly to some serious metaprogramming that we&rsquo;ll do next.</p>
-
-<h3>3. Encapsulate And Abstract</h3>
-
-<p>This last part can be the hardest to wrap our minds around, but it also happens to be the coolest. As it stands, our database has a column that will be populated with either a string value <code>"title"</code>, <code>"author"</code>, or <code>"media"</code>. These values will be changed and updated by an admin, and they will obviously and inevitably change. But here&rsquo;s what&rsquo;s not going to change: we&rsquo;re still going to want to render the value of whatever attribute is marked as &ldquo;visible&rdquo; &ndash; that is to say, whatever string value is saved as <code>viewable_by</code>.</p>
-
-<p>If we think back to the pattern we just identified, we realize that the attribute changes, but what we want to do with it stays the same. No matter what the <code>Book</code> is <code>viewable_by</code>, we want to render it. We want to send a message to this object and tell it, <em>Hey Book! Whatever you are viewable by is exactly what you should show yourself as!</em></p>
-
-<p>And this is where we can use <code>send</code> to encapsulate and abstract this away into a single method call. First, we&rsquo;ll want to add a method that checks whether this is an image &ndash; if it is, we&rsquo;ll hand it off to the <code>paperclip</code> gem to render the image:</p>
-
-<pre><code class="ruby">def show_cover?
-  self.viewable_by == 'media'
-end
-</code></pre>
-
-<p>This method will return <code>true</code> if we the <code>viewable_by</code> attribute is set to <code>media</code>, and <code>false</code> if it&rsquo;s not. We can use this <code>boolean</code> return value in a conditional statement:</p>
-
-<pre><code class="ruby">def book_html
-  if show_cover?
-    # Code here will generate and return
-    # an html image tag to render in view.
-  else
-    send(self.viewable_by)
-  end
-end
-</code></pre>
-
-<p>Whoaaaaa, whut is happening? The answer is: something cool! This <code>book_html</code> method will render either a thumbnail image (which we let some other code worry about generating), or it returns a <code>title</code> or an <code>author</code>. And what&rsquo;s really cool is that, we could add other attributes to our table &ndash; like <code>year</code> or <code>genre</code> and render html based on that, as long as it was saved in our <code>viewable</code> column.</p>
-
-<p>How does this work exactly? Well, whenever we create a new column in our database, we get two important methods for free: a reader and a writer. That means that we have both a <code>title=</code> and a <code>title</code> method.</p>
-
-<p>If we look back to how the <code>send</code> method works, we&rsquo;ll remember that the <code>send</code> method takes a parameter of a string or a symbol, which is the name of the method to be called. When we call <code>send</code> and pass it the value of <code>self.viewable_by</code>, we&rsquo;ll actually be calling <code>send("title")</code> on an instance of <code>Book</code>. This will then call <code>title</code> on that instance of <code>Book</code>, returning that particular book&rsquo;s title as a string.</p>
-
-<p>The cool thing about this code is that it&rsquo;s flexible, and has abstracted away a pattern into a dynamic method call, which is dispatched to the appropriate object at the appropriate time. But there&rsquo;s still one major issue with this code that I can see. Let&rsquo;s fix that.</p>
-
-<h2>To Send Or To Public Send? That Is The Question.</h2>
-
-<p>A lot of the most incriminating evidence against using the <code>send</code> method stems from the fact that <code>send</code> can even send <em>private</em> methods to an object. This can be dangerous for your application internally, and also leaves it vulnerable to external, malicious attacks.</p>
-
-<p>A quick fix for this is to instead use <code>public_send</code>, which does exactly what you think it does: send only publicly-accessible methods to the object that is its receiver. Our final code now looks something like this:</p>
-
-<pre><code class="ruby">class Book &lt; ActiveRecord::Base
-  validates_presence_of :title, :author
-
-  def show_cover?
-    self.viewable_by == 'media'
-  end
-
-  def book_html
-    if show_cover?
-      # Code here will generate and return
-      # an html image tag to render in view.
-    else
-      public_send(self.viewable_by)
-    end
-  end
-end
-</code></pre>
-
-<p>Nice! Not too shabby for our first attempt at metaprogramming all the things (or at least one thing).</p>
-
-<p>As hard as it is to do, you can&rsquo;t be too hard on yourself when it comes to refactoring and metaprogramming. I honestly think it just comes with time, practice, and exposure. Eventually, you&rsquo;ll start to recognize the same patterns again and again, and you&rsquo;ll start to learn which tools are the right ones for the job.</p>
-
-<p>Even though it takes a bit more effort, I think learning the different techniques of metaprogramming makes you better and both reading and writing code. By rewriting your old code and implementing some of those metaprogramming techniques, you take away some of the otherwise hard-coded lines in your application, and make it more flexible and dynamic.</p>
-
-<p>If any or all of this sounds intimidating, that&rsquo;s because it is! But it&rsquo;s also not impossible, as I&rsquo;ve recently proven to myself (and hopefully to you). Luckily, Ruby gives us a lot of tools to meta program away our boilerplate code. It&rsquo;s just a question of knowing what those tools are so that you can use them when you see the perfect opportunity. And when you finally metaprogram something, you&rsquo;ll be so impressed with yourself that you&rsquo;ll let out a little squeal of glee like this little kitty and it&rsquo;ll be the cutest thing ever:</p>
-
-<iframe src="//giphy.com/embed/117j1ldyb838Zi" width="480" height="382" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>We can use dynamic dispatching to send a method to an object without being explicit about the method&rsquo;s contents within our application. The <code>send</code> and <code>public_send</code> method are two ways of doing this, and both take a string or symbol as a parameter, and use that to call a method of the same name upon the receiving object.</li>
-<li>Learn the basics of metaprogramming over <a href="http://ruby-metaprogramming.rubylearning.com/html/ruby_metaprogramming_2.html">here</a>, and check out the docs on <a href="http://ruby-doc.org/core-2.2.2/Object.html#method-i-send">send</a> and <a href="http://apidock.com/ruby/Object/public_send">public_send</a>.</li>
-<li>Curious about the different types of dynamic method calls out there? This <a href="http://ruby.about.com/od/oo/ss/Dynamic-Method-Calls.htm">blog post</a> covers a few different kinds in depth.</li>
 </ul>
 
 ]]></content>

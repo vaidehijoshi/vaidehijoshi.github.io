@@ -1,0 +1,459 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Refactoring to Reveal Rails Group_by - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="There are a lot of opportunities in programming to feel pretty silly about yourself. I&rsquo;m sure that the more coding experience you have, the &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/06/09/refactoring-to-reveal-rails-group-by">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Refactoring to Reveal Rails Group_by</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-06-09T08:43:24-04:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:43 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/refactoring/'>refactoring</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><img src="http://img.pandawhale.com/post-10513-Code-Refactoring-Cat-in-Bathtu-U295.gif" style="display: block; margin-left: auto; margin-right: auto;"/></p>
+
+<p>There are a lot of opportunities in programming to feel pretty silly about yourself. I&rsquo;m sure that the more coding experience you have, the less often these moments actually occur. But early on in your career, they seem to happen quite often &ndash; or they do to <em>me</em>, at least.</p>
+
+<p>I had one of those moments a couple weeks ago, when I wrote a super long method and then asked a senior developer to take a look at it. While I was writing it, something seemed inherently wrong. I was sure there was a better way to do it, but I guess my Googling skills aren&rsquo;t quite superb yet, because I couldn&rsquo;t find quite the right answer anywhere. It was then that I decided to ask someone who would know exactly which tool to reach for.</p>
+
+<p>What happened next was pretty awesome, albeit slightly depressing. I watched my code be refactored from ten lines down to a single line. It blew my mind &ndash; and not just because I didn&rsquo;t know that this method even <em>existed</em>, but because I wanted to know how it worked! So, I did some digging and learned a bit about the method that I wrote which, as it turns out, already existed: the Rails <code>group_by</code> method on Enumerables.</p>
+
+<!--more-->
+
+
+<h2>Data Is For Manipulating</h2>
+
+<p>I started off writing my super long method because I wanted to structure my data in a very specific way. In fact, we&rsquo;ll probably want to structure the data in our Bookstore eCommerce app in a very similar way, too, so let&rsquo;s use that as our working example.</p>
+
+<p>For our admin panel, we want a list of <code>Author</code> objects, categorized by <code>genre</code>. Because our collection of <code>Books</code> is going to grow extensively, it would be helpful for an admin to know which authors are included in a <code>genre</code> or time period. Eventually, this could be used by admins to add new authors by a genre, to filter or sort by a genre, or to calculate an author count per genre, and figure out which authors to add to our collection of books.</p>
+
+<p>Right now, our collection of <code>Author</code> objects isn&rsquo;t very big, but has just enough information for us to start implementing this functionality:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">&gt;</span> <span class="no">Author</span><span class="o">.</span><span class="n">all</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="o">[</span><span class="p">{</span><span class="c1">#&lt;Author:0x192ajk21a6d0b0 last_name: &quot;Shakespeare&quot;, genre: &quot;Renaissance&quot;&gt;}, </span>
+</span><span class='line'><span class="p">{</span><span class="c1">#&lt;Author:0w917qwl38f6s8v6 last_name: &quot;Homer&quot;, genre: &quot;Classics&quot;&gt;}, </span>
+</span><span class='line'><span class="p">{</span><span class="c1">#&lt;Author:0x390akd23a5d9m4 last_name: &quot;Faulkner&quot;, genre: &quot;Southern Gothic&quot;&gt;}, </span>
+</span><span class='line'><span class="p">{</span><span class="c1">#&lt;Author:1r103aur58b7c4r2 last_name: &quot;Marlowe&quot;, genre: &quot;Renaissance&quot;&gt;}]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Even though our data is easy to read now, we can be sure that it isn&rsquo;t going to stay that way. But we know that if we structure each of our objects correctly, we could have something simple, like this, in our view:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">div</span>
+</span><span class='line'>  <span class="o">-</span> <span class="no">Author</span><span class="o">.</span><span class="n">sort_by_genre</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">genre</span><span class="p">,</span> <span class="n">author</span><span class="o">|</span>
+</span><span class='line'>    <span class="n">h2</span> <span class="o">=</span> <span class="n">genre</span>
+</span><span class='line'>    <span class="o">-</span> <span class="n">author</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">a</span><span class="o">|</span>
+</span><span class='line'>      <span class="nb">p</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">last_name</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>I&rsquo;m a big fan of slim, which is what I&rsquo;ve used above, but this view would still be pretty minimal when using another templating language such as erb.</p>
+
+<p>Given that this is the view we want to render, we can use this information to structure our data. I&rsquo;m thinking a hash is the tool for the job, with each key being a <code>genre</code> name, and the value being an array of <code>Author</code> objects that we can iterate through for each specific <code>genre</code>.</p>
+
+<p>It would be nice if we could call something like <code>Author.sort_by_genre</code> and have it return a structure like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">=&gt;</span> <span class="p">{</span><span class="s2">&quot;Renaissance&quot;</span><span class="p">:</span> <span class="o">[</span><span class="no">Shakespeare</span><span class="p">,</span> <span class="no">Marlowe</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'><span class="s2">&quot;Southern Gothic&quot;</span><span class="p">:</span> <span class="o">[</span><span class="no">Faulkner</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'><span class="s2">&quot;Classics&quot;</span><span class="p">:</span> <span class="o">[</span><span class="no">Homer</span><span class="o">]</span><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So now that we know what we <em>want</em> our data to look like, let&rsquo;s write it the ugly way, just like I did!</p>
+
+<h2>The First Iteration</h2>
+
+<p>To start with, we know that we want to return a hash. So we can start by instantiating a hash, which will be our <code>authors_by_genre</code>. We also know that we&rsquo;ll need all the <code>Author</code> objects in an array; since we&rsquo;re specifically looking for an author&rsquo;s <code>last_name</code> and <code>genre</code>, we can query for those directly. And we can return our empty hash, since that will eventually be filled up:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">sort_by_genre</span>
+</span><span class='line'>  <span class="n">authors_by_genre</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span class='line'>  <span class="n">authors</span> <span class="o">=</span> <span class="no">Author</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">collect</span> <span class="p">{</span> <span class="o">|</span><span class="n">author</span><span class="o">|</span> <span class="o">[</span><span class="n">author</span><span class="o">.</span><span class="n">last_name</span><span class="p">,</span> <span class="n">author</span><span class="o">.</span><span class="n">genre</span><span class="o">]</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">authors_by_genre</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Okay, so now we need to fill up our hash. We have our <code>authors</code> variable, which is set to the collection of all <code>Author</code> objects. We will need to iterate through all of them, and put that <code>Author</code> in the correct array for the right <code>genre</code> key. If the right <code>genre</code> key doesn&rsquo;t exist, we&rsquo;ll need to create a key for that author&rsquo;s <code>genre</code>. We can accomplish this with another iteration. Now our method looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span>
+</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">sort_by_genre</span>
+</span><span class='line'>      <span class="n">authors_by_genre</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span class='line'>      <span class="n">authors</span> <span class="o">=</span> <span class="no">Author</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">collect</span> <span class="p">{</span> <span class="o">|</span><span class="n">author</span><span class="o">|</span> <span class="o">[</span><span class="n">author</span><span class="o">.</span><span class="n">last_name</span><span class="p">,</span> <span class="n">author</span><span class="o">.</span><span class="n">genre</span><span class="o">]</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">authors</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">genre</span><span class="p">,</span> <span class="n">author</span><span class="o">|</span>
+</span><span class='line'>        <span class="k">if</span> <span class="n">authors_by_genre</span><span class="o">[</span><span class="n">genre</span><span class="o">]</span>
+</span><span class='line'>          <span class="n">authors_by_genre</span><span class="o">[</span><span class="n">genre</span><span class="o">]</span> <span class="o">&lt;&lt;</span> <span class="n">author</span>
+</span><span class='line'>        <span class="k">else</span>
+</span><span class='line'>          <span class="n">authors_by_genre</span><span class="o">[</span><span class="n">genre</span><span class="o">]</span> <span class="o">=</span> <span class="o">[</span><span class="n">author</span><span class="o">]</span>
+</span><span class='line'>        <span class="k">end</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">authors_by_genre</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Okay&hellip;so hopefully, by this point, you should be thinking to yourself: <em>This isn&rsquo;t just ugly, it&rsquo;s also <strong>super</strong> inefficient</em>. And you&rsquo;d be right. It&rsquo;s pretty bad.</p>
+
+<iframe src="//giphy.com/embed/asIa0FVaBSQNO" width="480" height="307" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>If you weren&rsquo;t sure how bad it really is, think about all the queries we&rsquo;re making! And how many times we&rsquo;re iterating! As soon as I finished writing this and got it working, I knew it was <em>definitely</em> not the right approach. But the first step is to get it working. Now, we need to seriously consider how we can make it right and make it fast.</p>
+
+<p>You know what what this means, right? Refactoring time.</p>
+
+<h2>Group All The Things</h2>
+
+<p>A quick way to refactor some of the messiness from our first iteration is by first changing how we initialize our hash object, and also modifying how we go about deciding whether to create a new key or add to a key that already exists.</p>
+
+<p>Enter the <code>each_with_object</code> method! This is a pretty rad method I learned about while refactoring my first iteration of this <code>sort_by_genre</code> method. The <code>each_with_object</code> method requires a single argument: the object that you want to pass to it in each iteration. In our case, we&rsquo;ll pass it a hash. And since the items we want to actually &ldquo;categorize&rdquo; are our <code>Author</code> objects, we&rsquo;ll call <code>each_with_object</code> on our collection of <code>Authors</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span>
+</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">sort_by_genre</span>
+</span><span class='line'>      <span class="no">Author</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">each_with_object</span><span class="p">({})</span> <span class="p">{</span>  <span class="p">}</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, what about that block &ndash; what goes inside? Well, we can think about what we want to do with each of our <code>Author</code> objects that we&rsquo;re iterating over. Inside of our hash, which we&rsquo;re passing explicitly as an argument to <code>each_with_object</code>, we want to either find the correct key and put the correct <code>Author</code> into that array, or create a new key based on the current <code>Author</code> object&rsquo;s genre. We can write that quite nicely by using the <code>||=</code> <strong>or equals</strong> operator, which will assign a new object, or whatever is to the right of the operator, equal to the left side of the pipes, or whatever is to the left of the operator:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span>
+</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">sort_by_genre</span>
+</span><span class='line'>      <span class="no">Author</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">each_with_object</span><span class="p">({})</span> <span class="p">{</span> <span class="o">|</span><span class="n">author</span><span class="p">,</span> <span class="nb">hash</span><span class="o">|</span> <span class="p">(</span><span class="nb">hash</span><span class="o">[</span><span class="n">author</span><span class="o">.</span><span class="n">genre</span><span class="o">]</span> <span class="o">||=</span> <span class="o">[]</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="n">author</span> <span class="p">}</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Much better, right? In this second iteration, we&rsquo;re passing a hash directly to the <code>each_with_object</code> method, and basically telling it, <em>Find the key in the hash I just passed you that is equal to this author&rsquo;s genre. And if no such key exists, make one, set it equal to an empty array, and then put this current author into that array</em>.</p>
+
+<p>The order of our or equals operator is particularly important, because if it were switched, it would never run what is on the right side of the pipes. The <code>||=</code> operator is exactly like the <code>||</code> operator in that it will run what is to its right <em>only</em> if what is to its left evaluates to <code>false</code>. This is what keeps our method from trying to create multiple keys again and again, and instead forces it to find an existing key first. The super cool thing about the <code>||=</code> operator is that it is actually assigning a new key value to an empty array, which cuts out a lot of extra lines we had in our first iteration!</p>
+
+<p>Okay, so this second iteration has been a vast improvement. But I think it&rsquo;s time for some serious refactoring magic. Are you ready? Okay. This <em>entire</em> method can be rewritten into a single, simple line:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span>
+</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">sort_by_genre</span>
+</span><span class='line'>      <span class="no">Author</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:genre</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Yup. I kid you not.</p>
+
+<iframe src="//giphy.com/embed/sHytgXD2vlNVC" width="480" height="376" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>This is the magic of the Rails <code>group_by</code> method, which collects an enumerable into sets, grouping it by the result of a block. This method takes a proc using the ampersand shortcut as an argument (which we started using last week!). The <code>group_by</code> method is passed the symbol <code>:genre</code>, which is an attribute on each <code>Author</code> object, and corresponds to a <code>genre</code> column in the <code>authors</code> table. So, we are effectively grouping all of our <code>Author</code> objects by the result of calling <code>.genre</code> on each object. In other words, we&rsquo;re grouping by the <code>genre</code> attribute since the attribute corresponds to an <code>attr_accessor</code> method in the class.</p>
+
+<p>And now, if we call our <code>sort_by_genre</code> class method, we get the exact data structure we were hoping for:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">&gt;</span> <span class="no">Author</span><span class="o">.</span><span class="n">sort_by_genre</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="p">{</span><span class="s2">&quot;Renaissance&quot;</span><span class="p">:</span> <span class="o">[</span><span class="p">{</span><span class="c1">#&lt;Author:0x192ajk21a6d0b0 last_name: &quot;Shakespeare&quot;, genre: &quot;Renaissance&quot;&gt;}, </span>
+</span><span class='line'><span class="p">{</span><span class="c1">#&lt;Author:1r103aur58b7c4r2 last_name: &quot;Marlowe&quot;, genre: &quot;Renaissance&quot;&gt;}], </span>
+</span><span class='line'><span class="s2">&quot;Southern Gothic&quot;</span><span class="p">:</span> <span class="o">[</span><span class="p">{</span><span class="c1">#&lt;Author:0x390akd23a5d9m4 last_name: &quot;Faulkner&quot;, genre: &quot;Southern Gothic&quot;&gt;}], </span>
+</span><span class='line'><span class="s2">&quot;Classics&quot;</span><span class="p">:</span> <span class="o">[</span><span class="p">{</span><span class="c1">#&lt;Author:0w917qwl38f6s8v6 last_name: &quot;Homer&quot;, genre: &quot;Classics&quot;&gt;}]}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Hooray! Or maybe not hooray. Maybe instead of hooray, you feel like I did when I realized that you could refactor all of this into one line:</p>
+
+<blockquote class="twitter-tweet tw-align-center" lang="en"><p lang="en" dir="ltr">PROGRAMMING:&#10;Write a 10-line method.&#10;Feel proud when it works.&#10;Find out you can write the same thing in a single line.&#10;Cry in the corner.</p>&mdash; Vaidehi Joshi (@vaidehijoshi) <a href="https://twitter.com/vaidehijoshi/status/601156228723642369">May 20, 2015</a></blockquote>
+
+
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+<p><br></p>
+
+<p>Although it made me feel pretty silly, the actual process of writing the <code>group_by</code> method from scratch was a really great learning experience. I ended up using the examples above in a talk I gave on refactoring at <a href="http://www.twitter.com/reddotrubyconf">Red Dot Ruby Conference</a> in Singapore last week. And I actually recreated the <em>exact same</em> functionality when I had to write my <em>own</em> <code>groupBy</code> function in JavaScript for a React component I had to build! I guess that however deep of a rabbit hole refactoring can be, sometimes it&rsquo;s exactly the right kind of deep dive you need to learn how something works under the hood. I still totally feel like that cat in the bathtub whenever I do it &ndash; but I&rsquo;m kind of okay with that.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>group_by</code> method takes a block, which it uses to group a collection of objects. The <code>each_with_object</code> method takes an object as an argument, and a block which tells it how to sort the collection you call the method upon.</li>
+<li>Read more on the <code>group_by</code> method in the <a href="http://apidock.com/rails/Enumerable/group_by">Rails docs</a>, which also has a great example!</li>
+<li>Looking for another example of how to implement Rails&#8217; <code>group_by</code> in a view? Check out <a href="https://ariejan.net/2007/01/12/rails-group-results-by-week-using-group_by/">this blog post</a>.</li>
+<li>Did you know that Ruby also has a similar <code>group_by</code> method? It&rsquo;s great when you want to <a href="http://ruby-doc.org/core-2.2.2/Enumerable.html#method-i-group_by">return a hash</a> where the keys are evaluated by a block!</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-06-09T08:43:24-04:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:43 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/refactoring/'>refactoring</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/06/09/refactoring-to-reveal-rails-group-by/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/06/09/refactoring-to-reveal-rails-group-by/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/" title="Previous Post: Code Smells And Ruby Shorthand: Unpacking Ampersand + to_proc">&laquo; Code Smells And Ruby Shorthand: Unpacking Ampersand + to_proc</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/06/09/refactoring-to-reveal-rails-group-by/">Refactoring to Reveal Rails Group_by</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/">Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/">The Secret Life of Your Database, Part 2: Join Tables</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">The Secret Life of Your Database, Part 1: Migrations</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/">Investigating Ruby&#8217;s Global Functions + Kernel Module With Puts</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
