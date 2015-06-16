@@ -264,10 +264,14 @@
 <span class='line-number'>5</span>
 <span class='line-number'>6</span>
 <span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
 </pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span>
 </span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
 </span><span class='line'>    <span class="k">def</span> <span class="nf">sort_by_genre</span>
-</span><span class='line'>      <span class="no">Author</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">each_with_object</span><span class="p">({})</span> <span class="p">{</span> <span class="o">|</span><span class="n">author</span><span class="p">,</span> <span class="nb">hash</span><span class="o">|</span> <span class="p">(</span><span class="nb">hash</span><span class="o">[</span><span class="n">author</span><span class="o">.</span><span class="n">genre</span><span class="o">]</span> <span class="o">||=</span> <span class="o">[]</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="n">author</span> <span class="p">}</span>
+</span><span class='line'>      <span class="no">Author</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">each_with_object</span><span class="p">({})</span> <span class="p">{</span>
+</span><span class='line'>      <span class="o">|</span><span class="n">author</span><span class="p">,</span> <span class="nb">hash</span><span class="o">|</span> <span class="p">(</span><span class="nb">hash</span><span class="o">[</span><span class="n">author</span><span class="o">.</span><span class="n">genre</span><span class="o">]</span>
+</span><span class='line'>      <span class="o">||=</span> <span class="o">[]</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="n">author</span> <span class="p">}</span>
 </span><span class='line'>    <span class="k">end</span>
 </span><span class='line'>  <span class="k">end</span>
 </span><span class='line'><span class="k">end</span>
@@ -383,6 +387,8 @@
         <a class="basic-alignment left" href="/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/" title="Previous Post: Code Smells And Ruby Shorthand: Unpacking Ampersand + to_proc">&laquo; Code Smells And Ruby Shorthand: Unpacking Ampersand + to_proc</a>
       
       
+        <a class="basic-alignment right" href="/blog/2015/06/16/babys-first-conference-recapping-reddotrubyconf/" title="Next Post: Baby's First Conference: Recapping RedDotRubyConf">Baby&#8217;s First Conference: Recapping RedDotRubyConf &raquo;</a>
+      
     </p>
   </footer>
 </article>
@@ -394,6 +400,10 @@
     <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/06/16/babys-first-conference-recapping-reddotrubyconf/">Baby&#8217;s First Conference: Recapping RedDotRubyConf</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/06/09/refactoring-to-reveal-rails-group-by/">Refactoring to Reveal Rails Group_by</a>
@@ -409,10 +419,6 @@
     
       <li class="post">
         <a href="/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">The Secret Life of Your Database, Part 1: Migrations</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/">Investigating Ruby&#8217;s Global Functions + Kernel Module With Puts</a>
       </li>
     
   </ul>

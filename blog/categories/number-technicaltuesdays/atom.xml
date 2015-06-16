@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-06-08T22:34:56-04:00</updated>
+  <updated>2015-06-15T23:27:20-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,119 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Baby's First Conference: Recapping RedDotRubyConf]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/06/16/babys-first-conference-recapping-reddotrubyconf/"/>
+    <updated>2015-06-16T08:29:28-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/06/16/babys-first-conference-recapping-reddotrubyconf</id>
+    <content type="html"><![CDATA[<iframe src="https://www.flickr.com/photos/reddotrubyconf/18777106586/in/photostream/player/" width="500" height="333" frameborder="0" allowfullscreen webkitallowfullscreen mozallowfullscreen oallowfullscreen msallowfullscreen></iframe>
+
+
+<p>A week ago, I was on a code overload in Singapore. What was I doing on the other side of the world? Why, giving (and attending!) my very first talk at a Ruby conference, of course!</p>
+
+<p>I was lucky enough to join some serious Ruby powerhouses at the <a href="reddotrubyconf.com">Red Dot Ruby Conference</a> earlier this month. And it was such a cool first conference experience. But, because I had to give a talk, I was pretty preoccupied with writing my speech and creating some fun slides to accompany it. What I forgot in the process was that I would be an audience member at the conference, too! (Pretty silly, I know).</p>
+
+<p>My lightning talk was <a href="http://confreaks.tv/videos/rdrc2015-lightning-talk-refactoring-of-self">just a few minutes</a>, which meant that for the majority of the two-day conference, I had the unique opportunity to listen to some really fantastic talks. And I learned <em>so much</em>. I also got to meet some interesting, talented, and creative people who have made some very significant and core contributions to the Ruby and Rails communities and codebases. Summing up everything that happened in those two days is a bit difficult since every talk was informative in many ways. But I&rsquo;ll recap at least some of the dopest things I learned about while I was there. But if you want the full effect, you should probably <a href="http://i.ytimg.com/vi/_kRtkrBumBw/maxresdefault.jpg">eat a durian</a> while reading this post &ndash; just sayin&#8217;.</p>
+
+<!--more-->
+
+
+<h2>Your Code Is Not Just Yours</h2>
+
+<p>One of the first talks of the conference focused on something I pretty much knew nothing about: security. André Arko&rsquo;s talk, <em>Security Is Hard, But We Can&rsquo;t Go Shopping</em> was an eye-opening look at why Ruby developers don&rsquo;t think (or talk) about security vulnerabilities in their codebases &ndash; and why we all <em>should</em> be having that conversation.</p>
+
+<p>André&rsquo;s talk definitely caught my attention when he gave an example of a company that went out of business in a day because they lost <em>all</em> of their data because their severs were hacked. Yes, you read that right: lost all their data, shut down in a day. Pretty terrifying, right?</p>
+
+<div style="text-align:center">
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/eHmXar6TNUo?showinfo=0" frameborder="0" allowfullscreen></iframe><br>
+</div>
+
+
+<p>There were three big takeaways for me from this talk:</p>
+
+<h4><strong>1. Updating is insurance</strong></h4>
+
+<p>We&rsquo;ve all looked at our code and seen deprecation warnings, or things that are out of date and need to be updated to the latest version. And, we&rsquo;ve all, at some point, ignored those warnings. It&rsquo;s really easy to think about shipping your code quickly and iterating fast, particularly because updating things is <em>not</em> fun. And no one wants to do it.</p>
+
+<p>But, you know what&rsquo;s worse? Your entire app blowing up because you had a vulnerability exposed in your code because you didn&rsquo;t update! If we all started thinking about updating as <em>insurance</em>, we&rsquo;d be more willing to sit down and put in the time to make sure all aspects of our applications were updated and thus, at the lowest possible level of security risk. This shift in perspective also seems like the best way to pitch &ldquo;updating&rdquo; as a task to project managers who might not see the time value in something like upgrading an already-functioning application.</p>
+
+<h4>2. <strong>Responsible disclosure</strong></h4>
+
+<p>If you find a security vulnerability, be nice about it. Don&rsquo;t be a jerk, man. Sometimes, you can even get a reward for disclosing! Figure out what the process is for disclosing a security issue to a company, and be empathetic to the developers who wrote that code which you&rsquo;re using &ndash; who knows, maybe one day there&rsquo;ll be a vulnerability in your code, and you&rsquo;ll wish you had been nicer to <em>those</em> developers.</p>
+
+<h4>3. <strong>There are users, there are abusers</strong></h4>
+
+<p>As a young developer, you can think about who is using your code. Many junior developers write code to get it to work or to make it fast, but it&rsquo;s also important to think about who is or could potentially be using your code. It&rsquo;s helpful to start thinking about those things, even as a new programmer. Consider things like strong params and <code>csrf</code> tokens to start, and then work your way up to more complex security measures in your Rails applications. At the end of the day, you probably have some gaping holes in your codebase that is allowing someone to be malicious to your code base, which means that <em>your</em> code isn&rsquo;t actually yours anymore.</p>
+
+<h2>All About That Efficiency</h2>
+
+<p>My favorite talk of the entire conference came from Sam Saffron, the co-founder of Discourse and one of the first employees at StackExchange. To be honest, this talk was less an exercise is learning new things and more a revelation in all the things that I <em>didn&rsquo;t</em> know. And all the things that I knew nothing about centered around one thing: <strong>efficiency</strong>.</p>
+
+<div style="text-align:center">
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/aP5NNkzb4og?showinfo=0" frameborder="0" allowfullscreen></iframe><br>
+</div>
+
+
+<p>Sam&rsquo;s talk piqued my interested in particular because I&rsquo;ve been trying to think about the efficiency of my own applications for a few weeks now. I&rsquo;ve been trying to use more efficient methods in my own code &ndash; like <code>pluck</code> in last week&rsquo;s post, for example, or my post on the ActiveRecord <code>includes</code> <a href="http://vaidehijoshi.github.io/blog/2015/04/07/querying-at-warp-drive-using-activerecord-includes/">method</a> a few months ago.</p>
+
+<p>Yet there&rsquo;s a lot more to efficiency than that, it turns out! And that&rsquo;s exactly what Sam&rsquo;s talk aimed to explore. One of the things I learned pretty early on was that ActiveRecord is inefficient &ndash; yes, really! For those of us writing smaller applications, it may not be all that obvious. But for something much larger, such as Discourse, which has tons and tons of assets that have to compile on page load&hellip;well, it&rsquo;s pretty obvious how even just <em>one</em> n+1 query could throw the whole thing to hell in a handbasket!</p>
+
+<p>What I loved the most about Sam&rsquo;s talk was the live demo. He actually ran his server in showed us the different technologies he used to track things like server calls, method invocations, and raw SQL queries. He didn&rsquo;t just tell us what he used &ndash; he showed us what they looked like in development! And here&rsquo;s the icing on the cake: everything is open source. Which means that we can all use the same technologies and fork them and add/modify them for our own projects!</p>
+
+<p>Here are a few of the gems that Sam uses and recommends, which I&rsquo;ve looked into. Lookout for some upcoming #TechnicalTuesdays posts on these soon:</p>
+
+<h4>1. <code>lru_redux</code></h4>
+
+<p>This gem allows for efficient caching by using ordered arrays. It provides you with some pretty fantastic methods to write, read, and clear your cache. The most important thing here is that arrays are quick and efficient when it comes to looking up an item by index, which makes it ideal for something like storing a cache. Check out more on the <code>lru_redux</code> <a href="https://github.com/SamSaffron/lru_redux">Github page</a>.</p>
+
+<h4>2. <code>dapper</code></h4>
+
+<p>The <code>dapper</code> gem is a lightweight Object Relational Mapper that was created by developers at StackExchange who wanted to solve an n+1 problem. What&rsquo;s pretty cool about this gem is that it allows you to execute raw SQL queries and map your results. A major benefit of this is that you no longer have to rely on the Object-Relational Mapper that comes for free with Rails: ActiveRecord. We&rsquo;ve all encountered ActiveRecord&rsquo;s flaws &ndash; particularly when it comes to calls to the server and queries to the database &ndash; and thanks to this gem, you don&rsquo;t have to deal with those things again. Instead, you can just write your own queries to execute! Find out more over on their <a href="https://github.com/StackExchange/dapper-dot-net">ReadMe</a>.</p>
+
+<h4>3. <code>fast_pluck</code></h4>
+
+<p>I&rsquo;m really curious about how this &ldquo;freedom patch&rdquo; actually works, and I need to take the time to sit down and read through it with a good cup of coffee. But, I really like the idea of speeding up ActiveRecord&rsquo;s <code>pluck</code> method, which I am already pretty comfortable with. Check it out over on <a href="https://gist.github.com/SamSaffron/bd593751668e5e5c4afc">this Gist</a>.</p>
+
+<h4>4. <code>memory_profiler</code></h4>
+
+<p>The <code>memory_profiler</code> gem measures how many objects you&rsquo;re allocating to memory on boot of your application, and how many are being retained (how much memory they&rsquo;re taking up) in your app. I haven&rsquo;t explored this gem too much, but I hope to play with it more in the future. You can play with it <a href="
+https://github.com/SamSaffron/memory_profiler">over here</a>.</p>
+
+<h2>Language Design Is Hard</h2>
+
+<p>This realization is probably neither prophetic nor profound, but it&rsquo;s still worth repeating nonetheless: languages are hard. They&rsquo;re hard to read, learn, and, most of all, <em>write</em>.</p>
+
+<p>Matz&rsquo;s <a href="https://www.youtube.com/watch?v=bqWBB8-iEac">keynote presentation</a> on the new and upcoming features in the next Ruby release was the first time I started thinking about how difficult it must be to actually create the language that we use everyday, and love so dearly. After his presentation, I asked him how he goes about actually designing new features, long before they are implemented. His answer, in short, was incredibly empathetic: he said that he thinks about what it&rsquo;s like to actually use the Ruby language with the feature he has in mind, and he considers the user experience before handing off a feature for someone to actually implement and include in the next release.</p>
+
+<p>I thought about the difficult problem of language design yet again during Paolo Perrotta&rsquo;s awesome talk about refinements. If you&rsquo;re not familiar with the concept (I wasn&rsquo;t before this talk!), the short version is that <strong>refinements</strong> showed up in Ruby 2, and were used to make &ldquo;local&rdquo; monkeypatches, which are a much safer and preferable alternative to global monkeypatching. An interesting issue with refinements is that they rely on dynamic scoping, which means that you can close and reopen the scope of a class and redefine things in different ways.</p>
+
+<div style="text-align:center">
+<iframe width="560" height="315" src="https://www.youtube.com/embed/_27-4-dbnA8?rel=0&amp;showinfo=0" frameborder="0" allowfullscreen></iframe><br>
+</div>
+
+
+<p>In a way, it was great that Paolo&rsquo;s talk was towards the end of the conference, because it tied up things together nicely. I learned that a simple thing like Ruby refinements &ndash; which boils down to two keywords, <code>refine</code> and <code>using</code> &ndash; were a perfect example of the first two things I learned during the conference: security and efficiency!</p>
+
+<p>The issue with refinements is that you can&rsquo;t always tell what&rsquo;s going in your code, or what exactly your code will execute. And that&rsquo;s pretty scary! You know what else it is? A security threat and a huge vulnerability. Refinements  also slow your code down, because the Ruby interpreter has to go through all of your code and check if a refinement is being used or not. Not exactly the most optimized way of doing things, amirite?</p>
+
+<p>All of this got me thinking about the people who write the languages that we use. They have to have a deep understanding of the language architecture and syntax, and think about how a developer might use (or <em>abuse</em>) a language feature. All of this is to say: language design is hard. And maybe we should all be a bit more grateful for the people who think about these complex problems on a daily basis.</p>
+
+<p>Compared to things like security, optimization, and language design, a smelly durian doesn&rsquo;t seem nearly as bad. In fact, I&rsquo;d say that as far as developers go, we as a Ruby community have got it pretty good. But probably not as good as this dog right here:</p>
+
+<iframe src="//giphy.com/embed/Ps3UNgJew0H7y" width="480" height="347" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Think about the two types of people who use your code: the users, who should have a seamless experience, which will make you optimize your code, and the abusers (or a better term that I can&rsquo;t think of), or those people who will be looking for security vulnerabilities in <em>your</em> code.</li>
+<li>Language design is hard. Refinements are a pretty good example of how a programming language can blow your mind with a single feature</li>
+<li>I also met Matz! It was <a href="https://twitter.com/vaidehijoshi/status/606684141506076673">incredibly awesome</a>. And he really is as nice as they say.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Refactoring to Reveal Rails Group_by]]></title>
@@ -132,7 +245,9 @@ end
 <pre><code class="ruby">class Author
   class &lt;&lt; self
     def sort_by_genre
-      Author.all.each_with_object({}) { |author, hash| (hash[author.genre] ||= []) &lt;&lt; author }
+      Author.all.each_with_object({}) { 
+      |author, hash| (hash[author.genre]
+      ||= []) &lt;&lt; author }
     end
   end
 end
@@ -754,182 +869,6 @@ end
 <li>The <code>up</code> and <code>down</code> methods are a more granular way of defining the <code>change</code> method in a Rails migration. The <code>up</code> method is a set of instructions of what to do when you migrate, and the <code>down</code> method is a set of directions of what to do when you rollback.</li>
 <li>Want to see more examples of when you might want to use the <code>up</code> and <code>down</code> methods in place of the <code>change</code> method? Check out the Rails Guides on <a href="http://api.rubyonrails.org/classes/ActiveRecord/Migration.html">Active Record Migrations</a>.</li>
 <li>Need to read more on running migrations? <a href="http://guides.rubyonrails.org/v2.3.11/migrations.html#running-migrations">Read this</a>. Gotta brush up on migrations after reading this post? Head over <a href="http://edgeguides.rubyonrails.org/active_record_migrations.html">here</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Investigating Ruby's Global Functions + Kernel Module With Puts]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/"/>
-    <updated>2015-05-12T08:09:27-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/10Vy7fN9fr7dD2" width="480" height="361" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>When you&rsquo;re a relatively new developer, it&rsquo;s easy to get caught up in all of the things that you don&rsquo;t know. And boy is <em>that</em> a long, long list of things. But there&rsquo;s also another list that we should probably consider and revisit from time to time: the list of all the things we thought we knew, but didn&rsquo;t <em>really</em> understand when we learned them.</p>
-
-<p>Last week, while developing some curriculum for an Intro to Programming course, my co-teacher and I had one of those moments. We were trying to draw a diagram to explain the concept of an object &ldquo;receiving&rdquo; a method. As I looked back through our code snippets, I noticed that we were using very basic methods like <code>puts</code> and <code>gets</code> quite often, as most Ruby tutorials usually do. And then I realized something: I had no clue what the receiver of the <code>puts</code> method was.</p>
-
-<p>We both just sat there, partly perplexed and partly dumbfounded. How could we not know how <code>puts</code> and <code>gets</code> really worked? We used them all the time when we were learning to code, so perhaps we didn&rsquo;t really think past the flexibility of these methods. But now that we are both more seasoned programmers, it seemed strange that we had never really thought about this before.</p>
-
-<p>So, I did exactly what any good developer would do: I asked Twitter. Well, okay, I asked Twitter&hellip;and then I put on my detective hat and did some investigating of my own.</p>
-
-<!--more-->
-
-
-<h2>Puts, I love you, but you&rsquo;re bringing me down</h2>
-
-<blockquote class="twitter-tweet tw-align-center" lang="en"><p lang="en" dir="ltr">RUBYISTS, please help: what is the receiver of the puts and gets methods? Is it the main Object? I need to know, it&#39;s driving me crazy</p>&mdash; Vaidehi Joshi (@vaidehijoshi) <a href="https://twitter.com/vaidehijoshi/status/596465002669875201">May 8, 2015</a></blockquote>
-
-
-<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
-
-
-<p>I have a bone to pick with the <code>puts</code> method. Well, okay, two bones I guess. First, it has no explicit receiver:</p>
-
-<pre><code>♥ irb
-2.2.0 :001 &gt; puts "wat"
-wat
- =&gt; nil 
-</code></pre>
-
-<p>And second, it&rsquo;s just REALLY hard to figure out what on earth is happening with this method. In fact, the hardest part about understanding <code>puts</code> was figuring out exactly <em>where</em> inside of Ruby it lived.</p>
-
-<p>Apparently though, there&rsquo;s a method for that &ndash; well, two methods, actually. The <code>owner</code> and the <code>receiver</code> methods can be used to ask a method where it lives and who it can be called on. We can just pass it the name of the method we&rsquo;re curious about as a symbol, and then ask it where it belongs:</p>
-
-<pre><code>2.2.0 :002 &gt; method(:puts).receiver
- =&gt; main 
-
-2.2.0 :003 &gt; method(:puts).owner
- =&gt; Kernel 
-</code></pre>
-
-<p>WAT. It seemed like <code>main</code> was the receiver of this method, while <code>Kernel</code> was the owner, or the place where this method was actually defined.</p>
-
-<p>But did that mean that <code>main</code> was also self within the context of <code>irb</code>? And what <em>was</em> <code>main</code>, exactly? There was only one way to find out:</p>
-
-<pre><code>2.2.0 :004 &gt; method(:gets).receiver == self
- =&gt; true 
-
-2.2.0 :005 &gt; self
- =&gt; main 
-
-2.2.0 :006 &gt; self.class
- =&gt; Object
-</code></pre>
-
-<p>Pretty weird, right? But hang on&hellip;there was a line up there that was pretty new for me. Something about a <code>Kernel</code>? Let&rsquo;s do a bit more detective work.</p>
-
-<h2>Tell Me &lsquo;Bout Them Kernels</h2>
-
-<iframe src="//giphy.com/embed/rambtrormFyWQ" width="480" height="268" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Okay, you&rsquo;re probably wondering: <em>So that <code>Kernel</code> thing &ndash; what&rsquo;s the deal?</em> Well, it turns out that <code>Kernel</code> is a module, and if you&rsquo;re like me, you probably haven&rsquo;t thought about it that much until now.</p>
-
-<p>But what you might remember about modules is that they have to be mixed into a class in order to be included; that is to say, in order for a class or instances of a class to have access to methods in a module, that module has to be included or extended into the class.</p>
-
-<p>Which means that <code>Kernel</code> has to be included into a Ruby class. But&hellip;which one? To figure out, we need to think back to what <code>self</code> was within the context of <code>irb</code>: <code>main</code>. If we try to ask <code>main</code> for its ancestors (so that we can deduce where the <code>Kernel</code> module is coming into play), we get this error:</p>
-
-<pre><code>2.2.0 :007 &gt; main.ancestors
-NoMethodError: undefined method `ancestors' for main:Object
-  from (irb):75
-  from /usr/bin/irb:12:in `&lt;main&gt;'
-</code></pre>
-
-<p>Okay, not so great. But hang on a second&hellip;since we know that <code>main</code> is an instance of the <code>Object</code> class, we can just ask the <code>Object</code> class who its ancestors are!</p>
-
-<pre><code>2.2.0 :008 &gt; Object.ancestors
- =&gt; [Object, Kernel, BasicObject] 
-</code></pre>
-
-<p>Nice! We found <code>Kernel</code>, and it looks like it&rsquo;s included the <code>Object</code> class. We can figure this out because it appears to the right of <code>Object</code>, which means it has been mixed into the class to its left.</p>
-
-<p>So, if a method like <code>puts</code> is written in the <code>Kernel</code> module, what can it be called on? Who is doing the &ldquo;receiving&rdquo; of this method call? Well, according to <a href="http://ruby-doc.com/docs/ProgrammingRuby/html/ref_m_kernel.html">the Ruby docs</a>, pretty much anything:</p>
-
-<blockquote><p>The Kernel module is included by class Object, so its methods are available in every Ruby object. These methods are called without a receiver and thus can be called in functional form.</p></blockquote>
-
-<p>So, theoretically-speaking, if the Kernel module is included by class Object, and is therefore available to <em>every</em> Ruby object, we should be able to call <code>puts</code> on a <code>String</code> instance, right?</p>
-
-<pre><code>2.2.0 :009 &gt; "".puts('wat')
-NoMethodError: private method `puts' called for "":String
-  from (irb):79
-  from /usr/bin/irb:12:in `&lt;main&gt;'
-</code></pre>
-
-<p>Uh oh! Maybe we can&rsquo;t. But&hellip;why not?</p>
-
-<h2>Global Functions</h2>
-
-<p>If you are smart cookie, you probably read that error and guessed that <code>puts</code> is a private method defined on <code>Kernel</code>. We can confirm this by using the <code>private_method_defined?</code> method to double check:</p>
-
-<pre><code>2.2.0 :010 &gt; Kernel.private_method_defined?(:puts)
- =&gt; true
-</code></pre>
-
-<p>The fact that <code>puts</code> is a private method is important. It means that it can&rsquo;t be called explicitly by anyone else. But how is it, then, that we use this method so frequently and easily? Well, because its mixed in to class <code>Object</code>, it&rsquo;s accessible to any Ruby object &ndash; but only in the current context. This explains why <code>puts</code> never has to be called explicitly upon any object; instead, it will be called <em>implicitly</em> on whatever <code>self</code> happens to be. In other words, the method will be called on the current context of <code>self</code>.</p>
-
-<p>It&rsquo;s also pretty crucial that a method like <code>puts</code> can be called in the current context of self. In fact, that&rsquo;s exactly what allows us to do this within a Ruby class:</p>
-
-<pre><code class="ruby">Class Duck
-  def self.swim
-    puts "We're swimming."
-  end
-
-  def quack
-    puts "Quack quack!"
-  end
-end
-</code></pre>
-
-<p>or something like this in <code>irb</code>:</p>
-
-<pre><code>2.2.0 :011 &gt; puts "Waddle waddle"
-Waddle waddle
- =&gt; nil 
-</code></pre>
-
-<p>Even though the context of <code>self</code> changes from the Duck Class, to an instance of a Duck, back to <code>main</code> in <code>irb</code>, we have access to <code>puts</code> in all contexts. It&rsquo;s kind of magical, if you think about it: a single private method, defined in a module, trickles down to all Ruby objects that descend from it!</p>
-
-<p>And this magic has a name: <strong>global functions</strong> work. Since methods like <code>puts</code> are defined on the <code>Kernel</code> and mixed into the <code>Object</code> class, they are accessible <em>everywhere</em>. They&rsquo;re private methods, which means they must be invoked without an explicit receiver (also known as a &ldquo;function form&rdquo; of method invocation).</p>
-
-<p>I really liked the way that <a href="https://codequizzes.wordpress.com/2014/04/22/rubys-kernel-module/">this blog post</a> explains the concept:</p>
-
-<blockquote><p>Virtually all Ruby objects inherit from Object and have access to the methods defined in the Kernel module, so Kernel’s private instance methods are accessible virtually anywhere in a Ruby program, regardless of self.</p></blockquote>
-
-<p>And you know what&rsquo;s even cooler? These global functions defined on <code>Kernel</code> are used everywhere! In fact, you probably don&rsquo;t even realize that you use them. Here are some of the ones that surprised me:</p>
-
-<ul>
-<li><code>gets</code></li>
-<li><code>chomp</code></li>
-<li><code>sleep</code></li>
-<li><code>require</code></li>
-<li><code>gem</code></li>
-<li><code>rand</code></li>
-<li><code>gsub</code></li>
-<li><code>proc</code></li>
-<li><code>eval</code></li>
-</ul>
-
-
-<p>Yup. All of these methods are defined on <code>Kernel</code>, available to all objects (including <code>main</code> as <code>self</code> in <code>irb</code>), and don&rsquo;t need a receiver to be called!</p>
-
-<iframe src="//giphy.com/embed/gLRDi5KnA3Fte" width="480" height="374" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Now that you know where all these methods live and where they come from, you probably feel pretty powerful. You also will hopefully feel more purposeful when you write even a simple <code>puts</code> statement in a line of code.</p>
-
-<p>Perhaps the moral of the story here is to never take code for granted: always question how it works and try to understand exactly what&rsquo;s going on in every line that you type.</p>
-
-<p>The second moral is to use other developers on Twitter as resources to help you figure out what to Google, obvs.</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>Kernel</code> module is mixed into the <code>Object</code> class, which means all methods (including private methods!) defined on this module are accesible to all Ruby objects, making them &ldquo;global&rdquo; functions.</li>
-<li>Even though a method&rsquo;s implicit receiver is <code>self</code>, the context of <code>self</code> changes depending on which class you are in; this is particularly important when dealing with &ldquo;global&rdquo; functions.</li>
-<li>Curious about <code>main</code> and <code>self</code> in <code>irb</code>? Check out these two great <a href="http://www.sitepoint.com/rubys-top-self-object/">blog</a> <a href="https://banisterfiend.wordpress.com/2010/11/23/what-is-the-ruby-top-level/">posts</a>.</li>
 </ul>
 
 ]]></content>

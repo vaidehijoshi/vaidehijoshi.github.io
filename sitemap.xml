@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>http://vaidehijoshi.github.io/blog/2015/06/16/babys-first-conference-recapping-reddotrubyconf/</loc>
+    <lastmod>2015-06-16T08:29:28-04:00</lastmod>
+  </url>
+  <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/06/09/refactoring-to-reveal-rails-group-by/</loc>
     <lastmod>2015-06-09T08:43:24-04:00</lastmod>
   </url>
@@ -166,9 +170,9 @@
     <loc>http://vaidehijoshi.github.io/blog/categories/sql/</loc>
   </url>
   <url>
-    <loc>http://vaidehijoshi.github.io/posts/2/</loc>
+    <loc>http://vaidehijoshi.github.io/blog/categories/conferences/</loc>
   </url>
   <url>
-    <loc>http://vaidehijoshi.github.io/posts/3/</loc>
+    <loc>http://vaidehijoshi.github.io/blog/categories/talks/</loc>
   </url>
 </urlset>

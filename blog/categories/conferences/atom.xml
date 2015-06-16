@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Conferences | Words and Code]]></title>
+  <link href="http://vaidehijoshi.github.io/blog/categories/conferences/atom.xml" rel="self"/>
+  <link href="http://vaidehijoshi.github.io/"/>
+  <updated>2015-06-15T23:27:20-04:00</updated>
+  <id>http://vaidehijoshi.github.io/</id>
+  <author>
+    <name><![CDATA[Vaidehi Joshi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Baby's First Conference: Recapping RedDotRubyConf]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/06/16/babys-first-conference-recapping-reddotrubyconf/"/>
+    <updated>2015-06-16T08:29:28-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/06/16/babys-first-conference-recapping-reddotrubyconf</id>
+    <content type="html"><![CDATA[<iframe src="https://www.flickr.com/photos/reddotrubyconf/18777106586/in/photostream/player/" width="500" height="333" frameborder="0" allowfullscreen webkitallowfullscreen mozallowfullscreen oallowfullscreen msallowfullscreen></iframe>
+
+
+<p>A week ago, I was on a code overload in Singapore. What was I doing on the other side of the world? Why, giving (and attending!) my very first talk at a Ruby conference, of course!</p>
+
+<p>I was lucky enough to join some serious Ruby powerhouses at the <a href="reddotrubyconf.com">Red Dot Ruby Conference</a> earlier this month. And it was such a cool first conference experience. But, because I had to give a talk, I was pretty preoccupied with writing my speech and creating some fun slides to accompany it. What I forgot in the process was that I would be an audience member at the conference, too! (Pretty silly, I know).</p>
+
+<p>My lightning talk was <a href="http://confreaks.tv/videos/rdrc2015-lightning-talk-refactoring-of-self">just a few minutes</a>, which meant that for the majority of the two-day conference, I had the unique opportunity to listen to some really fantastic talks. And I learned <em>so much</em>. I also got to meet some interesting, talented, and creative people who have made some very significant and core contributions to the Ruby and Rails communities and codebases. Summing up everything that happened in those two days is a bit difficult since every talk was informative in many ways. But I&rsquo;ll recap at least some of the dopest things I learned about while I was there. But if you want the full effect, you should probably <a href="http://i.ytimg.com/vi/_kRtkrBumBw/maxresdefault.jpg">eat a durian</a> while reading this post &ndash; just sayin&#8217;.</p>
+
+<!--more-->
+
+
+<h2>Your Code Is Not Just Yours</h2>
+
+<p>One of the first talks of the conference focused on something I pretty much knew nothing about: security. André Arko&rsquo;s talk, <em>Security Is Hard, But We Can&rsquo;t Go Shopping</em> was an eye-opening look at why Ruby developers don&rsquo;t think (or talk) about security vulnerabilities in their codebases &ndash; and why we all <em>should</em> be having that conversation.</p>
+
+<p>André&rsquo;s talk definitely caught my attention when he gave an example of a company that went out of business in a day because they lost <em>all</em> of their data because their severs were hacked. Yes, you read that right: lost all their data, shut down in a day. Pretty terrifying, right?</p>
+
+<div style="text-align:center">
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/eHmXar6TNUo?showinfo=0" frameborder="0" allowfullscreen></iframe><br>
+</div>
+
+
+<p>There were three big takeaways for me from this talk:</p>
+
+<h4><strong>1. Updating is insurance</strong></h4>
+
+<p>We&rsquo;ve all looked at our code and seen deprecation warnings, or things that are out of date and need to be updated to the latest version. And, we&rsquo;ve all, at some point, ignored those warnings. It&rsquo;s really easy to think about shipping your code quickly and iterating fast, particularly because updating things is <em>not</em> fun. And no one wants to do it.</p>
+
+<p>But, you know what&rsquo;s worse? Your entire app blowing up because you had a vulnerability exposed in your code because you didn&rsquo;t update! If we all started thinking about updating as <em>insurance</em>, we&rsquo;d be more willing to sit down and put in the time to make sure all aspects of our applications were updated and thus, at the lowest possible level of security risk. This shift in perspective also seems like the best way to pitch &ldquo;updating&rdquo; as a task to project managers who might not see the time value in something like upgrading an already-functioning application.</p>
+
+<h4>2. <strong>Responsible disclosure</strong></h4>
+
+<p>If you find a security vulnerability, be nice about it. Don&rsquo;t be a jerk, man. Sometimes, you can even get a reward for disclosing! Figure out what the process is for disclosing a security issue to a company, and be empathetic to the developers who wrote that code which you&rsquo;re using &ndash; who knows, maybe one day there&rsquo;ll be a vulnerability in your code, and you&rsquo;ll wish you had been nicer to <em>those</em> developers.</p>
+
+<h4>3. <strong>There are users, there are abusers</strong></h4>
+
+<p>As a young developer, you can think about who is using your code. Many junior developers write code to get it to work or to make it fast, but it&rsquo;s also important to think about who is or could potentially be using your code. It&rsquo;s helpful to start thinking about those things, even as a new programmer. Consider things like strong params and <code>csrf</code> tokens to start, and then work your way up to more complex security measures in your Rails applications. At the end of the day, you probably have some gaping holes in your codebase that is allowing someone to be malicious to your code base, which means that <em>your</em> code isn&rsquo;t actually yours anymore.</p>
+
+<h2>All About That Efficiency</h2>
+
+<p>My favorite talk of the entire conference came from Sam Saffron, the co-founder of Discourse and one of the first employees at StackExchange. To be honest, this talk was less an exercise is learning new things and more a revelation in all the things that I <em>didn&rsquo;t</em> know. And all the things that I knew nothing about centered around one thing: <strong>efficiency</strong>.</p>
+
+<div style="text-align:center">
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/aP5NNkzb4og?showinfo=0" frameborder="0" allowfullscreen></iframe><br>
+</div>
+
+
+<p>Sam&rsquo;s talk piqued my interested in particular because I&rsquo;ve been trying to think about the efficiency of my own applications for a few weeks now. I&rsquo;ve been trying to use more efficient methods in my own code &ndash; like <code>pluck</code> in last week&rsquo;s post, for example, or my post on the ActiveRecord <code>includes</code> <a href="http://vaidehijoshi.github.io/blog/2015/04/07/querying-at-warp-drive-using-activerecord-includes/">method</a> a few months ago.</p>
+
+<p>Yet there&rsquo;s a lot more to efficiency than that, it turns out! And that&rsquo;s exactly what Sam&rsquo;s talk aimed to explore. One of the things I learned pretty early on was that ActiveRecord is inefficient &ndash; yes, really! For those of us writing smaller applications, it may not be all that obvious. But for something much larger, such as Discourse, which has tons and tons of assets that have to compile on page load&hellip;well, it&rsquo;s pretty obvious how even just <em>one</em> n+1 query could throw the whole thing to hell in a handbasket!</p>
+
+<p>What I loved the most about Sam&rsquo;s talk was the live demo. He actually ran his server in showed us the different technologies he used to track things like server calls, method invocations, and raw SQL queries. He didn&rsquo;t just tell us what he used &ndash; he showed us what they looked like in development! And here&rsquo;s the icing on the cake: everything is open source. Which means that we can all use the same technologies and fork them and add/modify them for our own projects!</p>
+
+<p>Here are a few of the gems that Sam uses and recommends, which I&rsquo;ve looked into. Lookout for some upcoming #TechnicalTuesdays posts on these soon:</p>
+
+<h4>1. <code>lru_redux</code></h4>
+
+<p>This gem allows for efficient caching by using ordered arrays. It provides you with some pretty fantastic methods to write, read, and clear your cache. The most important thing here is that arrays are quick and efficient when it comes to looking up an item by index, which makes it ideal for something like storing a cache. Check out more on the <code>lru_redux</code> <a href="https://github.com/SamSaffron/lru_redux">Github page</a>.</p>
+
+<h4>2. <code>dapper</code></h4>
+
+<p>The <code>dapper</code> gem is a lightweight Object Relational Mapper that was created by developers at StackExchange who wanted to solve an n+1 problem. What&rsquo;s pretty cool about this gem is that it allows you to execute raw SQL queries and map your results. A major benefit of this is that you no longer have to rely on the Object-Relational Mapper that comes for free with Rails: ActiveRecord. We&rsquo;ve all encountered ActiveRecord&rsquo;s flaws &ndash; particularly when it comes to calls to the server and queries to the database &ndash; and thanks to this gem, you don&rsquo;t have to deal with those things again. Instead, you can just write your own queries to execute! Find out more over on their <a href="https://github.com/StackExchange/dapper-dot-net">ReadMe</a>.</p>
+
+<h4>3. <code>fast_pluck</code></h4>
+
+<p>I&rsquo;m really curious about how this &ldquo;freedom patch&rdquo; actually works, and I need to take the time to sit down and read through it with a good cup of coffee. But, I really like the idea of speeding up ActiveRecord&rsquo;s <code>pluck</code> method, which I am already pretty comfortable with. Check it out over on <a href="https://gist.github.com/SamSaffron/bd593751668e5e5c4afc">this Gist</a>.</p>
+
+<h4>4. <code>memory_profiler</code></h4>
+
+<p>The <code>memory_profiler</code> gem measures how many objects you&rsquo;re allocating to memory on boot of your application, and how many are being retained (how much memory they&rsquo;re taking up) in your app. I haven&rsquo;t explored this gem too much, but I hope to play with it more in the future. You can play with it <a href="
+https://github.com/SamSaffron/memory_profiler">over here</a>.</p>
+
+<h2>Language Design Is Hard</h2>
+
+<p>This realization is probably neither prophetic nor profound, but it&rsquo;s still worth repeating nonetheless: languages are hard. They&rsquo;re hard to read, learn, and, most of all, <em>write</em>.</p>
+
+<p>Matz&rsquo;s <a href="https://www.youtube.com/watch?v=bqWBB8-iEac">keynote presentation</a> on the new and upcoming features in the next Ruby release was the first time I started thinking about how difficult it must be to actually create the language that we use everyday, and love so dearly. After his presentation, I asked him how he goes about actually designing new features, long before they are implemented. His answer, in short, was incredibly empathetic: he said that he thinks about what it&rsquo;s like to actually use the Ruby language with the feature he has in mind, and he considers the user experience before handing off a feature for someone to actually implement and include in the next release.</p>
+
+<p>I thought about the difficult problem of language design yet again during Paolo Perrotta&rsquo;s awesome talk about refinements. If you&rsquo;re not familiar with the concept (I wasn&rsquo;t before this talk!), the short version is that <strong>refinements</strong> showed up in Ruby 2, and were used to make &ldquo;local&rdquo; monkeypatches, which are a much safer and preferable alternative to global monkeypatching. An interesting issue with refinements is that they rely on dynamic scoping, which means that you can close and reopen the scope of a class and redefine things in different ways.</p>
+
+<div style="text-align:center">
+<iframe width="560" height="315" src="https://www.youtube.com/embed/_27-4-dbnA8?rel=0&amp;showinfo=0" frameborder="0" allowfullscreen></iframe><br>
+</div>
+
+
+<p>In a way, it was great that Paolo&rsquo;s talk was towards the end of the conference, because it tied up things together nicely. I learned that a simple thing like Ruby refinements &ndash; which boils down to two keywords, <code>refine</code> and <code>using</code> &ndash; were a perfect example of the first two things I learned during the conference: security and efficiency!</p>
+
+<p>The issue with refinements is that you can&rsquo;t always tell what&rsquo;s going in your code, or what exactly your code will execute. And that&rsquo;s pretty scary! You know what else it is? A security threat and a huge vulnerability. Refinements  also slow your code down, because the Ruby interpreter has to go through all of your code and check if a refinement is being used or not. Not exactly the most optimized way of doing things, amirite?</p>
+
+<p>All of this got me thinking about the people who write the languages that we use. They have to have a deep understanding of the language architecture and syntax, and think about how a developer might use (or <em>abuse</em>) a language feature. All of this is to say: language design is hard. And maybe we should all be a bit more grateful for the people who think about these complex problems on a daily basis.</p>
+
+<p>Compared to things like security, optimization, and language design, a smelly durian doesn&rsquo;t seem nearly as bad. In fact, I&rsquo;d say that as far as developers go, we as a Ruby community have got it pretty good. But probably not as good as this dog right here:</p>
+
+<iframe src="//giphy.com/embed/Ps3UNgJew0H7y" width="480" height="347" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Think about the two types of people who use your code: the users, who should have a seamless experience, which will make you optimize your code, and the abusers (or a better term that I can&rsquo;t think of), or those people who will be looking for security vulnerabilities in <em>your</em> code.</li>
+<li>Language design is hard. Refinements are a pretty good example of how a programming language can blow your mind with a single feature</li>
+<li>I also met Matz! It was <a href="https://twitter.com/vaidehijoshi/status/606684141506076673">incredibly awesome</a>. And he really is as nice as they say.</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>
