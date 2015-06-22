@@ -1,0 +1,618 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>To Serialize or Not to Serialize: ActiveModel Serializers - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="Lesson number one when it comes to developing for the web: everything is just data. When you send something to the server in a request, or when you &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/06/23/to-serialize-or-not-to-serialize-activemodel-serializers">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">To Serialize or Not to Serialize: ActiveModel Serializers</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-06-23T08:10:05-04:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>8:10 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><iframe src="//giphy.com/embed/WgTf8fPTjJZAI" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Lesson number one when it comes to developing for the web: everything is just data. When you send something to the server in a request, or when you get something back from the server as a response, all you&rsquo;re really dealing with is data. Simple enough to remember, right? Wrong. Because data can be complicated. Especially when you consider the fact that it has to be passed back and forth in very specific ways. And if you don&rsquo;t format your data correctly, your computer is going to be very, very mad at you (or probably just throw a really unhelpful error message).</p>
+
+<p>I encountered the complications of data formatting the hard way, while trying to pass data between two parts of my application. I wanted to send some data to update a Ruby object in my Postgres database on the server-side, and then I wanted the Rails side to send back an updated response. As if that wasn&rsquo;t enough, I then needed the Ember front end to grab the updated data and immediately render it to the user on the client-side. Data formatting can already be complex when you have only one framework or language; throw in another framework and language, and, well&hellip;you might feel like you&rsquo;re having a little bit of a meltdown.</p>
+
+<p>But fear not! Because here&rsquo;s one awesome thing about data: once you understand the way that it&rsquo;s structured, it&rsquo;s pretty simple to use. And when it comes to working on a more intricate Rails + JavaScript application (like the one I was building recently), there&rsquo;s one kind of data manipulation you&rsquo;re probably going to have to do at some point or another: data serialization. When working with a JavaScript front end, you&rsquo;ll probably have to serialize your data into a <strong>JSON format</strong>, which is short for <em>JavaScript Object Notation</em>. Thankfully, there&rsquo;s a handy gem that makes this so easy that you&rsquo;ll never again question whether or not to serialize your data.</p>
+
+<!--more-->
+
+
+<h2>Why Serialize?</h2>
+
+<p>The time has finally come: it&rsquo;s time for us to spiff up our Bookstore application with some JavaScript. (I know, I know, it sounds horrible &ndash; but it&rsquo;ll be so good for our users, I promise). But let&rsquo;s start off simple and keep working with the Rails API we&rsquo;ve been building out.</p>
+
+<p>Let&rsquo;s pretend for a second that we&rsquo;ve already implemented authentication in our application, which means we have access to the <code>current_user</code> who is logged in at the highest controller level of our application: the <code>ApplicationController</code>. In our <code>UsersController</code>, we want an <code>index</code> action that will be invoked when the <code>current_user</code> logs into their account page. On that page, we&rsquo;ll want to show the user&rsquo;s &ldquo;wish lists&rdquo;, or the list of books that they want to read. Each <code>WishList</code> object belongs to a <code>User</code> and has many <code>Books</code>, and a <code>Book</code> can belong to a <code>WishList</code>. Right now in our controller, we are rendering all the <code>WishLists</code> that are associated with the <code>current_user</code> as JSON:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">UsersController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">index</span>
+</span><span class='line'>    <span class="vi">@wish_lists</span> <span class="o">=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">wish_lists</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="vi">@wish_lists</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Cool, we have our <code>WishLists</code> already rendered as JSON. Why serialize anything in that case? I&rsquo;m sure our JSON is structured perfectly well, and that we can convert our Ruby object data into Ember models seamlessly!</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">[</span>
+</span><span class='line'>   <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="mi">43</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;user&quot;</span><span class="p">:</span>
+</span><span class='line'>          <span class="p">{</span>
+</span><span class='line'>              <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+</span><span class='line'>              <span class="nt">&quot;username&quot;</span><span class="p">:</span> <span class="s2">&quot;Vaidehi&quot;</span>
+</span><span class='line'>          <span class="p">},</span>
+</span><span class='line'>      <span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="s2">&quot;Favorite Shakespeare Plays To Re-Read&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;created_at&quot;</span><span class="p">:</span><span class="s2">&quot;2015-06-23T21:07:30.108Z&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;updated_at&quot;</span><span class="p">:</span><span class="s2">&quot;2015-06-23T21:07:30.108Z&quot;</span><span class="p">,</span>
+</span><span class='line'>      <span class="nt">&quot;books&quot;</span><span class="p">:</span>
+</span><span class='line'>          <span class="p">[</span>
+</span><span class='line'>              <span class="p">{</span>
+</span><span class='line'>                  <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">24</span><span class="p">,</span>
+</span><span class='line'>                  <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;A Midsummer Night&#39;s Dream&quot;</span><span class="p">,</span>
+</span><span class='line'>                  <span class="nt">&quot;author&quot;</span><span class="p">:</span> <span class="s2">&quot;William Shakespeare&quot;</span>
+</span><span class='line'>              <span class="p">},</span>
+</span><span class='line'>              <span class="p">{</span>
+</span><span class='line'>                  <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">48</span><span class="p">,</span>
+</span><span class='line'>                  <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;The Tempest&quot;</span><span class="p">,</span>
+</span><span class='line'>                  <span class="nt">&quot;author&quot;</span><span class="p">:</span> <span class="s2">&quot;William Shakespeare&quot;</span>
+</span><span class='line'>              <span class="p">},</span>
+</span><span class='line'>              <span class="p">{</span>
+</span><span class='line'>                  <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">13</span><span class="p">,</span>
+</span><span class='line'>                  <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Much Ado About Nothing&quot;</span><span class="p">,</span>
+</span><span class='line'>                  <span class="nt">&quot;author&quot;</span><span class="p">:</span> <span class="s2">&quot;William Shakespeare&quot;</span>
+</span><span class='line'>              <span class="p">}</span>
+</span><span class='line'>          <span class="p">]</span>
+</span><span class='line'>   <span class="p">}</span>
+</span><span class='line'><span class="p">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Oh my. That is <em>definitely</em> not how we want our JSON to look!</p>
+
+<iframe src="//giphy.com/embed/12mPcp41D9a1i0" width="480" height="274" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>For one thing, if we give this JSON to Ember, it won&rsquo;t know how to turn it into an Ember model. But there are also some other issues with exactly how this data is structured.</p>
+
+<p>For now, we don&rsquo;t need to render anything to our user about when the created or updated their list, so that&rsquo;s some superfluous data that we shouldn&rsquo;t be requesting from the server.</p>
+
+<p>We also don&rsquo;t want to render anything about our actual <code>User</code> object &ndash; we probably just want to include the <code>user_id</code>, and nothing else. And because we can load the correct <code>Book</code> models via Ember itself, let&rsquo;s not bother with requesting all the details of every <code>Book</code> in our <code>WishList</code>. Instead, let&rsquo;s just get an array of associated <code>book_ids</code>, and then have Ember render the appropriate ones for us from its data store.</p>
+
+<p>So, to serialize or not to serialize? That is the question. And I think you and I both know the answer.</p>
+
+<h2>ActiveModel Serializers</h2>
+
+<p>Before we can get our serializing on, we&rsquo;ll need to add our new favorite gem to our <code>Gemfile</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">gem</span> <span class="s1">&#39;active_model_serializers&#39;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>and then run the <code>bundle</code> command.</p>
+
+<p>Now, we&rsquo;ll want to actually create our serializer, which will work with Rails&#8217; ActiveModel functionality to serialize your persisted Ruby objects into the exact JSON format that we&rsquo;ll specify. Luckily, we can just generate our serializer instead of creating those files:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">rails</span> <span class="n">g</span> <span class="n">serializer</span> <span class="n">wishList</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This will create a <code>serializers</code> directory inside of our top-level <code>/app</code> directory since this is the first serializer we&rsquo;ve generated. And it&rsquo;ll add both an empty <code>application_serializer</code> and a <code>wish_list_serializer.rb</code> file inside of that new directory, which looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">WishListSerializer</span> <span class="o">&lt;</span> <span class="no">ApplicationSerializer</span>
+</span><span class='line'>  <span class="n">attributes</span> <span class="ss">:id</span><span class="p">,</span> <span class="ss">:name</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">has_many</span> <span class="ss">:books</span>
+</span><span class='line'>  <span class="n">belongs_to</span> <span class="ss">:user</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The attributes that we&rsquo;ve listed (<code>id</code> and <code>name</code>) are the ones that are <em>whitelisted</em> to be serialized. This basically means that these are the attributes we are allowing the <code>active_model_serializers</code> gem to serialize and make into JSON. The serializer we generated through Rails also recognized the associations that we set up; it created the <code>has_many</code> and <code>belongs_to</code> relationships that we setup inside of our <code>Book</code>, <code>User</code>, and <code>WishList</code> Rails models.</p>
+
+<p>Cool, but how can we check what our data structure looks like? Well, we can start our server (<code>rails server</code>) and then head over to where our index route lives (<code>http://localhost:3000/wish_list</code>). Our JSON response will be rendered through our <code>index</code> action in our <code>WishListsController</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="nt">&quot;wish_lists&quot;</span><span class="p">:</span>
+</span><span class='line'>      <span class="p">[</span>
+</span><span class='line'>          <span class="p">{</span>
+</span><span class='line'>              <span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="mi">43</span><span class="p">,</span>
+</span><span class='line'>              <span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="s2">&quot;Favorite Shakespeare Plays To Re-Read&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="nt">&quot;user&quot;</span><span class="p">:</span>
+</span><span class='line'>                  <span class="p">{</span>
+</span><span class='line'>                      <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+</span><span class='line'>                      <span class="nt">&quot;username&quot;</span><span class="p">:</span> <span class="s2">&quot;Vaidehi&quot;</span>
+</span><span class='line'>                  <span class="p">},</span>
+</span><span class='line'>              <span class="nt">&quot;books&quot;</span><span class="p">:</span>
+</span><span class='line'>                  <span class="p">[</span>
+</span><span class='line'>                      <span class="p">{</span>
+</span><span class='line'>                          <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">24</span><span class="p">,</span>
+</span><span class='line'>                          <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;A Midsummer Night&#39;s Dream&quot;</span><span class="p">,</span>
+</span><span class='line'>                          <span class="nt">&quot;author&quot;</span><span class="p">:</span> <span class="s2">&quot;William Shakespeare&quot;</span>
+</span><span class='line'>                      <span class="p">},</span>
+</span><span class='line'>                      <span class="p">{</span>
+</span><span class='line'>                          <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">48</span><span class="p">,</span>
+</span><span class='line'>                          <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;The Tempest&quot;</span><span class="p">,</span>
+</span><span class='line'>                          <span class="nt">&quot;author&quot;</span><span class="p">:</span> <span class="s2">&quot;William Shakespeare&quot;</span>
+</span><span class='line'>                      <span class="p">},</span>
+</span><span class='line'>                      <span class="p">{</span>
+</span><span class='line'>                          <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">13</span><span class="p">,</span>
+</span><span class='line'>                          <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Much Ado About Nothing&quot;</span><span class="p">,</span>
+</span><span class='line'>                          <span class="nt">&quot;author&quot;</span><span class="p">:</span> <span class="s2">&quot;William Shakespeare&quot;</span>
+</span><span class='line'>                      <span class="p">}</span>
+</span><span class='line'>                  <span class="p">]</span>
+</span><span class='line'>          <span class="p">}</span>
+</span><span class='line'>      <span class="p">]</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Well, our data looks a <em>little</em> bit better. For one thing, our whitelisted attributes and associations have been put under a <code>wish_lists</code> key, which will have an array of <code>WishList</code> objects for the <code>current_user</code>, just as we wrote out in our <code>WishListsController</code>.</p>
+
+<p>Although it&rsquo;s great that this gem generated all this for us, and for free, we already know that we&rsquo;re going to have to tweak this a bit. First, let&rsquo;s get rid of that <code>belongs_to :user</code> line, and instead just render a <code>user_id</code> attribute:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">WishListSerializer</span> <span class="o">&lt;</span> <span class="no">ApplicationSerializer</span>
+</span><span class='line'>  <span class="n">attributes</span> <span class="ss">:id</span><span class="p">,</span> <span class="ss">:name</span><span class="p">,</span> <span class="ss">:user_id</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">has_many</span> <span class="ss">:books</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Because we&rsquo;ve set up the associations in both models, the <code>active_model_serializer</code> will look directly for an <code>id</code> attribute on a <code>User</code> association, and add that as a key in our JSON object, rather than creating a <code>user</code> key that points to an entire JSON <code>User</code> object. What does our JSON object look like now?</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="nt">&quot;wish_lists&quot;</span><span class="p">:</span>
+</span><span class='line'>      <span class="p">[</span>
+</span><span class='line'>          <span class="p">{</span>
+</span><span class='line'>              <span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="mi">43</span><span class="p">,</span>
+</span><span class='line'>              <span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="s2">&quot;Favorite Shakespeare Plays To Re-Read&quot;</span><span class="p">,</span>
+</span><span class='line'>              <span class="nt">&quot;user_id&quot;</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span>
+</span><span class='line'>              <span class="nt">&quot;books&quot;</span><span class="p">:</span>
+</span><span class='line'>                  <span class="p">[</span>
+</span><span class='line'>                      <span class="p">{</span>
+</span><span class='line'>                          <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">24</span><span class="p">,</span>
+</span><span class='line'>                          <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;A Midsummer Night&#39;s Dream&quot;</span><span class="p">,</span>
+</span><span class='line'>                          <span class="nt">&quot;author&quot;</span><span class="p">:</span> <span class="s2">&quot;William Shakespeare&quot;</span>
+</span><span class='line'>                      <span class="p">},</span>
+</span><span class='line'>                      <span class="p">{</span>
+</span><span class='line'>                          <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">48</span><span class="p">,</span>
+</span><span class='line'>                          <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;The Tempest&quot;</span><span class="p">,</span>
+</span><span class='line'>                          <span class="nt">&quot;author&quot;</span><span class="p">:</span> <span class="s2">&quot;William Shakespeare&quot;</span>
+</span><span class='line'>                      <span class="p">},</span>
+</span><span class='line'>                      <span class="p">{</span>
+</span><span class='line'>                          <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">13</span><span class="p">,</span>
+</span><span class='line'>                          <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Much Ado About Nothing&quot;</span><span class="p">,</span>
+</span><span class='line'>                          <span class="nt">&quot;author&quot;</span><span class="p">:</span> <span class="s2">&quot;William Shakespeare&quot;</span>
+</span><span class='line'>                      <span class="p">}</span>
+</span><span class='line'>                  <span class="p">]</span>
+</span><span class='line'>          <span class="p">}</span>
+</span><span class='line'>      <span class="p">]</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Okay, another step in the right direction. But, what about those annoying <code>Book</code> objects &ndash; how do we turn those objects into just an array of <code>book_ids</code>?</p>
+
+<p>The answer is&hellip;through another serializer, of course! And also some snazzy customization.</p>
+
+<h2>Customizing Your Serializer</h2>
+
+<p>Before we can go about spicing up the JSON response generated by our <code>WishList Serializer</code>, we are going to have to generate a new serializer for our <code>Book</code> objects. Thank goodness we already know how to do all that:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">rails</span> <span class="n">g</span> <span class="n">serializer</span> <span class="n">book</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>which will generate a <code>book_serializer.rb</code> file like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">BookSerializer</span> <span class="o">&lt;</span> <span class="no">ApplicationSerializer</span>
+</span><span class='line'>  <span class="n">attributes</span> <span class="ss">:id</span><span class="p">,</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">:author</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">belongs_to</span> <span class="ss">:wish_list</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Step one, successfully accomplished! Now, time to bedazzle our serializer. Let&rsquo;s say that the front end of our application doesn&rsquo;t need all that information &ndash; instead, it needs just an array of <code>book_ids</code>. We can just edit our serializer so that we&rsquo;re only using the information that we want to use:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">BookSerializer</span> <span class="o">&lt;</span> <span class="no">ApplicationSerializer</span>
+</span><span class='line'>  <span class="n">attributes</span> <span class="ss">:id</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now comes step two: telling our <code>WishList Serializer</code> to refer to our <code>BookSerializer</code>, and use <em>that</em> to serialize each book associated with a wish list. If only there was an easy way to do that&hellip;</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">WishListSerializer</span> <span class="o">&lt;</span> <span class="no">ApplicationSerializer</span>
+</span><span class='line'>  <span class="n">attributes</span> <span class="ss">:id</span><span class="p">,</span> <span class="ss">:name</span><span class="p">,</span> <span class="ss">:user_id</span><span class="p">,</span> <span class="ss">:books</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">private</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">books</span>
+</span><span class='line'>      <span class="no">BookSerializer</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">object</span><span class="o">.</span><span class="n">books</span><span class="p">)</span><span class="o">.</span><span class="n">attributes</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Oh, interesting! We&rsquo;ve just created our <em>very own</em> attribute on the <code>WishListSerializer</code>. And what does that method (which is private, because we don&rsquo;t wany any other part of our application to call it) do, exactly? Well, it creates a new instance of our <code>BookSerializer</code>, and runs that serializer for each <code>Book</code> object, returning the attributes that we told it to serializer.</p>
+
+<p>What&rsquo;s really awesome about this is that if we suddenly decide that we now want not just an array of <code>ids</code>, but also the <code>title</code> of each <code>Book</code> object, we can just add that attribute into our <code>BookSerializer</code> by modifying the line to <code>attributes :id, :title</code>, and <em>tada</em>! We have an array of <code>Book</code> objects that have both an <code>id</code> <em>and</em> a <code>title</code>. So easy, right?!</p>
+
+<p>The super cool thing about implementing serializers is that our <code>UsersController</code> hasn&rsquo;t changed at all in this process:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">UsersController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">index</span>
+</span><span class='line'>    <span class="vi">@wish_lists</span> <span class="o">=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">wish_lists</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="vi">@wish_lists</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>All that&rsquo;s happening now is that Rails is looking for a serializer for our <code>WishList</code> objects on the <code>current_user</code>, and if it finds one (which it will, since we made it!), it uses that to serialize the appropriate data and render it into a JSON format.</p>
+
+<p>Serializers are pretty fantastic because they&rsquo;re easy to generate, customize, and use. In fact, we could even create multiple serializer for the same <em>type</em> of object. We could have a <code>BookDetails Serializer</code>, which might return a ton of information about a book, rather than just its <code>id</code> and <code>title</code>. All we&rsquo;d have to do to use it is specify the serializer within our controller action:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="vi">@books</span><span class="p">,</span> <span class="ss">each_serializer</span><span class="p">:</span> <span class="no">BookDetailsSerializer</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pretty amazing stuff, right? This will make integrating our JavaScript front end with our Rails API so much easier. We can serialize all of the things! And then we should probably teach this doggy how to serialize things, too. He&rsquo;s probably confused because he hasn&rsquo;t read this blog post yet:</p>
+
+<iframe src="//giphy.com/embed/xDQ3Oql1BN54c" width="480" height="332" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>active_model_serializers</code> gem provides a ton of functionality for structuring a JSON response from your Rails API. Read about all the methods it provides in its <a href="https://github.com/rails-api/active_model_serializers">great documenation</a>.</li>
+<li>Still curious about serializers? Check out <a href="https://robots.thoughtbot.com/better-serialization-less-as-json">this cool post</a> and <a href="https://blog.engineyard.com/2015/active-model-serializers">this one</a>, too!</li>
+<li>Serializers are also great for caching. To learn more about why they matter, read this <a href="https://robots.thoughtbot.com/fast-json-apis-in-rails-with-key-based-caches-and">more advanced</a> blog post!</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-06-23T08:10:05-04:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>8:10 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/06/23/to-serialize-or-not-to-serialize-activemodel-serializers/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/06/23/to-serialize-or-not-to-serialize-activemodel-serializers/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/06/16/babys-first-conference-recapping-reddotrubyconf/" title="Previous Post: Baby's First Conference: Recapping RedDotRubyConf">&laquo; Baby&#8217;s First Conference: Recapping RedDotRubyConf</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/06/23/to-serialize-or-not-to-serialize-activemodel-serializers/">To Serialize or Not to Serialize: ActiveModel Serializers</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/16/babys-first-conference-recapping-reddotrubyconf/">Baby&#8217;s First Conference: Recapping RedDotRubyConf</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/09/refactoring-to-reveal-rails-group-by/">Refactoring to Reveal Rails Group_by</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/">Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/">The Secret Life of Your Database, Part 2: Join Tables</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

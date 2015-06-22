@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="There comes a time in the life of every developer when you stop thinking about whether your code works. Instead, you concern yourself with something &hellip;">
+  <meta name="description" content="Up until two weeks ago, I had one great fear: testing. And, to be clear, when I say &ldquo;fear&rdquo;, what I actually mean is sheer terror. My &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,55 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/">Tackling Those Tests, Part 1: The How, When, and What of Rspec Testing</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-04-14T08:17:03-04:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:17 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>, <a class='category' href='/blog/categories/testing/'>testing</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><img src="http://www.datamation.com/imagesvr_ce/306/philosophy-geeks.jpg" style="display: block; margin-left: auto; margin-right: auto; width: 50%; height: 50%;"></p>
+
+<p>Up until two weeks ago, I had one great fear: <em>testing</em>. And, to be clear, when I say &ldquo;fear&rdquo;, what I actually mean is sheer terror.</p>
+
+<p>My test-writing anxiety stems from the fact that I&rsquo;ve never really had to do it before. I mean, I&rsquo;ve had to make tons of tests <em>pass</em>, which means that I read other people&rsquo;s tests all the time. Yet I&rsquo;ve somehow made it thus far in my coding career without ever having to write relatively complex tests of my own. But that all changed a few weeks ago, when I was forced to finally confront my fear of testing.</p>
+
+<p>The thing about conquering fears, however, is that usually involves doing the very thing that you&rsquo;re afraid of. So, I spent the better portion of a week learning how and when to write tests, all while encountering a couple painful bugs along the way. It was not a fun week, but the good news is that I can write a fully-functioning test suite now! And now that I know more about testing, I actually find it kind of fun &ndash; so fun, in fact, that I&rsquo;m going to share it with you!</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -549,53 +598,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/02/03/when-enough-is-enough-how-to-know-when-to-use-enums/">When Enough Is Enough: How to Know When to Use Enums</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-02-03T08:32:19-05:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>8:32 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>NERD ALERT: I love databases. God, they&rsquo;re just <em>fantastic</em>. Few things give me as much joy as an empty whiteboard and a couple of intricate join tables that need to be sketched out. But there&rsquo;s also an art to understanding how to handle data &ndash; particularly when you have a shit ton of it.</p>
-
-<p>The main issue people run into with data is first, how to go about storing it, and second, how to go about getting it when you actually need it! This doesn&rsquo;t sound super complicated though, right? <em>Wrong</em>. Databases grow vertically, not horizontally, and they grow hella fast. At a certain point, the way that you go about storing your data ends up <em>directly impacting</em> how you go about retrieving it!</p>
-
-<p>Many Rubyists write different helper methods to do their querying for them. But this is Rails Land, which means that we have <del>black</del> Rails magic at our disposal. And with the advent of Rails 4.1, that magic now has a name: <strong>enum</strong>.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/02/03/when-enough-is-enough-how-to-know-when-to-use-enums/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/3">&larr; Older</a>
@@ -613,6 +615,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/06/23/to-serialize-or-not-to-serialize-activemodel-serializers/">To Serialize or Not to Serialize: ActiveModel Serializers</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/06/16/babys-first-conference-recapping-reddotrubyconf/">Baby&#8217;s First Conference: Recapping RedDotRubyConf</a>
       </li>
     
@@ -626,10 +632,6 @@
     
       <li class="post">
         <a href="/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/">The Secret Life of Your Database, Part 2: Join Tables</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">The Secret Life of Your Database, Part 1: Migrations</a>
       </li>
     
   </ul>
