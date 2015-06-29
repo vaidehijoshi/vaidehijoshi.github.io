@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-06-22T18:57:33-04:00</updated>
+  <updated>2015-06-29T19:51:39-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,170 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Taskmanaging Your App, Part 1: Using Rake]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/"/>
+    <updated>2015-06-30T08:49:58-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/uRziFAtdD6H60" width="480" height="362" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Rake tasks: we&rsquo;ve all used &lsquo;em. From migrating our database to seeding it, we run commands using <code>rake</code> all of the time! But what actually happens when you run a rake task? And where is all this stuff defined, exactly? And how do you write a customized rake task of your very own?</p>
+
+<p>These were the questions I was asking myself last week, when I had to write a rake task to stage some data for an application I was working on. I knew exactly what my rake task was supposed to accomplish, and I had a general idea of the code that had to live inside of it. I didn&rsquo;t quite know how to write my rake task, however. And I definitely didn&rsquo;t know what was going on inside of the Ruby interpreter when it would read my yet-to-exist task.</p>
+
+<p>So, I set out to answer some of those questions, and learned a bit about how rake works in the process. It was an interesting rabbit hole to dive down, particularly since I had never before questioned what was happening when I ran a rake command in my command line. When you&rsquo;re first starting out with code, it&rsquo;s okay to accept some of the obfuscation that is inherently a part of the abstraction of larger applications. But you should never go too long without questioning why and how a certain thing works the way that it does. And that&rsquo;s exactly what we&rsquo;ll do with our beloved rake commands.</p>
+
+<!--more-->
+
+
+<h2>Form And Function</h2>
+
+<p>We use the <code>rake</code> command so often that it might be easy to forget that it&rsquo;s <em>actually</em> part of a gem! Most everything we use &ndash; including that little gem called <code>rails</code> &ndash; relies on the <code>rake</code> gem as a dependency. And everything we could ever want to know about <code>rake</code>&rsquo;s form and function can be found in a single place: the <code>Rakefile</code>, a top-level file that exists in any application that uses this gem to manage and run tasks of all kinds.</p>
+
+<p>So what&rsquo;s inside of our <code>Rakefile</code> after we generate a brand new Rails application? Something that looks like this:</p>
+
+<pre><code class="ruby"># Add your own tasks in files placed in lib/tasks ending in .rake,
+# for example lib/tasks/capistrano.rake, and they will automatically be available to Rake.
+
+require File.expand_path('../config/application', __FILE__)
+
+Rails.application.load_tasks
+</code></pre>
+
+<p>Pretty empty, right? Except that there&rsquo;s a pretty important line in there at the end which invokes a <code>load_tasks</code> method on our application object, which is what allows rake to load tasks into our application itself. But how do we fill up this Rakefile with some awesome rake tasks? Well, if we read carefully, it seems like <code>rake</code> is telling us exactly what we need to do.</p>
+
+<p>Let&rsquo;s start by creating a data staging task that will load some initial data into our application so that we have something to work with while in development. We&rsquo;ll create a <code>stage_data.rake</code> file nested inside of our <code>lib/tasks</code> directories. But that&rsquo;s empty too! You know what that means, don&rsquo;t you? Time to write some tasks.</p>
+
+<h2>Managing Our Task Management</h2>
+
+<iframe src="//giphy.com/embed/gw3woz6oWXK48iE8" width="480" height="432" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Since we&rsquo;re working within the context of a mid-size Rails application, the first thing we probably want to do is namespace our rake tasks. We can do that a namespace block:</p>
+
+<pre><code class="ruby">namespace :data do
+end
+</code></pre>
+
+<p>This is how we can break up all the tasks that are concerned with managing data. But for now, let&rsquo;s just work on writing a single task, which will stage our development environment with some sample data to help us while we&rsquo;re building out the front end later on.</p>
+
+<p>In order to write our rake task, we really just need two things: a description and then a <code>task</code> block. We know what we want our task to do, so that&rsquo;s what we&rsquo;ll put in our description. What we write here will be mostly to help us later on, when we want to know what tasks are available to us, and what exactly they do.</p>
+
+<p>We&rsquo;ll also want to specify any dependencies that this task might have.</p>
+
+<p>After the <code>desc</code> term, we&rsquo;re describing what our task will do, and then setting the command that we&rsquo;ll use to run the task itself. We&rsquo;re also specifying any dependencies that this task might have. In our case, the only thing that this task <em>depends upon</em> is the application itself. So, we want to make sure that our entire Rails application is loaded before running this task:</p>
+
+<pre><code class="ruby">namespace :data do
+    desc "Stage environment with sample data."
+    task stage: :environment do
+    end
+end
+</code></pre>
+
+<p>Interestingly, all that&rsquo;s happening here is that a method called <code>task</code> is being invoked, and the key-value pair that we provided it (<code>stage: :environment</code>) is telling <code>task</code> exactly which other methods to execute before running the subsequent task we have defined inside of the block. I like how <a href="http://tutorials.jumpstartlab.com/topics/systems/automation.html">this tutorial</a> explains what&rsquo;s going on behind the scenes:</p>
+
+<blockquote><p>It starts with the task method which takes a hash parameter. The key will be the name of the task. The value stored under that key, here <code>:environment</code>, indicates which other Rake tasks should be run before this task is run. Think of them like dependencies. When your task depends on <code>:environment</code>, it will load your entire Rails application. If your task doesn’t actually need Rails, don’t depend on :environment and you can greatly increase startup time and decrease memory usage.</p></blockquote>
+
+<p>Another cool thing to keep in mind is the description. We know that our task description (after the <code>desc</code>) will show up again at some point. But when, exactly? Well, it comes into play when we run the <code>rake -T</code> command, which lists out all the tasks available to our specific application:</p>
+
+<pre><code class="ruby">♥ rake -T
+rake data:stage          # Stage environment with sample data.
+</code></pre>
+
+<p>Cool! Whatever we write in our description is exactly what will be output if and when this command is run in the future. Now, how do we get this task to create some sample data every time it&rsquo;s run? Well, we&rsquo;ll want to use ActiveRecord in order to actually persist some objects to our database. There&rsquo;s a handy block method on <code>ActiveRecord::Base</code> that does exactly this:</p>
+
+<pre><code class="ruby">namespace :data do
+    desc "Stage environment with sample data."
+    task stage: :environment do
+        ActiveRecord::Base.transaction do
+            poetry = Genre.create!(name: 'Poetry')
+
+            POETRY_SUBGENRES = ['lyric', 'drama', 'epic']
+
+            POETRY_SUBGENRES.each do |genre|
+                SubGenre.create!(sub_genre: genre, parent_genre: poetry)
+            end
+        end
+    end
+end
+</code></pre>
+
+<p>Nice! We&rsquo;re creating a genre and some sub genres, and associating them together. We could also add in authors and books to make this task a bit more robust. And to get really fancy, we could import a csv of all this information if it lived somewhere else!</p>
+
+<h2>Extending Our Tasks Further</h2>
+
+<p>Now that we know how to structure our rake tasks, we can add more tasks into the very same file. In fact, we can take advantage of the namespacing that we set up early on right now! Let&rsquo;s create a <code>rake data:reset</code> task that will work almost the same as the task we wrote above. The only difference being that this task will destroy any data that was staged (or any that might be hanging around, for some strange reason).</p>
+
+<p>We can write that task inside of our same file, inside of our namespace:</p>
+
+<pre><code class="ruby">namespace :data do
+    desc "Stage environment with sample data."
+    task stage: :environment do
+        # the task we just wrote lives here!
+    end
+
+    desc "Resets and clears all the sample data."
+    task reset: :environment do
+      ActiveRecord::Base.transaction do
+        Genre.destroy_all
+        SubGenre.destroy_all
+      end
+    end
+end
+</code></pre>
+
+<p>All we&rsquo;re doing is using the handy methods that ActiveRecord gives us for free inside of the blocks we&rsquo;ve defined in our task. And now when we run <code>rake -T</code>, we&rsquo;ll see this:</p>
+
+<pre><code class="ruby">♥ rake -T
+rake data:stage          # Stage environment with sample data.
+rake data:reset          # Resets and clears all the sample data.
+</code></pre>
+
+<p>Look at us! We&rsquo;re rake task writing masters! We could get even fancier and make one task <em>depend upon</em> the other. Remember how the block syntax with the <code>task</code> method works? We can use the form of that syntax to make our task function the way we want to:</p>
+
+<pre><code class="ruby">namespace :data do
+    desc "Resets and stages the environment with sample data."
+    task stage: [:environment, :reset] do
+        # the task we wrote lives here!
+    end
+end
+</code></pre>
+
+<p>Now, we&rsquo;re specifying that not only should the <code>task</code> method load the environment, but it should also run the <code>rake data:reset</code> task before running the <code>rake data:stage</code> task! This could be super useful in development, when you don&rsquo;t want to have your database filled with duplicate data.</p>
+
+<p>Another fun thing we could do is pass in parameters to our rake task:</p>
+
+<pre><code class="ruby">namespace :data do
+  desc "Stages the environment with specific amount of sample book data."
+  task create_books: [:books_to_create] :environment do
+    number_of_books = args[:books_to_create]
+    # Uses the books_to_create variable to
+    # create the number of books we want.
+  end
+end
+</code></pre>
+
+<p>Now, when we call the <code>rake data:create_books[100]</code> method, we could have our rake task generate 100 books for us based on the input argument we provided it.</p>
+
+<p>This is pretty fun, right? We could put a ton of tasks that do all sorts of application management for us, and it would be no problem. Except that it would be, and here&rsquo;s why: we never want too much logic in one single part of our application. In other words, we want to separate out what different sections of application are concerned with. We probably could abstract out a lot of what these tasks do into, I don&rsquo;t know, something like&hellip;a <em>service object</em>?</p>
+
+<p>Except there&rsquo;s one little issue: we don&rsquo;t know what service objects are! I guess it&rsquo;s time for us to learn about them. Tune in again next week, when I&rsquo;ll dive into service objects in Rails and a super cool concept called separation of concerns. Here&rsquo;s a rake-themed gif to tide you over until then:</p>
+
+<iframe src="//giphy.com/embed/5xtDarAX9eDPODdPMoo" width="480" height="480" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Rake tasks are just Ruby code written inside of a either a <code>.rake</code> file in the <code>/app/tasks</code> directory, or sometimes within a <code>Rakefile</code> itself.</li>
+<li>A rake task needs a description and a <code>task</code> block. The description is what will be seen when you run <code>rake -T</code>, and the <code>task</code> block is where you&rsquo;ll write what the task actually has to do, and specify any dependencies.</li>
+<li>Need to see a simpler example of how to make a rake task? Check out this awesome <a href="http://jasonseifer.com/2010/04/06/rake-tutorial">tutorial on rake</a>, or watch <a href="http://railscasts.com/episodes/66-custom-rake-tasks">this RailsCast</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[To Serialize or Not to Serialize: ActiveModel Serializers]]></title>
@@ -720,133 +884,6 @@ Order.pluck(:amount).map &amp;half_off_sale
 <li>More examples and explanations on <a href="http://stackoverflow.com/questions/9429819/what-is-the-functionality-of-operator-in-ruby">these</a> <a href="http://stackoverflow.com/questions/2259775/what-do-you-call-the-operator-in-ruby">two</a> StackOverflow posts.</li>
 <li>Here&rsquo;s a <a href="http://www.dan-manges.com/blog/29">great blog post</a> on all the ways you can use <code>&amp;</code> to manipulate ActiveRecord models.</li>
 <li>If you&rsquo;re still curious about different ways to pass around procs, check out <a href="http://ablogaboutcode.com/2012/01/04/the-ampersand-operator-in-ruby/">this post</a>, which is what I used when I was learning about them!</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[The Secret Life of Your Database, Part 2: Join Tables]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/"/>
-    <updated>2015-05-26T08:02:30-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables</id>
-    <content type="html"><![CDATA[<p><img src="http://daviddickball.uk/wp-content/uploads/2015/03/sql-join.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>When it comes to databases, there are generally two schools of thought. There are those people who love them, and there are those people who just hate them. While I wholeheartedly admit that I belong to the former camp of believers, I can understand why someone would subscribe to the latter group. Databases are hard! They&rsquo;re beautiful and super fun once you understand how to manipulate them, but until you get to that point, they&rsquo;re pretty much just hard.</p>
-
-<p>I think that a large part of what makes databases hard to understand is the sheer amount of things you can do with the data it contains. Between database migrations, which we unpacked <a href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">last week</a>, and writing SQL queries that actually do what you want them to do, it&rsquo;s really easy to just throw your hands up in the air and give up completely. But, you shouldn&rsquo;t! And I hope that, after reading this post, you won&rsquo;t! Because <em>databases are beautiful</em> (that should be on a t-shirt somewhere), and you just have to get to know them a little bit.</p>
-
-<p>So, what should we get to know about them? Well, the scariest part, of course: <strong>join tables</strong>. Join tables are used to combine two sets of data from two different tables. Depending on what you query the database for, different values can be returned. No matter the size of your application, you&rsquo;re probably going to have at least a few tables, and usually many more. Most of the time, the data in a single table by itself isn&rsquo;t super useful; when it&rsquo;s combined with another database&rsquo;s information, however, then things really get cooking. Join tables are how we get specific information from two different datasets (or two different database tables). There are seven different types of join tables, but there are three in particular that I&rsquo;ve encountered time and again. Let&rsquo;s explore the differences between inner joins, left outer joins, and right outer joins.</p>
-
-<!--more-->
-
-
-<h2>Know Thy Data</h2>
-
-<p>Before we get too deep into join syntax, let&rsquo;s take a look at our data! We&rsquo;ll stick with the schema from our eCommerce bookstore application. Since we don&rsquo;t have any real users yet, we can just populate our database with some fake, super fun seed data.</p>
-
-<p><em>Disclaimer</em>: I may or may not have gotten carried away when making the seed data. Anyways, here&rsquo;s what our databases look like:
-<img src="http://i.imgur.com/voemAen.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>We&rsquo;ll be working with the same two tables: a <code>Users</code> table, and an <code>Orders</code> table. Each <code>User</code> instance has a <code>first_name</code> and a <code>last_name</code> (and realistically speaking, probably a bunch of other attributes&hellip;but let&rsquo;s keep it simple for now).</p>
-
-<p>Each <code>Order</code> object <code>belongs_to</code> a <code>User</code>, which means it has a <code>user_id</code> column to store the foreign key from the <code>Users</code> table. Each <code>Order</code> also has a unique, randomly-generated <code>number</code> (think order confirmation number), and an order <code>total</code>, which is stored as a <a href="http://vaidehijoshi.github.io/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/">Ruby BigDecimal object</a>.</p>
-
-<h2>Inner Joins</h2>
-
-<p>The most common and easiest join table syntax to understand is the <em>inner join</em>. Inner joins are our tool of choice if we&rsquo;re looking for a specific set of data that only matches the parameters we identify in our query.</p>
-
-<p>For example, say we&rsquo;re looking for a subset of data that shows <em>only</em> <code>users</code> with <code>orders</code>. We&rsquo;re not interested in any <code>Users</code> that haven&rsquo;t placed an order; we only want the data of a <code>User</code> that actually <em>has</em> placed an order. This is a set of data that might be useful for something like an admin panel that we might want to build out in our next feature, so let&rsquo;s return just some basic information right now, like the <code>User</code>&rsquo;s <code>last_name</code> and their <code>user_id</code>.</p>
-
-<p>So, what would that look like in a SQL query? Well, we know that we want to select only the <code>last_name</code> and the <code>id</code> of the <code>User</code> instance. But, we don&rsquo;t want ALL <code>Users</code> by their <code>ids</code>; we actually want only the <code>Users</code> that are associated with an <code>user_id</code> on an <code>Order</code>. So, that&rsquo;s what we&rsquo;ll select:</p>
-
-<pre><code class="sql">SELECT users.last_name, orders.user_id
-FROM users
-</code></pre>
-
-<p>Cool, we&rsquo;re halfway there. Now for the join. Let&rsquo;s think for a second&hellip;we want to <em>join</em> the data in our <code>Users</code> table with the data in our <code>Orders</code> table. And, we want to match the rows by <code>ids</code>. What does that mean, exactly? Well, it means that we only want to return an <code>User</code> row where that <code>User's</code> <code>id</code> exists in a row of the <code>Order</code> database, where it&rsquo;ll be under the <code>user_id</code> foreign key column. We&rsquo;ll also order our data by the <code>Order's</code> <code>id</code> for now, but we&rsquo;ll change that as we play around a bit more. So let&rsquo;s add all that to our query:</p>
-
-<pre><code class="sql">SELECT users.last_name, orders.user_id
-FROM users
-INNER JOIN orders
-ON users.id=orders.user_id
-ORDER BY orders.id;
-</code></pre>
-
-<p>And if we run this query, what&rsquo;ll happen? We&rsquo;ll get this fabulousness:
-<br><br>
-<img src="http://i.imgur.com/sWlj3zx.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>Nice! So, we get five records returned to us, and it returns exactly what we asked for: the <code>User's</code> <code>last_name</code> and the <code>Order's</code> <code>user_id</code>. But there are some <code>User</code> instances that are there twice, and one of the <code>Users</code> (which is apparently T.S. Eliot) doesn&rsquo;t even show up in our records!</p>
-
-<p>If we take a closer look at our <code>Orders</code> database table, that&rsquo;s exactly what we should <em>expect</em> to happen. The <code>User</code> with an <code>id</code> of <code>1</code> placed two <code>Orders</code>, so there are two records with his <code>last_name</code> and <code>id</code> that are returned to us. And Eliot, who hasn&rsquo;t placed any <code>Orders</code> yet, isn&rsquo;t returned to us at all! That makes sense though, since we&rsquo;re asking for a subset of information &ndash; only the rows that fit the requirements of our query &ndash; or, the inner information of our database, and nothing superfluous, meaning that all the outer, extra information is ignored.</p>
-
-<h2>Left Outer Joins</h2>
-
-<p>Now that we&rsquo;ve covered the relatively easier inner join, it&rsquo;s time to get to the slightly trickier stuff: outer joins! Outer joins come in two shapes and sizes: <strong>left outer joins</strong> and <strong>right outer joins</strong>. The concept behind the two is fundamentally the same, but they kind of work like opposites. Let&rsquo;s look at a left
-outer join to start.</p>
-
-<p>Let&rsquo;s say that our admins actually want to see all the <code>Users</code> at once in the admin panel, regardless of whether they&rsquo;ve placed an order or not. This means that we want to widen our data query to ALL <code>Users</code>, and all the <code>Orders</code> associated with any of those <code>Users</code>. We&rsquo;ll begin our SQl query the same way as before, selecting the <code>User's</code> <code>last_name</code>.</p>
-
-<p>But our admin&rsquo;s also want to see the <code>Order</code> <code>totals</code> for each <code>User</code> &ndash; if the <code>User</code> has placed an order, obviously. So, we&rsquo;ll add that to our select statement as well.</p>
-
-<pre><code class="sql">SELECT users.last_name, orders.total
-FROM users
-</code></pre>
-
-<p>Now, we want to join our <code>Users</code> table with our <code>Orders</code> table again. Except this time, we don&rsquo;t want to do an inner join. Instead, we want all the data from our <code>Users</code> table, and any data that might correspond to all of our <code>Users</code> from the <code>Orders</code> database. We&rsquo;ll still do something similar to before and join our tables on the <code>id</code> columns, but we&rsquo;ll order by each <code>User's</code> <code>id</code>:</p>
-
-<pre><code class="sql">SELECT users.last_name, orders.total
-FROM users
-LEFT OUTER JOIN orders
-ON users.id=orders.user_id
-ORDER BY users.id;
-</code></pre>
-
-<p>If we look at our data, we&rsquo;ll remember that the <code>User</code> with an <code>id</code> of <code>4</code> never placed any orders! How might this affect what data is returned to us? Let&rsquo;s run our query and find out:</p>
-
-<p><br><br>
-<img src="http://i.imgur.com/STqLeW3.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>Whoa! Since our <code>User</code> T.S. Eliot never placed an order, he didn&rsquo;t have any row in the <code>Orders</code> database that corresponded to him. Because there was no <code>Order</code> <code>total</code> column that was attributed to his <code>id</code>, what got returned instead? <code>NULL</code>!</p>
-
-<p>And that&rsquo;s exactly what outer joins will do if they don&rsquo;t find anything! If there is no match on the right table that is being &ldquo;joined&rdquo; (in our case, the <code>Orders</code> database), the default return value will always be <code>NULL</code>. Now that we know that&hellip;how do you think that a right outer join might work?</p>
-
-<h2>Right Outer Joins</h2>
-
-<p>A <strong>right outer join</strong> is almost the same as a left outer join. The difference is that the table that you&rsquo;re joining is on the <em>right</em>. What does that mean for your return set of data?</p>
-
-<p>Well, it means that all the data on the <em>right</em> table will be returned &ndash; even if it doesn&rsquo;t have a corresponding value. Our query might look something like this:</p>
-
-<pre><code class="sql">SELECT orders.number, orders.total
-FROM users
-RIGHT OUTER JOIN orders
-ON users.id=orders.user_id
-ORDER BY orders.id;
-</code></pre>
-
-<p>Here, we are ordering by the <code>Order's</code> <code>id</code>, and we&rsquo;re only looking at the <code>Order</code> <code>number</code> and <code>total</code>. When we run our query, this is what we&rsquo;ll get:</p>
-
-<p><br><br>
-<img src="http://i.imgur.com/LJoNd8I.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>In our case, our data doesn&rsquo;t look super different with a right outer join. In fact, it looks a lot like the inner join we started with! So why do right inner joins matter, then?</p>
-
-<p>Well, what if our admins change their minds (again!) and instead want ONLY orders to be returned. And what if you have an order that doesn&rsquo;t have a <code>User</code>, because that user deleted their account? Well, in that case, our <code>Order</code> would still show up in the returned data, and if we selected the corresponding <code>User</code> <code>ids</code>, then the deleted <code>User</code> would have a <code>NULL</code> <code>id</code> value! Pretty cool, right?</p>
-
-<p>See, databases can be pretty awesome once you understand a little bit about how they work! In fact, I love them so much that I give &lsquo;em two thumbs way, way up!</p>
-
-<iframe src="//giphy.com/embed/5fBH6zoy1szfjORd14s" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>Join tables allow us to combine two different sets of data. You can make your data subset be as specific or broad as you want, depending on what you query for!</li>
-<li>An inner join will only return values that exist in both tables.</li>
-<li>A left outer join will return all the values from the left database, and any values that correspond from the right database. A right outer join will return all the values from the right database, and any values that correspond form the left. Any values that don&rsquo;t have a corresponding row will be returned as <code>NULL</code>.</li>
-<li>Still curious about inner vs outer joins? Check out <a href="http://www.programmerinterview.com/index.php/database-sql/inner-vs-outer-joins/">this blog post</a>.</li>
-<li>Want to know about ALL the different join tables out there? Here&rsquo;s a dope <a href="https://raw.githubusercontent.com/equivalent/scrapbook2/master/assets/images/2014/sql-joins.png">graphic</a> that explains it well.</li>
 </ul>
 
 ]]></content>

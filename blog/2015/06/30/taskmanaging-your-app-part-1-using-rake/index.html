@@ -1,0 +1,437 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Taskmanaging Your App, Part 1: Using Rake - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="Rake tasks: we&rsquo;ve all used &lsquo;em. From migrating our database to seeding it, we run commands using rake all of the time! But what actually &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Taskmanaging Your App, Part 1: Using Rake</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-06-30T08:49:58-04:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:49 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><iframe src="//giphy.com/embed/uRziFAtdD6H60" width="480" height="362" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Rake tasks: we&rsquo;ve all used &lsquo;em. From migrating our database to seeding it, we run commands using <code>rake</code> all of the time! But what actually happens when you run a rake task? And where is all this stuff defined, exactly? And how do you write a customized rake task of your very own?</p>
+
+<p>These were the questions I was asking myself last week, when I had to write a rake task to stage some data for an application I was working on. I knew exactly what my rake task was supposed to accomplish, and I had a general idea of the code that had to live inside of it. I didn&rsquo;t quite know how to write my rake task, however. And I definitely didn&rsquo;t know what was going on inside of the Ruby interpreter when it would read my yet-to-exist task.</p>
+
+<p>So, I set out to answer some of those questions, and learned a bit about how rake works in the process. It was an interesting rabbit hole to dive down, particularly since I had never before questioned what was happening when I ran a rake command in my command line. When you&rsquo;re first starting out with code, it&rsquo;s okay to accept some of the obfuscation that is inherently a part of the abstraction of larger applications. But you should never go too long without questioning why and how a certain thing works the way that it does. And that&rsquo;s exactly what we&rsquo;ll do with our beloved rake commands.</p>
+
+<!--more-->
+
+
+<h2>Form And Function</h2>
+
+<p>We use the <code>rake</code> command so often that it might be easy to forget that it&rsquo;s <em>actually</em> part of a gem! Most everything we use &ndash; including that little gem called <code>rails</code> &ndash; relies on the <code>rake</code> gem as a dependency. And everything we could ever want to know about <code>rake</code>&rsquo;s form and function can be found in a single place: the <code>Rakefile</code>, a top-level file that exists in any application that uses this gem to manage and run tasks of all kinds.</p>
+
+<p>So what&rsquo;s inside of our <code>Rakefile</code> after we generate a brand new Rails application? Something that looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1"># Add your own tasks in files placed in lib/tasks ending in .rake,</span>
+</span><span class='line'><span class="c1"># for example lib/tasks/capistrano.rake, and they will automatically be available to Rake.</span>
+</span><span class='line'>
+</span><span class='line'><span class="nb">require</span> <span class="no">File</span><span class="o">.</span><span class="n">expand_path</span><span class="p">(</span><span class="s1">&#39;../config/application&#39;</span><span class="p">,</span> <span class="bp">__FILE__</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="no">Rails</span><span class="o">.</span><span class="n">application</span><span class="o">.</span><span class="n">load_tasks</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pretty empty, right? Except that there&rsquo;s a pretty important line in there at the end which invokes a <code>load_tasks</code> method on our application object, which is what allows rake to load tasks into our application itself. But how do we fill up this Rakefile with some awesome rake tasks? Well, if we read carefully, it seems like <code>rake</code> is telling us exactly what we need to do.</p>
+
+<p>Let&rsquo;s start by creating a data staging task that will load some initial data into our application so that we have something to work with while in development. We&rsquo;ll create a <code>stage_data.rake</code> file nested inside of our <code>lib/tasks</code> directories. But that&rsquo;s empty too! You know what that means, don&rsquo;t you? Time to write some tasks.</p>
+
+<h2>Managing Our Task Management</h2>
+
+<iframe src="//giphy.com/embed/gw3woz6oWXK48iE8" width="480" height="432" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Since we&rsquo;re working within the context of a mid-size Rails application, the first thing we probably want to do is namespace our rake tasks. We can do that a namespace block:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">namespace</span> <span class="ss">:data</span> <span class="k">do</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This is how we can break up all the tasks that are concerned with managing data. But for now, let&rsquo;s just work on writing a single task, which will stage our development environment with some sample data to help us while we&rsquo;re building out the front end later on.</p>
+
+<p>In order to write our rake task, we really just need two things: a description and then a <code>task</code> block. We know what we want our task to do, so that&rsquo;s what we&rsquo;ll put in our description. What we write here will be mostly to help us later on, when we want to know what tasks are available to us, and what exactly they do.</p>
+
+<p>We&rsquo;ll also want to specify any dependencies that this task might have.</p>
+
+<p>After the <code>desc</code> term, we&rsquo;re describing what our task will do, and then setting the command that we&rsquo;ll use to run the task itself. We&rsquo;re also specifying any dependencies that this task might have. In our case, the only thing that this task <em>depends upon</em> is the application itself. So, we want to make sure that our entire Rails application is loaded before running this task:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">namespace</span> <span class="ss">:data</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">desc</span> <span class="s2">&quot;Stage environment with sample data.&quot;</span>
+</span><span class='line'>  <span class="n">task</span> <span class="ss">stage</span><span class="p">:</span> <span class="ss">:environment</span> <span class="k">do</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Interestingly, all that&rsquo;s happening here is that a method called <code>task</code> is being invoked, and the key-value pair that we provided it (<code>stage: :environment</code>) is telling <code>task</code> exactly which other methods to execute before running the subsequent task we have defined inside of the block. I like how <a href="http://tutorials.jumpstartlab.com/topics/systems/automation.html">this tutorial</a> explains what&rsquo;s going on behind the scenes:</p>
+
+<blockquote><p>It starts with the task method which takes a hash parameter. The key will be the name of the task. The value stored under that key, here <code>:environment</code>, indicates which other Rake tasks should be run before this task is run. Think of them like dependencies. When your task depends on <code>:environment</code>, it will load your entire Rails application. If your task doesn’t actually need Rails, don’t depend on :environment and you can greatly increase startup time and decrease memory usage.</p></blockquote>
+
+<p>Another cool thing to keep in mind is the description. We know that our task description (after the <code>desc</code>) will show up again at some point. But when, exactly? Well, it comes into play when we run the <code>rake -T</code> command, which lists out all the tasks available to our specific application:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">♥</span> <span class="n">rake</span> <span class="o">-</span><span class="n">T</span>
+</span><span class='line'><span class="n">rake</span> <span class="ss">data</span><span class="p">:</span><span class="n">stage</span>          <span class="c1"># Stage environment with sample data.</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Cool! Whatever we write in our description is exactly what will be output if and when this command is run in the future. Now, how do we get this task to create some sample data every time it&rsquo;s run? Well, we&rsquo;ll want to use ActiveRecord in order to actually persist some objects to our database. There&rsquo;s a handy block method on <code>ActiveRecord::Base</code> that does exactly this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">namespace</span> <span class="ss">:data</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">desc</span> <span class="s2">&quot;Stage environment with sample data.&quot;</span>
+</span><span class='line'>  <span class="n">task</span> <span class="ss">stage</span><span class="p">:</span> <span class="ss">:environment</span> <span class="k">do</span>
+</span><span class='line'>      <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'>          <span class="n">poetry</span> <span class="o">=</span> <span class="no">Genre</span><span class="o">.</span><span class="n">create!</span><span class="p">(</span><span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;Poetry&#39;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="no">POETRY_SUBGENRES</span> <span class="o">=</span> <span class="o">[</span><span class="s1">&#39;lyric&#39;</span><span class="p">,</span> <span class="s1">&#39;drama&#39;</span><span class="p">,</span> <span class="s1">&#39;epic&#39;</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="no">POETRY_SUBGENRES</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">genre</span><span class="o">|</span>
+</span><span class='line'>              <span class="no">SubGenre</span><span class="o">.</span><span class="n">create!</span><span class="p">(</span><span class="ss">sub_genre</span><span class="p">:</span> <span class="n">genre</span><span class="p">,</span> <span class="ss">parent_genre</span><span class="p">:</span> <span class="n">poetry</span><span class="p">)</span>
+</span><span class='line'>          <span class="k">end</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Nice! We&rsquo;re creating a genre and some sub genres, and associating them together. We could also add in authors and books to make this task a bit more robust. And to get really fancy, we could import a csv of all this information if it lived somewhere else!</p>
+
+<h2>Extending Our Tasks Further</h2>
+
+<p>Now that we know how to structure our rake tasks, we can add more tasks into the very same file. In fact, we can take advantage of the namespacing that we set up early on right now! Let&rsquo;s create a <code>rake data:reset</code> task that will work almost the same as the task we wrote above. The only difference being that this task will destroy any data that was staged (or any that might be hanging around, for some strange reason).</p>
+
+<p>We can write that task inside of our same file, inside of our namespace:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">namespace</span> <span class="ss">:data</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">desc</span> <span class="s2">&quot;Stage environment with sample data.&quot;</span>
+</span><span class='line'>  <span class="n">task</span> <span class="ss">stage</span><span class="p">:</span> <span class="ss">:environment</span> <span class="k">do</span>
+</span><span class='line'>      <span class="c1"># the task we just wrote lives here!</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">desc</span> <span class="s2">&quot;Resets and clears all the sample data.&quot;</span>
+</span><span class='line'>  <span class="n">task</span> <span class="ss">reset</span><span class="p">:</span> <span class="ss">:environment</span> <span class="k">do</span>
+</span><span class='line'>    <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'>      <span class="no">Genre</span><span class="o">.</span><span class="n">destroy_all</span>
+</span><span class='line'>      <span class="no">SubGenre</span><span class="o">.</span><span class="n">destroy_all</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>All we&rsquo;re doing is using the handy methods that ActiveRecord gives us for free inside of the blocks we&rsquo;ve defined in our task. And now when we run <code>rake -T</code>, we&rsquo;ll see this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">♥</span> <span class="n">rake</span> <span class="o">-</span><span class="n">T</span>
+</span><span class='line'><span class="n">rake</span> <span class="ss">data</span><span class="p">:</span><span class="n">stage</span>          <span class="c1"># Stage environment with sample data.</span>
+</span><span class='line'><span class="n">rake</span> <span class="ss">data</span><span class="p">:</span><span class="n">reset</span>          <span class="c1"># Resets and clears all the sample data.</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Look at us! We&rsquo;re rake task writing masters! We could get even fancier and make one task <em>depend upon</em> the other. Remember how the block syntax with the <code>task</code> method works? We can use the form of that syntax to make our task function the way we want to:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">namespace</span> <span class="ss">:data</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">desc</span> <span class="s2">&quot;Resets and stages the environment with sample data.&quot;</span>
+</span><span class='line'>  <span class="n">task</span> <span class="ss">stage</span><span class="p">:</span> <span class="o">[</span><span class="ss">:environment</span><span class="p">,</span> <span class="ss">:reset</span><span class="o">]</span> <span class="k">do</span>
+</span><span class='line'>      <span class="c1"># the task we wrote lives here!</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, we&rsquo;re specifying that not only should the <code>task</code> method load the environment, but it should also run the <code>rake data:reset</code> task before running the <code>rake data:stage</code> task! This could be super useful in development, when you don&rsquo;t want to have your database filled with duplicate data.</p>
+
+<p>Another fun thing we could do is pass in parameters to our rake task:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">namespace</span> <span class="ss">:data</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">desc</span> <span class="s2">&quot;Stages the environment with specific amount of sample book data.&quot;</span>
+</span><span class='line'>  <span class="n">task</span> <span class="ss">create_books</span><span class="p">:</span> <span class="o">[</span><span class="ss">:books_to_create</span><span class="o">]</span> <span class="ss">:environment</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">number_of_books</span> <span class="o">=</span> <span class="n">args</span><span class="o">[</span><span class="ss">:books_to_create</span><span class="o">]</span>
+</span><span class='line'>    <span class="c1"># Uses the books_to_create variable to</span>
+</span><span class='line'>    <span class="c1"># create the number of books we want.</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, when we call the <code>rake data:create_books[100]</code> method, we could have our rake task generate 100 books for us based on the input argument we provided it.</p>
+
+<p>This is pretty fun, right? We could put a ton of tasks that do all sorts of application management for us, and it would be no problem. Except that it would be, and here&rsquo;s why: we never want too much logic in one single part of our application. In other words, we want to separate out what different sections of application are concerned with. We probably could abstract out a lot of what these tasks do into, I don&rsquo;t know, something like&hellip;a <em>service object</em>?</p>
+
+<p>Except there&rsquo;s one little issue: we don&rsquo;t know what service objects are! I guess it&rsquo;s time for us to learn about them. Tune in again next week, when I&rsquo;ll dive into service objects in Rails and a super cool concept called separation of concerns. Here&rsquo;s a rake-themed gif to tide you over until then:</p>
+
+<iframe src="//giphy.com/embed/5xtDarAX9eDPODdPMoo" width="480" height="480" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Rake tasks are just Ruby code written inside of a either a <code>.rake</code> file in the <code>/app/tasks</code> directory, or sometimes within a <code>Rakefile</code> itself.</li>
+<li>A rake task needs a description and a <code>task</code> block. The description is what will be seen when you run <code>rake -T</code>, and the <code>task</code> block is where you&rsquo;ll write what the task actually has to do, and specify any dependencies.</li>
+<li>Need to see a simpler example of how to make a rake task? Check out this awesome <a href="http://jasonseifer.com/2010/04/06/rake-tutorial">tutorial on rake</a>, or watch <a href="http://railscasts.com/episodes/66-custom-rake-tasks">this RailsCast</a>.</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-06-30T08:49:58-04:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:49 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/06/23/to-serialize-or-not-to-serialize-activemodel-serializers/" title="Previous Post: To Serialize Or Not To Serialize: ActiveModel Serializers">&laquo; To Serialize Or Not To Serialize: ActiveModel Serializers</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/">Taskmanaging Your App, Part 1: Using Rake</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/23/to-serialize-or-not-to-serialize-activemodel-serializers/">To Serialize or Not to Serialize: ActiveModel Serializers</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/16/babys-first-conference-recapping-reddotrubyconf/">Baby&#8217;s First Conference: Recapping RedDotRubyConf</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/09/refactoring-to-reveal-rails-group-by/">Refactoring to Reveal Rails Group_by</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/">Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="Up until two weeks ago, I had one great fear: testing. And, to be clear, when I say &ldquo;fear&rdquo;, what I actually mean is sheer terror. My &hellip;">
+  <meta name="description" content="This blog post is part of a series on testing. Read Part 1 here. Good things always come in pairs, and that couldn&rsquo;t be more true when it &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,57 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/">Tackling Those Tests, Part 2: Getting Fun and Functional With FactoryGirl</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-04-21T08:34:19-04:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>8:34 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/testing/'>testing</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><img src="https://33.media.tumblr.com/0b9992ca5a259a54c16199c2de69c903/tumblr_mtjab8Yo0U1rlp47to1_500.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p><em>This blog post is part of a series on testing. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/">here</a>.</em></p>
+
+<p>Good things always come in pairs, and that couldn&rsquo;t be more true when it comes to testing. Like milk and cookies or peanut butter and jelly, test suites and test data are at their best when they&rsquo;re put together. As we discovered last week, a thoughtful test suite is important when it comes to checking our assumptions. But even the most comprehensive test suite is nothing without the appropriate amount &ndash; and type &ndash; of test data to support it.</p>
+
+<p>Every Rails application comes with a production, development, and test environment, and good test data is an indication of a well-constructed testing environment. But not all data is created equally. To take a cue from George Orwell, we could go so far as to claim that some forms of test data are more equal than others.</p>
+
+<p>Enter <strong>FactoryGirl</strong>, a gem that I&rsquo;ve recently discovered to be the most efficient way and painless way of creating test data within a Rails application. Generating test data is often the culprit for not only a great deal of pain and sufferring, but also some annoying bugs that are hard to catch. In fact, one of the most excruciating bugs I&rsquo;ve ever dealt with came from a single line of code, meant to create some test data. So it seems fitting that this week we tackle the most dangerous (yet thrilling!) part of testing: generating test data.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -549,55 +600,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/">Money Makes the World Go Round: Using Money-Rails and BigDecimal</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-02-10T08:07:09-05:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:07 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><img src="http://s3-ec.buzzfed.com/static/enhanced/webdr02/2013/3/26/12/enhanced-buzz-19756-1364314697-15.jpg" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>Mo money, mo problems. This is especially the case when you&rsquo;re a new developer trying to onboard onto a huge eCommerce Rails application.</p>
-
-<p>No, but really - money is such a pain in the ass to deal with as a programmer. So much logic and detail goes into accepting a payment, processing a transaction, checking an order&rsquo;s status&hellip;and don&rsquo;t even get me <em>started</em> on shipping &ndash; seriously, I&rsquo;m saving the entire concept of shipping for another blog post.</p>
-
-<p>But, at some point or another, you have to deal with other people&rsquo;s money. And you have to try and not screw it up, because apparently people really don&rsquo;t like that. So, how do you handle all those dolla dolla bills? Yup, you guessed it: with the <strong>money-rails library</strong> and Ruby&rsquo;s <strong>BigDecimal object</strong>.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/3">&larr; Older</a>
@@ -615,6 +617,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/">Taskmanaging Your App, Part 1: Using Rake</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/06/23/to-serialize-or-not-to-serialize-activemodel-serializers/">To Serialize or Not to Serialize: ActiveModel Serializers</a>
       </li>
     
@@ -628,10 +634,6 @@
     
       <li class="post">
         <a href="/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/">Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/">The Secret Life of Your Database, Part 2: Join Tables</a>
       </li>
     
   </ul>

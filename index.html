@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="Lesson number one when it comes to developing for the web: everything is just data. When you send something to the server in a request, or when you &hellip;">
+  <meta name="description" content="Rake tasks: we&rsquo;ve all used &lsquo;em. From migrating our database to seeding it, we run commands using rake all of the time! But what actually &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,56 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/">Taskmanaging Your App, Part 1: Using Rake</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-06-30T08:49:58-04:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:49 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/uRziFAtdD6H60" width="480" height="362" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Rake tasks: we&rsquo;ve all used &lsquo;em. From migrating our database to seeding it, we run commands using <code>rake</code> all of the time! But what actually happens when you run a rake task? And where is all this stuff defined, exactly? And how do you write a customized rake task of your very own?</p>
+
+<p>These were the questions I was asking myself last week, when I had to write a rake task to stage some data for an application I was working on. I knew exactly what my rake task was supposed to accomplish, and I had a general idea of the code that had to live inside of it. I didn&rsquo;t quite know how to write my rake task, however. And I definitely didn&rsquo;t know what was going on inside of the Ruby interpreter when it would read my yet-to-exist task.</p>
+
+<p>So, I set out to answer some of those questions, and learned a bit about how rake works in the process. It was an interesting rabbit hole to dive down, particularly since I had never before questioned what was happening when I ran a rake command in my command line. When you&rsquo;re first starting out with code, it&rsquo;s okay to accept some of the obfuscation that is inherently a part of the abstraction of larger applications. But you should never go too long without questioning why and how a certain thing works the way that it does. And that&rsquo;s exactly what we&rsquo;ll do with our beloved rake commands.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -519,57 +569,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/">Tackling Those Tests, Part 2: Getting Fun and Functional With FactoryGirl</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-04-21T08:34:19-04:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>8:34 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/testing/'>testing</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><img src="https://33.media.tumblr.com/0b9992ca5a259a54c16199c2de69c903/tumblr_mtjab8Yo0U1rlp47to1_500.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p><em>This blog post is part of a series on testing. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/">here</a>.</em></p>
-
-<p>Good things always come in pairs, and that couldn&rsquo;t be more true when it comes to testing. Like milk and cookies or peanut butter and jelly, test suites and test data are at their best when they&rsquo;re put together. As we discovered last week, a thoughtful test suite is important when it comes to checking our assumptions. But even the most comprehensive test suite is nothing without the appropriate amount &ndash; and type &ndash; of test data to support it.</p>
-
-<p>Every Rails application comes with a production, development, and test environment, and good test data is an indication of a well-constructed testing environment. But not all data is created equally. To take a cue from George Orwell, we could go so far as to claim that some forms of test data are more equal than others.</p>
-
-<p>Enter <strong>FactoryGirl</strong>, a gem that I&rsquo;ve recently discovered to be the most efficient way and painless way of creating test data within a Rails application. Generating test data is often the culprit for not only a great deal of pain and sufferring, but also some annoying bugs that are hard to catch. In fact, one of the most excruciating bugs I&rsquo;ve ever dealt with came from a single line of code, meant to create some test data. So it seems fitting that this week we tackle the most dangerous (yet thrilling!) part of testing: generating test data.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -585,6 +584,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/">Taskmanaging Your App, Part 1: Using Rake</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/06/23/to-serialize-or-not-to-serialize-activemodel-serializers/">To Serialize or Not to Serialize: ActiveModel Serializers</a>
       </li>
     
@@ -598,10 +601,6 @@
     
       <li class="post">
         <a href="/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/">Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/">The Secret Life of Your Database, Part 2: Join Tables</a>
       </li>
     
   </ul>

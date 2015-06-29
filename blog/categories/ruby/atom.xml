@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Ruby | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-06-22T18:57:33-04:00</updated>
+  <updated>2015-06-29T19:51:39-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,170 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Taskmanaging Your App, Part 1: Using Rake]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/"/>
+    <updated>2015-06-30T08:49:58-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/uRziFAtdD6H60" width="480" height="362" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Rake tasks: we&rsquo;ve all used &lsquo;em. From migrating our database to seeding it, we run commands using <code>rake</code> all of the time! But what actually happens when you run a rake task? And where is all this stuff defined, exactly? And how do you write a customized rake task of your very own?</p>
+
+<p>These were the questions I was asking myself last week, when I had to write a rake task to stage some data for an application I was working on. I knew exactly what my rake task was supposed to accomplish, and I had a general idea of the code that had to live inside of it. I didn&rsquo;t quite know how to write my rake task, however. And I definitely didn&rsquo;t know what was going on inside of the Ruby interpreter when it would read my yet-to-exist task.</p>
+
+<p>So, I set out to answer some of those questions, and learned a bit about how rake works in the process. It was an interesting rabbit hole to dive down, particularly since I had never before questioned what was happening when I ran a rake command in my command line. When you&rsquo;re first starting out with code, it&rsquo;s okay to accept some of the obfuscation that is inherently a part of the abstraction of larger applications. But you should never go too long without questioning why and how a certain thing works the way that it does. And that&rsquo;s exactly what we&rsquo;ll do with our beloved rake commands.</p>
+
+<!--more-->
+
+
+<h2>Form And Function</h2>
+
+<p>We use the <code>rake</code> command so often that it might be easy to forget that it&rsquo;s <em>actually</em> part of a gem! Most everything we use &ndash; including that little gem called <code>rails</code> &ndash; relies on the <code>rake</code> gem as a dependency. And everything we could ever want to know about <code>rake</code>&rsquo;s form and function can be found in a single place: the <code>Rakefile</code>, a top-level file that exists in any application that uses this gem to manage and run tasks of all kinds.</p>
+
+<p>So what&rsquo;s inside of our <code>Rakefile</code> after we generate a brand new Rails application? Something that looks like this:</p>
+
+<pre><code class="ruby"># Add your own tasks in files placed in lib/tasks ending in .rake,
+# for example lib/tasks/capistrano.rake, and they will automatically be available to Rake.
+
+require File.expand_path('../config/application', __FILE__)
+
+Rails.application.load_tasks
+</code></pre>
+
+<p>Pretty empty, right? Except that there&rsquo;s a pretty important line in there at the end which invokes a <code>load_tasks</code> method on our application object, which is what allows rake to load tasks into our application itself. But how do we fill up this Rakefile with some awesome rake tasks? Well, if we read carefully, it seems like <code>rake</code> is telling us exactly what we need to do.</p>
+
+<p>Let&rsquo;s start by creating a data staging task that will load some initial data into our application so that we have something to work with while in development. We&rsquo;ll create a <code>stage_data.rake</code> file nested inside of our <code>lib/tasks</code> directories. But that&rsquo;s empty too! You know what that means, don&rsquo;t you? Time to write some tasks.</p>
+
+<h2>Managing Our Task Management</h2>
+
+<iframe src="//giphy.com/embed/gw3woz6oWXK48iE8" width="480" height="432" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Since we&rsquo;re working within the context of a mid-size Rails application, the first thing we probably want to do is namespace our rake tasks. We can do that a namespace block:</p>
+
+<pre><code class="ruby">namespace :data do
+end
+</code></pre>
+
+<p>This is how we can break up all the tasks that are concerned with managing data. But for now, let&rsquo;s just work on writing a single task, which will stage our development environment with some sample data to help us while we&rsquo;re building out the front end later on.</p>
+
+<p>In order to write our rake task, we really just need two things: a description and then a <code>task</code> block. We know what we want our task to do, so that&rsquo;s what we&rsquo;ll put in our description. What we write here will be mostly to help us later on, when we want to know what tasks are available to us, and what exactly they do.</p>
+
+<p>We&rsquo;ll also want to specify any dependencies that this task might have.</p>
+
+<p>After the <code>desc</code> term, we&rsquo;re describing what our task will do, and then setting the command that we&rsquo;ll use to run the task itself. We&rsquo;re also specifying any dependencies that this task might have. In our case, the only thing that this task <em>depends upon</em> is the application itself. So, we want to make sure that our entire Rails application is loaded before running this task:</p>
+
+<pre><code class="ruby">namespace :data do
+    desc "Stage environment with sample data."
+    task stage: :environment do
+    end
+end
+</code></pre>
+
+<p>Interestingly, all that&rsquo;s happening here is that a method called <code>task</code> is being invoked, and the key-value pair that we provided it (<code>stage: :environment</code>) is telling <code>task</code> exactly which other methods to execute before running the subsequent task we have defined inside of the block. I like how <a href="http://tutorials.jumpstartlab.com/topics/systems/automation.html">this tutorial</a> explains what&rsquo;s going on behind the scenes:</p>
+
+<blockquote><p>It starts with the task method which takes a hash parameter. The key will be the name of the task. The value stored under that key, here <code>:environment</code>, indicates which other Rake tasks should be run before this task is run. Think of them like dependencies. When your task depends on <code>:environment</code>, it will load your entire Rails application. If your task doesn’t actually need Rails, don’t depend on :environment and you can greatly increase startup time and decrease memory usage.</p></blockquote>
+
+<p>Another cool thing to keep in mind is the description. We know that our task description (after the <code>desc</code>) will show up again at some point. But when, exactly? Well, it comes into play when we run the <code>rake -T</code> command, which lists out all the tasks available to our specific application:</p>
+
+<pre><code class="ruby">♥ rake -T
+rake data:stage          # Stage environment with sample data.
+</code></pre>
+
+<p>Cool! Whatever we write in our description is exactly what will be output if and when this command is run in the future. Now, how do we get this task to create some sample data every time it&rsquo;s run? Well, we&rsquo;ll want to use ActiveRecord in order to actually persist some objects to our database. There&rsquo;s a handy block method on <code>ActiveRecord::Base</code> that does exactly this:</p>
+
+<pre><code class="ruby">namespace :data do
+    desc "Stage environment with sample data."
+    task stage: :environment do
+        ActiveRecord::Base.transaction do
+            poetry = Genre.create!(name: 'Poetry')
+
+            POETRY_SUBGENRES = ['lyric', 'drama', 'epic']
+
+            POETRY_SUBGENRES.each do |genre|
+                SubGenre.create!(sub_genre: genre, parent_genre: poetry)
+            end
+        end
+    end
+end
+</code></pre>
+
+<p>Nice! We&rsquo;re creating a genre and some sub genres, and associating them together. We could also add in authors and books to make this task a bit more robust. And to get really fancy, we could import a csv of all this information if it lived somewhere else!</p>
+
+<h2>Extending Our Tasks Further</h2>
+
+<p>Now that we know how to structure our rake tasks, we can add more tasks into the very same file. In fact, we can take advantage of the namespacing that we set up early on right now! Let&rsquo;s create a <code>rake data:reset</code> task that will work almost the same as the task we wrote above. The only difference being that this task will destroy any data that was staged (or any that might be hanging around, for some strange reason).</p>
+
+<p>We can write that task inside of our same file, inside of our namespace:</p>
+
+<pre><code class="ruby">namespace :data do
+    desc "Stage environment with sample data."
+    task stage: :environment do
+        # the task we just wrote lives here!
+    end
+
+    desc "Resets and clears all the sample data."
+    task reset: :environment do
+      ActiveRecord::Base.transaction do
+        Genre.destroy_all
+        SubGenre.destroy_all
+      end
+    end
+end
+</code></pre>
+
+<p>All we&rsquo;re doing is using the handy methods that ActiveRecord gives us for free inside of the blocks we&rsquo;ve defined in our task. And now when we run <code>rake -T</code>, we&rsquo;ll see this:</p>
+
+<pre><code class="ruby">♥ rake -T
+rake data:stage          # Stage environment with sample data.
+rake data:reset          # Resets and clears all the sample data.
+</code></pre>
+
+<p>Look at us! We&rsquo;re rake task writing masters! We could get even fancier and make one task <em>depend upon</em> the other. Remember how the block syntax with the <code>task</code> method works? We can use the form of that syntax to make our task function the way we want to:</p>
+
+<pre><code class="ruby">namespace :data do
+    desc "Resets and stages the environment with sample data."
+    task stage: [:environment, :reset] do
+        # the task we wrote lives here!
+    end
+end
+</code></pre>
+
+<p>Now, we&rsquo;re specifying that not only should the <code>task</code> method load the environment, but it should also run the <code>rake data:reset</code> task before running the <code>rake data:stage</code> task! This could be super useful in development, when you don&rsquo;t want to have your database filled with duplicate data.</p>
+
+<p>Another fun thing we could do is pass in parameters to our rake task:</p>
+
+<pre><code class="ruby">namespace :data do
+  desc "Stages the environment with specific amount of sample book data."
+  task create_books: [:books_to_create] :environment do
+    number_of_books = args[:books_to_create]
+    # Uses the books_to_create variable to
+    # create the number of books we want.
+  end
+end
+</code></pre>
+
+<p>Now, when we call the <code>rake data:create_books[100]</code> method, we could have our rake task generate 100 books for us based on the input argument we provided it.</p>
+
+<p>This is pretty fun, right? We could put a ton of tasks that do all sorts of application management for us, and it would be no problem. Except that it would be, and here&rsquo;s why: we never want too much logic in one single part of our application. In other words, we want to separate out what different sections of application are concerned with. We probably could abstract out a lot of what these tasks do into, I don&rsquo;t know, something like&hellip;a <em>service object</em>?</p>
+
+<p>Except there&rsquo;s one little issue: we don&rsquo;t know what service objects are! I guess it&rsquo;s time for us to learn about them. Tune in again next week, when I&rsquo;ll dive into service objects in Rails and a super cool concept called separation of concerns. Here&rsquo;s a rake-themed gif to tide you over until then:</p>
+
+<iframe src="//giphy.com/embed/5xtDarAX9eDPODdPMoo" width="480" height="480" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Rake tasks are just Ruby code written inside of a either a <code>.rake</code> file in the <code>/app/tasks</code> directory, or sometimes within a <code>Rakefile</code> itself.</li>
+<li>A rake task needs a description and a <code>task</code> block. The description is what will be seen when you run <code>rake -T</code>, and the <code>task</code> block is where you&rsquo;ll write what the task actually has to do, and specify any dependencies.</li>
+<li>Need to see a simpler example of how to make a rake task? Check out this awesome <a href="http://jasonseifer.com/2010/04/06/rake-tutorial">tutorial on rake</a>, or watch <a href="http://railscasts.com/episodes/66-custom-rake-tasks">this RailsCast</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[To Serialize or Not to Serialize: ActiveModel Serializers]]></title>
@@ -720,182 +884,6 @@ Order.pluck(:amount).map &amp;half_off_sale
 <li>More examples and explanations on <a href="http://stackoverflow.com/questions/9429819/what-is-the-functionality-of-operator-in-ruby">these</a> <a href="http://stackoverflow.com/questions/2259775/what-do-you-call-the-operator-in-ruby">two</a> StackOverflow posts.</li>
 <li>Here&rsquo;s a <a href="http://www.dan-manges.com/blog/29">great blog post</a> on all the ways you can use <code>&amp;</code> to manipulate ActiveRecord models.</li>
 <li>If you&rsquo;re still curious about different ways to pass around procs, check out <a href="http://ablogaboutcode.com/2012/01/04/the-ampersand-operator-in-ruby/">this post</a>, which is what I used when I was learning about them!</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Investigating Ruby's Global Functions + Kernel Module With Puts]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/"/>
-    <updated>2015-05-12T08:09:27-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/10Vy7fN9fr7dD2" width="480" height="361" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>When you&rsquo;re a relatively new developer, it&rsquo;s easy to get caught up in all of the things that you don&rsquo;t know. And boy is <em>that</em> a long, long list of things. But there&rsquo;s also another list that we should probably consider and revisit from time to time: the list of all the things we thought we knew, but didn&rsquo;t <em>really</em> understand when we learned them.</p>
-
-<p>Last week, while developing some curriculum for an Intro to Programming course, my co-teacher and I had one of those moments. We were trying to draw a diagram to explain the concept of an object &ldquo;receiving&rdquo; a method. As I looked back through our code snippets, I noticed that we were using very basic methods like <code>puts</code> and <code>gets</code> quite often, as most Ruby tutorials usually do. And then I realized something: I had no clue what the receiver of the <code>puts</code> method was.</p>
-
-<p>We both just sat there, partly perplexed and partly dumbfounded. How could we not know how <code>puts</code> and <code>gets</code> really worked? We used them all the time when we were learning to code, so perhaps we didn&rsquo;t really think past the flexibility of these methods. But now that we are both more seasoned programmers, it seemed strange that we had never really thought about this before.</p>
-
-<p>So, I did exactly what any good developer would do: I asked Twitter. Well, okay, I asked Twitter&hellip;and then I put on my detective hat and did some investigating of my own.</p>
-
-<!--more-->
-
-
-<h2>Puts, I love you, but you&rsquo;re bringing me down</h2>
-
-<blockquote class="twitter-tweet tw-align-center" lang="en"><p lang="en" dir="ltr">RUBYISTS, please help: what is the receiver of the puts and gets methods? Is it the main Object? I need to know, it&#39;s driving me crazy</p>&mdash; Vaidehi Joshi (@vaidehijoshi) <a href="https://twitter.com/vaidehijoshi/status/596465002669875201">May 8, 2015</a></blockquote>
-
-
-<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
-
-
-<p>I have a bone to pick with the <code>puts</code> method. Well, okay, two bones I guess. First, it has no explicit receiver:</p>
-
-<pre><code>♥ irb
-2.2.0 :001 &gt; puts "wat"
-wat
- =&gt; nil 
-</code></pre>
-
-<p>And second, it&rsquo;s just REALLY hard to figure out what on earth is happening with this method. In fact, the hardest part about understanding <code>puts</code> was figuring out exactly <em>where</em> inside of Ruby it lived.</p>
-
-<p>Apparently though, there&rsquo;s a method for that &ndash; well, two methods, actually. The <code>owner</code> and the <code>receiver</code> methods can be used to ask a method where it lives and who it can be called on. We can just pass it the name of the method we&rsquo;re curious about as a symbol, and then ask it where it belongs:</p>
-
-<pre><code>2.2.0 :002 &gt; method(:puts).receiver
- =&gt; main 
-
-2.2.0 :003 &gt; method(:puts).owner
- =&gt; Kernel 
-</code></pre>
-
-<p>WAT. It seemed like <code>main</code> was the receiver of this method, while <code>Kernel</code> was the owner, or the place where this method was actually defined.</p>
-
-<p>But did that mean that <code>main</code> was also self within the context of <code>irb</code>? And what <em>was</em> <code>main</code>, exactly? There was only one way to find out:</p>
-
-<pre><code>2.2.0 :004 &gt; method(:gets).receiver == self
- =&gt; true 
-
-2.2.0 :005 &gt; self
- =&gt; main 
-
-2.2.0 :006 &gt; self.class
- =&gt; Object
-</code></pre>
-
-<p>Pretty weird, right? But hang on&hellip;there was a line up there that was pretty new for me. Something about a <code>Kernel</code>? Let&rsquo;s do a bit more detective work.</p>
-
-<h2>Tell Me &lsquo;Bout Them Kernels</h2>
-
-<iframe src="//giphy.com/embed/rambtrormFyWQ" width="480" height="268" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Okay, you&rsquo;re probably wondering: <em>So that <code>Kernel</code> thing &ndash; what&rsquo;s the deal?</em> Well, it turns out that <code>Kernel</code> is a module, and if you&rsquo;re like me, you probably haven&rsquo;t thought about it that much until now.</p>
-
-<p>But what you might remember about modules is that they have to be mixed into a class in order to be included; that is to say, in order for a class or instances of a class to have access to methods in a module, that module has to be included or extended into the class.</p>
-
-<p>Which means that <code>Kernel</code> has to be included into a Ruby class. But&hellip;which one? To figure out, we need to think back to what <code>self</code> was within the context of <code>irb</code>: <code>main</code>. If we try to ask <code>main</code> for its ancestors (so that we can deduce where the <code>Kernel</code> module is coming into play), we get this error:</p>
-
-<pre><code>2.2.0 :007 &gt; main.ancestors
-NoMethodError: undefined method `ancestors' for main:Object
-  from (irb):75
-  from /usr/bin/irb:12:in `&lt;main&gt;'
-</code></pre>
-
-<p>Okay, not so great. But hang on a second&hellip;since we know that <code>main</code> is an instance of the <code>Object</code> class, we can just ask the <code>Object</code> class who its ancestors are!</p>
-
-<pre><code>2.2.0 :008 &gt; Object.ancestors
- =&gt; [Object, Kernel, BasicObject] 
-</code></pre>
-
-<p>Nice! We found <code>Kernel</code>, and it looks like it&rsquo;s included the <code>Object</code> class. We can figure this out because it appears to the right of <code>Object</code>, which means it has been mixed into the class to its left.</p>
-
-<p>So, if a method like <code>puts</code> is written in the <code>Kernel</code> module, what can it be called on? Who is doing the &ldquo;receiving&rdquo; of this method call? Well, according to <a href="http://ruby-doc.com/docs/ProgrammingRuby/html/ref_m_kernel.html">the Ruby docs</a>, pretty much anything:</p>
-
-<blockquote><p>The Kernel module is included by class Object, so its methods are available in every Ruby object. These methods are called without a receiver and thus can be called in functional form.</p></blockquote>
-
-<p>So, theoretically-speaking, if the Kernel module is included by class Object, and is therefore available to <em>every</em> Ruby object, we should be able to call <code>puts</code> on a <code>String</code> instance, right?</p>
-
-<pre><code>2.2.0 :009 &gt; "".puts('wat')
-NoMethodError: private method `puts' called for "":String
-  from (irb):79
-  from /usr/bin/irb:12:in `&lt;main&gt;'
-</code></pre>
-
-<p>Uh oh! Maybe we can&rsquo;t. But&hellip;why not?</p>
-
-<h2>Global Functions</h2>
-
-<p>If you are smart cookie, you probably read that error and guessed that <code>puts</code> is a private method defined on <code>Kernel</code>. We can confirm this by using the <code>private_method_defined?</code> method to double check:</p>
-
-<pre><code>2.2.0 :010 &gt; Kernel.private_method_defined?(:puts)
- =&gt; true
-</code></pre>
-
-<p>The fact that <code>puts</code> is a private method is important. It means that it can&rsquo;t be called explicitly by anyone else. But how is it, then, that we use this method so frequently and easily? Well, because its mixed in to class <code>Object</code>, it&rsquo;s accessible to any Ruby object &ndash; but only in the current context. This explains why <code>puts</code> never has to be called explicitly upon any object; instead, it will be called <em>implicitly</em> on whatever <code>self</code> happens to be. In other words, the method will be called on the current context of <code>self</code>.</p>
-
-<p>It&rsquo;s also pretty crucial that a method like <code>puts</code> can be called in the current context of self. In fact, that&rsquo;s exactly what allows us to do this within a Ruby class:</p>
-
-<pre><code class="ruby">Class Duck
-  def self.swim
-    puts "We're swimming."
-  end
-
-  def quack
-    puts "Quack quack!"
-  end
-end
-</code></pre>
-
-<p>or something like this in <code>irb</code>:</p>
-
-<pre><code>2.2.0 :011 &gt; puts "Waddle waddle"
-Waddle waddle
- =&gt; nil 
-</code></pre>
-
-<p>Even though the context of <code>self</code> changes from the Duck Class, to an instance of a Duck, back to <code>main</code> in <code>irb</code>, we have access to <code>puts</code> in all contexts. It&rsquo;s kind of magical, if you think about it: a single private method, defined in a module, trickles down to all Ruby objects that descend from it!</p>
-
-<p>And this magic has a name: <strong>global functions</strong> work. Since methods like <code>puts</code> are defined on the <code>Kernel</code> and mixed into the <code>Object</code> class, they are accessible <em>everywhere</em>. They&rsquo;re private methods, which means they must be invoked without an explicit receiver (also known as a &ldquo;function form&rdquo; of method invocation).</p>
-
-<p>I really liked the way that <a href="https://codequizzes.wordpress.com/2014/04/22/rubys-kernel-module/">this blog post</a> explains the concept:</p>
-
-<blockquote><p>Virtually all Ruby objects inherit from Object and have access to the methods defined in the Kernel module, so Kernel’s private instance methods are accessible virtually anywhere in a Ruby program, regardless of self.</p></blockquote>
-
-<p>And you know what&rsquo;s even cooler? These global functions defined on <code>Kernel</code> are used everywhere! In fact, you probably don&rsquo;t even realize that you use them. Here are some of the ones that surprised me:</p>
-
-<ul>
-<li><code>gets</code></li>
-<li><code>chomp</code></li>
-<li><code>sleep</code></li>
-<li><code>require</code></li>
-<li><code>gem</code></li>
-<li><code>rand</code></li>
-<li><code>gsub</code></li>
-<li><code>proc</code></li>
-<li><code>eval</code></li>
-</ul>
-
-
-<p>Yup. All of these methods are defined on <code>Kernel</code>, available to all objects (including <code>main</code> as <code>self</code> in <code>irb</code>), and don&rsquo;t need a receiver to be called!</p>
-
-<iframe src="//giphy.com/embed/gLRDi5KnA3Fte" width="480" height="374" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Now that you know where all these methods live and where they come from, you probably feel pretty powerful. You also will hopefully feel more purposeful when you write even a simple <code>puts</code> statement in a line of code.</p>
-
-<p>Perhaps the moral of the story here is to never take code for granted: always question how it works and try to understand exactly what&rsquo;s going on in every line that you type.</p>
-
-<p>The second moral is to use other developers on Twitter as resources to help you figure out what to Google, obvs.</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>Kernel</code> module is mixed into the <code>Object</code> class, which means all methods (including private methods!) defined on this module are accesible to all Ruby objects, making them &ldquo;global&rdquo; functions.</li>
-<li>Even though a method&rsquo;s implicit receiver is <code>self</code>, the context of <code>self</code> changes depending on which class you are in; this is particularly important when dealing with &ldquo;global&rdquo; functions.</li>
-<li>Curious about <code>main</code> and <code>self</code> in <code>irb</code>? Check out these two great <a href="http://www.sitepoint.com/rubys-top-self-object/">blog</a> <a href="https://banisterfiend.wordpress.com/2010/11/23/what-is-the-ruby-top-level/">posts</a>.</li>
 </ul>
 
 ]]></content>
