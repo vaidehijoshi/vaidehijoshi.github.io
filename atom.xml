@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-06-29T19:51:39-04:00</updated>
+  <updated>2015-06-30T08:12:56-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -228,9 +228,9 @@
 
 <p>Now, when we call the <code>rake data:create_books[100]</code> method, we could have our rake task generate 100 books for us based on the input argument we provided it.</p>
 
-<p>This is pretty fun, right? We could put a ton of tasks that do all sorts of application management for us, and it would be no problem. Except that it would be, and here&rsquo;s why: we never want too much logic in one single part of our application. In other words, we want to separate out what different sections of application are concerned with. We probably could abstract out a lot of what these tasks do into, I don&rsquo;t know, something like&hellip;a <em>service object</em>?</p>
+<p>This is pretty fun, right? We could put a ton of tasks that do all sorts of application management for us, and it would be no problem. Except that it would be, and here&rsquo;s why: we never want too much logic in one single part of our application. In other words, we want to separate out what different sections of application are concerned with. We probably could abstract out a lot of what these tasks into something else (another object?), which would help keep our rake tasks nice and lean.</p>
 
-<p>Except there&rsquo;s one little issue: we don&rsquo;t know what service objects are! I guess it&rsquo;s time for us to learn about them. Tune in again next week, when I&rsquo;ll dive into service objects in Rails and a super cool concept called separation of concerns. Here&rsquo;s a rake-themed gif to tide you over until then:</p>
+<p>It turns out that this is a pretty common situation to run into, and not just with rake tasks! There&rsquo;s a really cool pattern that implements a special kind of object that performs a service for you so that your code can stay simple, without too much logic in it. These objects are called <em>service objects</em>, and until I saw them in some production-level code, I had never really thought about their purpose. Tune in again next week, when I&rsquo;ll dive into service objects and how they help us serparate concerns in our code. Until then, here&rsquo;s a rake-themed gif to tide you over:</p>
 
 <iframe src="//giphy.com/embed/5xtDarAX9eDPODdPMoo" width="480" height="480" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -240,7 +240,7 @@
 <ul>
 <li>Rake tasks are just Ruby code written inside of a either a <code>.rake</code> file in the <code>/app/tasks</code> directory, or sometimes within a <code>Rakefile</code> itself.</li>
 <li>A rake task needs a description and a <code>task</code> block. The description is what will be seen when you run <code>rake -T</code>, and the <code>task</code> block is where you&rsquo;ll write what the task actually has to do, and specify any dependencies.</li>
-<li>Need to see a simpler example of how to make a rake task? Check out this awesome <a href="http://jasonseifer.com/2010/04/06/rake-tutorial">tutorial on rake</a>, or watch <a href="http://railscasts.com/episodes/66-custom-rake-tasks">this RailsCast</a>.</li>
+<li>Need to see another example of how to make a rake task? Check out this awesome <a href="http://jasonseifer.com/2010/04/06/rake-tutorial">tutorial on rake</a>, or watch <a href="http://railscasts.com/episodes/66-custom-rake-tasks">this RailsCast</a>.</li>
 </ul>
 
 ]]></content>
