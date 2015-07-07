@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rails | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-07-07T08:58:59-04:00</updated>
+  <updated>2015-07-07T09:01:02-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -194,7 +194,7 @@ end
 
 <ul>
 <li>Service objects are POROs that you can use to encapsulate a specific piece of functionality, and can help you separate concerns in your application.</li>
-<li>Still curious about the theory behind service objects in Rails applications? Check out <a href="https://blog.engineyard.com/2014/keeping-your-rails-controllers-dry-with-services">this tutorial</a> and this super helpful <a href="http://blog.codeclimate.com/blog/2012/10/17/7-ways-to-decompose-fat-activerecord-models/"post</a>, which unpacks service objects in the context of refactoring.</li>
+<li>Still curious about the theory behind service objects in Rails applications? Check out <a href="https://blog.engineyard.com/2014/keeping-your-rails-controllers-dry-with-services">this tutorial</a> and this super helpful <a href="http://blog.codeclimate.com/blog/2012/10/17/7-ways-to-decompose-fat-activerecord-models/">post</a>, which unpacks service objects in the context of refactoring.</li>
 <li>Where else can you use a service object? Well, a lot of places! This <a href="http://brewhouse.io/blog/2014/04/30/gourmet-service-objects.html">blog post</a> has a ton of examples of how to use them throughout your application.</li>
 </ul>
 
