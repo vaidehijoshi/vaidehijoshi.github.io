@@ -1,0 +1,495 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Taskmanaging Your App, Part 2: Service Objects - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="Everything seems to perform a service these days. We&rsquo;ve got infrastructure as a service, platforms as a service, and even software as a &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/07/07/taskmanaging-your-app-part-2-service-objects">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Taskmanaging Your App, Part 2: Service Objects</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-07-07T08:28:40-04:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:28 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><iframe src="//giphy.com/embed/xTiTnqpyEF0HbAosfe" width="480" height="480" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Everything seems to perform a service these days. We&rsquo;ve got infrastructure as a service, platforms as a service, and even software as a service. But the servicing doesn&rsquo;t end there: even our software applications often need specific services provided to them. But how, exactly?</p>
+
+<p>Well, if you&rsquo;ve ever opened up a Rails application and peeked inside of the main directories, you can get a good understanding of what exactly the application is doing. Pry into the models directory, and you&rsquo;ll see the kinds of objects the app transforms and manipulates. Open the controllers directory, and you&rsquo;ll see the different <em>CRUD</em> (<em>create, read, update, delete</em>) operations that are permitted by the application, and the various ways of handling requests and responses by the server.</p>
+
+<p>Seems pretty straightforward, right? Except until your application starts to swell in size, and then you&rsquo;re packing a ton of functionality into these two directories. We at least <em>try</em> and keep our models fat, and our controllers skinny. It would be great if just our trying to do that was successful all the time. Yet that&rsquo;s not usually what happens. Instead, things start to get messy, code starts to leak out all over the place, and we all just want to give up and go home. But we don&rsquo;t have to give up just yet! There&rsquo;s one trick that we haven&rsquo;t tried yet, and it&rsquo;s guaranteed to make our lives easier: utilizing <strong>service objects</strong>. Or, in other words, servicing parts of our application and separating our code out into more appropriate places.</p>
+
+<!--more-->
+
+
+<h2>Separating All Dem Concerns</h2>
+
+<p>Last week, we started off by learning about <a href="http://vaidehijoshi.github.io/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/">rake tasks</a>, which turned out be an awesome way of encapsulating a specific type of functionality into a single file. But when we started writing a <code>rake data:stage</code> task (which stages our database with some sample <code>Book</code> objects), we noticed that we were making a single rake task responsible for multiple things.</p>
+
+<p>We&rsquo;ve got a similar dilemma on our hands again this week. We have a <code>WishLists Controller</code>, which should be responsible for rendering all of the <code>Wish Lists</code> associated with a <code>User</code>. But here&rsquo;s the kicker: it should work with the Goodreads API to pull in the books that the User wants to read, and add that to their <code>Wish List</code>. Here&rsquo;s our current, clean and beautiful controller:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">WishListsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">index</span>
+</span><span class='line'>      <span class="k">if</span> <span class="n">user_signed_in?</span>
+</span><span class='line'>          <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="n">current_user</span><span class="o">.</span><span class="n">wish_lists</span>
+</span><span class='line'>      <span class="k">else</span>
+</span><span class='line'>          <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="p">{</span> <span class="ss">wish_lists</span><span class="p">:</span> <span class="o">[]</span> <span class="p">}</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>It really pains me to ruin this controller with all the logic we&rsquo;re about to throw in there. Let&rsquo;s start writing it and see how it might look&hellip;</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">WishListsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">index</span>
+</span><span class='line'>      <span class="k">if</span> <span class="n">user_signed_in?</span>
+</span><span class='line'>          <span class="n">client</span> <span class="o">=</span> <span class="no">Goodreads</span><span class="o">::</span><span class="no">Client</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">api_key</span><span class="p">:</span> <span class="s1">&#39;OUR_API_KEY&#39;</span><span class="p">,</span>
+</span><span class='line'>          <span class="ss">api_secret</span><span class="p">:</span> <span class="s1">&#39;OUR_SECRET_TOKEN&#39;</span><span class="p">)</span>
+</span><span class='line'>          <span class="n">shelf</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">shelf</span><span class="p">(</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="s1">&#39;to-read&#39;</span><span class="p">)</span>
+</span><span class='line'>          <span class="n">books</span> <span class="o">=</span> <span class="n">shelf</span><span class="o">.</span><span class="n">books</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">book</span><span class="o">|</span>
+</span><span class='line'>              <span class="c1"># Creates an ActiveRecord instance</span>
+</span><span class='line'>              <span class="c1"># for all the books on the shelf </span>
+</span><span class='line'>              <span class="c1"># and returns a JSON object.</span>
+</span><span class='line'>          <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="n">books</span>
+</span><span class='line'>      <span class="k">else</span>
+</span><span class='line'>          <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="p">{</span> <span class="ss">wish_lists</span><span class="p">:</span> <span class="o">[]</span> <span class="p">}</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>NOPE. Nope nope nope. This is already way too much for a single controller action. And all the requests between our application and the Goodreads API really shouldn&rsquo;t be up publicly available &ndash; they need to be private methods. And what if something goes wrong during those requests? We aren&rsquo;t handling those errors at all! And honestly, it really shouldn&rsquo;t be the <code>index</code> action&rsquo;s job to send a request, handle the response, create and persist book objects, and then, on top of <em>all</em> of that, render the <code>books</code> of the <code>Wish List</code>! This is not the right path.</p>
+
+<iframe src="//giphy.com/embed/srATnRQXsTfDG" width="480" height="269" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>What we really need to do is <strong>separate our concerns</strong>. Or, in other words, we need to divide and conquer our code. We know that the <code>index</code> action of our <code>WishLists Controller</code> shouldn&rsquo;t be responsible for all this work. So, let&rsquo;s delegate that task to someone else. In fact, let&rsquo;s create an object who&rsquo;s sole concern and single responsibility is going to be dealing importing books from the Goodreads API, persisting them to the database, and then returning an array of books to read in the form of a wish list.</p>
+
+<p>This object doesn&rsquo;t need to do anything more than that. It&rsquo;s existence is purely to help us &ndash; and help the rest of our application &ndash; out. This object is just going to provide a service. In fact, we might even go so far as to call it a <em>service object</em> (see what I did there?).</p>
+
+<h2>Servicing Our Application</h2>
+
+<p>So, if this service object doesn&rsquo;t have any other responsibilities except for getting, creating, and persisting <code>books</code> to a <code>wish_list</code>, we have to ask ourselves: do we really need this object to stay around? Well, not really, no. All we really want is for this object to show up when we need it to, do it&rsquo;s job, and then conveniently disappear. This means that we don&rsquo;t need to make it an ActiveRecord object; instead, let&rsquo;s make it a Plain Old Ruby Object (remember those?).</p>
+
+<p>We can start by either creating a <code>/services</code> directory on the top level and saving our <code>goodreads_importer.rb</code> service in there, or we can namespace it inside of our <code>/models</code> directory as <code>/goodreads/importer.rb</code>. Once we&rsquo;ve made our file, we can pretty much use the same code we started writing before, and abstract it out into this service object:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">GoodreadsImporter</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">options</span> <span class="o">=</span> <span class="p">{})</span>
+</span><span class='line'>      <span class="vi">@options</span> <span class="o">=</span> <span class="n">options</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">private</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">client</span>
+</span><span class='line'>      <span class="vi">@client</span> <span class="o">||=</span> <span class="no">Goodreads</span><span class="o">::</span><span class="no">Client</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">api_key</span><span class="p">:</span>
+</span><span class='line'>      <span class="s1">&#39;OUR_API_KEY&#39;</span><span class="p">,</span> <span class="ss">api_secret</span><span class="p">:</span> <span class="s1">&#39;OUR_SECRET_TOKEN&#39;</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">shelf</span><span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="n">shelf_name</span><span class="p">)</span>
+</span><span class='line'>      <span class="vi">@shelf</span> <span class="o">||=</span> <span class="n">client</span><span class="o">.</span><span class="n">shelf</span><span class="p">(</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">shelf_name</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">books</span>
+</span><span class='line'>      <span class="vi">@books</span> <span class="o">||=</span> <span class="n">shelf</span><span class="o">.</span><span class="n">books</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">book</span><span class="o">|</span>
+</span><span class='line'>          <span class="c1"># Creates an ActiveRecord instance</span>
+</span><span class='line'>          <span class="c1"># for all the books on the shelf </span>
+</span><span class='line'>          <span class="c1"># and returns a JSON object.</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So far, we&rsquo;re just initializing our <code>Importer</code> with some options. Notice that we&rsquo;re <em>not</em> inheriting from <code>ActiveRecord::Base</code>! This is just a plain Ruby class, like the ones we used to make when we were first learning about things like <a href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance-part-1/">inheritance</a>.</p>
+
+<p>We&rsquo;ve also abstracted out those API calls (<code>Client.new</code>) and the methods provided to us by the Goodreads API (<code>client.shelf</code>, <code>shelf.books</code>) into private methods that are only going to be accessible by this service object. Not only is this important because we don&rsquo;t want any other person or part of this application to be able to <em>access</em> these endpoints, but this is also going to be super helpful to us down the road. Now, if something goes wrong, we can narrow down exactly <em>where</em> in the process our application broke. And, we can write tests for specific parts of this service object, just to double and triple check that everything is working exactly as we expect it to.</p>
+
+<p>Next, we&rsquo;ll want to actually have some point of entry for this object. In other words, we need a way to actually use this object &ndash; some way to access all those private methods that we wrote just above. A pretty cool convention for a service object&rsquo;s point of entry is a <code>call</code> method. The idea here is that you &ldquo;call&rdquo; upon the service object to show up, perform its job, and then don&rsquo;t worry about it after it&rsquo;s done.</p>
+
+<p>This is what ours might look like:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">GoodreadsImporter</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">options</span> <span class="o">=</span> <span class="p">{})</span>
+</span><span class='line'>      <span class="vi">@options</span> <span class="o">=</span> <span class="n">options</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">call</span>
+</span><span class='line'>      <span class="n">books</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">b</span><span class="o">|</span>
+</span><span class='line'>          <span class="n">book</span> <span class="o">=</span> <span class="no">Book</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="nb">id</span><span class="p">:</span> <span class="n">b</span><span class="o">[</span><span class="ss">:id</span><span class="o">]</span><span class="p">)</span><span class="o">.</span><span class="n">first_or_initialize</span>
+</span><span class='line'>          <span class="n">book</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">private</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">client</span>
+</span><span class='line'>      <span class="vi">@client</span> <span class="o">||=</span> <span class="no">Goodreads</span><span class="o">::</span><span class="no">Client</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">api_key</span><span class="p">:</span>
+</span><span class='line'>      <span class="s1">&#39;OUR_API_KEY&#39;</span><span class="p">,</span> <span class="ss">api_secret</span><span class="p">:</span> <span class="s1">&#39;OUR_SECRET_TOKEN&#39;</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">shelf</span><span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="n">shelf_name</span><span class="p">)</span>
+</span><span class='line'>      <span class="vi">@shelf</span> <span class="o">||=</span> <span class="n">client</span><span class="o">.</span><span class="n">shelf</span><span class="p">(</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">shelf_name</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">books</span>
+</span><span class='line'>      <span class="vi">@books</span> <span class="o">||=</span> <span class="n">shelf</span><span class="o">.</span><span class="n">books</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">book</span><span class="o">|</span>
+</span><span class='line'>          <span class="c1"># Creates an ActiveRecord instance</span>
+</span><span class='line'>          <span class="c1"># for all the books on the shelf </span>
+</span><span class='line'>          <span class="c1"># and returns a JSON object.</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pretty simple, right? Okay, so now we have this fantastic little service object. But it doesn&rsquo;t actually exist in our application yet. At no point are we &ldquo;calling&rdquo; upon our service! Time to fix that.</p>
+
+<h2>Objects To Make Our Lives Easier</h2>
+
+<p>Now that we have a service that we can rely upon, all we need to do is plug it into our application. We could do this inside of our <code>WishLists Controller</code>, just as we originally planned:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">WishListsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">index</span>
+</span><span class='line'>      <span class="k">if</span> <span class="n">user_signed_in?</span>
+</span><span class='line'>          <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="n">current_user</span><span class="o">.</span><span class="n">wish_lists</span>
+</span><span class='line'>          <span class="k">if</span> <span class="no">GoodreadsImporter</span><span class="o">.</span><span class="n">new</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="s1">&#39;to-read&#39;</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">else</span>
+</span><span class='line'>          <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="p">{</span> <span class="ss">wish_lists</span><span class="p">:</span> <span class="o">[]</span> <span class="p">}</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Or we could also stick it into the rake task we were writing last week:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">namespace</span> <span class="ss">:data</span> <span class="k">do</span>
+</span><span class='line'>  <span class="n">desc</span> <span class="s2">&quot;Stages the environment with data from Goodreads.&quot;</span>
+</span><span class='line'>  <span class="n">task</span> <span class="s2">&quot;goodreads:import&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;environment&quot;</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">options</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span class='line'>    <span class="no">GoodreadsImporter</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">options</span><span class="p">)</span><span class="o">.</span><span class="n">call</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And now in development, we can just run <code>rake data:goodreads:import</code> to call upon our service object. Writing tests for this would be super easy as well, since we&rsquo;d literally only have to test this one Ruby class to make sure that the service object wasn&rsquo;t broken.</p>
+
+<p>The coolest thing about service objects is that they exist on their own. They don&rsquo;t really need to know about what&rsquo;s going on around them (or even that they exist in the context of a giant framework called Rails!) You can just rely on pure Ruby code to make them work, and they&rsquo;ll do whatever they&rsquo;re supposed to do, whenever you need them to do it. I really liked <a href="http://blog.arkency.com/2013/09/services-what-they-are-and-why-we-need-them/">this blog post&rsquo;s</a> explanation of how they should work:</p>
+
+<blockquote><p>Rails has multiple entry points. Every controller action in Rails is the entry point! Additionally, it handles a lot of responsibilities (parsing user input, routing logic [like redirects], logging, rendering… ouch!). That’s where service objects comes to play. Service objects encapsulates single process of our business. They take all collaborators (database, logging, external adapters like Facebook, user parameters) and performs a given process. Services belongs to our domain - They shouldn’t know they’re within Rails or web app!</p></blockquote>
+
+<p>Even though it might seem like a lot of extra work in the moment, service objects can save you so much time and pain in the long run. And if you think about it, just like we need software as a service, our own code sometimes needs a service to do things for it. Cut your code some slack and help it out by creating a service object. You&rsquo;ll probably thank yourself down the road.</p>
+
+<p><img src="https://imgs.xkcd.com/comics/the_general_problem.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Service objects are POROs that you can use to encapsulate a specific piece of functionality, and can help you separate concerns in your application.</li>
+<li>Still curious about the theory behind service objects in Rails applications? Check out <a href="https://blog.engineyard.com/2014/keeping-your-rails-controllers-dry-with-services">this tutorial</a> and this super helpful <a href="http://blog.codeclimate.com/blog/2012/10/17/7-ways-to-decompose-fat-activerecord-models/"post</a>, which unpacks service objects in the context of refactoring.</li>
+<li>Where else can you use a service object? Well, a lot of places! This <a href="http://brewhouse.io/blog/2014/04/30/gourmet-service-objects.html">blog post</a> has a ton of examples of how to use them throughout your application.</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-07-07T08:28:40-04:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:28 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/07/07/taskmanaging-your-app-part-2-service-objects/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/07/07/taskmanaging-your-app-part-2-service-objects/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/" title="Previous Post: Taskmanaging Your App, Part 1: Using Rake">&laquo; Taskmanaging Your App, Part 1: Using Rake</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/07/07/taskmanaging-your-app-part-2-service-objects/">Taskmanaging Your App, Part 2: Service Objects</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/">Taskmanaging Your App, Part 1: Using Rake</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/23/to-serialize-or-not-to-serialize-activemodel-serializers/">To Serialize or Not to Serialize: ActiveModel Serializers</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/16/babys-first-conference-recapping-reddotrubyconf/">Baby&#8217;s First Conference: Recapping RedDotRubyConf</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/09/refactoring-to-reveal-rails-group-by/">Refactoring to Reveal Rails Group_by</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

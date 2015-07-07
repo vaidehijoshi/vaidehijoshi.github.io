@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="Rake tasks: we&rsquo;ve all used &lsquo;em. From migrating our database to seeding it, we run commands using rake all of the time! But what actually &hellip;">
+  <meta name="description" content="Everything seems to perform a service these days. We&rsquo;ve got infrastructure as a service, platforms as a service, and even software as a &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,56 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/07/07/taskmanaging-your-app-part-2-service-objects/">Taskmanaging Your App, Part 2: Service Objects</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-07-07T08:28:40-04:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:28 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/xTiTnqpyEF0HbAosfe" width="480" height="480" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Everything seems to perform a service these days. We&rsquo;ve got infrastructure as a service, platforms as a service, and even software as a service. But the servicing doesn&rsquo;t end there: even our software applications often need specific services provided to them. But how, exactly?</p>
+
+<p>Well, if you&rsquo;ve ever opened up a Rails application and peeked inside of the main directories, you can get a good understanding of what exactly the application is doing. Pry into the models directory, and you&rsquo;ll see the kinds of objects the app transforms and manipulates. Open the controllers directory, and you&rsquo;ll see the different <em>CRUD</em> (<em>create, read, update, delete</em>) operations that are permitted by the application, and the various ways of handling requests and responses by the server.</p>
+
+<p>Seems pretty straightforward, right? Except until your application starts to swell in size, and then you&rsquo;re packing a ton of functionality into these two directories. We at least <em>try</em> and keep our models fat, and our controllers skinny. It would be great if just our trying to do that was successful all the time. Yet that&rsquo;s not usually what happens. Instead, things start to get messy, code starts to leak out all over the place, and we all just want to give up and go home. But we don&rsquo;t have to give up just yet! There&rsquo;s one trick that we haven&rsquo;t tried yet, and it&rsquo;s guaranteed to make our lives easier: utilizing <strong>service objects</strong>. Or, in other words, servicing parts of our application and separating our code out into more appropriate places.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/07/07/taskmanaging-your-app-part-2-service-objects/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -518,57 +568,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems/">Tackling Those Tests, Part 3: Testing Made Easy With Gems</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-04-28T08:50:59-04:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:50 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/testing/'>testing</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><img src="https://imgs.xkcd.com/comics/shouldnt_be_hard.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p><em>This blog post is part of a series on testing. Read Part 2 <a href="http://vaidehijoshi.github.io/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/">here</a>.</em></p>
-
-<p>If there&rsquo;s anything that I&rsquo;ve learned about testing while writing this three-part blog post series, it&rsquo;s this: testing is freaking hard! It&rsquo;s tough to figure out the correct syntax and conventions, particularly when you&rsquo;re just starting out. Figuring out when to write a test is also a tricky business. And then sitting down to actually write the test is pretty difficult, too.</p>
-
-<p>But there are ways to make it easier on yourself. And I should know, because I tried to write my tests the hard way, and I definitely do not recommend it. Here&rsquo;s what I <em>do</em> recommend: GEMS! And lots of &lsquo;em. There are a lot of Ruby gems out there, specifically designed to make your testing life easier.</p>
-
-<p>So, to close off this epic series on testing in Rails, I&rsquo;m going to share my two favorite testing gems: <code>shoulda-matchers</code> and <code>database_cleaner</code>. Once you know how to implement them, your testing life will forever be easier. Because, let&rsquo;s be real &ndash; isn&rsquo;t that the way testing <em>should</em> be?</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -584,6 +583,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/07/07/taskmanaging-your-app-part-2-service-objects/">Taskmanaging Your App, Part 2: Service Objects</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/">Taskmanaging Your App, Part 1: Using Rake</a>
       </li>
     
@@ -597,10 +600,6 @@
     
       <li class="post">
         <a href="/blog/2015/06/09/refactoring-to-reveal-rails-group-by/">Refactoring to Reveal Rails Group_by</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/">Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc</a>
       </li>
     
   </ul>
