@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-07-14T09:06:30-04:00</updated>
+  <updated>2015-07-14T09:07:24-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -233,7 +233,7 @@
 
 <p>We could also use the <code>add_index</code> method to create unique indexes, or named indexes, as highlighted in the <a href="http://apidock.com/rails/ActiveRecord/ConnectionAdapters/SchemaStatements/add_index">documentation</a>. Sometimes, it&rsquo;s actually <a href="http://makandracards.com/makandra/32353-psa-index-true-in-rails-migrations-does-not-work-as-you-d-expect">safer</a> to use the <code>add_index</code> method rather than <code>index: true</code>.</p>
 
-<p>Now our migrations are not just clear and concise, but they&rsquo;re also helping our application run smoother and quicker in the process. Writing smart migrations can not only save us a lot of time down the road, but they make feature-writing a lot more fun! Not as fun as running wilding through the safari, but hey &ndash; it&rsquo;s a close second:</p>
+<p>Now our migrations are not just clear and concise, but they&rsquo;re also helping our application run smoother and quicker in the process. Writing smart migrations can not only save us a lot of time down the road, but they make feature-writing a lot more fun! Not as fun as running wildly through the safari, but hey &ndash; it&rsquo;s a close second:</p>
 
 <iframe src="//giphy.com/embed/cyrx5VQ8PiWoE" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
