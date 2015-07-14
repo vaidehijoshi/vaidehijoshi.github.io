@@ -1,0 +1,440 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Writing Smart Migrations: References, Reversible, and Indexes - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="All it takes is a single feature to make you realize how well &ndash; or perhaps not so well &ndash; you&rsquo;ve written your application. &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Writing Smart Migrations: References, Reversible, and Indexes</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-07-14T08:47:19-04:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:47 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/sql/'>sql</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><iframe src="//giphy.com/embed/SUtPZfyDenHoY" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>All it takes is a single feature to make you realize how well &ndash; or perhaps not so well &ndash; you&rsquo;ve written your application. Depending on if you&rsquo;ve done a good job of separating concerns, abstracting and encapsulating bits of functionality into cohesive code, and just generally not repeating yourself&hellip;well, you&rsquo;ll probably be way more enthusiastic about adding a huge new feature to an already massive application. But if you haven&rsquo;t done any of those things&hellip;well, you might find yourself doing a massive rewrite of your codebase just to implement a single feature.</p>
+
+<p>Luckily, the application I started adding a feature to last week is pretty well-built, which makes it flexible enough to add new functionality relatively easily. Yet even the most well-thought-out applications need to be teased apart and glued back together during the course of their lives. Often times, a big part of building out a new feature is restructuring the architecture of your application. When you&rsquo;re working with larger code bases (legacy code in particular), that can be the most daunting task. But a lot of the intimidation of that begins to dissipate once you know how to go about restructuring a schema which already exists without breaking all the the things.</p>
+
+<p>The first step in this process is writing migrations to change how the objects in your application and database relate to one another. Of course, knowing how to write the proper migration to suit your needs is just half the battle; the other half is writing a migration that makes object lookup in your database efficient and super fast. Even though I&rsquo;ve <a href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">written about migrations</a> before, I&rsquo;m learning that there&rsquo;s always so much more to know. So, let&rsquo;s get learning!</p>
+
+<!--more-->
+
+
+<h2>Referencing Your References</h2>
+
+<p>A really quick way to clean up our code is by changing the way that we create associations between objects from within our migrations. One feature we&rsquo;ll want to add is to have our <code>Book</code>s belong to a <code>Genre</code>. So far, we&rsquo;ve categorized our <code>Author</code>s by genre, but we&rsquo;ll want to be able to sort and organize our <code>Book</code> objects in a similar way.</p>
+
+<p>We often use <code>belongs_to</code> and <code>has_many</code> inside of our migrations, which is totally valid. But in this case, it probably makes more sense to use something called <code>references</code>. According to the Rails <a href="https://github.com/rails/rails/blob/88aa2efd692619e87eee88dfc48d608bea9bcdb4/activerecord/lib/active_record/connection_adapters/abstract/schema_definitions.rb#L421">source code</a>, <code>references</code> is just an alias of <code>belongs_to</code>. But, a <code>Book</code> doesn&rsquo;t really &ldquo;belong to&rdquo; a <code>Genre</code>, it&rsquo;s more that it should be able to &ldquo;reference&rdquo; the genre that it&rsquo;s associated with. We can add a reference fairly easily just like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddGenreToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>    <span class="n">add_reference</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:genre</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This will create a <code>genre_id</code> column inside of our <code>Books</code> table. We could also have done this initially inside of a <code>change</code> method, and written something like <code>t.references(:genre)</code> inside of our migration method. We also have the option to add a <code>type</code>, and specify whether the reference is a <code>polymorphic</code> association or not, as explained by the <a href="http://apidock.com/rails/ActiveRecord/ConnectionAdapters/Table/references">Rails API</a>:</p>
+
+<blockquote><p><code>references</code>: Adds a reference. Optionally adds a type column, if :polymorphic option is provided. The reference column will be an integer by default, the :type option can be used to specify a different type. A foreign key will be created if a foreign_key option is passed.</p></blockquote>
+
+<p>Using <code>references</code> instead of a typical <code>has_many</code> and <code>belongs_to</code> gives us a bit more flexibility moving forward, especially if we know that we&rsquo;ll be adding different types of associations in the long run.</p>
+
+<h2>Reverse, reverse!</h2>
+
+<p>One big feature we want to add to our Bookstore app is giving our <code>Books</code> a rating. There&rsquo;ll be some slightly complicated logic on the backend for this feature to actually work, since we&rsquo;ll need to update a <code>Book</code>&rsquo;s rating every single time a <code>User</code> rates it. But, let&rsquo;s not worry too much about how that logic will be implemented just yet. Instead, it&rsquo;ll be more helpful to break down this larger problem into a few smaller, bite-sized pieces.</p>
+
+<p>First things first: do what we know. And we know that we&rsquo;ll need to give every <code>Book</code> a <code>rating</code> attribute. We&rsquo;ll want this to use Ruby BigDecimal, so we&rsquo;ll specify that in our migration. This migration will start out pretty simple, since all we want to do is just give our <code>Book</code>s a new attribute:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddRatingColumnToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>    <span class="n">add_column</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:rating</span><span class="p">,</span> <span class="ss">:decimal</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If we run <code>rake db:migrate</code>, and then open up our console, we can very quickly check that this added a column, just as we expected:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">♥</span> <span class="n">rails</span> <span class="n">c</span>
+</span><span class='line'><span class="o">&gt;</span> <span class="no">Book</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">pluck</span><span class="p">(</span><span class="ss">:rating</span><span class="p">)</span>
+</span><span class='line'><span class="c1"># =&gt; [nil, nil, nil, nil, nil, nil]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Uh oh, that&rsquo;s not so great. We really don&rsquo;t want all of the <code>Book</code>s that are <em>already</em> inside of our database to have <code>nil</code> values for their <code>rating</code>. Honestly, a more accurate representation of their <code>rating</code> would just be <code>0</code>, since none of our <code>User</code>s have actually given these products a rating yet.</p>
+
+<p>What would be really nice is if we could do <em>two</em> things within this single migration: give our <code>Books</code> a <code>rating</code> column (done!), and set all of our pre-existing <code>Books</code> to have a <code>rating</code> of <code>0</code>. How can we do that? Well, by using <code>reversible</code>, of course!</p>
+
+<p>We already know that we can use the <code>up</code> and <code>down</code> methods to migrate &ldquo;up&rdquo; and &ldquo;down&rdquo; the history or &ldquo;life&rdquo; of our database. But there&rsquo;s also another handy method that can help us out here, called <code>reversible</code>. Here&rsquo;s what the <a href="http://edgeguides.rubyonrails.org/active_record_migrations.html">Rails Guides</a> say about <code>reversible</code>:</p>
+
+<blockquote><p>Complex migrations may require processing that Active Record doesn&rsquo;t know how to reverse. You can use <code>reversible</code> to specify what to do when running a migration and what else to do when reverting it. Using <code>reversible</code> will ensure that the instructions are executed in the right order too.</p></blockquote>
+
+<iframe src="//giphy.com/embed/11EAsNbNMMcO3u" width="480" height="148" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>So how can we implement <code>reversible</code> here? Well, to start, we need a reversible block, which takes a direction. If you&rsquo;re thinking that the direction should be <code>up</code> or <code>down</code>, you&rsquo;d be right! Since we&rsquo;re only adding a column in this migration, we don&rsquo;t need to worry about a <code>down</code> method, since migrating down will automatically just drop the <code>rating</code> column that we&rsquo;re adding. What we do need to do is make sure that when we migrate <em>up</em>, we&rsquo;re also updating our current <code>Book</code> records. We can do that by specifying the <code>up</code> method on our direction, and then pass a block to <code>reversible</code> telling it what to do:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddRatingColumnToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>    <span class="n">add_column</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:rating</span><span class="p">,</span> <span class="ss">:decimal</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">reversible</span> <span class="k">do</span> <span class="o">|</span><span class="n">direction</span><span class="o">|</span>
+</span><span class='line'>      <span class="n">direction</span><span class="o">.</span><span class="n">up</span> <span class="p">{</span> <span class="no">Book</span><span class="o">.</span><span class="n">update_all</span><span class="p">(</span><span class="ss">rating</span><span class="p">:</span> <span class="mi">0</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span> <span class="p">}</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Cool, this migration seems great. Now, we&rsquo;re not only adding a <code>rating</code> column to our <code>Books</code> table, but we&rsquo;re also updating all of our pre-existing <code>Book</code> objects so that they have some default value for their <code>rating</code>. Nothing about this should break ever, right?</p>
+
+<p>Wrong! Why? Because we can rename anything we want at any time&hellip;and then forget to change all of our files. When we decide to start selling music or movies and go full-on Amazon in our application, we&rsquo;ll probably want to rename our <code>Books</code> table to something like <code>Product</code> or <code>Item</code>. We&rsquo;ll create a new migration to rename our table, change our model names, and everything will be fine. Except for one teeny, tiny little problem: when we decide to deploy to Heroku and try to run <code>rake db:migrate</code>, everything will explode. And why might that happen? Well, because we renamed our table, and now we&rsquo;re trying to run a migration on a <code>Books</code> table for a <code>Book</code> model, which, at this moment in time, <em>doesn&rsquo;t even exist</em>.</p>
+
+<p>So, how can we fix this? Well, we can actually define a <code>Book</code> model inside of this very migration file. And, we can do it all in a single line:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddRatingColumnToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">class</span> <span class="nc">Book</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span><span class="p">;</span> <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>    <span class="n">add_column</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:rating</span><span class="p">,</span> <span class="ss">:decimal</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">reversible</span> <span class="k">do</span> <span class="o">|</span><span class="n">direction</span><span class="o">|</span>
+</span><span class='line'>      <span class="n">direction</span><span class="o">.</span><span class="n">up</span> <span class="p">{</span> <span class="no">Book</span><span class="o">.</span><span class="n">update_all</span><span class="p">(</span><span class="ss">rating</span><span class="p">:</span> <span class="mi">0</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span> <span class="p">}</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Nice! Now, even if we forget to rename our old migrations, we can be sure that ActiveRecord won&rsquo;t complain if it can&rsquo;t find a <code>Book</code> model when this migration tries to run. In fact, it will <em>always</em> find a model no matter what we might rename our model or table to in the future because we&rsquo;ve defined an empty <code>Book</code> class inside of this migration file. We can be sure that this is the case because Ruby will first look for a class declaration inside of a file before searching anywhere else!</p>
+
+<h2>Index All The Things</h2>
+
+<p>Okay, time to get efficient. Let&rsquo;s look back at our first migration, where we were adding <code>Genre</code>s to <code>Book</code>s:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddGenreToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>    <span class="n">add_reference</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:genre</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This is fine, but there&rsquo;s one slight problem here: what if we only have a few <code>Genre</code>s, but a ton of <code>Book</code>s? When we want to run a method like <code>where</code> or <code>sort_by</code>, how will our application handle this? Well, without even testing out our query, we know it&rsquo;s not going to go so well. And why not? Because, as it stands, our application will have to sort through <em>every single one</em> of our books to find the ones that match our query. And after a couple hundred or thousands of books, this is going to massively slow down our application.</p>
+
+<p>But, we&rsquo;re smart enough to foresee that problem! We&rsquo;ll outsmart our application from the get-go, and just write a smart migration to begin with:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddGenreToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>    <span class="n">add_reference</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:genre</span><span class="p">,</span> <span class="ss">index</span><span class="p">:</span> <span class="kp">true</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If we open up our <code>db/structure.sql</code>, we&rsquo;ll see this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">books</span> <span class="p">(</span>
+</span><span class='line'>  <span class="n">rating</span> <span class="nb">numeric</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span>
+</span><span class='line'>  <span class="n">genre_id</span> <span class="nb">integer</span>
+</span><span class='line'><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">index_books_on_genre_id</span> <span class="k">ON</span> <span class="n">books</span> <span class="k">USING</span> <span class="n">btree</span> <span class="p">(</span><span class="n">genre_id</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This created an <code>index</code> on our <code>Books</code> table, which is referenced to <code>Genre</code>. This is pretty amazing, because it means that our table will now use integers (not strings or any other data type) to look up an item on our table. Integer lookup is the cheapest and fastest way to look up an item in a database, which means that it&rsquo;s going to speed up our database like crazy!</p>
+
+<p>We also could have just written a completely new migraiton for this as well, which would implement the <code>add_index</code> method:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddGenreIndexToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>    <span class="n">add_index</span><span class="p">(</span><span class="ss">:books</span><span class="p">,</span> <span class="ss">:genre</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>and would add this line to our <code>db/structure.sql</code> file:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">suppliers_name_index</span> <span class="k">ON</span> <span class="n">suppliers</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We could also use the <code>add_index</code> method to create unique indexes, or named indexes, as highlighted in the <a href="http://apidock.com/rails/ActiveRecord/ConnectionAdapters/SchemaStatements/add_index">documentation</a>. Sometimes, it&rsquo;s actually <a href="http://makandracards.com/makandra/32353-psa-index-true-in-rails-migrations-does-not-work-as-you-d-expect">safer</a> to use the <code>add_index</code> method rather than <code>index: true</code>.</p>
+
+<p>Now our migrations are not just clear and concise, but they&rsquo;re also helping our application run smoother and quicker in the process. Writing smart migrations can not only save us a lot of time down the road, but they make feature-writing a lot more fun! Not as fun as running wilding through the safari, but hey &ndash; it&rsquo;s a close second:</p>
+
+<iframe src="//giphy.com/embed/cyrx5VQ8PiWoE" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Using <code>references</code> in a migration is the same as <code>belongs_to</code>, but can make your code more clear. The <code>reversible</code> method is great for specifying how your migration should handle a reverse migration. Indexes are an easy way of adding an iteger column to speed up database queries.</li>
+<li>Need to see another example of manipulating data from within a migraiton? This <a href="http://railsguides.net/change-data-in-migrations-like-a-boss/">blog post</a> walks through some great examples using the <code>up</code> and <code>down</code> methods.</li>
+<li>Check out this great <a href="https://www.reinteractive.net/posts/178-reversible-migrations-with-active-record">post</a> on how to implement <code>reversible</code> in different situations!</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-07-14T08:47:19-04:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:47 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/sql/'>sql</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/07/07/taskmanaging-your-app-part-2-service-objects/" title="Previous Post: Taskmanaging Your App, Part 2: Service Objects">&laquo; Taskmanaging Your App, Part 2: Service Objects</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/">Writing Smart Migrations: References, Reversible, and Indexes</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/07/taskmanaging-your-app-part-2-service-objects/">Taskmanaging Your App, Part 2: Service Objects</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/">Taskmanaging Your App, Part 1: Using Rake</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/23/to-serialize-or-not-to-serialize-activemodel-serializers/">To Serialize or Not to Serialize: ActiveModel Serializers</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/16/babys-first-conference-recapping-reddotrubyconf/">Baby&#8217;s First Conference: Recapping RedDotRubyConf</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-07-07T09:01:02-04:00</updated>
+  <updated>2015-07-14T09:06:30-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,177 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Writing Smart Migrations: References, Reversible, and Indexes]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/"/>
+    <updated>2015-07-14T08:47:19-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/SUtPZfyDenHoY" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>All it takes is a single feature to make you realize how well &ndash; or perhaps not so well &ndash; you&rsquo;ve written your application. Depending on if you&rsquo;ve done a good job of separating concerns, abstracting and encapsulating bits of functionality into cohesive code, and just generally not repeating yourself&hellip;well, you&rsquo;ll probably be way more enthusiastic about adding a huge new feature to an already massive application. But if you haven&rsquo;t done any of those things&hellip;well, you might find yourself doing a massive rewrite of your codebase just to implement a single feature.</p>
+
+<p>Luckily, the application I started adding a feature to last week is pretty well-built, which makes it flexible enough to add new functionality relatively easily. Yet even the most well-thought-out applications need to be teased apart and glued back together during the course of their lives. Often times, a big part of building out a new feature is restructuring the architecture of your application. When you&rsquo;re working with larger code bases (legacy code in particular), that can be the most daunting task. But a lot of the intimidation of that begins to dissipate once you know how to go about restructuring a schema which already exists without breaking all the the things.</p>
+
+<p>The first step in this process is writing migrations to change how the objects in your application and database relate to one another. Of course, knowing how to write the proper migration to suit your needs is just half the battle; the other half is writing a migration that makes object lookup in your database efficient and super fast. Even though I&rsquo;ve <a href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">written about migrations</a> before, I&rsquo;m learning that there&rsquo;s always so much more to know. So, let&rsquo;s get learning!</p>
+
+<!--more-->
+
+
+<h2>Referencing Your References</h2>
+
+<p>A really quick way to clean up our code is by changing the way that we create associations between objects from within our migrations. One feature we&rsquo;ll want to add is to have our <code>Book</code>s belong to a <code>Genre</code>. So far, we&rsquo;ve categorized our <code>Author</code>s by genre, but we&rsquo;ll want to be able to sort and organize our <code>Book</code> objects in a similar way.</p>
+
+<p>We often use <code>belongs_to</code> and <code>has_many</code> inside of our migrations, which is totally valid. But in this case, it probably makes more sense to use something called <code>references</code>. According to the Rails <a href="https://github.com/rails/rails/blob/88aa2efd692619e87eee88dfc48d608bea9bcdb4/activerecord/lib/active_record/connection_adapters/abstract/schema_definitions.rb#L421">source code</a>, <code>references</code> is just an alias of <code>belongs_to</code>. But, a <code>Book</code> doesn&rsquo;t really &ldquo;belong to&rdquo; a <code>Genre</code>, it&rsquo;s more that it should be able to &ldquo;reference&rdquo; the genre that it&rsquo;s associated with. We can add a reference fairly easily just like this:</p>
+
+<pre><code class="ruby">class AddGenreToBooks &lt; ActiveRecord::Migration
+  def change
+    add_reference :books, :genre
+  end
+end
+</code></pre>
+
+<p>This will create a <code>genre_id</code> column inside of our <code>Books</code> table. We could also have done this initially inside of a <code>change</code> method, and written something like <code>t.references(:genre)</code> inside of our migration method. We also have the option to add a <code>type</code>, and specify whether the reference is a <code>polymorphic</code> association or not, as explained by the <a href="http://apidock.com/rails/ActiveRecord/ConnectionAdapters/Table/references">Rails API</a>:</p>
+
+<blockquote><p><code>references</code>: Adds a reference. Optionally adds a type column, if :polymorphic option is provided. The reference column will be an integer by default, the :type option can be used to specify a different type. A foreign key will be created if a foreign_key option is passed.</p></blockquote>
+
+<p>Using <code>references</code> instead of a typical <code>has_many</code> and <code>belongs_to</code> gives us a bit more flexibility moving forward, especially if we know that we&rsquo;ll be adding different types of associations in the long run.</p>
+
+<h2>Reverse, reverse!</h2>
+
+<p>One big feature we want to add to our Bookstore app is giving our <code>Books</code> a rating. There&rsquo;ll be some slightly complicated logic on the backend for this feature to actually work, since we&rsquo;ll need to update a <code>Book</code>&rsquo;s rating every single time a <code>User</code> rates it. But, let&rsquo;s not worry too much about how that logic will be implemented just yet. Instead, it&rsquo;ll be more helpful to break down this larger problem into a few smaller, bite-sized pieces.</p>
+
+<p>First things first: do what we know. And we know that we&rsquo;ll need to give every <code>Book</code> a <code>rating</code> attribute. We&rsquo;ll want this to use Ruby BigDecimal, so we&rsquo;ll specify that in our migration. This migration will start out pretty simple, since all we want to do is just give our <code>Book</code>s a new attribute:</p>
+
+<pre><code class="ruby">class AddRatingColumnToBooks &lt; ActiveRecord::Migration
+  def change
+    add_column :books, :rating, :decimal
+  end
+end
+</code></pre>
+
+<p>If we run <code>rake db:migrate</code>, and then open up our console, we can very quickly check that this added a column, just as we expected:</p>
+
+<pre><code>♥ rails c
+&gt; Book.all.pluck(:rating)
+# =&gt; [nil, nil, nil, nil, nil, nil]
+</code></pre>
+
+<p>Uh oh, that&rsquo;s not so great. We really don&rsquo;t want all of the <code>Book</code>s that are <em>already</em> inside of our database to have <code>nil</code> values for their <code>rating</code>. Honestly, a more accurate representation of their <code>rating</code> would just be <code>0</code>, since none of our <code>User</code>s have actually given these products a rating yet.</p>
+
+<p>What would be really nice is if we could do <em>two</em> things within this single migration: give our <code>Books</code> a <code>rating</code> column (done!), and set all of our pre-existing <code>Books</code> to have a <code>rating</code> of <code>0</code>. How can we do that? Well, by using <code>reversible</code>, of course!</p>
+
+<p>We already know that we can use the <code>up</code> and <code>down</code> methods to migrate &ldquo;up&rdquo; and &ldquo;down&rdquo; the history or &ldquo;life&rdquo; of our database. But there&rsquo;s also another handy method that can help us out here, called <code>reversible</code>. Here&rsquo;s what the <a href="http://edgeguides.rubyonrails.org/active_record_migrations.html">Rails Guides</a> say about <code>reversible</code>:</p>
+
+<blockquote><p>Complex migrations may require processing that Active Record doesn&rsquo;t know how to reverse. You can use <code>reversible</code> to specify what to do when running a migration and what else to do when reverting it. Using <code>reversible</code> will ensure that the instructions are executed in the right order too.</p></blockquote>
+
+<iframe src="//giphy.com/embed/11EAsNbNMMcO3u" width="480" height="148" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>So how can we implement <code>reversible</code> here? Well, to start, we need a reversible block, which takes a direction. If you&rsquo;re thinking that the direction should be <code>up</code> or <code>down</code>, you&rsquo;d be right! Since we&rsquo;re only adding a column in this migration, we don&rsquo;t need to worry about a <code>down</code> method, since migrating down will automatically just drop the <code>rating</code> column that we&rsquo;re adding. What we do need to do is make sure that when we migrate <em>up</em>, we&rsquo;re also updating our current <code>Book</code> records. We can do that by specifying the <code>up</code> method on our direction, and then pass a block to <code>reversible</code> telling it what to do:</p>
+
+<pre><code class="ruby">class AddRatingColumnToBooks &lt; ActiveRecord::Migration
+  def change
+    add_column :books, :rating, :decimal
+
+    reversible do |direction|
+      direction.up { Book.update_all(rating: 0.0) }
+    end
+  end
+end
+</code></pre>
+
+<p>Cool, this migration seems great. Now, we&rsquo;re not only adding a <code>rating</code> column to our <code>Books</code> table, but we&rsquo;re also updating all of our pre-existing <code>Book</code> objects so that they have some default value for their <code>rating</code>. Nothing about this should break ever, right?</p>
+
+<p>Wrong! Why? Because we can rename anything we want at any time&hellip;and then forget to change all of our files. When we decide to start selling music or movies and go full-on Amazon in our application, we&rsquo;ll probably want to rename our <code>Books</code> table to something like <code>Product</code> or <code>Item</code>. We&rsquo;ll create a new migration to rename our table, change our model names, and everything will be fine. Except for one teeny, tiny little problem: when we decide to deploy to Heroku and try to run <code>rake db:migrate</code>, everything will explode. And why might that happen? Well, because we renamed our table, and now we&rsquo;re trying to run a migration on a <code>Books</code> table for a <code>Book</code> model, which, at this moment in time, <em>doesn&rsquo;t even exist</em>.</p>
+
+<p>So, how can we fix this? Well, we can actually define a <code>Book</code> model inside of this very migration file. And, we can do it all in a single line:</p>
+
+<pre><code class="ruby">class AddRatingColumnToBooks &lt; ActiveRecord::Migration
+  class Book &lt; ActiveRecord::Base; end
+
+  def change
+    add_column :books, :rating, :decimal
+
+    reversible do |direction|
+      direction.up { Book.update_all(rating: 0.0) }
+    end
+  end
+end
+</code></pre>
+
+<p>Nice! Now, even if we forget to rename our old migrations, we can be sure that ActiveRecord won&rsquo;t complain if it can&rsquo;t find a <code>Book</code> model when this migration tries to run. In fact, it will <em>always</em> find a model no matter what we might rename our model or table to in the future because we&rsquo;ve defined an empty <code>Book</code> class inside of this migration file. We can be sure that this is the case because Ruby will first look for a class declaration inside of a file before searching anywhere else!</p>
+
+<h2>Index All The Things</h2>
+
+<p>Okay, time to get efficient. Let&rsquo;s look back at our first migration, where we were adding <code>Genre</code>s to <code>Book</code>s:</p>
+
+<pre><code class="ruby">class AddGenreToBooks &lt; ActiveRecord::Migration
+  def change
+    add_reference :books, :genre
+  end
+end
+</code></pre>
+
+<p>This is fine, but there&rsquo;s one slight problem here: what if we only have a few <code>Genre</code>s, but a ton of <code>Book</code>s? When we want to run a method like <code>where</code> or <code>sort_by</code>, how will our application handle this? Well, without even testing out our query, we know it&rsquo;s not going to go so well. And why not? Because, as it stands, our application will have to sort through <em>every single one</em> of our books to find the ones that match our query. And after a couple hundred or thousands of books, this is going to massively slow down our application.</p>
+
+<p>But, we&rsquo;re smart enough to foresee that problem! We&rsquo;ll outsmart our application from the get-go, and just write a smart migration to begin with:</p>
+
+<pre><code class="ruby">class AddGenreToBooks &lt; ActiveRecord::Migration
+  def change
+    add_reference :books, :genre, index: true
+  end
+end
+</code></pre>
+
+<p>If we open up our <code>db/structure.sql</code>, we&rsquo;ll see this:</p>
+
+<pre><code class="sql">CREATE TABLE books (
+  rating numeric(10,2),
+  genre_id integer
+);
+
+CREATE INDEX index_books_on_genre_id ON books USING btree (genre_id);
+</code></pre>
+
+<p>This created an <code>index</code> on our <code>Books</code> table, which is referenced to <code>Genre</code>. This is pretty amazing, because it means that our table will now use integers (not strings or any other data type) to look up an item on our table. Integer lookup is the cheapest and fastest way to look up an item in a database, which means that it&rsquo;s going to speed up our database like crazy!</p>
+
+<p>We also could have just written a completely new migraiton for this as well, which would implement the <code>add_index</code> method:</p>
+
+<pre><code class="ruby">class AddGenreIndexToBooks &lt; ActiveRecord::Migration
+  def change
+    add_index(:books, :genre)
+  end
+end
+</code></pre>
+
+<p>and would add this line to our <code>db/structure.sql</code> file:</p>
+
+<pre><code class="sql">CREATE INDEX suppliers_name_index ON suppliers(name)
+</code></pre>
+
+<p>We could also use the <code>add_index</code> method to create unique indexes, or named indexes, as highlighted in the <a href="http://apidock.com/rails/ActiveRecord/ConnectionAdapters/SchemaStatements/add_index">documentation</a>. Sometimes, it&rsquo;s actually <a href="http://makandracards.com/makandra/32353-psa-index-true-in-rails-migrations-does-not-work-as-you-d-expect">safer</a> to use the <code>add_index</code> method rather than <code>index: true</code>.</p>
+
+<p>Now our migrations are not just clear and concise, but they&rsquo;re also helping our application run smoother and quicker in the process. Writing smart migrations can not only save us a lot of time down the road, but they make feature-writing a lot more fun! Not as fun as running wilding through the safari, but hey &ndash; it&rsquo;s a close second:</p>
+
+<iframe src="//giphy.com/embed/cyrx5VQ8PiWoE" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Using <code>references</code> in a migration is the same as <code>belongs_to</code>, but can make your code more clear. The <code>reversible</code> method is great for specifying how your migration should handle a reverse migration. Indexes are an easy way of adding an iteger column to speed up database queries.</li>
+<li>Need to see another example of manipulating data from within a migraiton? This <a href="http://railsguides.net/change-data-in-migrations-like-a-boss/">blog post</a> walks through some great examples using the <code>up</code> and <code>down</code> methods.</li>
+<li>Check out this great <a href="https://www.reinteractive.net/posts/178-reversible-migrations-with-active-record">post</a> on how to implement <code>reversible</code> in different situations!</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Taskmanaging Your App, Part 2: Service Objects]]></title>
@@ -737,190 +908,6 @@ https://github.com/SamSaffron/memory_profiler">over here</a>.</p>
 <li>Think about the two types of people who use your code: the users, who should have a seamless experience, which will make you optimize your code, and the abusers (or a better term that I can&rsquo;t think of), or those people who will be looking for security vulnerabilities in <em>your</em> code.</li>
 <li>Language design is hard. Refinements are a pretty good example of how a programming language can blow your mind with a single feature</li>
 <li>I also met Matz! It was <a href="https://twitter.com/vaidehijoshi/status/606684141506076673">incredibly awesome</a>. And he really is as nice as they say.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Refactoring to Reveal Rails Group_by]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/06/09/refactoring-to-reveal-rails-group-by/"/>
-    <updated>2015-06-09T08:43:24-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/06/09/refactoring-to-reveal-rails-group-by</id>
-    <content type="html"><![CDATA[<p><img src="http://img.pandawhale.com/post-10513-Code-Refactoring-Cat-in-Bathtu-U295.gif" style="display: block; margin-left: auto; margin-right: auto;"/></p>
-
-<p>There are a lot of opportunities in programming to feel pretty silly about yourself. I&rsquo;m sure that the more coding experience you have, the less often these moments actually occur. But early on in your career, they seem to happen quite often &ndash; or they do to <em>me</em>, at least.</p>
-
-<p>I had one of those moments a couple weeks ago, when I wrote a super long method and then asked a senior developer to take a look at it. While I was writing it, something seemed inherently wrong. I was sure there was a better way to do it, but I guess my Googling skills aren&rsquo;t quite superb yet, because I couldn&rsquo;t find quite the right answer anywhere. It was then that I decided to ask someone who would know exactly which tool to reach for.</p>
-
-<p>What happened next was pretty awesome, albeit slightly depressing. I watched my code be refactored from ten lines down to a single line. It blew my mind &ndash; and not just because I didn&rsquo;t know that this method even <em>existed</em>, but because I wanted to know how it worked! So, I did some digging and learned a bit about the method that I wrote which, as it turns out, already existed: the Rails <code>group_by</code> method on Enumerables.</p>
-
-<!--more-->
-
-
-<h2>Data Is For Manipulating</h2>
-
-<p>I started off writing my super long method because I wanted to structure my data in a very specific way. In fact, we&rsquo;ll probably want to structure the data in our Bookstore eCommerce app in a very similar way, too, so let&rsquo;s use that as our working example.</p>
-
-<p>For our admin panel, we want a list of <code>Author</code> objects, categorized by <code>genre</code>. Because our collection of <code>Books</code> is going to grow extensively, it would be helpful for an admin to know which authors are included in a <code>genre</code> or time period. Eventually, this could be used by admins to add new authors by a genre, to filter or sort by a genre, or to calculate an author count per genre, and figure out which authors to add to our collection of books.</p>
-
-<p>Right now, our collection of <code>Author</code> objects isn&rsquo;t very big, but has just enough information for us to start implementing this functionality:</p>
-
-<pre><code class="ruby">&gt; Author.all
-=&gt; [{#&lt;Author:0x192ajk21a6d0b0 last_name: "Shakespeare", genre: "Renaissance"&gt;}, 
-{#&lt;Author:0w917qwl38f6s8v6 last_name: "Homer", genre: "Classics"&gt;}, 
-{#&lt;Author:0x390akd23a5d9m4 last_name: "Faulkner", genre: "Southern Gothic"&gt;}, 
-{#&lt;Author:1r103aur58b7c4r2 last_name: "Marlowe", genre: "Renaissance"&gt;}]
-</code></pre>
-
-<p>Even though our data is easy to read now, we can be sure that it isn&rsquo;t going to stay that way. But we know that if we structure each of our objects correctly, we could have something simple, like this, in our view:</p>
-
-<pre><code class="ruby">div
-  - Author.sort_by_genre.each do |genre, author|
-    h2 = genre
-    - author.each do |a|
-      p = a.last_name
-</code></pre>
-
-<p>I&rsquo;m a big fan of slim, which is what I&rsquo;ve used above, but this view would still be pretty minimal when using another templating language such as erb.</p>
-
-<p>Given that this is the view we want to render, we can use this information to structure our data. I&rsquo;m thinking a hash is the tool for the job, with each key being a <code>genre</code> name, and the value being an array of <code>Author</code> objects that we can iterate through for each specific <code>genre</code>.</p>
-
-<p>It would be nice if we could call something like <code>Author.sort_by_genre</code> and have it return a structure like this:</p>
-
-<pre><code class="ruby">=&gt; {"Renaissance": [Shakespeare, Marlowe], 
-"Southern Gothic": [Faulkner], 
-"Classics": [Homer]}
-</code></pre>
-
-<p>So now that we know what we <em>want</em> our data to look like, let&rsquo;s write it the ugly way, just like I did!</p>
-
-<h2>The First Iteration</h2>
-
-<p>To start with, we know that we want to return a hash. So we can start by instantiating a hash, which will be our <code>authors_by_genre</code>. We also know that we&rsquo;ll need all the <code>Author</code> objects in an array; since we&rsquo;re specifically looking for an author&rsquo;s <code>last_name</code> and <code>genre</code>, we can query for those directly. And we can return our empty hash, since that will eventually be filled up:</p>
-
-<pre><code class="ruby">def sort_by_genre
-  authors_by_genre = {}
-  authors = Author.all.collect { |author| [author.last_name, author.genre] }
-
-  authors_by_genre
-end
-</code></pre>
-
-<p>Okay, so now we need to fill up our hash. We have our <code>authors</code> variable, which is set to the collection of all <code>Author</code> objects. We will need to iterate through all of them, and put that <code>Author</code> in the correct array for the right <code>genre</code> key. If the right <code>genre</code> key doesn&rsquo;t exist, we&rsquo;ll need to create a key for that author&rsquo;s <code>genre</code>. We can accomplish this with another iteration. Now our method looks like this:</p>
-
-<pre><code class="ruby">class Author
-  class &lt;&lt; self
-    def sort_by_genre
-      authors_by_genre = {}
-      authors = Author.all.collect { |author| [author.last_name, author.genre] }
-
-      authors.each do |genre, author|
-        if authors_by_genre[genre]
-          authors_by_genre[genre] &lt;&lt; author
-        else
-          authors_by_genre[genre] = [author]
-        end
-      end
-
-      authors_by_genre
-      end
-    end
-  end
-end
-</code></pre>
-
-<p>Okay&hellip;so hopefully, by this point, you should be thinking to yourself: <em>This isn&rsquo;t just ugly, it&rsquo;s also <strong>super</strong> inefficient</em>. And you&rsquo;d be right. It&rsquo;s pretty bad.</p>
-
-<iframe src="//giphy.com/embed/asIa0FVaBSQNO" width="480" height="307" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>If you weren&rsquo;t sure how bad it really is, think about all the queries we&rsquo;re making! And how many times we&rsquo;re iterating! As soon as I finished writing this and got it working, I knew it was <em>definitely</em> not the right approach. But the first step is to get it working. Now, we need to seriously consider how we can make it right and make it fast.</p>
-
-<p>You know what what this means, right? Refactoring time.</p>
-
-<h2>Group All The Things</h2>
-
-<p>A quick way to refactor some of the messiness from our first iteration is by first changing how we initialize our hash object, and also modifying how we go about deciding whether to create a new key or add to a key that already exists.</p>
-
-<p>Enter the <code>each_with_object</code> method! This is a pretty rad method I learned about while refactoring my first iteration of this <code>sort_by_genre</code> method. The <code>each_with_object</code> method requires a single argument: the object that you want to pass to it in each iteration. In our case, we&rsquo;ll pass it a hash. And since the items we want to actually &ldquo;categorize&rdquo; are our <code>Author</code> objects, we&rsquo;ll call <code>each_with_object</code> on our collection of <code>Authors</code>:</p>
-
-<pre><code class="ruby">class Author
-  class &lt;&lt; self
-    def sort_by_genre
-      Author.all.each_with_object({}) {  }
-    end
-  end
-end
-</code></pre>
-
-<p>Now, what about that block &ndash; what goes inside? Well, we can think about what we want to do with each of our <code>Author</code> objects that we&rsquo;re iterating over. Inside of our hash, which we&rsquo;re passing explicitly as an argument to <code>each_with_object</code>, we want to either find the correct key and put the correct <code>Author</code> into that array, or create a new key based on the current <code>Author</code> object&rsquo;s genre. We can write that quite nicely by using the <code>||=</code> <strong>or equals</strong> operator, which will assign a new object, or whatever is to the right of the operator, equal to the left side of the pipes, or whatever is to the left of the operator:</p>
-
-<pre><code class="ruby">class Author
-  class &lt;&lt; self
-    def sort_by_genre
-      Author.all.each_with_object({}) { 
-      |author, hash| (hash[author.genre]
-      ||= []) &lt;&lt; author }
-    end
-  end
-end
-</code></pre>
-
-<p>Much better, right? In this second iteration, we&rsquo;re passing a hash directly to the <code>each_with_object</code> method, and basically telling it, <em>Find the key in the hash I just passed you that is equal to this author&rsquo;s genre. And if no such key exists, make one, set it equal to an empty array, and then put this current author into that array</em>.</p>
-
-<p>The order of our or equals operator is particularly important, because if it were switched, it would never run what is on the right side of the pipes. The <code>||=</code> operator is exactly like the <code>||</code> operator in that it will run what is to its right <em>only</em> if what is to its left evaluates to <code>false</code>. This is what keeps our method from trying to create multiple keys again and again, and instead forces it to find an existing key first. The super cool thing about the <code>||=</code> operator is that it is actually assigning a new key value to an empty array, which cuts out a lot of extra lines we had in our first iteration!</p>
-
-<p>Okay, so this second iteration has been a vast improvement. But I think it&rsquo;s time for some serious refactoring magic. Are you ready? Okay. This <em>entire</em> method can be rewritten into a single, simple line:</p>
-
-<pre><code class="ruby">class Author
-  class &lt;&lt; self
-    def sort_by_genre
-      Author.all.group_by(&amp;:genre)
-    end
-  end
-end
-</code></pre>
-
-<p>Yup. I kid you not.</p>
-
-<iframe src="//giphy.com/embed/sHytgXD2vlNVC" width="480" height="376" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>This is the magic of the Rails <code>group_by</code> method, which collects an enumerable into sets, grouping it by the result of a block. This method takes a proc using the ampersand shortcut as an argument (which we started using last week!). The <code>group_by</code> method is passed the symbol <code>:genre</code>, which is an attribute on each <code>Author</code> object, and corresponds to a <code>genre</code> column in the <code>authors</code> table. So, we are effectively grouping all of our <code>Author</code> objects by the result of calling <code>.genre</code> on each object. In other words, we&rsquo;re grouping by the <code>genre</code> attribute since the attribute corresponds to an <code>attr_accessor</code> method in the class.</p>
-
-<p>And now, if we call our <code>sort_by_genre</code> class method, we get the exact data structure we were hoping for:</p>
-
-<pre><code class="ruby">&gt; Author.sort_by_genre
-=&gt; {"Renaissance": [{#&lt;Author:0x192ajk21a6d0b0 last_name: "Shakespeare", genre: "Renaissance"&gt;}, 
-{#&lt;Author:1r103aur58b7c4r2 last_name: "Marlowe", genre: "Renaissance"&gt;}], 
-"Southern Gothic": [{#&lt;Author:0x390akd23a5d9m4 last_name: "Faulkner", genre: "Southern Gothic"&gt;}], 
-"Classics": [{#&lt;Author:0w917qwl38f6s8v6 last_name: "Homer", genre: "Classics"&gt;}]}
-</code></pre>
-
-<p>Hooray! Or maybe not hooray. Maybe instead of hooray, you feel like I did when I realized that you could refactor all of this into one line:</p>
-
-<blockquote class="twitter-tweet tw-align-center" lang="en"><p lang="en" dir="ltr">PROGRAMMING:&#10;Write a 10-line method.&#10;Feel proud when it works.&#10;Find out you can write the same thing in a single line.&#10;Cry in the corner.</p>&mdash; Vaidehi Joshi (@vaidehijoshi) <a href="https://twitter.com/vaidehijoshi/status/601156228723642369">May 20, 2015</a></blockquote>
-
-
-<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
-
-
-<p><br></p>
-
-<p>Although it made me feel pretty silly, the actual process of writing the <code>group_by</code> method from scratch was a really great learning experience. I ended up using the examples above in a talk I gave on refactoring at <a href="http://www.twitter.com/reddotrubyconf">Red Dot Ruby Conference</a> in Singapore last week. And I actually recreated the <em>exact same</em> functionality when I had to write my <em>own</em> <code>groupBy</code> function in JavaScript for a React component I had to build! I guess that however deep of a rabbit hole refactoring can be, sometimes it&rsquo;s exactly the right kind of deep dive you need to learn how something works under the hood. I still totally feel like that cat in the bathtub whenever I do it &ndash; but I&rsquo;m kind of okay with that.</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>group_by</code> method takes a block, which it uses to group a collection of objects. The <code>each_with_object</code> method takes an object as an argument, and a block which tells it how to sort the collection you call the method upon.</li>
-<li>Read more on the <code>group_by</code> method in the <a href="http://apidock.com/rails/Enumerable/group_by">Rails docs</a>, which also has a great example!</li>
-<li>Looking for another example of how to implement Rails&#8217; <code>group_by</code> in a view? Check out <a href="https://ariejan.net/2007/01/12/rails-group-results-by-week-using-group_by/">this blog post</a>.</li>
-<li>Did you know that Ruby also has a similar <code>group_by</code> method? It&rsquo;s great when you want to <a href="http://ruby-doc.org/core-2.2.2/Enumerable.html#method-i-group_by">return a hash</a> where the keys are evaluated by a block!</li>
 </ul>
 
 ]]></content>
