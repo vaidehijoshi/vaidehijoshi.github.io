@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rails | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-07-14T09:07:24-04:00</updated>
+  <updated>2015-07-21T08:48:59-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,186 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[All the Columns Fit to Index: Unique + Compound Indexing]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing/"/>
+    <updated>2015-07-21T08:02:04-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/MMEfo9QQgKInK" width="480" height="269" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Database indexing: the last frontier. Well, okay, not the <em>last</em> frontier perse&hellip;more like the frontier that I&rsquo;ve been reading about a lot recently. While learning about writing about <a href="http://vaidehijoshi.github.io/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/">smart and efficient</a> migrations, I stumbled upon a rabbit hole that I had to restrain myself from going down: the rabbit hole of <strong>database indexing</strong>. But this week, I allowed myself to explore and learn some more about how indexes work.</p>
+
+<p>As the cat gif above might already suggest, an index in a database is much like an index in a book: a place where you can quickly look up the exact information that you need. We already know that indexing can be super helpful when it comes to application performance. Using indexes forces our database to use integers to look up rows &ndash; which are just representations of items or objects &ndash; in our database. The reason that they&rsquo;re so efficient is because looking up something in a database is both fast <em>and</em> cheap if we use an integer to do it (using a string on the other hand, is much, much slower and more expensive). By implementing a simple index, we can speed up a single query by seconds!</p>
+
+<p>But it turns out that even a single index can be complicated. And that&rsquo;s because there are so many kinds of indexes available for us to use. In fact, there&rsquo;s a whole <em>world</em> of different types of database indexes out there. Of course, knowing the options available to us when it comes to database indexing is just half the battle; the other half is knowing when it&rsquo;s the right time to use all these different types of indexes. The best way to learn is by playing around with some indexing ourselves &ndash; so let&rsquo;s dive in!</p>
+
+<!--more-->
+
+
+<h2>Indexes All Around Us</h2>
+
+<p>The most common index type that we have dealt with so far are <strong>single-column</strong> indexes. They work pretty much exactly as their name would suggest: they create an index on a specific column of a database. So far, almost all of the indexes we&rsquo;ve generated have been indexed on a specific single column of a table.</p>
+
+<iframe src="//giphy.com/embed/bjDq7WCjstuPS" width="480" height="329" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Let&rsquo;s think for a second: when we use a PostgreSQL to run a migration, the one column that always gets generated is an <code>id</code> column, which is unique for every row in that database, even if the object is deleted. If we think about it, that&rsquo;s an example of an index. In fact, PostgreSQL automatically generates an index for the primary key of any table, and always generates a new, unique key for each new row in the database.</p>
+
+<p>One of the very first migrations we ran for our Bookstore application looked like this:</p>
+
+<pre><code class="ruby">class CreateBooks &lt; ActiveRecord::Migration
+  def change
+    create_table :books do |t|
+      t.string :title
+    end 
+  end
+end
+</code></pre>
+
+<p>and generated a tiny little table, which didn&rsquo;t have all that much &ndash; but it did have an index as its <code>id</code> primary key column, which we can confirm by looking at our <code>structure.sql</code> file:</p>
+
+<pre><code class="sql">CREATE TABLE books (
+    id integer NOT NULL,
+    title character varying(255)
+)
+</code></pre>
+
+<p>The advantage of having an <code>id integer</code> column here is that our database can very easily look up a specific row in our <code>books</code> table by using the index. We can also see that there&rsquo;s automatically a <code>NOT NULL</code> validation that prevents any row in the database from being created <em>without</em> an <code>id</code>. This isn&rsquo;t something that we wrote &ndash; this is something that Postgres does automatically! And although it might seem pretty obvious and a bit simple right now, it&rsquo;s important to note &ndash; especially since indexes can get rather complicated, rather fast.</p>
+
+<p>Another form of indexing that we&rsquo;ve played around with is adding our own indexes to <code>has_many</code> and <code>belongs_to</code> associations, often by using <code>references</code> to alias those relationships:</p>
+
+<pre><code class="ruby">class AddGenreToBooks &lt; ActiveRecord::Migration
+  def change
+    add_reference :books, :genre, index: true
+  end
+end
+</code></pre>
+
+<p>And if we already have a relationship set up, we can just write a quick migration to manually add an index to our <code>books</code> table:</p>
+
+<pre><code class="ruby">class AddGenreIndexToBooks &lt; ActiveRecord::Migration
+  def change
+    add_index :books, :genre
+  end
+end
+</code></pre>
+
+<p>This migration adds an index on <code>genre_id</code> column within our <code>books</code> table, which makes it very quick and easy to look up a book by it&rsquo;s corresponding genre. This is still only a single-column, or <strong>independent index</strong>, because it is only dealing with a single column within a database table. But if there are single indexes, that must mean that the idea of &ldquo;multiple&rdquo; indexes is also must be a real thing, right?</p>
+
+<h2>Two Indexes Are (Sometimes) Better Than One</h2>
+
+<p>Indexes are easy to add; what&rsquo;s harder is knowing what <em>kind</em> of index to add. Sometimes, a single-column index does the trick. But it&rsquo;s also possible that it&rsquo;s quite the right tool for the job.</p>
+
+<p>Let&rsquo;s say that we are doing an overhaul on our Bookstore application and scaling for size. We&rsquo;ve decided that in addition to selling our own curated selection of books, we&rsquo;re also going to allow new, lesser-known bookstores to sign up for our service and sell their own books. Our vendors will have their own admin panel (think vendor portal), and the bookstore staff will have a separate admin panel from which to monitor all the sales across all the vendors who are signed up for our service.</p>
+
+<p>All of our admins (staff and vendors) have an <code>user_id</code>. But, our staff and our vendors aren&rsquo;t just simple users of our application &ndash; they have special roles, and need access to specific pages, depending on their roles. Our admins also have an <code>admin_id</code> in addition to their base <code>user_ids</code>, while our vendors have a <code>vendor_id</code>, based on their roles as smaller-scale booksellers who will be using our software to sell their products.</p>
+
+<p>Within our staff admin panel, we want our admins to be able to quickly view all sales across our signed up vendors, in addition to one specific vendors sales reports. If an admin logs into the admin panel and clicks on a specific bookseller, the panel should immediately load all the information pertinent to that specific vendor.</p>
+
+<p>The first thing we might think to do is what we already know &ndash; namely, add an index on the columns we know we want to look up:</p>
+
+<pre><code class="ruby">class AddIndexesToUsers &lt; ActiveRecord::Migration
+    def change
+        add_index :users
+        add_index :users, :vendor_id
+    end
+end
+</code></pre>
+
+<p>However, these indexes don&rsquo;t actually do what we think they&rsquo;ll do. This adds an index to the primary key column on our <code>users</code> table, which will allow us to quickly look up a single <code>User</code>. It also adds an index to our <code>vendor_id</code> column, and allows us to look up a <code>User</code> instance based on its <code>vendor_id</code>, if it has one.</p>
+
+<p>But here&rsquo;s the rub: we&rsquo;re only adding a single index in this migration. That is to say, we&rsquo;re adding an index on our <code>user_ids</code>, and we&rsquo;re adding an index on our <code>vendor_ids</code>. What we <em>really</em> need is an index that first sorts our data by <code>user_id</code>, and then filters down to the users that match our <code>vendor_id</code>.</p>
+
+<iframe src="//giphy.com/embed/PUBxelwT57jsQ" width="480" height="332" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Don&rsquo;t worry, this is totally doable! We just need to index <em>two</em> columns, instead of one. Actually, there&rsquo;s a perfect name &ndash; or set of names &ndash; for what we need: a <strong>compound index</strong> (aka a concatenated, multi-column, composite or combined index).</p>
+
+<p>Ultimately, we want our database to execute a query that looks something like this:</p>
+
+<pre><code class="sql">SELECT * FROM users WHERE user_id = ? AND vendor_id = ?;
+</code></pre>
+
+<p>so that we can avoid writing a SQL statement in our <code>UsersController</code> like we have now (ew, let&rsquo;s not do that):</p>
+
+<pre><code>class UsersController &lt; ApplicationController
+    def sign_in
+        @user = User.where("user_id = ? AND vendor_id = ?", params[:user_id], params[:vendor_id])
+        # authenticate and sign in the vendor
+    end
+end
+</code></pre>
+
+<p>So how are we going to manage all of this, you might ask? Well, pretty easily. Writing a compound index is almost as easy as writing a single-column index:</p>
+
+<pre><code class="ruby">class AddIndexesToUsers &lt; ActiveRecord::Migration
+    def change
+        add_index :users, [:id, vendor_id]
+    end
+end
+</code></pre>
+
+<p>And that&rsquo;s it! But what&rsquo;s happening, exactly? Well, we&rsquo;re still creating a single index, but we&rsquo;re doing it across multiple columns. The first column (<code>user_id</code>) is the primary &ldquo;sort criterion&rdquo;, and the second column (<code>vendor_id</code>) is the secondary &ldquo;sort criterion&rdquo;. The important thing to remember here is that <em>order matters</em>. We&rsquo;ll only ever look up a vendor by <code>user_id</code> first, and then by <code>vendor_id</code>. This makes sense if you think about it, since we&rsquo;ll first want to authenticate by the user currently logged in (in other words, using the current session).</p>
+
+<p>I really liked the way that Markus Winand describes two-column indexing on <a href="http://use-the-index-luke.com/sql/where-clause/the-equals-operator/concatenated-keys">his blog</a>:</p>
+
+<blockquote><p>The ordering of a two-column index is therefore like the ordering of a telephone directory: it is first sorted by surname, then by first name. That means that a two-column index does not support searching on the second column alone; that would be like searching a telephone directory by first name.</p></blockquote>
+
+<p>Compound indexes are super cool because they let you quickly look up the first field/column in a database, and then quickly look up <em>another</em> field/column in a database &ndash; but only within the records that were returned by the first index. At the end of the query, you&rsquo;ll only have rows that satisfy parts of that <code>AND</code> SQL query we wrote earlier!</p>
+
+<h2>Indexes Like None Other</h2>
+
+<p>I think we can all agree that indexing can help us narrow down a lot of rows in a database and is probably the coolest filtration system ever invented by and for developers. But that&rsquo;s not all that indexes can do! They can also prevent some pretty sticky situations that we often overlook.</p>
+
+<p>By now, something that we&rsquo;re all familiar with is validations. One of the most common kinds of validations that we see in our Rails models all of the time is <code>uniqueness:true</code>, or <code>validates_uniqueness_of</code>. However, here&rsquo;s something we don&rsquo;t always think about (or perhaps never even realized): these validations only occur at the the ActiveRecord level. And this fact can pose some problems.</p>
+
+<p>Imagine two vendors are signing up to use our Bookstore app. They both want to name their store the same thing, but we definitely don&rsquo;t want that to happen. So we add this line to our <code>Users</code> table:</p>
+
+<pre><code class="ruby">module User
+    class Vendor &lt; ActiveRecord::Base
+      validates :store_name, presence: true, uniqueness: true
+    end
+end
+</code></pre>
+
+<p>Cool, so this is fine then, right? Wrong! Because we just sent out an email blast telling all these potential vendors that they could sign up for a free 60-day trial. Now, all of a sudden, tons of vendors are signing up! And it just so happens, that two of them signed up at almost the exact same second, and wanted to use the same name: <code>Super Cool Books</code> (I know, I know, what are the chances, right?!)</p>
+
+<p>Here&rsquo;s the problem: the moment that both of these potential vendors signed up for our service, no row in our polymorphic <code>vendors</code> database existed with a <code>store_name</code> that corresponded to the string, <code>Super Cool Books</code>. So what did ActiveRecord do? It created a new row! Actually&hellip;it created <em>two</em> new rows. At almost the exact same time. With the <em>exact same store name</em>. Uh oh.</p>
+
+<p>So how can we fix this? We need to take our <code>uniqueness</code> validation down another level. In fact, we need to make our <em>database</em> responsible for validating uniqueness. And we can do this by adding a <strong>unique index</strong>.</p>
+
+<p>Again, this is pretty easy. We just need to add a <code>unique: true</code> constraint on the column that we want to be able to index:</p>
+
+<pre><code class="ruby">class AddStoreNameIndexToVendors
+  def change
+    add_index :vendors, :store_name, unique: true
+  end
+end
+</code></pre>
+
+<p>Now, when two vendors try to sign up to be called <code>Super Cool Books</code>, only one will actually be able to have that name. As soon as an unique index is created on the <code>store_name</code> column of our <code>vendors</code> database, any other record that tries to be created with that index will raise a <code>ActiveRecord::RecordNotUnique</code> error. This is going to be super helpful to us in avoiding inconsistant data, particularly when we know that a lot of data is going to be created at once.</p>
+
+<p>The world of indexes is mostly uncharted territory. It&rsquo;s also important to keep in mind that you never want to create <em>too</em> many indexes, and only ones that we actually need, since they will <a href="http://www.rubyonrails365.com/low-hanging-fruits-for-better-sql-performance-in-rails/">slow down</a> the &ldquo;write&rdquo; time to the database (whenever we use SQL commands like <code>UPDATE</code> or <code>CREATE</code>, for example). But that doesn&rsquo;t mean we can&rsquo;t learn about the different kinds of indexes that exist and be completely wowed at how amazing databases are. See, this cat is completely floored &ndash; and quite frankly, I am too:</p>
+
+<iframe src="//giphy.com/embed/vSSdLSLbGIXio" width="480" height="453" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>There are three main types of indexing: <em>single-column</em>, <em>compound</em>, and <em>unique</em> indexes. Compound indexes create an index on two ore more columns in a database, while unique indexes create a restraint on a single column index.</li>
+<li>This <a href="http://stackoverflow.com/a/1049392">StackOverflow answer</a> is the best explanation of how compound indexes actually work in terms of running a query. If you&rsquo;re still confused, give it a read!</li>
+<li>Uniqueness validations are super cool! Read more about them over <a href="https://robots.thoughtbot.com/the-perils-of-uniqueness-validations">here</a>, and check out some real-life examples of how to use them <a href="http://nyonura.com/blog/2014/Partial-Indexes-with-PostgreSQL-and-Rails/">here</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Writing Smart Migrations: References, Reversible, and Indexes]]></title>
@@ -159,11 +339,6 @@ CREATE INDEX index_books_on_genre_id ON books USING btree (genre_id);
     add_index(:books, :genre)
   end
 end
-</code></pre>
-
-<p>and would add this line to our <code>db/structure.sql</code> file:</p>
-
-<pre><code class="sql">CREATE INDEX suppliers_name_index ON suppliers(name)
 </code></pre>
 
 <p>We could also use the <code>add_index</code> method to create unique indexes, or named indexes, as highlighted in the <a href="http://apidock.com/rails/ActiveRecord/ConnectionAdapters/SchemaStatements/add_index">documentation</a>. Sometimes, it&rsquo;s actually <a href="http://makandracards.com/makandra/32353-psa-index-true-in-rails-migrations-does-not-work-as-you-d-expect">safer</a> to use the <code>add_index</code> method rather than <code>index: true</code>.</p>
@@ -795,119 +970,6 @@ end
 <li>The <code>active_model_serializers</code> gem provides a ton of functionality for structuring a JSON response from your Rails API. Read about all the methods it provides in its <a href="https://github.com/rails-api/active_model_serializers">great documenation</a>.</li>
 <li>Still curious about serializers? Check out <a href="https://robots.thoughtbot.com/better-serialization-less-as-json">this cool post</a> and <a href="https://blog.engineyard.com/2015/active-model-serializers">this one</a>, too!</li>
 <li>Serializers are also great for caching. To learn more about why they matter, read this <a href="https://robots.thoughtbot.com/fast-json-apis-in-rails-with-key-based-caches-and">more advanced</a> blog post!</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Baby's First Conference: Recapping RedDotRubyConf]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/06/16/babys-first-conference-recapping-reddotrubyconf/"/>
-    <updated>2015-06-16T08:29:28-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/06/16/babys-first-conference-recapping-reddotrubyconf</id>
-    <content type="html"><![CDATA[<iframe src="https://www.flickr.com/photos/reddotrubyconf/18777106586/in/photostream/player/" width="500" height="333" frameborder="0" allowfullscreen webkitallowfullscreen mozallowfullscreen oallowfullscreen msallowfullscreen></iframe>
-
-
-<p>A week ago, I was on a code overload in Singapore. What was I doing on the other side of the world? Why, giving (and attending!) my very first talk at a Ruby conference, of course!</p>
-
-<p>I was lucky enough to join some serious Ruby powerhouses at the <a href="reddotrubyconf.com">Red Dot Ruby Conference</a> earlier this month. And it was such a cool first conference experience. But, because I had to give a talk, I was pretty preoccupied with writing my speech and creating some fun slides to accompany it. What I forgot in the process was that I would be an audience member at the conference, too! (Pretty silly, I know).</p>
-
-<p>My lightning talk was <a href="http://confreaks.tv/videos/rdrc2015-lightning-talk-refactoring-of-self">just a few minutes</a>, which meant that for the majority of the two-day conference, I had the unique opportunity to listen to some really fantastic talks. And I learned <em>so much</em>. I also got to meet some interesting, talented, and creative people who have made some very significant and core contributions to the Ruby and Rails communities and codebases. Summing up everything that happened in those two days is a bit difficult since every talk was informative in many ways. But I&rsquo;ll recap at least some of the dopest things I learned about while I was there. But if you want the full effect, you should probably <a href="http://i.ytimg.com/vi/_kRtkrBumBw/maxresdefault.jpg">eat a durian</a> while reading this post &ndash; just sayin&#8217;.</p>
-
-<!--more-->
-
-
-<h2>Your Code Is Not Just Yours</h2>
-
-<p>One of the first talks of the conference focused on something I pretty much knew nothing about: security. André Arko&rsquo;s talk, <em>Security Is Hard, But We Can&rsquo;t Go Shopping</em> was an eye-opening look at why Ruby developers don&rsquo;t think (or talk) about security vulnerabilities in their codebases &ndash; and why we all <em>should</em> be having that conversation.</p>
-
-<p>André&rsquo;s talk definitely caught my attention when he gave an example of a company that went out of business in a day because they lost <em>all</em> of their data because their severs were hacked. Yes, you read that right: lost all their data, shut down in a day. Pretty terrifying, right?</p>
-
-<div style="text-align:center">
-    <iframe width="560" height="315" src="https://www.youtube.com/embed/eHmXar6TNUo?showinfo=0" frameborder="0" allowfullscreen></iframe><br>
-</div>
-
-
-<p>There were three big takeaways for me from this talk:</p>
-
-<h4><strong>1. Updating is insurance</strong></h4>
-
-<p>We&rsquo;ve all looked at our code and seen deprecation warnings, or things that are out of date and need to be updated to the latest version. And, we&rsquo;ve all, at some point, ignored those warnings. It&rsquo;s really easy to think about shipping your code quickly and iterating fast, particularly because updating things is <em>not</em> fun. And no one wants to do it.</p>
-
-<p>But, you know what&rsquo;s worse? Your entire app blowing up because you had a vulnerability exposed in your code because you didn&rsquo;t update! If we all started thinking about updating as <em>insurance</em>, we&rsquo;d be more willing to sit down and put in the time to make sure all aspects of our applications were updated and thus, at the lowest possible level of security risk. This shift in perspective also seems like the best way to pitch &ldquo;updating&rdquo; as a task to project managers who might not see the time value in something like upgrading an already-functioning application.</p>
-
-<h4>2. <strong>Responsible disclosure</strong></h4>
-
-<p>If you find a security vulnerability, be nice about it. Don&rsquo;t be a jerk, man. Sometimes, you can even get a reward for disclosing! Figure out what the process is for disclosing a security issue to a company, and be empathetic to the developers who wrote that code which you&rsquo;re using &ndash; who knows, maybe one day there&rsquo;ll be a vulnerability in your code, and you&rsquo;ll wish you had been nicer to <em>those</em> developers.</p>
-
-<h4>3. <strong>There are users, there are abusers</strong></h4>
-
-<p>As a young developer, you can think about who is using your code. Many junior developers write code to get it to work or to make it fast, but it&rsquo;s also important to think about who is or could potentially be using your code. It&rsquo;s helpful to start thinking about those things, even as a new programmer. Consider things like strong params and <code>csrf</code> tokens to start, and then work your way up to more complex security measures in your Rails applications. At the end of the day, you probably have some gaping holes in your codebase that is allowing someone to be malicious to your code base, which means that <em>your</em> code isn&rsquo;t actually yours anymore.</p>
-
-<h2>All About That Efficiency</h2>
-
-<p>My favorite talk of the entire conference came from Sam Saffron, the co-founder of Discourse and one of the first employees at StackExchange. To be honest, this talk was less an exercise is learning new things and more a revelation in all the things that I <em>didn&rsquo;t</em> know. And all the things that I knew nothing about centered around one thing: <strong>efficiency</strong>.</p>
-
-<div style="text-align:center">
-    <iframe width="560" height="315" src="https://www.youtube.com/embed/aP5NNkzb4og?showinfo=0" frameborder="0" allowfullscreen></iframe><br>
-</div>
-
-
-<p>Sam&rsquo;s talk piqued my interested in particular because I&rsquo;ve been trying to think about the efficiency of my own applications for a few weeks now. I&rsquo;ve been trying to use more efficient methods in my own code &ndash; like <code>pluck</code> in last week&rsquo;s post, for example, or my post on the ActiveRecord <code>includes</code> <a href="http://vaidehijoshi.github.io/blog/2015/04/07/querying-at-warp-drive-using-activerecord-includes/">method</a> a few months ago.</p>
-
-<p>Yet there&rsquo;s a lot more to efficiency than that, it turns out! And that&rsquo;s exactly what Sam&rsquo;s talk aimed to explore. One of the things I learned pretty early on was that ActiveRecord is inefficient &ndash; yes, really! For those of us writing smaller applications, it may not be all that obvious. But for something much larger, such as Discourse, which has tons and tons of assets that have to compile on page load&hellip;well, it&rsquo;s pretty obvious how even just <em>one</em> n+1 query could throw the whole thing to hell in a handbasket!</p>
-
-<p>What I loved the most about Sam&rsquo;s talk was the live demo. He actually ran his server in showed us the different technologies he used to track things like server calls, method invocations, and raw SQL queries. He didn&rsquo;t just tell us what he used &ndash; he showed us what they looked like in development! And here&rsquo;s the icing on the cake: everything is open source. Which means that we can all use the same technologies and fork them and add/modify them for our own projects!</p>
-
-<p>Here are a few of the gems that Sam uses and recommends, which I&rsquo;ve looked into. Lookout for some upcoming #TechnicalTuesdays posts on these soon:</p>
-
-<h4>1. <code>lru_redux</code></h4>
-
-<p>This gem allows for efficient caching by using ordered arrays. It provides you with some pretty fantastic methods to write, read, and clear your cache. The most important thing here is that arrays are quick and efficient when it comes to looking up an item by index, which makes it ideal for something like storing a cache. Check out more on the <code>lru_redux</code> <a href="https://github.com/SamSaffron/lru_redux">Github page</a>.</p>
-
-<h4>2. <code>dapper</code></h4>
-
-<p>The <code>dapper</code> gem is a lightweight Object Relational Mapper that was created by developers at StackExchange who wanted to solve an n+1 problem. What&rsquo;s pretty cool about this gem is that it allows you to execute raw SQL queries and map your results. A major benefit of this is that you no longer have to rely on the Object-Relational Mapper that comes for free with Rails: ActiveRecord. We&rsquo;ve all encountered ActiveRecord&rsquo;s flaws &ndash; particularly when it comes to calls to the server and queries to the database &ndash; and thanks to this gem, you don&rsquo;t have to deal with those things again. Instead, you can just write your own queries to execute! Find out more over on their <a href="https://github.com/StackExchange/dapper-dot-net">ReadMe</a>.</p>
-
-<h4>3. <code>fast_pluck</code></h4>
-
-<p>I&rsquo;m really curious about how this &ldquo;freedom patch&rdquo; actually works, and I need to take the time to sit down and read through it with a good cup of coffee. But, I really like the idea of speeding up ActiveRecord&rsquo;s <code>pluck</code> method, which I am already pretty comfortable with. Check it out over on <a href="https://gist.github.com/SamSaffron/bd593751668e5e5c4afc">this Gist</a>.</p>
-
-<h4>4. <code>memory_profiler</code></h4>
-
-<p>The <code>memory_profiler</code> gem measures how many objects you&rsquo;re allocating to memory on boot of your application, and how many are being retained (how much memory they&rsquo;re taking up) in your app. I haven&rsquo;t explored this gem too much, but I hope to play with it more in the future. You can play with it <a href="
-https://github.com/SamSaffron/memory_profiler">over here</a>.</p>
-
-<h2>Language Design Is Hard</h2>
-
-<p>This realization is probably neither prophetic nor profound, but it&rsquo;s still worth repeating nonetheless: languages are hard. They&rsquo;re hard to read, learn, and, most of all, <em>write</em>.</p>
-
-<p>Matz&rsquo;s <a href="https://www.youtube.com/watch?v=bqWBB8-iEac">keynote presentation</a> on the new and upcoming features in the next Ruby release was the first time I started thinking about how difficult it must be to actually create the language that we use everyday, and love so dearly. After his presentation, I asked him how he goes about actually designing new features, long before they are implemented. His answer, in short, was incredibly empathetic: he said that he thinks about what it&rsquo;s like to actually use the Ruby language with the feature he has in mind, and he considers the user experience before handing off a feature for someone to actually implement and include in the next release.</p>
-
-<p>I thought about the difficult problem of language design yet again during Paolo Perrotta&rsquo;s awesome talk about refinements. If you&rsquo;re not familiar with the concept (I wasn&rsquo;t before this talk!), the short version is that <strong>refinements</strong> showed up in Ruby 2, and were used to make &ldquo;local&rdquo; monkeypatches, which are a much safer and preferable alternative to global monkeypatching. An interesting issue with refinements is that they rely on dynamic scoping, which means that you can close and reopen the scope of a class and redefine things in different ways.</p>
-
-<div style="text-align:center">
-<iframe width="560" height="315" src="https://www.youtube.com/embed/_27-4-dbnA8?rel=0&amp;showinfo=0" frameborder="0" allowfullscreen></iframe><br>
-</div>
-
-
-<p>In a way, it was great that Paolo&rsquo;s talk was towards the end of the conference, because it tied up things together nicely. I learned that a simple thing like Ruby refinements &ndash; which boils down to two keywords, <code>refine</code> and <code>using</code> &ndash; were a perfect example of the first two things I learned during the conference: security and efficiency!</p>
-
-<p>The issue with refinements is that you can&rsquo;t always tell what&rsquo;s going in your code, or what exactly your code will execute. And that&rsquo;s pretty scary! You know what else it is? A security threat and a huge vulnerability. Refinements  also slow your code down, because the Ruby interpreter has to go through all of your code and check if a refinement is being used or not. Not exactly the most optimized way of doing things, amirite?</p>
-
-<p>All of this got me thinking about the people who write the languages that we use. They have to have a deep understanding of the language architecture and syntax, and think about how a developer might use (or <em>abuse</em>) a language feature. All of this is to say: language design is hard. And maybe we should all be a bit more grateful for the people who think about these complex problems on a daily basis.</p>
-
-<p>Compared to things like security, optimization, and language design, a smelly durian doesn&rsquo;t seem nearly as bad. In fact, I&rsquo;d say that as far as developers go, we as a Ruby community have got it pretty good. But probably not as good as this dog right here:</p>
-
-<iframe src="//giphy.com/embed/Ps3UNgJew0H7y" width="480" height="347" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>Think about the two types of people who use your code: the users, who should have a seamless experience, which will make you optimize your code, and the abusers (or a better term that I can&rsquo;t think of), or those people who will be looking for security vulnerabilities in <em>your</em> code.</li>
-<li>Language design is hard. Refinements are a pretty good example of how a programming language can blow your mind with a single feature</li>
-<li>I also met Matz! It was <a href="https://twitter.com/vaidehijoshi/status/606684141506076673">incredibly awesome</a>. And he really is as nice as they say.</li>
 </ul>
 
 ]]></content>

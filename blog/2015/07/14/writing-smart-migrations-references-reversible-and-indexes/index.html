@@ -301,13 +301,6 @@
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>and would add this line to our <code>db/structure.sql</code> file:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">suppliers_name_index</span> <span class="k">ON</span> <span class="n">suppliers</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
 <p>We could also use the <code>add_index</code> method to create unique indexes, or named indexes, as highlighted in the <a href="http://apidock.com/rails/ActiveRecord/ConnectionAdapters/SchemaStatements/add_index">documentation</a>. Sometimes, it&rsquo;s actually <a href="http://makandracards.com/makandra/32353-psa-index-true-in-rails-migrations-does-not-work-as-you-d-expect">safer</a> to use the <code>add_index</code> method rather than <code>index: true</code>.</p>
 
 <p>Now our migrations are not just clear and concise, but they&rsquo;re also helping our application run smoother and quicker in the process. Writing smart migrations can not only save us a lot of time down the road, but they make feature-writing a lot more fun! Not as fun as running wildly through the safari, but hey &ndash; it&rsquo;s a close second:</p>
@@ -364,6 +357,8 @@
         <a class="basic-alignment left" href="/blog/2015/07/07/taskmanaging-your-app-part-2-service-objects/" title="Previous Post: Taskmanaging Your App, Part 2: Service Objects">&laquo; Taskmanaging Your App, Part 2: Service Objects</a>
       
       
+        <a class="basic-alignment right" href="/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing/" title="Next Post: All The Columns Fit To Index: Unique + Compound Indexing">All The Columns Fit To Index: Unique + Compound Indexing &raquo;</a>
+      
     </p>
   </footer>
 </article>
@@ -375,6 +370,10 @@
     <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing/">All the Columns Fit to Index: Unique + Compound Indexing</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/">Writing Smart Migrations: References, Reversible, and Indexes</a>
@@ -390,10 +389,6 @@
     
       <li class="post">
         <a href="/blog/2015/06/23/to-serialize-or-not-to-serialize-activemodel-serializers/">To Serialize or Not to Serialize: ActiveModel Serializers</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/16/babys-first-conference-recapping-reddotrubyconf/">Baby&#8217;s First Conference: Recapping RedDotRubyConf</a>
       </li>
     
   </ul>

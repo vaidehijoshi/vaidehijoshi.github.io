@@ -1,0 +1,443 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>All the Columns Fit to Index: Unique + Compound Indexing - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="Database indexing: the last frontier. Well, okay, not the last frontier perse&hellip;more like the frontier that I&rsquo;ve been reading about a lot &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">All the Columns Fit to Index: Unique + Compound Indexing</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-07-21T08:02:04-04:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>8:02 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/postgresql/'>postgresql</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/sql/'>sql</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><iframe src="//giphy.com/embed/MMEfo9QQgKInK" width="480" height="269" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Database indexing: the last frontier. Well, okay, not the <em>last</em> frontier perse&hellip;more like the frontier that I&rsquo;ve been reading about a lot recently. While learning about writing about <a href="http://vaidehijoshi.github.io/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/">smart and efficient</a> migrations, I stumbled upon a rabbit hole that I had to restrain myself from going down: the rabbit hole of <strong>database indexing</strong>. But this week, I allowed myself to explore and learn some more about how indexes work.</p>
+
+<p>As the cat gif above might already suggest, an index in a database is much like an index in a book: a place where you can quickly look up the exact information that you need. We already know that indexing can be super helpful when it comes to application performance. Using indexes forces our database to use integers to look up rows &ndash; which are just representations of items or objects &ndash; in our database. The reason that they&rsquo;re so efficient is because looking up something in a database is both fast <em>and</em> cheap if we use an integer to do it (using a string on the other hand, is much, much slower and more expensive). By implementing a simple index, we can speed up a single query by seconds!</p>
+
+<p>But it turns out that even a single index can be complicated. And that&rsquo;s because there are so many kinds of indexes available for us to use. In fact, there&rsquo;s a whole <em>world</em> of different types of database indexes out there. Of course, knowing the options available to us when it comes to database indexing is just half the battle; the other half is knowing when it&rsquo;s the right time to use all these different types of indexes. The best way to learn is by playing around with some indexing ourselves &ndash; so let&rsquo;s dive in!</p>
+
+<!--more-->
+
+
+<h2>Indexes All Around Us</h2>
+
+<p>The most common index type that we have dealt with so far are <strong>single-column</strong> indexes. They work pretty much exactly as their name would suggest: they create an index on a specific column of a database. So far, almost all of the indexes we&rsquo;ve generated have been indexed on a specific single column of a table.</p>
+
+<iframe src="//giphy.com/embed/bjDq7WCjstuPS" width="480" height="329" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Let&rsquo;s think for a second: when we use a PostgreSQL to run a migration, the one column that always gets generated is an <code>id</code> column, which is unique for every row in that database, even if the object is deleted. If we think about it, that&rsquo;s an example of an index. In fact, PostgreSQL automatically generates an index for the primary key of any table, and always generates a new, unique key for each new row in the database.</p>
+
+<p>One of the very first migrations we ran for our Bookstore application looked like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">CreateBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>    <span class="n">create_table</span> <span class="ss">:books</span> <span class="k">do</span> <span class="o">|</span><span class="n">t</span><span class="o">|</span>
+</span><span class='line'>      <span class="n">t</span><span class="o">.</span><span class="n">string</span> <span class="ss">:title</span>
+</span><span class='line'>    <span class="k">end</span>    
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>and generated a tiny little table, which didn&rsquo;t have all that much &ndash; but it did have an index as its <code>id</code> primary key column, which we can confirm by looking at our <code>structure.sql</code> file:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">books</span> <span class="p">(</span>
+</span><span class='line'>    <span class="n">id</span> <span class="nb">integer</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">title</span> <span class="nb">character</span> <span class="nb">varying</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span>
+</span><span class='line'><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The advantage of having an <code>id integer</code> column here is that our database can very easily look up a specific row in our <code>books</code> table by using the index. We can also see that there&rsquo;s automatically a <code>NOT NULL</code> validation that prevents any row in the database from being created <em>without</em> an <code>id</code>. This isn&rsquo;t something that we wrote &ndash; this is something that Postgres does automatically! And although it might seem pretty obvious and a bit simple right now, it&rsquo;s important to note &ndash; especially since indexes can get rather complicated, rather fast.</p>
+
+<p>Another form of indexing that we&rsquo;ve played around with is adding our own indexes to <code>has_many</code> and <code>belongs_to</code> associations, often by using <code>references</code> to alias those relationships:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddGenreToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>    <span class="n">add_reference</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:genre</span><span class="p">,</span> <span class="ss">index</span><span class="p">:</span> <span class="kp">true</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And if we already have a relationship set up, we can just write a quick migration to manually add an index to our <code>books</code> table:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddGenreIndexToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>    <span class="n">add_index</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:genre</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This migration adds an index on <code>genre_id</code> column within our <code>books</code> table, which makes it very quick and easy to look up a book by it&rsquo;s corresponding genre. This is still only a single-column, or <strong>independent index</strong>, because it is only dealing with a single column within a database table. But if there are single indexes, that must mean that the idea of &ldquo;multiple&rdquo; indexes is also must be a real thing, right?</p>
+
+<h2>Two Indexes Are (Sometimes) Better Than One</h2>
+
+<p>Indexes are easy to add; what&rsquo;s harder is knowing what <em>kind</em> of index to add. Sometimes, a single-column index does the trick. But it&rsquo;s also possible that it&rsquo;s quite the right tool for the job.</p>
+
+<p>Let&rsquo;s say that we are doing an overhaul on our Bookstore application and scaling for size. We&rsquo;ve decided that in addition to selling our own curated selection of books, we&rsquo;re also going to allow new, lesser-known bookstores to sign up for our service and sell their own books. Our vendors will have their own admin panel (think vendor portal), and the bookstore staff will have a separate admin panel from which to monitor all the sales across all the vendors who are signed up for our service.</p>
+
+<p>All of our admins (staff and vendors) have an <code>user_id</code>. But, our staff and our vendors aren&rsquo;t just simple users of our application &ndash; they have special roles, and need access to specific pages, depending on their roles. Our admins also have an <code>admin_id</code> in addition to their base <code>user_ids</code>, while our vendors have a <code>vendor_id</code>, based on their roles as smaller-scale booksellers who will be using our software to sell their products.</p>
+
+<p>Within our staff admin panel, we want our admins to be able to quickly view all sales across our signed up vendors, in addition to one specific vendors sales reports. If an admin logs into the admin panel and clicks on a specific bookseller, the panel should immediately load all the information pertinent to that specific vendor.</p>
+
+<p>The first thing we might think to do is what we already know &ndash; namely, add an index on the columns we know we want to look up:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddIndexesToUsers</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>      <span class="n">add_index</span> <span class="ss">:users</span>
+</span><span class='line'>      <span class="n">add_index</span> <span class="ss">:users</span><span class="p">,</span> <span class="ss">:vendor_id</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>However, these indexes don&rsquo;t actually do what we think they&rsquo;ll do. This adds an index to the primary key column on our <code>users</code> table, which will allow us to quickly look up a single <code>User</code>. It also adds an index to our <code>vendor_id</code> column, and allows us to look up a <code>User</code> instance based on its <code>vendor_id</code>, if it has one.</p>
+
+<p>But here&rsquo;s the rub: we&rsquo;re only adding a single index in this migration. That is to say, we&rsquo;re adding an index on our <code>user_ids</code>, and we&rsquo;re adding an index on our <code>vendor_ids</code>. What we <em>really</em> need is an index that first sorts our data by <code>user_id</code>, and then filters down to the users that match our <code>vendor_id</code>.</p>
+
+<iframe src="//giphy.com/embed/PUBxelwT57jsQ" width="480" height="332" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Don&rsquo;t worry, this is totally doable! We just need to index <em>two</em> columns, instead of one. Actually, there&rsquo;s a perfect name &ndash; or set of names &ndash; for what we need: a <strong>compound index</strong> (aka a concatenated, multi-column, composite or combined index).</p>
+
+<p>Ultimately, we want our database to execute a query that looks something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">SELECT</span> <span class="o">*</span> <span class="k">FROM</span> <span class="n">users</span> <span class="k">WHERE</span> <span class="n">user_id</span> <span class="o">=</span> <span class="o">?</span> <span class="k">AND</span> <span class="n">vendor_id</span> <span class="o">=</span> <span class="o">?</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>so that we can avoid writing a SQL statement in our <code>UsersController</code> like we have now (ew, let&rsquo;s not do that):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">class</span> <span class="n">UsersController</span> <span class="o">&lt;</span> <span class="n">ApplicationController</span>
+</span><span class='line'>  <span class="n">def</span> <span class="n">sign_in</span>
+</span><span class='line'>      <span class="o">@</span><span class="k">user</span> <span class="o">=</span> <span class="k">User</span><span class="p">.</span><span class="k">where</span><span class="p">(</span><span class="ss">&quot;user_id = ? AND vendor_id = ?&quot;</span><span class="p">,</span> <span class="n">params</span><span class="p">[:</span><span class="n">user_id</span><span class="p">],</span> <span class="n">params</span><span class="p">[:</span><span class="n">vendor_id</span><span class="p">])</span>
+</span><span class='line'>      <span class="o">#</span> <span class="n">authenticate</span> <span class="k">and</span> <span class="n">sign</span> <span class="k">in</span> <span class="n">the</span> <span class="n">vendor</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So how are we going to manage all of this, you might ask? Well, pretty easily. Writing a compound index is almost as easy as writing a single-column index:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddIndexesToUsers</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>      <span class="n">add_index</span> <span class="ss">:users</span><span class="p">,</span> <span class="o">[</span><span class="ss">:id</span><span class="p">,</span> <span class="n">vendor_id</span><span class="o">]</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And that&rsquo;s it! But what&rsquo;s happening, exactly? Well, we&rsquo;re still creating a single index, but we&rsquo;re doing it across multiple columns. The first column (<code>user_id</code>) is the primary &ldquo;sort criterion&rdquo;, and the second column (<code>vendor_id</code>) is the secondary &ldquo;sort criterion&rdquo;. The important thing to remember here is that <em>order matters</em>. We&rsquo;ll only ever look up a vendor by <code>user_id</code> first, and then by <code>vendor_id</code>. This makes sense if you think about it, since we&rsquo;ll first want to authenticate by the user currently logged in (in other words, using the current session).</p>
+
+<p>I really liked the way that Markus Winand describes two-column indexing on <a href="http://use-the-index-luke.com/sql/where-clause/the-equals-operator/concatenated-keys">his blog</a>:</p>
+
+<blockquote><p>The ordering of a two-column index is therefore like the ordering of a telephone directory: it is first sorted by surname, then by first name. That means that a two-column index does not support searching on the second column alone; that would be like searching a telephone directory by first name.</p></blockquote>
+
+<p>Compound indexes are super cool because they let you quickly look up the first field/column in a database, and then quickly look up <em>another</em> field/column in a database &ndash; but only within the records that were returned by the first index. At the end of the query, you&rsquo;ll only have rows that satisfy parts of that <code>AND</code> SQL query we wrote earlier!</p>
+
+<h2>Indexes Like None Other</h2>
+
+<p>I think we can all agree that indexing can help us narrow down a lot of rows in a database and is probably the coolest filtration system ever invented by and for developers. But that&rsquo;s not all that indexes can do! They can also prevent some pretty sticky situations that we often overlook.</p>
+
+<p>By now, something that we&rsquo;re all familiar with is validations. One of the most common kinds of validations that we see in our Rails models all of the time is <code>uniqueness:true</code>, or <code>validates_uniqueness_of</code>. However, here&rsquo;s something we don&rsquo;t always think about (or perhaps never even realized): these validations only occur at the the ActiveRecord level. And this fact can pose some problems.</p>
+
+<p>Imagine two vendors are signing up to use our Bookstore app. They both want to name their store the same thing, but we definitely don&rsquo;t want that to happen. So we add this line to our <code>Users</code> table:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">User</span>
+</span><span class='line'>  <span class="k">class</span> <span class="nc">Vendor</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>    <span class="n">validates</span> <span class="ss">:store_name</span><span class="p">,</span> <span class="ss">presence</span><span class="p">:</span> <span class="kp">true</span><span class="p">,</span> <span class="ss">uniqueness</span><span class="p">:</span> <span class="kp">true</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Cool, so this is fine then, right? Wrong! Because we just sent out an email blast telling all these potential vendors that they could sign up for a free 60-day trial. Now, all of a sudden, tons of vendors are signing up! And it just so happens, that two of them signed up at almost the exact same second, and wanted to use the same name: <code>Super Cool Books</code> (I know, I know, what are the chances, right?!)</p>
+
+<p>Here&rsquo;s the problem: the moment that both of these potential vendors signed up for our service, no row in our polymorphic <code>vendors</code> database existed with a <code>store_name</code> that corresponded to the string, <code>Super Cool Books</code>. So what did ActiveRecord do? It created a new row! Actually&hellip;it created <em>two</em> new rows. At almost the exact same time. With the <em>exact same store name</em>. Uh oh.</p>
+
+<p>So how can we fix this? We need to take our <code>uniqueness</code> validation down another level. In fact, we need to make our <em>database</em> responsible for validating uniqueness. And we can do this by adding a <strong>unique index</strong>.</p>
+
+<p>Again, this is pretty easy. We just need to add a <code>unique: true</code> constraint on the column that we want to be able to index:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddStoreNameIndexToVendors</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>    <span class="n">add_index</span> <span class="ss">:vendors</span><span class="p">,</span> <span class="ss">:store_name</span><span class="p">,</span> <span class="ss">unique</span><span class="p">:</span> <span class="kp">true</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, when two vendors try to sign up to be called <code>Super Cool Books</code>, only one will actually be able to have that name. As soon as an unique index is created on the <code>store_name</code> column of our <code>vendors</code> database, any other record that tries to be created with that index will raise a <code>ActiveRecord::RecordNotUnique</code> error. This is going to be super helpful to us in avoiding inconsistant data, particularly when we know that a lot of data is going to be created at once.</p>
+
+<p>The world of indexes is mostly uncharted territory. It&rsquo;s also important to keep in mind that you never want to create <em>too</em> many indexes, and only ones that we actually need, since they will <a href="http://www.rubyonrails365.com/low-hanging-fruits-for-better-sql-performance-in-rails/">slow down</a> the &ldquo;write&rdquo; time to the database (whenever we use SQL commands like <code>UPDATE</code> or <code>CREATE</code>, for example). But that doesn&rsquo;t mean we can&rsquo;t learn about the different kinds of indexes that exist and be completely wowed at how amazing databases are. See, this cat is completely floored &ndash; and quite frankly, I am too:</p>
+
+<iframe src="//giphy.com/embed/vSSdLSLbGIXio" width="480" height="453" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>There are three main types of indexing: <em>single-column</em>, <em>compound</em>, and <em>unique</em> indexes. Compound indexes create an index on two ore more columns in a database, while unique indexes create a restraint on a single column index.</li>
+<li>This <a href="http://stackoverflow.com/a/1049392">StackOverflow answer</a> is the best explanation of how compound indexes actually work in terms of running a query. If you&rsquo;re still confused, give it a read!</li>
+<li>Uniqueness validations are super cool! Read more about them over <a href="https://robots.thoughtbot.com/the-perils-of-uniqueness-validations">here</a>, and check out some real-life examples of how to use them <a href="http://nyonura.com/blog/2014/Partial-Indexes-with-PostgreSQL-and-Rails/">here</a>.</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-07-21T08:02:04-04:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>8:02 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/postgresql/'>postgresql</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/sql/'>sql</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/" title="Previous Post: Writing Smart Migrations: References, Reversible, And Indexes">&laquo; Writing Smart Migrations: References, Reversible, And Indexes</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing/">All the Columns Fit to Index: Unique + Compound Indexing</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/">Writing Smart Migrations: References, Reversible, and Indexes</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/07/taskmanaging-your-app-part-2-service-objects/">Taskmanaging Your App, Part 2: Service Objects</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/">Taskmanaging Your App, Part 1: Using Rake</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/23/to-serialize-or-not-to-serialize-activemodel-serializers/">To Serialize or Not to Serialize: ActiveModel Serializers</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

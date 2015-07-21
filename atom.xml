@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-07-14T09:07:24-04:00</updated>
+  <updated>2015-07-21T08:48:59-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,245 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[All the Columns Fit to Index: Unique + Compound Indexing]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing/"/>
+    <updated>2015-07-21T08:02:04-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/MMEfo9QQgKInK" width="480" height="269" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Database indexing: the last frontier. Well, okay, not the <em>last</em> frontier perse&hellip;more like the frontier that I&rsquo;ve been reading about a lot recently. While learning about writing about <a href="http://vaidehijoshi.github.io/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/">smart and efficient</a> migrations, I stumbled upon a rabbit hole that I had to restrain myself from going down: the rabbit hole of <strong>database indexing</strong>. But this week, I allowed myself to explore and learn some more about how indexes work.</p>
+
+<p>As the cat gif above might already suggest, an index in a database is much like an index in a book: a place where you can quickly look up the exact information that you need. We already know that indexing can be super helpful when it comes to application performance. Using indexes forces our database to use integers to look up rows &ndash; which are just representations of items or objects &ndash; in our database. The reason that they&rsquo;re so efficient is because looking up something in a database is both fast <em>and</em> cheap if we use an integer to do it (using a string on the other hand, is much, much slower and more expensive). By implementing a simple index, we can speed up a single query by seconds!</p>
+
+<p>But it turns out that even a single index can be complicated. And that&rsquo;s because there are so many kinds of indexes available for us to use. In fact, there&rsquo;s a whole <em>world</em> of different types of database indexes out there. Of course, knowing the options available to us when it comes to database indexing is just half the battle; the other half is knowing when it&rsquo;s the right time to use all these different types of indexes. The best way to learn is by playing around with some indexing ourselves &ndash; so let&rsquo;s dive in!</p>
+
+<!--more-->
+
+
+<h2>Indexes All Around Us</h2>
+
+<p>The most common index type that we have dealt with so far are <strong>single-column</strong> indexes. They work pretty much exactly as their name would suggest: they create an index on a specific column of a database. So far, almost all of the indexes we&rsquo;ve generated have been indexed on a specific single column of a table.</p>
+
+<iframe src="//giphy.com/embed/bjDq7WCjstuPS" width="480" height="329" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Let&rsquo;s think for a second: when we use a PostgreSQL to run a migration, the one column that always gets generated is an <code>id</code> column, which is unique for every row in that database, even if the object is deleted. If we think about it, that&rsquo;s an example of an index. In fact, PostgreSQL automatically generates an index for the primary key of any table, and always generates a new, unique key for each new row in the database.</p>
+
+<p>One of the very first migrations we ran for our Bookstore application looked like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">CreateBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>    <span class="n">create_table</span> <span class="ss">:books</span> <span class="k">do</span> <span class="o">|</span><span class="n">t</span><span class="o">|</span>
+</span><span class='line'>      <span class="n">t</span><span class="o">.</span><span class="n">string</span> <span class="ss">:title</span>
+</span><span class='line'>    <span class="k">end</span>    
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>and generated a tiny little table, which didn&rsquo;t have all that much &ndash; but it did have an index as its <code>id</code> primary key column, which we can confirm by looking at our <code>structure.sql</code> file:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">books</span> <span class="p">(</span>
+</span><span class='line'>    <span class="n">id</span> <span class="nb">integer</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">title</span> <span class="nb">character</span> <span class="nb">varying</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span>
+</span><span class='line'><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The advantage of having an <code>id integer</code> column here is that our database can very easily look up a specific row in our <code>books</code> table by using the index. We can also see that there&rsquo;s automatically a <code>NOT NULL</code> validation that prevents any row in the database from being created <em>without</em> an <code>id</code>. This isn&rsquo;t something that we wrote &ndash; this is something that Postgres does automatically! And although it might seem pretty obvious and a bit simple right now, it&rsquo;s important to note &ndash; especially since indexes can get rather complicated, rather fast.</p>
+
+<p>Another form of indexing that we&rsquo;ve played around with is adding our own indexes to <code>has_many</code> and <code>belongs_to</code> associations, often by using <code>references</code> to alias those relationships:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddGenreToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>    <span class="n">add_reference</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:genre</span><span class="p">,</span> <span class="ss">index</span><span class="p">:</span> <span class="kp">true</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And if we already have a relationship set up, we can just write a quick migration to manually add an index to our <code>books</code> table:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddGenreIndexToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>    <span class="n">add_index</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:genre</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This migration adds an index on <code>genre_id</code> column within our <code>books</code> table, which makes it very quick and easy to look up a book by it&rsquo;s corresponding genre. This is still only a single-column, or <strong>independent index</strong>, because it is only dealing with a single column within a database table. But if there are single indexes, that must mean that the idea of &ldquo;multiple&rdquo; indexes is also must be a real thing, right?</p>
+
+<h2>Two Indexes Are (Sometimes) Better Than One</h2>
+
+<p>Indexes are easy to add; what&rsquo;s harder is knowing what <em>kind</em> of index to add. Sometimes, a single-column index does the trick. But it&rsquo;s also possible that it&rsquo;s quite the right tool for the job.</p>
+
+<p>Let&rsquo;s say that we are doing an overhaul on our Bookstore application and scaling for size. We&rsquo;ve decided that in addition to selling our own curated selection of books, we&rsquo;re also going to allow new, lesser-known bookstores to sign up for our service and sell their own books. Our vendors will have their own admin panel (think vendor portal), and the bookstore staff will have a separate admin panel from which to monitor all the sales across all the vendors who are signed up for our service.</p>
+
+<p>All of our admins (staff and vendors) have an <code>user_id</code>. But, our staff and our vendors aren&rsquo;t just simple users of our application &ndash; they have special roles, and need access to specific pages, depending on their roles. Our admins also have an <code>admin_id</code> in addition to their base <code>user_ids</code>, while our vendors have a <code>vendor_id</code>, based on their roles as smaller-scale booksellers who will be using our software to sell their products.</p>
+
+<p>Within our staff admin panel, we want our admins to be able to quickly view all sales across our signed up vendors, in addition to one specific vendors sales reports. If an admin logs into the admin panel and clicks on a specific bookseller, the panel should immediately load all the information pertinent to that specific vendor.</p>
+
+<p>The first thing we might think to do is what we already know &ndash; namely, add an index on the columns we know we want to look up:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddIndexesToUsers</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>      <span class="n">add_index</span> <span class="ss">:users</span>
+</span><span class='line'>      <span class="n">add_index</span> <span class="ss">:users</span><span class="p">,</span> <span class="ss">:vendor_id</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>However, these indexes don&rsquo;t actually do what we think they&rsquo;ll do. This adds an index to the primary key column on our <code>users</code> table, which will allow us to quickly look up a single <code>User</code>. It also adds an index to our <code>vendor_id</code> column, and allows us to look up a <code>User</code> instance based on its <code>vendor_id</code>, if it has one.</p>
+
+<p>But here&rsquo;s the rub: we&rsquo;re only adding a single index in this migration. That is to say, we&rsquo;re adding an index on our <code>user_ids</code>, and we&rsquo;re adding an index on our <code>vendor_ids</code>. What we <em>really</em> need is an index that first sorts our data by <code>user_id</code>, and then filters down to the users that match our <code>vendor_id</code>.</p>
+
+<iframe src="//giphy.com/embed/PUBxelwT57jsQ" width="480" height="332" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Don&rsquo;t worry, this is totally doable! We just need to index <em>two</em> columns, instead of one. Actually, there&rsquo;s a perfect name &ndash; or set of names &ndash; for what we need: a <strong>compound index</strong> (aka a concatenated, multi-column, composite or combined index).</p>
+
+<p>Ultimately, we want our database to execute a query that looks something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">SELECT</span> <span class="o">*</span> <span class="k">FROM</span> <span class="n">users</span> <span class="k">WHERE</span> <span class="n">user_id</span> <span class="o">=</span> <span class="o">?</span> <span class="k">AND</span> <span class="n">vendor_id</span> <span class="o">=</span> <span class="o">?</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>so that we can avoid writing a SQL statement in our <code>UsersController</code> like we have now (ew, let&rsquo;s not do that):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">class</span> <span class="n">UsersController</span> <span class="o">&lt;</span> <span class="n">ApplicationController</span>
+</span><span class='line'>  <span class="n">def</span> <span class="n">sign_in</span>
+</span><span class='line'>      <span class="o">@</span><span class="k">user</span> <span class="o">=</span> <span class="k">User</span><span class="p">.</span><span class="k">where</span><span class="p">(</span><span class="ss">&quot;user_id = ? AND vendor_id = ?&quot;</span><span class="p">,</span> <span class="n">params</span><span class="p">[:</span><span class="n">user_id</span><span class="p">],</span> <span class="n">params</span><span class="p">[:</span><span class="n">vendor_id</span><span class="p">])</span>
+</span><span class='line'>      <span class="o">#</span> <span class="n">authenticate</span> <span class="k">and</span> <span class="n">sign</span> <span class="k">in</span> <span class="n">the</span> <span class="n">vendor</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So how are we going to manage all of this, you might ask? Well, pretty easily. Writing a compound index is almost as easy as writing a single-column index:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddIndexesToUsers</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>      <span class="n">add_index</span> <span class="ss">:users</span><span class="p">,</span> <span class="o">[</span><span class="ss">:id</span><span class="p">,</span> <span class="n">vendor_id</span><span class="o">]</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And that&rsquo;s it! But what&rsquo;s happening, exactly? Well, we&rsquo;re still creating a single index, but we&rsquo;re doing it across multiple columns. The first column (<code>user_id</code>) is the primary &ldquo;sort criterion&rdquo;, and the second column (<code>vendor_id</code>) is the secondary &ldquo;sort criterion&rdquo;. The important thing to remember here is that <em>order matters</em>. We&rsquo;ll only ever look up a vendor by <code>user_id</code> first, and then by <code>vendor_id</code>. This makes sense if you think about it, since we&rsquo;ll first want to authenticate by the user currently logged in (in other words, using the current session).</p>
+
+<p>I really liked the way that Markus Winand describes two-column indexing on <a href="http://use-the-index-luke.com/sql/where-clause/the-equals-operator/concatenated-keys">his blog</a>:</p>
+
+<blockquote><p>The ordering of a two-column index is therefore like the ordering of a telephone directory: it is first sorted by surname, then by first name. That means that a two-column index does not support searching on the second column alone; that would be like searching a telephone directory by first name.</p></blockquote>
+
+<p>Compound indexes are super cool because they let you quickly look up the first field/column in a database, and then quickly look up <em>another</em> field/column in a database &ndash; but only within the records that were returned by the first index. At the end of the query, you&rsquo;ll only have rows that satisfy parts of that <code>AND</code> SQL query we wrote earlier!</p>
+
+<h2>Indexes Like None Other</h2>
+
+<p>I think we can all agree that indexing can help us narrow down a lot of rows in a database and is probably the coolest filtration system ever invented by and for developers. But that&rsquo;s not all that indexes can do! They can also prevent some pretty sticky situations that we often overlook.</p>
+
+<p>By now, something that we&rsquo;re all familiar with is validations. One of the most common kinds of validations that we see in our Rails models all of the time is <code>uniqueness:true</code>, or <code>validates_uniqueness_of</code>. However, here&rsquo;s something we don&rsquo;t always think about (or perhaps never even realized): these validations only occur at the the ActiveRecord level. And this fact can pose some problems.</p>
+
+<p>Imagine two vendors are signing up to use our Bookstore app. They both want to name their store the same thing, but we definitely don&rsquo;t want that to happen. So we add this line to our <code>Users</code> table:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">User</span>
+</span><span class='line'>  <span class="k">class</span> <span class="nc">Vendor</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>    <span class="n">validates</span> <span class="ss">:store_name</span><span class="p">,</span> <span class="ss">presence</span><span class="p">:</span> <span class="kp">true</span><span class="p">,</span> <span class="ss">uniqueness</span><span class="p">:</span> <span class="kp">true</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Cool, so this is fine then, right? Wrong! Because we just sent out an email blast telling all these potential vendors that they could sign up for a free 60-day trial. Now, all of a sudden, tons of vendors are signing up! And it just so happens, that two of them signed up at almost the exact same second, and wanted to use the same name: <code>Super Cool Books</code> (I know, I know, what are the chances, right?!)</p>
+
+<p>Here&rsquo;s the problem: the moment that both of these potential vendors signed up for our service, no row in our polymorphic <code>vendors</code> database existed with a <code>store_name</code> that corresponded to the string, <code>Super Cool Books</code>. So what did ActiveRecord do? It created a new row! Actually&hellip;it created <em>two</em> new rows. At almost the exact same time. With the <em>exact same store name</em>. Uh oh.</p>
+
+<p>So how can we fix this? We need to take our <code>uniqueness</code> validation down another level. In fact, we need to make our <em>database</em> responsible for validating uniqueness. And we can do this by adding a <strong>unique index</strong>.</p>
+
+<p>Again, this is pretty easy. We just need to add a <code>unique: true</code> constraint on the column that we want to be able to index:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddStoreNameIndexToVendors</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>    <span class="n">add_index</span> <span class="ss">:vendors</span><span class="p">,</span> <span class="ss">:store_name</span><span class="p">,</span> <span class="ss">unique</span><span class="p">:</span> <span class="kp">true</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, when two vendors try to sign up to be called <code>Super Cool Books</code>, only one will actually be able to have that name. As soon as an unique index is created on the <code>store_name</code> column of our <code>vendors</code> database, any other record that tries to be created with that index will raise a <code>ActiveRecord::RecordNotUnique</code> error. This is going to be super helpful to us in avoiding inconsistant data, particularly when we know that a lot of data is going to be created at once.</p>
+
+<p>The world of indexes is mostly uncharted territory. It&rsquo;s also important to keep in mind that you never want to create <em>too</em> many indexes, and only ones that we actually need, since they will <a href="http://www.rubyonrails365.com/low-hanging-fruits-for-better-sql-performance-in-rails/">slow down</a> the &ldquo;write&rdquo; time to the database (whenever we use SQL commands like <code>UPDATE</code> or <code>CREATE</code>, for example). But that doesn&rsquo;t mean we can&rsquo;t learn about the different kinds of indexes that exist and be completely wowed at how amazing databases are. See, this cat is completely floored &ndash; and quite frankly, I am too:</p>
+
+<iframe src="//giphy.com/embed/vSSdLSLbGIXio" width="480" height="453" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>There are three main types of indexing: <em>single-column</em>, <em>compound</em>, and <em>unique</em> indexes. Compound indexes create an index on two ore more columns in a database, while unique indexes create a restraint on a single column index.</li>
+<li>This <a href="http://stackoverflow.com/a/1049392">StackOverflow answer</a> is the best explanation of how compound indexes actually work in terms of running a query. If you&rsquo;re still confused, give it a read!</li>
+<li>Uniqueness validations are super cool! Read more about them over <a href="https://robots.thoughtbot.com/the-perils-of-uniqueness-validations">here</a>, and check out some real-life examples of how to use them <a href="http://nyonura.com/blog/2014/Partial-Indexes-with-PostgreSQL-and-Rails/">here</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Writing Smart Migrations: References, Reversible, and Indexes]]></title>
@@ -221,13 +460,6 @@
 </span><span class='line'>    <span class="n">add_index</span><span class="p">(</span><span class="ss">:books</span><span class="p">,</span> <span class="ss">:genre</span><span class="p">)</span>
 </span><span class='line'>  <span class="k">end</span>
 </span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>and would add this line to our <code>db/structure.sql</code> file:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">suppliers_name_index</span> <span class="k">ON</span> <span class="n">suppliers</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 </span></code></pre></td></tr></table></div></figure>
 
 
@@ -4723,215 +4955,6 @@ outer join to start.</p>
 <li>A lot of people seem to like the <a href="https://github.com/stefankroes/ancestry"><code>ancestry</code> gem</a>, but I think that <code>acts_as_tree</code> is a good one to start off with. If you need the extra functionality that <code>ancestry</code> provides, then you can eventually level up to that. Another variation on the <code>acts_as_tree</code>  is the <a href="https://github.com/chrisroberts/acts_as_sane_tree"><code>acts_as_sane_tree</code> gem</a>, which is configured for PostgreSQL 8.4 and comes with some cool extra methods (but isn&rsquo;t nearly as massive as ancestry).</li>
 <li>There are a lot of different ways to implement the <code>acts_as_tree</code>. Check out <a href="http://railscasts.com/episodes/162-tree-based-navigation">this railscast</a> on tree-based navigation using this gem/plugin (beware the date on this one, though!).</li>
 <li>There are a lot of different ways to deal with recursive data structures in Rails. Check out this <a href="http://gmarik.info/blog/2012/10/14/recursive-data-structures-with-rails">in-depth look</a> at the tried and tested options to learn more.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Bundle Up &amp; Let Your Objects Do the Freezing: Frozen Hashes]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes/"/>
-    <updated>2015-03-03T08:43:04-05:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/b7pVN1KY8ycg0" width="480" height="213" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Snowmageddon. Snowpocalypse. The Deep Freeze of 2015. You can call it whatever you want, but we can all agree on one thing: it&rsquo;s so damn cold outside. In fact, it&rsquo;s so cold that I recently saw this error message while debugging a Postgres issue:
-<code>RuntimeError: can't modify frozen Hash</code></p>
-
-<p>My first thought was, naturally, <em>holy shit, even my hashes are frozen</em>. I did a little digging, and it turns out that we aren&rsquo;t the only ones susceptible to these chilly temperatures. Apparently, objects can also freeze!</p>
-
-<p>So, in honor of the frozen tundra that we all seem to currently inhabit, I decided to explore the icy-cold depths of Rails frozen objects. Before you read on though, you should know: I&rsquo;m going to use only gifs from the Disney animated film, <em>Frozen</em> — don&rsquo;t say I didn&rsquo;t warn you.</p>
-
-<!-- more -->
-
-
-<h2>Objects As Cold As Ice</h2>
-
-<p>First things first: what&rsquo;s a frozen object? Well, they&rsquo;re frozen, which means they can&rsquo;t change &ndash; they&rsquo;re immutable and cannot be modified. There are some objects in Ruby that are perpetually frozen, such as any <code>Fixnum</code>, <code>Bignum</code>, <code>Float</code>, and <code>Symbol</code> objects.</p>
-
-<iframe src="//giphy.com/embed/Fjy5XItIvYjEQ" width="480" height="269" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>You&rsquo;ve probably worked with all of these objects before, but may not know that they&rsquo;re actually frozen! Don&rsquo;t believe me? Well, you can check for yourself. Just call the <code>frozen?</code> method on any object of this class:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ irb
-</span><span class='line'>2.2.0 :001 &gt; 1.frozen?
-</span><span class='line'> =&gt; true
-</span><span class='line'>2.2.0 :002 &gt; a = :im_a_symbol
-</span><span class='line'> =&gt; :im_a_symbol
-</span><span class='line'>2.2.0 :003 &gt; a.frozen?
-</span><span class='line'> =&gt; true
-</span><span class='line'>2.2.0 :004 &gt; 3.14.frozen?
-</span><span class='line'> =&gt; true</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This kind of makes sense though, right? Imagine if I could just start rewriting values all over the damn place. I could set <code>1</code> equal to <code>nil</code> and make <code>2</code> equal <code>3</code>, and then we&rsquo;d really hit crazytown.</p>
-
-<p>Frozen objects keep certain things secure and certain in Ruby (and also in Rails!) So, freezing objects is a&hellip;good thing? Well, yes. But also, no.</p>
-
-<h2>The Freeze Method: A Cold Piece Of Work</h2>
-
-<p>Just as there&rsquo;s a method to check whether an object is <code>frozen?</code> or not, there&rsquo;s also a method to freeze mutable objects and make them immutable called &ndash; you guessed it &ndash; <code>freeze</code>. This method is pretty simple: yuo just call it on an object in order to rpevent further modifications to said object. If you <em>do</em> try to modify the object after freezing it, you&rsquo;ll get a <code>RuntimeError</code>:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>2.2.0 :005 &gt; x = {1 =&gt; 'a', 2 =&gt; 'b', 3 =&gt; 'c'}
-</span><span class='line'> =&gt; {1=&gt;"a", 2=&gt;"b", 3=&gt;"c"}
-</span><span class='line'>2.2.0 :006 &gt; x.freeze
-</span><span class='line'> =&gt; {1=&gt;"a", 2=&gt;"b", 3=&gt;"c"}
-</span><span class='line'>2.2.0 :007 &gt; x.frozen?
-</span><span class='line'> =&gt; true
-</span><span class='line'>2.2.0 :008 &gt; x[1] = 'b'
-</span><span class='line'>RuntimeError: can't modify frozen Hash</span></code></pre></td></tr></table></div></figure>
-
-
-
-
-<iframe src="//giphy.com/embed/oYKesMM459o4w" width="480" height="200" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>But before you get all Elsa on me and start freezing everything, you should know some things about how to use the <code>freeze</code> method as a responsible developer:</p>
-
-<ol>
-<li><p>First and foremost: don&rsquo;t try to call a <code>defrost</code> or <code>thaw</code> method, because there&rsquo;s no such thing. In fact, there is <em>absolutely no way</em> to unfreeze an object. It simply cannot be undone. So, proceed with great caution when freezing things. Or maybe just don&rsquo;t do it at all.</p></li>
-<li><p>The <code>freeze</code> method operates on an object reference, not on a variable. Wait, whut? If this sounds like Ruby objects aren&rsquo;t actually being modified, but their references are instead, well&hellip;that&rsquo;s totally right.</p></li>
-</ol>
-
-
-<p>I really liked the way that Michael Morin explained this in <a href="http://ruby.about.com/od/qa/ss/Can-T-Modify-Frozen-String.htm">his post</a> on frozen objects:</p>
-
-<blockquote><p>When you freeze a hash, it just freezes the references to the objects it already has, it doesn&rsquo;t actually freeze the objects themselves. The frozen hash won&rsquo;t know the difference here. This is an important thing to understand about freezing objects, it&rsquo;s not recursive. All freezing does is prevent the references the object holds from being modified.</p></blockquote>
-
-<p>While we can&rsquo;t unfreeze &ldquo;frozen&rdquo; objects, this particular quality gives us a little bit leeway to get around the lack of a thaw method.</p>
-
-<h2>Chill Out, But Don&rsquo;t Freeze</h2>
-
-<p>There are a few different ways to change an immutable frozen object (which, hello, aren&rsquo;t actually frozen, just their references are). One thing you can do is create a duplicated object, which will <em>not</em> be frozen and therefore, completely mutable:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>2.2.0 :009 &gt; x.dup
-</span><span class='line'> =&gt; {1=&gt;"a", 2=&gt;"b", 3=&gt;"c"}
-</span><span class='line'>2.2.0 :010 &gt; y = _
-</span><span class='line'> =&gt; {1=&gt;"a", 2=&gt;"b", 3=&gt;"c"}
-</span><span class='line'>2.2.0 :011 &gt; y.frozen?
-</span><span class='line'> =&gt; false
-</span><span class='line'>2.2.0 :012 &gt; x.frozen?
-</span><span class='line'> =&gt; true
-</span><span class='line'>2.2.0 :013 &gt; y[1] = 'b'
-</span><span class='line'> =&gt; "b"
-</span><span class='line'>2.2.0 :014 &gt; y
-</span><span class='line'> =&gt; {1=&gt;"b", 2=&gt;"b", 3=&gt;"c"}</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Keep in mind, however, that this only changes the data in the duplicated object, not the original one! So&hellip;what now? Well, since only the reference to an object is frozen, that means that you can modify the actual data inside of the frozen object:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>2.2.0 :015 &gt; x[1] &lt;&lt; 'bc'
-</span><span class='line'> =&gt; "ab"
-</span><span class='line'>2.2.0 :016 &gt; x
-</span><span class='line'> =&gt; {1=&gt;"abc", 2=&gt;"b", 3=&gt;"c"}
-</span><span class='line'>2.2.0 :017 &gt; x.frozen?
-</span><span class='line'> =&gt; true</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Weird, right!? Our <code>x</code> variable, which points to the <code>Hash</code> object, is still very much frozen. But, we can modify the data and values inside of the object itself. Since we don&rsquo;t want to make an actual copy of the variable, we can instead modify the objects held within that variable (in our case, we&rsquo;re directly modifying the <code>String</code> object, which is a the value of a key in this frozen Hash)</p>
-
-<h2>Freezing Out Those Error Messages</h2>
-
-<p>Cool, so this I guess this is a thing in Ruby. But wait &ndash; it&rsquo;s also a pretty important thing in Rails! Objects in Rails are infinitely more complicated than in Ruby, mostly because you&rsquo;re dealing with ActiveRecord and its methods. Whenever you&rsquo;re trying to delete an ActiveRecord object, you depend on the <code>destroy</code> method.</p>
-
-<p>For example, I use this method in my bookstore app, and I have a <code>delete</code> action in my <code>BooksController</code> that contains code that looks something like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="vi">@book</span> <span class="o">=</span> <span class="no">Book</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-</span><span class='line'><span class="vi">@book</span><span class="o">.</span><span class="n">destroy</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Now if I wanted to modfiy this book&rsquo;s type after I delete it, I&rsquo;d get an error:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">[</span><span class="mi">1</span><span class="o">]</span> <span class="n">pry</span><span class="p">(</span><span class="n">main</span><span class="p">)</span><span class="o">&gt;</span> <span class="vi">@book</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="s1">&#39;hardcover&#39;</span>
-</span><span class='line'><span class="ss">TypeError</span><span class="p">:</span> <span class="n">can</span><span class="err">&#39;</span><span class="n">t</span> <span class="n">modify</span> <span class="n">frozen</span> <span class="nb">hash</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Why is this? Well, even though I deleted the object, it still exists in the <code>@book</code> variable, which still retains all the attributes of the object. Once I destroy the record, the object became frozen. Since the object&rsquo;s attributes hash is frozen, when I try to modify it, I get this error.</p>
-
-<p>The <a href="http://api.rubyonrails.org/classes/ActiveRecord/Persistence.html#method-i-destroy">Rails documentation</a> explains how it implements the <code>freeze</code> method, stating that <code>destroy</code> method:</p>
-
-<blockquote><p>Deletes the record in the database and freezes this instance to reflect that no changes should be made (since they can&rsquo;t be persisted).</p></blockquote>
-
-<p>To avoid creating a <code>@book</code> object that&rsquo;s frozen and still hanging around for no apparent reason, I could instead implicitly delete the object in a single line. Either this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Book</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="n">destroy</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>or</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Book</span><span class="o">.</span><span class="n">destroy</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>would work.</p>
-
-<p>Alternatively, I could just use the <code>delete</code> method, which doesn&rsquo;t instantiate an object, but isntead directly removes the row from the database.</p>
-
-<p>Frozen objects are in front of us everyday. Ruby actually uses the <code>freeze</code> method when you copy certain objects. According to <a href="http://rubylearning.com/satishtalim/mutable_and_immutable_objects.html">this post</a>, when you use a string as a key of a <code>Hash</code> object, the string is copied, frozen, and then that duplicated copy is used as the key of the hash. This is pretty cool because this means that even if the original string is modified, the duplicated one isn&rsquo;t affected because it has been frozen! The same goes for filenames: internal operations of an application rely on a frozen copy of a filename, rather than the original one.</p>
-
-<p>Once you understand the functionality of <code>freeze</code>, it becomes a lot easier to understand those weird error messages. Soon, you&rsquo;ll no longer fear the ice, but instead bask in the sun. Or&hellip;something more poetic.</p>
-
-<p>Anyways, here&rsquo;s a dancing snowman:</p>
-
-<iframe src="//giphy.com/embed/N80v6XYayA5vG" width="480" height="213" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>You can use the <code>freeze</code> method to make mutable objects immutable. To check whether an object can be modified or not, use the <code>frozen?</code> method, which will return a boolean value.</li>
-<li>Certain Ruby objects, such as integers, floats, and symbols, are always frozen and cannot be modified.</li>
-<li>Someone made a <a href="https://github.com/zizkovrb/melt">melt gem</a> &ndash; for realsies!</li>
-<li>Some people are <a href="http://m.onkey.org/ruby-i-don-t-like-3-object-freeze">not big fans</a> of the weird functionality of Ruby <code>freeze</code>. But it&rsquo;s still worth it to <a href="http://blog.adamstegman.com/activerecord-hangs-on-to-destroyed-relations.html">learn how it works</a>, especially since it can be <a href="http://blog.adamstegman.com/activerecord-hangs-on-to-destroyed-relations.html">super helpful</a> for <a href="http://www.devarticles.com/c/a/Ruby-on-Rails/Updating-and-Deleting-with-the-Active-Record/2/">debugging Rails apps</a>.</li>
 </ul>
 
 ]]></content>
