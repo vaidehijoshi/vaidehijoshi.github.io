@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-07-21T08:48:59-04:00</updated>
+  <updated>2015-07-27T21:33:17-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,266 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Clipping Images for Rails: Using Paperclip]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/07/28/clipping-images-for-rails-using-paperclip/"/>
+    <updated>2015-07-28T08:42:36-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/07/28/clipping-images-for-rails-using-paperclip</id>
+    <content type="html"><![CDATA[<p><img src="http://www.officemuseum.com/1894_Gem_Paper_Clip_adv_discovered_by_The_Early_Office_Museum.JPG" style="display: block; margin-left: auto; margin-right: auto;"/></p>
+
+<p>They say that a picture is worth a thousand words. How they came up with a such a nice, conveniently specific number number I&rsquo;ll never know. But what I do know is that everything on the web is just data floating around in cyberspace. And when I say everything, I really do mean <em>everything</em> &ndash; including pictures!</p>
+
+<p>I&rsquo;ve worked on a few different projects that have required building out an interface to allow a user or an admin to upload images. The first time that I had to do this, I knew that there were a few different Rails gems out there to help make this magic happen. But I didn&rsquo;t really understand what was going on when I implemented these gems the first time around. To be quite honest, the first time I had to implement file uploading, I just followed the setup steps rather blindly. Now that I&rsquo;ve had to solve the same problem multiple times, however, I feel a bit more comfortable with the process.</p>
+
+<p>There are a few different gems out there for handing file attachment in Rails, but my favorite one to use so far has been <strong>paperclip</strong>. Created by the super cool developers over at <a href="https://github.com/thoughtbot/paperclip">ThoughtBot</a>, the paperclip gem is fairly simple and straightforward to use. The reason that I like this gem in particular is that it fits seamlessly into the Rails framework. Files and attachments are treated just like an attribute on an ActiveRecord object, which makes the setup process both easy and intuitive. However, that doesn&rsquo;t mean that it&rsquo;s not intimidating at first! Luckily, we&rsquo;re going to walk through using the paperclip gem together.</p>
+
+<!--more-->
+
+
+<h2>How To Start Clipping</h2>
+
+<iframe src="//giphy.com/embed/xXG9gNuwQcN1u" width="480" height="425" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Since <code>paperclip</code> is a gem, the first thing we&rsquo;ll have to do before we really get started on clipping anything is add it to our <code>Gemfile</code>:</p>
+
+<p><code>gem "paperclip", "~&gt; 4.3"</code></p>
+
+<p>and then <code>bundle install</code>, because it&rsquo;s what all the cool kids do. This is also a good time to make sure that we have <code>ImageMagick</code>, which is one of <code>paperclip</code>&rsquo;s dependencies. (We can always run <code>brew install imagemagick</code> to install it if we don&rsquo;t have it already.)</p>
+
+<p>Now it&rsquo;s time to get clipping! And take a look at our schema, obvs. For our Bookstore app, we want each of our authors to have a headshot image uploaded and associated with their work. This is going to be super important from a user experience point of view, and it will be something that will be displayed on the show page of any given author.</p>
+
+<p>There are two ways to go about actually adding an attachment to our model; one of them is is a bit easier because it generates a migration for you. But we&rsquo;ll go ahead and write our own migration to start.</p>
+
+<p>We already have an <code>Author</code> model and migration. What we need to do is add an <code>attachment</code> column that&rsquo;ll handle everything from file uploading to associating a file with a specific <code>Author</code> object. So, we can just write a migration (<code>rails g migration AddProfileMediaToAuthors</code>) that will add an <code>attachment</code> column to our <code>Authors</code> table:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddProfileMediaToAuthors</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">up</span>
+</span><span class='line'>    <span class="n">add_attachment</span> <span class="ss">:authors</span><span class="p">,</span> <span class="ss">:profile_media</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">down</span>
+</span><span class='line'>    <span class="n">remove_attachment</span> <span class="ss">:authors</span><span class="p">,</span> <span class="ss">:profile_media</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We&rsquo;ll call our attachment columns <code>profile_media</code> to preemptively namespace the different types of attachments that we might have on a single <code>Author</code>&rsquo;s page. And just in case you needed a little refresher on the difference between the <code>up</code> and <code>down</code> methods, head <a href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">over here</a>.</p>
+
+<p>Okay, now we&rsquo;ll run <code>rake db:migrate</code>, and take a look at our <code>schema.rb</code> file. Let&rsquo;s see what happened:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">create_table</span> <span class="s2">&quot;authors&quot;</span><span class="p">,</span> <span class="ss">force</span><span class="p">:</span> <span class="ss">:cascade</span> <span class="k">do</span> <span class="o">|</span><span class="n">t</span><span class="o">|</span>
+</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">string</span>   <span class="s2">&quot;firstname&quot;</span>
+</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">string</span>   <span class="s2">&quot;lastname&quot;</span>
+</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">datetime</span> <span class="s2">&quot;created_at&quot;</span><span class="p">,</span>         <span class="ss">null</span><span class="p">:</span> <span class="kp">false</span>
+</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">datetime</span> <span class="s2">&quot;updated_at&quot;</span><span class="p">,</span>         <span class="ss">null</span><span class="p">:</span> <span class="kp">false</span>
+</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">string</span>   <span class="s2">&quot;profile_media_file_name&quot;</span>
+</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">string</span>   <span class="s2">&quot;profile_media_content_type&quot;</span>
+</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">integer</span>  <span class="s2">&quot;profile_media_file_size&quot;</span>
+</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">datetime</span> <span class="s2">&quot;profile_media_updated_at&quot;</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Interesting! So our <code>add_attachment</code> method actually did a lot of things for us, didn&rsquo;t it? That&rsquo;s because it&rsquo;s actually a helper method does a lot of important things that <code>paperclip</code> relies on:</p>
+
+<ol>
+<li>It adds a <code>file_name</code> for our attachment.</li>
+<li>It adds a <code>content_type</code> for our attachments, which will be the <em>mime type</em> of our images.</li>
+<li>It adds the <code>file_size</code> of our attachments.</li>
+<li>It creates a <code>updated_at</code> column, which is particularly useful since we can order and sort our attachments/images by <code>datetime</code> format.</li>
+</ol>
+
+
+<p>Now we need to hook up our database migration with the corresponding model!</p>
+
+<h2>Objects With Attached Files</h2>
+
+<p><img src="http://2.bp.blogspot.com/_khdFP9RCQSw/TSPePSmnscI/AAAAAAAAAK4/My8FyIo8Xuo/s1600/a-jpeg-is-worth-approximately-a-thousand-words.gif" style="display: block; margin-left: auto; margin-right: auto;"/></p>
+
+<p>Inside of our <code>Author</code> class, we need want to add one very important line to our model: <code>has_attached_file</code>. The important thing about this method is that it needs to correspond to whatever we named our attachment in our migrations from earlier. In our case, we called our attachments <code>profile_media</code>, so that&rsquo;s exactly what we&rsquo;ll use inside of our model as well:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">has_attached_file</span> <span class="ss">:profile_media</span><span class="p">,</span>
+</span><span class='line'>      <span class="ss">styles</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>          <span class="ss">large</span><span class="p">:</span> <span class="s2">&quot;500x500&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="ss">medium</span><span class="p">:</span> <span class="s2">&quot;300x300&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="ss">thumb</span><span class="p">:</span> <span class="s2">&quot;100x100&quot;</span>
+</span><span class='line'>      <span class="p">},</span>
+</span><span class='line'>      <span class="ss">default_url</span><span class="p">:</span> <span class="s2">&quot;/images/:style/missing_profile_media.png&quot;</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This line sets up a few defaults for us and gives us the option of having a few different sizes for our <code>profile_media</code>. The <code>default_url</code> can be helpful if we ever want to give our attachment url a default and avoid an instance of <code>nil</code>. The sizes that we specify here are what we&rsquo;ll use inside of our views:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">=</span> <span class="n">link_to</span> <span class="n">image_tag</span><span class="p">(</span><span class="n">author</span><span class="o">.</span><span class="n">profile_media</span><span class="o">.</span><span class="n">url</span><span class="p">(</span><span class="ss">:thumb</span><span class="p">)),</span> <span class="n">author</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">url</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>But the most important part of making all of this work is, of course, permitting our media to be seen! (I&rsquo;m looking at you, strong params!). All we need to do is add our attachment name (<code>profile_media</code>) to our permitted parameters, which is already being used by our controller actions:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AuthorsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">create</span>
+</span><span class='line'>      <span class="n">author</span> <span class="o">=</span> <span class="no">Author</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">author_params</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">private</span>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">author_params</span>
+</span><span class='line'>      <span class="n">params</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="ss">:author</span><span class="p">)</span><span class="o">.</span><span class="n">permit</span><span class="p">(</span><span class="ss">:firstname</span><span class="p">,</span> <span class="ss">:lastname</span><span class="p">,</span> <span class="ss">:profile_media</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pretty simple, right? But these are just the bare bones of <code>paperclip</code>. We can spice things up a bit, too!</p>
+
+<h2>Validating And Customizing Our Clippings</h2>
+
+<p>Once we have the gem up and working, it&rsquo;s super easy to add some bells and whistles and write it to fit our application&rsquo;s specific standards. The developers at ThoughtBot actually have several different validators that we can implement, including <code>AttachmentContentTypeValidator</code>, <code>AttachmentPresenceValidator</code>, and <code>AttachmentSizeValidator</code>. Personally, however, I prefer the old school helper methods, which function in exactly the same way.</p>
+
+<p>Let&rsquo;s add a <code>validates_attachment_content_type</code> to our <code>Author</code> class, and validate that the content being uploaded is actually an <code>image</code>. We can do that with a nice regular expression:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">has_attached_file</span> <span class="ss">:profile_media</span><span class="p">,</span>
+</span><span class='line'>      <span class="ss">styles</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>          <span class="ss">large</span><span class="p">:</span> <span class="s2">&quot;500x500&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="ss">medium</span><span class="p">:</span> <span class="s2">&quot;300x300&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="ss">thumb</span><span class="p">:</span> <span class="s2">&quot;100x100&quot;</span>
+</span><span class='line'>      <span class="p">},</span>
+</span><span class='line'>          <span class="ss">default_url</span><span class="p">:</span> <span class="s2">&quot;/images/:style/missing_profile_media.png&quot;</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">validates_attachment_content_type</span> <span class="ss">:profile_media</span><span class="p">,</span> <span class="ss">content_type</span><span class="p">:</span> <span class="sr">/\Aimage\/.*\Z/</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We can also validate the size and presence of our attachment as well:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">validates</span> <span class="ss">:profile_image</span><span class="p">,</span> <span class="ss">attachment_presence</span><span class="p">:</span> <span class="ss">:true</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">validates_attachment_size</span> <span class="ss">:profile_media</span><span class="p">,</span> <span class="ss">size</span><span class="p">:</span> <span class="p">{</span> <span class="k">in</span><span class="p">:</span> <span class="mi">0</span><span class="o">.</span><span class="n">.</span><span class="mi">100</span><span class="o">.</span><span class="n">kilobytes</span> <span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And what about deleting attachments? Well, because <code>paperclip</code> is designed to work so well with ActiveRecord, any attachment we create is treated just like an attribute. As the documentation explains,</p>
+
+<blockquote><p>The intent behind <code>paperclip</code> was to keep setup as easy as possible and to treat files as much like other attributes as possible. This means they aren&rsquo;t saved to their final locations on disk, nor are they deleted if set to nil, until ActiveRecord::Base#save is called. It manages validations based on size and presence, if required.</p></blockquote>
+
+<p>Since the only way to delete an attachment is by setting the attribute to <code>nil</code>, there are a few different ways to actually go about deleting attachments. One implementation that I like to use is writing a custom method that checks whether an <code>Author</code> object has it&rsquo;s <code>profile_media</code> attribute equal to <code>nil</code> before saving it:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">before_save</span> <span class="ss">:delete_profile_media</span><span class="p">,</span>
+</span><span class='line'>      <span class="k">if</span><span class="p">:</span> <span class="o">-&gt;</span> <span class="p">{</span> <span class="n">remove_profile_media</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">profile_media_updated_at_changed?</span> <span class="p">}</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="kp">attr_accessor</span> <span class="ss">:remove_profile_media</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">private</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">delete_profile_media</span>
+</span><span class='line'>          <span class="nb">self</span><span class="o">.</span><span class="n">profile_media</span> <span class="o">=</span> <span class="kp">nil</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In this structure, I also create an attribute on my <code>Author</code> object called <code>remove_profile_media</code>, which will either be <code>0</code> or <code>1</code>, based on whether a box on a form has been checked or not. If the button is checked, <code>remove_profile_media</code> will be set to <code>1</code>, and I&rsquo;ll call the <code>delete_profile_media</code> method in my <code>before_save</code> hook.</p>
+
+<p>If deleting data is something that scares you (or if you&rsquo;re a fan of the <code>acts_as_paranoid</code> gem) there&rsquo;s also another option. You can just preserve your files along with your &ldquo;soft deleted&rdquo; models:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">has_attached_file</span> <span class="ss">:profile_media</span><span class="p">,</span> <span class="p">{</span>
+</span><span class='line'>      <span class="ss">preserve_files</span><span class="p">:</span> <span class="s2">&quot;true&quot;</span><span class="p">,</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This extra line prevents any data in our <code>profile_media</code> columns from being completely erased when the model is soft deleted. The good news here is that when the object is restored later on, our images will be too! And that is just as good of a reason as any to celebrate!</p>
+
+<iframe src="//giphy.com/embed/osMIREQbo3s2c" width="480" height="255" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>paperclip</code> gem really needs only two things to function properly: a <code>has_attached_file :attachment</code> in the model and an <code>attachment_file_name</code> column in the database. The <code>attachment_content_type</code> is only required if you&rsquo;re going to use content type validation.</li>
+<li>If you want to see some <code>paperclip</code> in action, check out this <a href="http://railscasts.com/episodes/134-paperclip">RailsCast</a> that covers all the basics.</li>
+<li>Want to dive into the <code>paperclip</code> source code? Go for it! Perhaps you can start by checking out their well-documented <a href="http://www.rubydoc.info/gems/paperclip/Paperclip/ClassMethods">class methods</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[All the Columns Fit to Index: Unique + Compound Indexing]]></title>
@@ -4748,213 +5008,6 @@ outer join to start.</p>
 <li>State machines control the flow of events in a web application by using certain events to trigger different states or conditions.</li>
 <li>If you find that your app has methods like <code>state</code> or <code>status</code> and <code>shipped?</code> or <code>received?</code>, you should try using a state machine.</li>
 <li>Still interested in the CS theory behind state machines? Check out these two super helpful blog posts on the subject <a href="http://blog.markshead.com/869/state-machines-computer-science/">here</a> and <a href="http://www.i-programmer.info/babbages-bag/223-finite-state-machines.html">here</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[It's All in the Family: Using Acts_as_tree]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree/"/>
-    <updated>2015-03-10T08:27:54-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/eWYGCVTJuOcg0" width="480" height="360" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>When working in Rails, it&rsquo;s all the family &ndash; literally. No matter the size of your application, almost all of your objects are going to be related to each other. You can create however many objects you wan because database rows are cheap, cheap, cheap! But the more objects you make, the harder it is to keep track of the other data that the object relates to (which is generally yet <em>another</em> object).</p>
-
-<p>I found myself in such a predicament last week, when I had to make numerous objects relate to one other to create a tree structure. The obvious first approach was to use the <code>belongs_to</code> and <code>has_many</code> relationship. But when I realized that I wanted some <code>Genre</code> objects to belong to <em>other</em> <code>Genre</code> objects, I ran into a problem. Depending solely on the ActiveRecord relationships turned out to be painful, messy, and complicated, and wouldn&rsquo;t make my code very flexible or sustainable over time.</p>
-
-<p>So I Googled around and found a handy plugin created by DHH himself called <code>acts_as_tree</code>. This gem allows you to create a hierarchical structure of objects in your application and &ndash; to take it a step further &ndash; gives you a bunch of incredibly helpful methods. It even allows you to visualize your tree structure! Sound amazing? That&rsquo;s because it is. And if you follow a few easy steps, you can use it in your application, too.</p>
-
-<!--more-->
-
-
-<h2>Family Ties</h2>
-
-<p>So, for this post I&rsquo;ll continue working through my basic eCommerce Bookstore application, which I&rsquo;ve been using as an example for my previous posts. I&rsquo;ve already got some <code>Book</code> objects, but as my store starts to grow, it&rsquo;s going to be pretty hard to keep track of the different genres of <code>Book</code> objects that I currently have available.</p>
-
-<p>The first step to tackling this problem was easy: create <code>Genre</code> objects, each of which <code>has_many</code> different <code>Book</code> objects associated with it, while each <code>Book</code> object will <code>belong_to</code> one specific <code>Genre</code>.</p>
-
-<p>But what about genres that are associated with and &ldquo;descend from&rdquo; other genres? Well, here&rsquo;s where the delightful and easy-to-use <code>acts_as_tree</code> gem comes in.</p>
-
-<iframe src="//giphy.com/embed/pcPeWllpmv6Zq" width="480" height="431" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>First things first: we&rsquo;ll add <code>gem 'acts_as_tree'</code> to our Gemfile.</p>
-
-<p>Next, we need to add a column to our <code>Genre</code> database. We can write a simple migration that will add a <code>parent_id</code> integer to our database, which will allow us to find the parents and children of a <code>Genre</code> object:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddParentIdColumnToGenre</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
-</span><span class='line'>    <span class="n">add_column</span> <span class="ss">:genres</span><span class="p">,</span> <span class="ss">:parent_id</span><span class="p">,</span> <span class="ss">:integer</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Finally, we&rsquo;ll head over to our <code>Genre</code> model, which is what we needs to act as a (family) tree. We need to add a single line in here, which implements the ActiveRecord plugin and specifies what we&rsquo;ll be ordering our <code>Genre</code> objects by:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Genre</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
-</span><span class='line'>  <span class="n">has_many</span> <span class="ss">:books</span>
-</span><span class='line'>  <span class="n">validates_presence_of</span> <span class="ss">:name</span>
-</span><span class='line'>  <span class="n">acts_as_tree</span> <span class="ss">order</span><span class="p">:</span> <span class="s2">&quot;name&quot;</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<h2>Blood Is Thicker Than Water</h2>
-
-<p>Okay, now let&rsquo;s see this baby in action! We can start by making a root <code>Genre</code> object, and then giving it some children:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">literature</span> <span class="o">=</span> <span class="no">Genre</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Literature&quot;</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">non_fiction</span> <span class="o">=</span> <span class="n">literature</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Non-Fiction&quot;</span><span class="p">)</span>
-</span><span class='line'><span class="n">fiction</span> <span class="o">=</span> <span class="n">literature</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Fiction&quot;</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Cool, but our tree doesn&rsquo;t really look like a tree yet. Let&rsquo;s give our <code>non_fiction</code> and <code>fiction</code> genres some children, grandchildren, and great-grandchildren of their own:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">biography</span> <span class="o">=</span> <span class="n">non_fiction</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Biography&quot;</span><span class="p">)</span>
-</span><span class='line'><span class="n">comic_novel</span> <span class="o">=</span> <span class="n">fiction</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Comic Novel&quot;</span><span class="p">)</span>
-</span><span class='line'><span class="n">black_comedy</span> <span class="o">=</span> <span class="n">comic_novel</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Black Comedy&quot;</span><span class="p">)</span>
-</span><span class='line'><span class="n">parody</span> <span class="o">=</span> <span class="n">comic_novel</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Parody&quot;</span><span class="p">)</span>
-</span><span class='line'><span class="n">romantic_comedy</span> <span class="o">=</span> <span class="n">comic_novel</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Romanic Comedy&quot;</span><span class="p">)</span>
-</span><span class='line'><span class="n">satire</span> <span class="o">=</span> <span class="n">comic_novel</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Satire&quot;</span><span class="p">)</span>
-</span><span class='line'><span class="n">poltical_satire</span> <span class="o">=</span> <span class="n">satire</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;name&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;Political Satire&quot;</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Damn. Okay, well now our tree should look look less like a sprout and more like this bad boy:</p>
-
-<iframe src="//giphy.com/embed/hMWmNKdcdhAyI" width="480" height="267" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>It Runs In The Family</h2>
-
-<p>Even though we&rsquo;ve created all these parent-child relationships, what can we do with them, exactly? Well, a lot! You can call the <code>parent</code> and <code>children</code> methods to get a full list of all the objects associated with a particular <code>Genre</code> instance:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">literature</span><span class="o">.</span><span class="n">parent</span>                   <span class="c1"># =&gt; nil</span>
-</span><span class='line'><span class="n">fiction</span><span class="o">.</span><span class="n">parent</span>                      <span class="c1"># =&gt; literature</span>
-</span><span class='line'><span class="n">literature</span><span class="o">.</span><span class="n">children</span>                 <span class="c1"># =&gt; [non_fiction, fiction]</span>
-</span><span class='line'><span class="n">literature</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">first</span><span class="o">.</span><span class="n">children</span>  <span class="c1"># =&gt; [Biography]</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">literature</span><span class="o">.</span><span class="n">root?</span>                    <span class="c1"># =&gt; true</span>
-</span><span class='line'><span class="n">fiction</span><span class="o">.</span><span class="n">root?</span>                       <span class="c1"># =&gt; false</span>
-</span><span class='line'><span class="n">biography</span><span class="o">.</span><span class="n">leaf?</span>                     <span class="c1"># =&gt; true</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">black_comedy</span><span class="o">.</span><span class="n">siblings</span>               <span class="c1"># =&gt; [parody, romantic_comedy, satire]</span>
-</span><span class='line'><span class="n">poltical_satire</span><span class="o">.</span><span class="n">ancestors</span>           <span class="c1"># =&gt; [satire, comic_novel, fiction, literature]</span>
-</span><span class='line'>
-</span><span class='line'><span class="no">Genre</span><span class="o">.</span><span class="n">root</span>                          <span class="c1"># =&gt; literature</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>An important thing to note here is that the <code>children</code> method will return an <em>array</em> of objects, even if there&rsquo;s only one child! So if you&rsquo;re trying to get one particular object, remember to call the <code>first</code> method in the array, or search by a <code>Genre</code> object&rsquo;s specific <code>id</code> to avoid annoying bugs.</p>
-
-<p>Some other cool methods to try include:</p>
-
-<ol>
-<li><p><code>leaves</code>, a class method that will return all the &ldquo;leaves&rdquo; of the tree (in an array).</p></li>
-<li><p><code>descendants</code>, an instance method that will return all the children, and the children&rsquo;s children of an object (in an array).</p></li>
-<li><p><code>self_and_siblings</code>, which returns the receiver object, as well as any siblings it may have (in an array).</p></li>
-<li><p><code>default_tree_order</code>, which returns all the objects listed in alphabetical order!</p></li>
-</ol>
-
-
-<p>But the coolest feature of the <code>acts_as_tree</code> gem is Tree View, which allows you to see a visualization of your entire tree. All we have to do view this magic is add this line to our <code>Genre</code> model:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="kp">extend</span> <span class="no">ActsAsTree</span><span class="o">::</span><span class="no">TreeView</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>And then, call the class method <code>tree_view</code>, which takes in an attribute parameter:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Genre</span><span class="o">.</span><span class="n">tree_view</span><span class="p">(</span><span class="ss">:name</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>The resulting return value is pure flora magic:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Literature</span>
-</span><span class='line'> <span class="o">|</span><span class="n">_</span> <span class="no">Non</span><span class="o">-</span><span class="no">Fiction</span>
-</span><span class='line'> <span class="o">|</span>    <span class="o">|</span><span class="n">_</span> <span class="no">Biography</span>
-</span><span class='line'> <span class="o">|</span><span class="n">_</span> <span class="no">Fiction</span>
-</span><span class='line'> <span class="o">|</span>    <span class="o">|</span><span class="n">_</span> <span class="no">Comic</span> <span class="no">Novel</span>
-</span><span class='line'> <span class="o">|</span>        <span class="o">|</span><span class="n">_</span> <span class="no">Black</span> <span class="no">Comedy</span>
-</span><span class='line'> <span class="o">|</span>        <span class="o">|</span><span class="n">_</span> <span class="no">Parody</span>
-</span><span class='line'> <span class="o">|</span>        <span class="o">|</span><span class="n">_</span> <span class="no">Romantic</span> <span class="no">Comedy</span>
-</span><span class='line'> <span class="o">|</span>        <span class="o">|</span><span class="n">_</span> <span class="no">Satire</span>
-</span><span class='line'> <span class="o">|</span>            <span class="o">|</span><span class="n">_</span> <span class="no">Political</span> <span class="no">Satire</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Isn&rsquo;t it so beautiful?! Doesn&rsquo;t it make you feel like this:</p>
-
-<iframe src="//giphy.com/embed/FlWgXEtj5aM5G" width="480" height="259" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Or maybe it&rsquo;s just me.</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>A lot of people seem to like the <a href="https://github.com/stefankroes/ancestry"><code>ancestry</code> gem</a>, but I think that <code>acts_as_tree</code> is a good one to start off with. If you need the extra functionality that <code>ancestry</code> provides, then you can eventually level up to that. Another variation on the <code>acts_as_tree</code>  is the <a href="https://github.com/chrisroberts/acts_as_sane_tree"><code>acts_as_sane_tree</code> gem</a>, which is configured for PostgreSQL 8.4 and comes with some cool extra methods (but isn&rsquo;t nearly as massive as ancestry).</li>
-<li>There are a lot of different ways to implement the <code>acts_as_tree</code>. Check out <a href="http://railscasts.com/episodes/162-tree-based-navigation">this railscast</a> on tree-based navigation using this gem/plugin (beware the date on this one, though!).</li>
-<li>There are a lot of different ways to deal with recursive data structures in Rails. Check out this <a href="http://gmarik.info/blog/2012/10/14/recursive-data-structures-with-rails">in-depth look</a> at the tried and tested options to learn more.</li>
 </ul>
 
 ]]></content>

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Ruby | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-07-21T08:48:59-04:00</updated>
+  <updated>2015-07-27T21:33:17-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,188 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Clipping Images for Rails: Using Paperclip]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/07/28/clipping-images-for-rails-using-paperclip/"/>
+    <updated>2015-07-28T08:42:36-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/07/28/clipping-images-for-rails-using-paperclip</id>
+    <content type="html"><![CDATA[<p><img src="http://www.officemuseum.com/1894_Gem_Paper_Clip_adv_discovered_by_The_Early_Office_Museum.JPG" style="display: block; margin-left: auto; margin-right: auto;"/></p>
+
+<p>They say that a picture is worth a thousand words. How they came up with a such a nice, conveniently specific number number I&rsquo;ll never know. But what I do know is that everything on the web is just data floating around in cyberspace. And when I say everything, I really do mean <em>everything</em> &ndash; including pictures!</p>
+
+<p>I&rsquo;ve worked on a few different projects that have required building out an interface to allow a user or an admin to upload images. The first time that I had to do this, I knew that there were a few different Rails gems out there to help make this magic happen. But I didn&rsquo;t really understand what was going on when I implemented these gems the first time around. To be quite honest, the first time I had to implement file uploading, I just followed the setup steps rather blindly. Now that I&rsquo;ve had to solve the same problem multiple times, however, I feel a bit more comfortable with the process.</p>
+
+<p>There are a few different gems out there for handing file attachment in Rails, but my favorite one to use so far has been <strong>paperclip</strong>. Created by the super cool developers over at <a href="https://github.com/thoughtbot/paperclip">ThoughtBot</a>, the paperclip gem is fairly simple and straightforward to use. The reason that I like this gem in particular is that it fits seamlessly into the Rails framework. Files and attachments are treated just like an attribute on an ActiveRecord object, which makes the setup process both easy and intuitive. However, that doesn&rsquo;t mean that it&rsquo;s not intimidating at first! Luckily, we&rsquo;re going to walk through using the paperclip gem together.</p>
+
+<!--more-->
+
+
+<h2>How To Start Clipping</h2>
+
+<iframe src="//giphy.com/embed/xXG9gNuwQcN1u" width="480" height="425" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Since <code>paperclip</code> is a gem, the first thing we&rsquo;ll have to do before we really get started on clipping anything is add it to our <code>Gemfile</code>:</p>
+
+<p><code>gem "paperclip", "~&gt; 4.3"</code></p>
+
+<p>and then <code>bundle install</code>, because it&rsquo;s what all the cool kids do. This is also a good time to make sure that we have <code>ImageMagick</code>, which is one of <code>paperclip</code>&rsquo;s dependencies. (We can always run <code>brew install imagemagick</code> to install it if we don&rsquo;t have it already.)</p>
+
+<p>Now it&rsquo;s time to get clipping! And take a look at our schema, obvs. For our Bookstore app, we want each of our authors to have a headshot image uploaded and associated with their work. This is going to be super important from a user experience point of view, and it will be something that will be displayed on the show page of any given author.</p>
+
+<p>There are two ways to go about actually adding an attachment to our model; one of them is is a bit easier because it generates a migration for you. But we&rsquo;ll go ahead and write our own migration to start.</p>
+
+<p>We already have an <code>Author</code> model and migration. What we need to do is add an <code>attachment</code> column that&rsquo;ll handle everything from file uploading to associating a file with a specific <code>Author</code> object. So, we can just write a migration (<code>rails g migration AddProfileMediaToAuthors</code>) that will add an <code>attachment</code> column to our <code>Authors</code> table:</p>
+
+<pre><code class="ruby">class AddProfileMediaToAuthors &lt; ActiveRecord::Migration
+  def self.up
+    add_attachment :authors, :profile_media
+  end
+
+  def self.down
+    remove_attachment :authors, :profile_media
+  end
+end
+</code></pre>
+
+<p>We&rsquo;ll call our attachment columns <code>profile_media</code> to preemptively namespace the different types of attachments that we might have on a single <code>Author</code>&rsquo;s page. And just in case you needed a little refresher on the difference between the <code>up</code> and <code>down</code> methods, head <a href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">over here</a>.</p>
+
+<p>Okay, now we&rsquo;ll run <code>rake db:migrate</code>, and take a look at our <code>schema.rb</code> file. Let&rsquo;s see what happened:</p>
+
+<pre><code class="ruby">create_table "authors", force: :cascade do |t|
+    t.string   "firstname"
+    t.string   "lastname"
+    t.datetime "created_at",         null: false
+    t.datetime "updated_at",         null: false
+    t.string   "profile_media_file_name"
+    t.string   "profile_media_content_type"
+    t.integer  "profile_media_file_size"
+    t.datetime "profile_media_updated_at"
+end
+</code></pre>
+
+<p>Interesting! So our <code>add_attachment</code> method actually did a lot of things for us, didn&rsquo;t it? That&rsquo;s because it&rsquo;s actually a helper method does a lot of important things that <code>paperclip</code> relies on:</p>
+
+<ol>
+<li>It adds a <code>file_name</code> for our attachment.</li>
+<li>It adds a <code>content_type</code> for our attachments, which will be the <em>mime type</em> of our images.</li>
+<li>It adds the <code>file_size</code> of our attachments.</li>
+<li>It creates a <code>updated_at</code> column, which is particularly useful since we can order and sort our attachments/images by <code>datetime</code> format.</li>
+</ol>
+
+
+<p>Now we need to hook up our database migration with the corresponding model!</p>
+
+<h2>Objects With Attached Files</h2>
+
+<p><img src="http://2.bp.blogspot.com/_khdFP9RCQSw/TSPePSmnscI/AAAAAAAAAK4/My8FyIo8Xuo/s1600/a-jpeg-is-worth-approximately-a-thousand-words.gif" style="display: block; margin-left: auto; margin-right: auto;"/></p>
+
+<p>Inside of our <code>Author</code> class, we need want to add one very important line to our model: <code>has_attached_file</code>. The important thing about this method is that it needs to correspond to whatever we named our attachment in our migrations from earlier. In our case, we called our attachments <code>profile_media</code>, so that&rsquo;s exactly what we&rsquo;ll use inside of our model as well:</p>
+
+<pre><code class="ruby">class Author &lt; ActiveRecord::Base
+  has_attached_file :profile_media, 
+    styles: { 
+        large: "500x500", 
+        medium: "300x300", 
+        thumb: "100x100" 
+    }, 
+    default_url: "/images/:style/missing_profile_media.png"
+end
+</code></pre>
+
+<p>This line sets up a few defaults for us and gives us the option of having a few different sizes for our <code>profile_media</code>. The <code>default_url</code> can be helpful if we ever want to give our attachment url a default and avoid an instance of <code>nil</code>. The sizes that we specify here are what we&rsquo;ll use inside of our views:</p>
+
+<pre><code class="ruby">= link_to image_tag(author.profile_media.url(:thumb)), author.profile.url
+</code></pre>
+
+<p>But the most important part of making all of this work is, of course, permitting our media to be seen! (I&rsquo;m looking at you, strong params!). All we need to do is add our attachment name (<code>profile_media</code>) to our permitted parameters, which is already being used by our controller actions:</p>
+
+<pre><code class="ruby">class AuthorsController &lt; ApplicationController
+    def create
+        author = Author.create(author_params)
+    end
+
+    private
+      def author_params
+        params.require(:author).permit(:firstname, :lastname, :profile_media)
+      end
+end
+</code></pre>
+
+<p>Pretty simple, right? But these are just the bare bones of <code>paperclip</code>. We can spice things up a bit, too!</p>
+
+<h2>Validating And Customizing Our Clippings</h2>
+
+<p>Once we have the gem up and working, it&rsquo;s super easy to add some bells and whistles and write it to fit our application&rsquo;s specific standards. The developers at ThoughtBot actually have several different validators that we can implement, including <code>AttachmentContentTypeValidator</code>, <code>AttachmentPresenceValidator</code>, and <code>AttachmentSizeValidator</code>. Personally, however, I prefer the old school helper methods, which function in exactly the same way.</p>
+
+<p>Let&rsquo;s add a <code>validates_attachment_content_type</code> to our <code>Author</code> class, and validate that the content being uploaded is actually an <code>image</code>. We can do that with a nice regular expression:</p>
+
+<pre><code class="ruby">class Author &lt; ActiveRecord::Base
+    has_attached_file :profile_media, 
+        styles: { 
+            large: "500x500", 
+            medium: "300x300", 
+            thumb: "100x100" 
+        }, 
+        default_url: "/images/:style/missing_profile_media.png"
+
+    validates_attachment_content_type :profile_media, content_type: /\Aimage\/.*\Z/
+end
+</code></pre>
+
+<p>We can also validate the size and presence of our attachment as well:</p>
+
+<pre><code class="ruby">validates :profile_image, attachment_presence: :true
+
+validates_attachment_size :profile_media, size: { in: 0..100.kilobytes }
+</code></pre>
+
+<p>And what about deleting attachments? Well, because <code>paperclip</code> is designed to work so well with ActiveRecord, any attachment we create is treated just like an attribute. As the documentation explains,</p>
+
+<blockquote><p>The intent behind <code>paperclip</code> was to keep setup as easy as possible and to treat files as much like other attributes as possible. This means they aren&rsquo;t saved to their final locations on disk, nor are they deleted if set to nil, until ActiveRecord::Base#save is called. It manages validations based on size and presence, if required.</p></blockquote>
+
+<p>Since the only way to delete an attachment is by setting the attribute to <code>nil</code>, there are a few different ways to actually go about deleting attachments. One implementation that I like to use is writing a custom method that checks whether an <code>Author</code> object has it&rsquo;s <code>profile_media</code> attribute equal to <code>nil</code> before saving it:</p>
+
+<pre><code class="ruby">class Author &lt; ActiveRecord::Base
+    before_save :delete_profile_media, 
+        if: -&gt; { remove_profile_media == '1' &amp;&amp; !profile_media_updated_at_changed? }
+
+    attr_accessor :remove_profile_media
+
+    private
+        def delete_profile_media
+            self.profile_media = nil
+        end
+end
+</code></pre>
+
+<p>In this structure, I also create an attribute on my <code>Author</code> object called <code>remove_profile_media</code>, which will either be <code>0</code> or <code>1</code>, based on whether a box on a form has been checked or not. If the button is checked, <code>remove_profile_media</code> will be set to <code>1</code>, and I&rsquo;ll call the <code>delete_profile_media</code> method in my <code>before_save</code> hook.</p>
+
+<p>If deleting data is something that scares you (or if you&rsquo;re a fan of the <code>acts_as_paranoid</code> gem) there&rsquo;s also another option. You can just preserve your files along with your &ldquo;soft deleted&rdquo; models:</p>
+
+<pre><code class="ruby">class Author &lt; ActiveRecord::Base
+    has_attached_file :profile_media, {
+        preserve_files: "true",
+    }
+end
+</code></pre>
+
+<p>This extra line prevents any data in our <code>profile_media</code> columns from being completely erased when the model is soft deleted. The good news here is that when the object is restored later on, our images will be too! And that is just as good of a reason as any to celebrate!</p>
+
+<iframe src="//giphy.com/embed/osMIREQbo3s2c" width="480" height="255" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>paperclip</code> gem really needs only two things to function properly: a <code>has_attached_file :attachment</code> in the model and an <code>attachment_file_name</code> column in the database. The <code>attachment_content_type</code> is only required if you&rsquo;re going to use content type validation.</li>
+<li>If you want to see some <code>paperclip</code> in action, check out this <a href="http://railscasts.com/episodes/134-paperclip">RailsCast</a> that covers all the basics.</li>
+<li>Want to dive into the <code>paperclip</code> source code? Go for it! Perhaps you can start by checking out their well-documented <a href="http://www.rubydoc.info/gems/paperclip/Paperclip/ClassMethods">class methods</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Taskmanaging Your App, Part 2: Service Objects]]></title>
@@ -737,190 +919,6 @@ https://github.com/SamSaffron/memory_profiler">over here</a>.</p>
 <li>Think about the two types of people who use your code: the users, who should have a seamless experience, which will make you optimize your code, and the abusers (or a better term that I can&rsquo;t think of), or those people who will be looking for security vulnerabilities in <em>your</em> code.</li>
 <li>Language design is hard. Refinements are a pretty good example of how a programming language can blow your mind with a single feature</li>
 <li>I also met Matz! It was <a href="https://twitter.com/vaidehijoshi/status/606684141506076673">incredibly awesome</a>. And he really is as nice as they say.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Refactoring to Reveal Rails Group_by]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/06/09/refactoring-to-reveal-rails-group-by/"/>
-    <updated>2015-06-09T08:43:24-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/06/09/refactoring-to-reveal-rails-group-by</id>
-    <content type="html"><![CDATA[<p><img src="http://img.pandawhale.com/post-10513-Code-Refactoring-Cat-in-Bathtu-U295.gif" style="display: block; margin-left: auto; margin-right: auto;"/></p>
-
-<p>There are a lot of opportunities in programming to feel pretty silly about yourself. I&rsquo;m sure that the more coding experience you have, the less often these moments actually occur. But early on in your career, they seem to happen quite often &ndash; or they do to <em>me</em>, at least.</p>
-
-<p>I had one of those moments a couple weeks ago, when I wrote a super long method and then asked a senior developer to take a look at it. While I was writing it, something seemed inherently wrong. I was sure there was a better way to do it, but I guess my Googling skills aren&rsquo;t quite superb yet, because I couldn&rsquo;t find quite the right answer anywhere. It was then that I decided to ask someone who would know exactly which tool to reach for.</p>
-
-<p>What happened next was pretty awesome, albeit slightly depressing. I watched my code be refactored from ten lines down to a single line. It blew my mind &ndash; and not just because I didn&rsquo;t know that this method even <em>existed</em>, but because I wanted to know how it worked! So, I did some digging and learned a bit about the method that I wrote which, as it turns out, already existed: the Rails <code>group_by</code> method on Enumerables.</p>
-
-<!--more-->
-
-
-<h2>Data Is For Manipulating</h2>
-
-<p>I started off writing my super long method because I wanted to structure my data in a very specific way. In fact, we&rsquo;ll probably want to structure the data in our Bookstore eCommerce app in a very similar way, too, so let&rsquo;s use that as our working example.</p>
-
-<p>For our admin panel, we want a list of <code>Author</code> objects, categorized by <code>genre</code>. Because our collection of <code>Books</code> is going to grow extensively, it would be helpful for an admin to know which authors are included in a <code>genre</code> or time period. Eventually, this could be used by admins to add new authors by a genre, to filter or sort by a genre, or to calculate an author count per genre, and figure out which authors to add to our collection of books.</p>
-
-<p>Right now, our collection of <code>Author</code> objects isn&rsquo;t very big, but has just enough information for us to start implementing this functionality:</p>
-
-<pre><code class="ruby">&gt; Author.all
-=&gt; [{#&lt;Author:0x192ajk21a6d0b0 last_name: "Shakespeare", genre: "Renaissance"&gt;}, 
-{#&lt;Author:0w917qwl38f6s8v6 last_name: "Homer", genre: "Classics"&gt;}, 
-{#&lt;Author:0x390akd23a5d9m4 last_name: "Faulkner", genre: "Southern Gothic"&gt;}, 
-{#&lt;Author:1r103aur58b7c4r2 last_name: "Marlowe", genre: "Renaissance"&gt;}]
-</code></pre>
-
-<p>Even though our data is easy to read now, we can be sure that it isn&rsquo;t going to stay that way. But we know that if we structure each of our objects correctly, we could have something simple, like this, in our view:</p>
-
-<pre><code class="ruby">div
-  - Author.sort_by_genre.each do |genre, author|
-    h2 = genre
-    - author.each do |a|
-      p = a.last_name
-</code></pre>
-
-<p>I&rsquo;m a big fan of slim, which is what I&rsquo;ve used above, but this view would still be pretty minimal when using another templating language such as erb.</p>
-
-<p>Given that this is the view we want to render, we can use this information to structure our data. I&rsquo;m thinking a hash is the tool for the job, with each key being a <code>genre</code> name, and the value being an array of <code>Author</code> objects that we can iterate through for each specific <code>genre</code>.</p>
-
-<p>It would be nice if we could call something like <code>Author.sort_by_genre</code> and have it return a structure like this:</p>
-
-<pre><code class="ruby">=&gt; {"Renaissance": [Shakespeare, Marlowe], 
-"Southern Gothic": [Faulkner], 
-"Classics": [Homer]}
-</code></pre>
-
-<p>So now that we know what we <em>want</em> our data to look like, let&rsquo;s write it the ugly way, just like I did!</p>
-
-<h2>The First Iteration</h2>
-
-<p>To start with, we know that we want to return a hash. So we can start by instantiating a hash, which will be our <code>authors_by_genre</code>. We also know that we&rsquo;ll need all the <code>Author</code> objects in an array; since we&rsquo;re specifically looking for an author&rsquo;s <code>last_name</code> and <code>genre</code>, we can query for those directly. And we can return our empty hash, since that will eventually be filled up:</p>
-
-<pre><code class="ruby">def sort_by_genre
-  authors_by_genre = {}
-  authors = Author.all.collect { |author| [author.last_name, author.genre] }
-
-  authors_by_genre
-end
-</code></pre>
-
-<p>Okay, so now we need to fill up our hash. We have our <code>authors</code> variable, which is set to the collection of all <code>Author</code> objects. We will need to iterate through all of them, and put that <code>Author</code> in the correct array for the right <code>genre</code> key. If the right <code>genre</code> key doesn&rsquo;t exist, we&rsquo;ll need to create a key for that author&rsquo;s <code>genre</code>. We can accomplish this with another iteration. Now our method looks like this:</p>
-
-<pre><code class="ruby">class Author
-  class &lt;&lt; self
-    def sort_by_genre
-      authors_by_genre = {}
-      authors = Author.all.collect { |author| [author.last_name, author.genre] }
-
-      authors.each do |genre, author|
-        if authors_by_genre[genre]
-          authors_by_genre[genre] &lt;&lt; author
-        else
-          authors_by_genre[genre] = [author]
-        end
-      end
-
-      authors_by_genre
-      end
-    end
-  end
-end
-</code></pre>
-
-<p>Okay&hellip;so hopefully, by this point, you should be thinking to yourself: <em>This isn&rsquo;t just ugly, it&rsquo;s also <strong>super</strong> inefficient</em>. And you&rsquo;d be right. It&rsquo;s pretty bad.</p>
-
-<iframe src="//giphy.com/embed/asIa0FVaBSQNO" width="480" height="307" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>If you weren&rsquo;t sure how bad it really is, think about all the queries we&rsquo;re making! And how many times we&rsquo;re iterating! As soon as I finished writing this and got it working, I knew it was <em>definitely</em> not the right approach. But the first step is to get it working. Now, we need to seriously consider how we can make it right and make it fast.</p>
-
-<p>You know what what this means, right? Refactoring time.</p>
-
-<h2>Group All The Things</h2>
-
-<p>A quick way to refactor some of the messiness from our first iteration is by first changing how we initialize our hash object, and also modifying how we go about deciding whether to create a new key or add to a key that already exists.</p>
-
-<p>Enter the <code>each_with_object</code> method! This is a pretty rad method I learned about while refactoring my first iteration of this <code>sort_by_genre</code> method. The <code>each_with_object</code> method requires a single argument: the object that you want to pass to it in each iteration. In our case, we&rsquo;ll pass it a hash. And since the items we want to actually &ldquo;categorize&rdquo; are our <code>Author</code> objects, we&rsquo;ll call <code>each_with_object</code> on our collection of <code>Authors</code>:</p>
-
-<pre><code class="ruby">class Author
-  class &lt;&lt; self
-    def sort_by_genre
-      Author.all.each_with_object({}) {  }
-    end
-  end
-end
-</code></pre>
-
-<p>Now, what about that block &ndash; what goes inside? Well, we can think about what we want to do with each of our <code>Author</code> objects that we&rsquo;re iterating over. Inside of our hash, which we&rsquo;re passing explicitly as an argument to <code>each_with_object</code>, we want to either find the correct key and put the correct <code>Author</code> into that array, or create a new key based on the current <code>Author</code> object&rsquo;s genre. We can write that quite nicely by using the <code>||=</code> <strong>or equals</strong> operator, which will assign a new object, or whatever is to the right of the operator, equal to the left side of the pipes, or whatever is to the left of the operator:</p>
-
-<pre><code class="ruby">class Author
-  class &lt;&lt; self
-    def sort_by_genre
-      Author.all.each_with_object({}) { 
-      |author, hash| (hash[author.genre]
-      ||= []) &lt;&lt; author }
-    end
-  end
-end
-</code></pre>
-
-<p>Much better, right? In this second iteration, we&rsquo;re passing a hash directly to the <code>each_with_object</code> method, and basically telling it, <em>Find the key in the hash I just passed you that is equal to this author&rsquo;s genre. And if no such key exists, make one, set it equal to an empty array, and then put this current author into that array</em>.</p>
-
-<p>The order of our or equals operator is particularly important, because if it were switched, it would never run what is on the right side of the pipes. The <code>||=</code> operator is exactly like the <code>||</code> operator in that it will run what is to its right <em>only</em> if what is to its left evaluates to <code>false</code>. This is what keeps our method from trying to create multiple keys again and again, and instead forces it to find an existing key first. The super cool thing about the <code>||=</code> operator is that it is actually assigning a new key value to an empty array, which cuts out a lot of extra lines we had in our first iteration!</p>
-
-<p>Okay, so this second iteration has been a vast improvement. But I think it&rsquo;s time for some serious refactoring magic. Are you ready? Okay. This <em>entire</em> method can be rewritten into a single, simple line:</p>
-
-<pre><code class="ruby">class Author
-  class &lt;&lt; self
-    def sort_by_genre
-      Author.all.group_by(&amp;:genre)
-    end
-  end
-end
-</code></pre>
-
-<p>Yup. I kid you not.</p>
-
-<iframe src="//giphy.com/embed/sHytgXD2vlNVC" width="480" height="376" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>This is the magic of the Rails <code>group_by</code> method, which collects an enumerable into sets, grouping it by the result of a block. This method takes a proc using the ampersand shortcut as an argument (which we started using last week!). The <code>group_by</code> method is passed the symbol <code>:genre</code>, which is an attribute on each <code>Author</code> object, and corresponds to a <code>genre</code> column in the <code>authors</code> table. So, we are effectively grouping all of our <code>Author</code> objects by the result of calling <code>.genre</code> on each object. In other words, we&rsquo;re grouping by the <code>genre</code> attribute since the attribute corresponds to an <code>attr_accessor</code> method in the class.</p>
-
-<p>And now, if we call our <code>sort_by_genre</code> class method, we get the exact data structure we were hoping for:</p>
-
-<pre><code class="ruby">&gt; Author.sort_by_genre
-=&gt; {"Renaissance": [{#&lt;Author:0x192ajk21a6d0b0 last_name: "Shakespeare", genre: "Renaissance"&gt;}, 
-{#&lt;Author:1r103aur58b7c4r2 last_name: "Marlowe", genre: "Renaissance"&gt;}], 
-"Southern Gothic": [{#&lt;Author:0x390akd23a5d9m4 last_name: "Faulkner", genre: "Southern Gothic"&gt;}], 
-"Classics": [{#&lt;Author:0w917qwl38f6s8v6 last_name: "Homer", genre: "Classics"&gt;}]}
-</code></pre>
-
-<p>Hooray! Or maybe not hooray. Maybe instead of hooray, you feel like I did when I realized that you could refactor all of this into one line:</p>
-
-<blockquote class="twitter-tweet tw-align-center" lang="en"><p lang="en" dir="ltr">PROGRAMMING:&#10;Write a 10-line method.&#10;Feel proud when it works.&#10;Find out you can write the same thing in a single line.&#10;Cry in the corner.</p>&mdash; Vaidehi Joshi (@vaidehijoshi) <a href="https://twitter.com/vaidehijoshi/status/601156228723642369">May 20, 2015</a></blockquote>
-
-
-<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
-
-
-<p><br></p>
-
-<p>Although it made me feel pretty silly, the actual process of writing the <code>group_by</code> method from scratch was a really great learning experience. I ended up using the examples above in a talk I gave on refactoring at <a href="http://www.twitter.com/reddotrubyconf">Red Dot Ruby Conference</a> in Singapore last week. And I actually recreated the <em>exact same</em> functionality when I had to write my <em>own</em> <code>groupBy</code> function in JavaScript for a React component I had to build! I guess that however deep of a rabbit hole refactoring can be, sometimes it&rsquo;s exactly the right kind of deep dive you need to learn how something works under the hood. I still totally feel like that cat in the bathtub whenever I do it &ndash; but I&rsquo;m kind of okay with that.</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>group_by</code> method takes a block, which it uses to group a collection of objects. The <code>each_with_object</code> method takes an object as an argument, and a block which tells it how to sort the collection you call the method upon.</li>
-<li>Read more on the <code>group_by</code> method in the <a href="http://apidock.com/rails/Enumerable/group_by">Rails docs</a>, which also has a great example!</li>
-<li>Looking for another example of how to implement Rails&#8217; <code>group_by</code> in a view? Check out <a href="https://ariejan.net/2007/01/12/rails-group-results-by-week-using-group_by/">this blog post</a>.</li>
-<li>Did you know that Ruby also has a similar <code>group_by</code> method? It&rsquo;s great when you want to <a href="http://ruby-doc.org/core-2.2.2/Enumerable.html#method-i-group_by">return a hash</a> where the keys are evaluated by a block!</li>
 </ul>
 
 ]]></content>

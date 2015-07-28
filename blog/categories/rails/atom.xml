@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rails | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-07-21T08:48:59-04:00</updated>
+  <updated>2015-07-27T21:33:17-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,188 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Clipping Images for Rails: Using Paperclip]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/07/28/clipping-images-for-rails-using-paperclip/"/>
+    <updated>2015-07-28T08:42:36-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/07/28/clipping-images-for-rails-using-paperclip</id>
+    <content type="html"><![CDATA[<p><img src="http://www.officemuseum.com/1894_Gem_Paper_Clip_adv_discovered_by_The_Early_Office_Museum.JPG" style="display: block; margin-left: auto; margin-right: auto;"/></p>
+
+<p>They say that a picture is worth a thousand words. How they came up with a such a nice, conveniently specific number number I&rsquo;ll never know. But what I do know is that everything on the web is just data floating around in cyberspace. And when I say everything, I really do mean <em>everything</em> &ndash; including pictures!</p>
+
+<p>I&rsquo;ve worked on a few different projects that have required building out an interface to allow a user or an admin to upload images. The first time that I had to do this, I knew that there were a few different Rails gems out there to help make this magic happen. But I didn&rsquo;t really understand what was going on when I implemented these gems the first time around. To be quite honest, the first time I had to implement file uploading, I just followed the setup steps rather blindly. Now that I&rsquo;ve had to solve the same problem multiple times, however, I feel a bit more comfortable with the process.</p>
+
+<p>There are a few different gems out there for handing file attachment in Rails, but my favorite one to use so far has been <strong>paperclip</strong>. Created by the super cool developers over at <a href="https://github.com/thoughtbot/paperclip">ThoughtBot</a>, the paperclip gem is fairly simple and straightforward to use. The reason that I like this gem in particular is that it fits seamlessly into the Rails framework. Files and attachments are treated just like an attribute on an ActiveRecord object, which makes the setup process both easy and intuitive. However, that doesn&rsquo;t mean that it&rsquo;s not intimidating at first! Luckily, we&rsquo;re going to walk through using the paperclip gem together.</p>
+
+<!--more-->
+
+
+<h2>How To Start Clipping</h2>
+
+<iframe src="//giphy.com/embed/xXG9gNuwQcN1u" width="480" height="425" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Since <code>paperclip</code> is a gem, the first thing we&rsquo;ll have to do before we really get started on clipping anything is add it to our <code>Gemfile</code>:</p>
+
+<p><code>gem "paperclip", "~&gt; 4.3"</code></p>
+
+<p>and then <code>bundle install</code>, because it&rsquo;s what all the cool kids do. This is also a good time to make sure that we have <code>ImageMagick</code>, which is one of <code>paperclip</code>&rsquo;s dependencies. (We can always run <code>brew install imagemagick</code> to install it if we don&rsquo;t have it already.)</p>
+
+<p>Now it&rsquo;s time to get clipping! And take a look at our schema, obvs. For our Bookstore app, we want each of our authors to have a headshot image uploaded and associated with their work. This is going to be super important from a user experience point of view, and it will be something that will be displayed on the show page of any given author.</p>
+
+<p>There are two ways to go about actually adding an attachment to our model; one of them is is a bit easier because it generates a migration for you. But we&rsquo;ll go ahead and write our own migration to start.</p>
+
+<p>We already have an <code>Author</code> model and migration. What we need to do is add an <code>attachment</code> column that&rsquo;ll handle everything from file uploading to associating a file with a specific <code>Author</code> object. So, we can just write a migration (<code>rails g migration AddProfileMediaToAuthors</code>) that will add an <code>attachment</code> column to our <code>Authors</code> table:</p>
+
+<pre><code class="ruby">class AddProfileMediaToAuthors &lt; ActiveRecord::Migration
+  def self.up
+    add_attachment :authors, :profile_media
+  end
+
+  def self.down
+    remove_attachment :authors, :profile_media
+  end
+end
+</code></pre>
+
+<p>We&rsquo;ll call our attachment columns <code>profile_media</code> to preemptively namespace the different types of attachments that we might have on a single <code>Author</code>&rsquo;s page. And just in case you needed a little refresher on the difference between the <code>up</code> and <code>down</code> methods, head <a href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">over here</a>.</p>
+
+<p>Okay, now we&rsquo;ll run <code>rake db:migrate</code>, and take a look at our <code>schema.rb</code> file. Let&rsquo;s see what happened:</p>
+
+<pre><code class="ruby">create_table "authors", force: :cascade do |t|
+    t.string   "firstname"
+    t.string   "lastname"
+    t.datetime "created_at",         null: false
+    t.datetime "updated_at",         null: false
+    t.string   "profile_media_file_name"
+    t.string   "profile_media_content_type"
+    t.integer  "profile_media_file_size"
+    t.datetime "profile_media_updated_at"
+end
+</code></pre>
+
+<p>Interesting! So our <code>add_attachment</code> method actually did a lot of things for us, didn&rsquo;t it? That&rsquo;s because it&rsquo;s actually a helper method does a lot of important things that <code>paperclip</code> relies on:</p>
+
+<ol>
+<li>It adds a <code>file_name</code> for our attachment.</li>
+<li>It adds a <code>content_type</code> for our attachments, which will be the <em>mime type</em> of our images.</li>
+<li>It adds the <code>file_size</code> of our attachments.</li>
+<li>It creates a <code>updated_at</code> column, which is particularly useful since we can order and sort our attachments/images by <code>datetime</code> format.</li>
+</ol>
+
+
+<p>Now we need to hook up our database migration with the corresponding model!</p>
+
+<h2>Objects With Attached Files</h2>
+
+<p><img src="http://2.bp.blogspot.com/_khdFP9RCQSw/TSPePSmnscI/AAAAAAAAAK4/My8FyIo8Xuo/s1600/a-jpeg-is-worth-approximately-a-thousand-words.gif" style="display: block; margin-left: auto; margin-right: auto;"/></p>
+
+<p>Inside of our <code>Author</code> class, we need want to add one very important line to our model: <code>has_attached_file</code>. The important thing about this method is that it needs to correspond to whatever we named our attachment in our migrations from earlier. In our case, we called our attachments <code>profile_media</code>, so that&rsquo;s exactly what we&rsquo;ll use inside of our model as well:</p>
+
+<pre><code class="ruby">class Author &lt; ActiveRecord::Base
+  has_attached_file :profile_media, 
+    styles: { 
+        large: "500x500", 
+        medium: "300x300", 
+        thumb: "100x100" 
+    }, 
+    default_url: "/images/:style/missing_profile_media.png"
+end
+</code></pre>
+
+<p>This line sets up a few defaults for us and gives us the option of having a few different sizes for our <code>profile_media</code>. The <code>default_url</code> can be helpful if we ever want to give our attachment url a default and avoid an instance of <code>nil</code>. The sizes that we specify here are what we&rsquo;ll use inside of our views:</p>
+
+<pre><code class="ruby">= link_to image_tag(author.profile_media.url(:thumb)), author.profile.url
+</code></pre>
+
+<p>But the most important part of making all of this work is, of course, permitting our media to be seen! (I&rsquo;m looking at you, strong params!). All we need to do is add our attachment name (<code>profile_media</code>) to our permitted parameters, which is already being used by our controller actions:</p>
+
+<pre><code class="ruby">class AuthorsController &lt; ApplicationController
+    def create
+        author = Author.create(author_params)
+    end
+
+    private
+      def author_params
+        params.require(:author).permit(:firstname, :lastname, :profile_media)
+      end
+end
+</code></pre>
+
+<p>Pretty simple, right? But these are just the bare bones of <code>paperclip</code>. We can spice things up a bit, too!</p>
+
+<h2>Validating And Customizing Our Clippings</h2>
+
+<p>Once we have the gem up and working, it&rsquo;s super easy to add some bells and whistles and write it to fit our application&rsquo;s specific standards. The developers at ThoughtBot actually have several different validators that we can implement, including <code>AttachmentContentTypeValidator</code>, <code>AttachmentPresenceValidator</code>, and <code>AttachmentSizeValidator</code>. Personally, however, I prefer the old school helper methods, which function in exactly the same way.</p>
+
+<p>Let&rsquo;s add a <code>validates_attachment_content_type</code> to our <code>Author</code> class, and validate that the content being uploaded is actually an <code>image</code>. We can do that with a nice regular expression:</p>
+
+<pre><code class="ruby">class Author &lt; ActiveRecord::Base
+    has_attached_file :profile_media, 
+        styles: { 
+            large: "500x500", 
+            medium: "300x300", 
+            thumb: "100x100" 
+        }, 
+        default_url: "/images/:style/missing_profile_media.png"
+
+    validates_attachment_content_type :profile_media, content_type: /\Aimage\/.*\Z/
+end
+</code></pre>
+
+<p>We can also validate the size and presence of our attachment as well:</p>
+
+<pre><code class="ruby">validates :profile_image, attachment_presence: :true
+
+validates_attachment_size :profile_media, size: { in: 0..100.kilobytes }
+</code></pre>
+
+<p>And what about deleting attachments? Well, because <code>paperclip</code> is designed to work so well with ActiveRecord, any attachment we create is treated just like an attribute. As the documentation explains,</p>
+
+<blockquote><p>The intent behind <code>paperclip</code> was to keep setup as easy as possible and to treat files as much like other attributes as possible. This means they aren&rsquo;t saved to their final locations on disk, nor are they deleted if set to nil, until ActiveRecord::Base#save is called. It manages validations based on size and presence, if required.</p></blockquote>
+
+<p>Since the only way to delete an attachment is by setting the attribute to <code>nil</code>, there are a few different ways to actually go about deleting attachments. One implementation that I like to use is writing a custom method that checks whether an <code>Author</code> object has it&rsquo;s <code>profile_media</code> attribute equal to <code>nil</code> before saving it:</p>
+
+<pre><code class="ruby">class Author &lt; ActiveRecord::Base
+    before_save :delete_profile_media, 
+        if: -&gt; { remove_profile_media == '1' &amp;&amp; !profile_media_updated_at_changed? }
+
+    attr_accessor :remove_profile_media
+
+    private
+        def delete_profile_media
+            self.profile_media = nil
+        end
+end
+</code></pre>
+
+<p>In this structure, I also create an attribute on my <code>Author</code> object called <code>remove_profile_media</code>, which will either be <code>0</code> or <code>1</code>, based on whether a box on a form has been checked or not. If the button is checked, <code>remove_profile_media</code> will be set to <code>1</code>, and I&rsquo;ll call the <code>delete_profile_media</code> method in my <code>before_save</code> hook.</p>
+
+<p>If deleting data is something that scares you (or if you&rsquo;re a fan of the <code>acts_as_paranoid</code> gem) there&rsquo;s also another option. You can just preserve your files along with your &ldquo;soft deleted&rdquo; models:</p>
+
+<pre><code class="ruby">class Author &lt; ActiveRecord::Base
+    has_attached_file :profile_media, {
+        preserve_files: "true",
+    }
+end
+</code></pre>
+
+<p>This extra line prevents any data in our <code>profile_media</code> columns from being completely erased when the model is soft deleted. The good news here is that when the object is restored later on, our images will be too! And that is just as good of a reason as any to celebrate!</p>
+
+<iframe src="//giphy.com/embed/osMIREQbo3s2c" width="480" height="255" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>paperclip</code> gem really needs only two things to function properly: a <code>has_attached_file :attachment</code> in the model and an <code>attachment_file_name</code> column in the database. The <code>attachment_content_type</code> is only required if you&rsquo;re going to use content type validation.</li>
+<li>If you want to see some <code>paperclip</code> in action, check out this <a href="http://railscasts.com/episodes/134-paperclip">RailsCast</a> that covers all the basics.</li>
+<li>Want to dive into the <code>paperclip</code> source code? Go for it! Perhaps you can start by checking out their well-documented <a href="http://www.rubydoc.info/gems/paperclip/Paperclip/ClassMethods">class methods</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[All the Columns Fit to Index: Unique + Compound Indexing]]></title>
@@ -706,270 +888,6 @@ end
 <li>Rake tasks are just Ruby code written inside of a either a <code>.rake</code> file in the <code>/app/tasks</code> directory, or sometimes within a <code>Rakefile</code> itself.</li>
 <li>A rake task needs a description and a <code>task</code> block. The description is what will be seen when you run <code>rake -T</code>, and the <code>task</code> block is where you&rsquo;ll write what the task actually has to do, and specify any dependencies.</li>
 <li>Need to see another example of how to make a rake task? Check out this awesome <a href="http://jasonseifer.com/2010/04/06/rake-tutorial">tutorial on rake</a>, or watch <a href="http://railscasts.com/episodes/66-custom-rake-tasks">this RailsCast</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[To Serialize or Not to Serialize: ActiveModel Serializers]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/06/23/to-serialize-or-not-to-serialize-activemodel-serializers/"/>
-    <updated>2015-06-23T08:10:05-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/06/23/to-serialize-or-not-to-serialize-activemodel-serializers</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/WgTf8fPTjJZAI" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Lesson number one when it comes to developing for the web: everything is just data. When you send something to the server in a request, or when you get something back from the server as a response, all you&rsquo;re really dealing with is data. Simple enough to remember, right? Wrong. Because data can be complicated. Especially when you consider the fact that it has to be passed back and forth in very specific ways. And if you don&rsquo;t format your data correctly, your computer is going to be very, very mad at you (or probably just throw a really unhelpful error message).</p>
-
-<p>I encountered the complications of data formatting the hard way, while trying to pass data between two parts of my application. I wanted to send some data to update a Ruby object in my Postgres database on the server-side, and then I wanted the Rails side to send back an updated response. As if that wasn&rsquo;t enough, I then needed the Ember front end to grab the updated data and immediately render it to the user on the client-side. Data formatting can already be complex when you have only one framework or language; throw in another framework and language, and, well&hellip;you might feel like you&rsquo;re having a little bit of a meltdown.</p>
-
-<p>But fear not! Because here&rsquo;s one awesome thing about data: once you understand the way that it&rsquo;s structured, it&rsquo;s pretty simple to use. And when it comes to working on a more intricate Rails + JavaScript application (like the one I was building recently), there&rsquo;s one kind of data manipulation you&rsquo;re probably going to have to do at some point or another: data serialization. When working with a JavaScript front end, you&rsquo;ll probably have to serialize your data into a <strong>JSON format</strong>, which is short for <em>JavaScript Object Notation</em>. Thankfully, there&rsquo;s a handy gem that makes this so easy that you&rsquo;ll never again question whether or not to serialize your data.</p>
-
-<!--more-->
-
-
-<h2>Why Serialize?</h2>
-
-<p>The time has finally come: it&rsquo;s time for us to spiff up our Bookstore application with some JavaScript. (I know, I know, it sounds horrible &ndash; but it&rsquo;ll be so good for our users, I promise). But let&rsquo;s start off simple and keep working with the Rails API we&rsquo;ve been building out.</p>
-
-<p>Let&rsquo;s pretend for a second that we&rsquo;ve already implemented authentication in our application, which means we have access to the <code>current_user</code> who is logged in at the highest controller level of our application: the <code>ApplicationController</code>. In our <code>UsersController</code>, we want an <code>index</code> action that will be invoked when the <code>current_user</code> logs into their account page. On that page, we&rsquo;ll want to show the user&rsquo;s &ldquo;wish lists&rdquo;, or the list of books that they want to read. Each <code>WishList</code> object belongs to a <code>User</code> and has many <code>Books</code>, and a <code>Book</code> can belong to a <code>WishList</code>. Right now in our controller, we are rendering all the <code>WishLists</code> that are associated with the <code>current_user</code> as JSON:</p>
-
-<pre><code class="ruby">class UsersController &lt; ApplicationController
-  def index
-    @wish_lists = current_user.wish_lists
-
-    render json: @wish_lists
-  end
-end
-</code></pre>
-
-<p>Cool, we have our <code>WishLists</code> already rendered as JSON. Why serialize anything in that case? I&rsquo;m sure our JSON is structured perfectly well, and that we can convert our Ruby object data into Ember models seamlessly!</p>
-
-<pre><code class="json">[
-   {
-      "id":43,
-      "user":
-        {
-            "id": 1,
-            "username": "Vaidehi"
-        },
-      "name":"Favorite Shakespeare Plays To Re-Read",
-      "created_at":"2015-06-23T21:07:30.108Z",
-      "updated_at":"2015-06-23T21:07:30.108Z",
-      "books": 
-        [
-            {
-                "id": 24,
-                "title": "A Midsummer Night's Dream",
-                "author": "William Shakespeare"
-            },
-            {
-                "id": 48,
-                "title": "The Tempest",
-                "author": "William Shakespeare"
-            },
-            {
-                "id": 13,
-                "title": "Much Ado About Nothing",
-                "author": "William Shakespeare"
-            }
-        ]
-   }
-]
-</code></pre>
-
-<p>Oh my. That is <em>definitely</em> not how we want our JSON to look!</p>
-
-<iframe src="//giphy.com/embed/12mPcp41D9a1i0" width="480" height="274" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>For one thing, if we give this JSON to Ember, it won&rsquo;t know how to turn it into an Ember model. But there are also some other issues with exactly how this data is structured.</p>
-
-<p>For now, we don&rsquo;t need to render anything to our user about when the created or updated their list, so that&rsquo;s some superfluous data that we shouldn&rsquo;t be requesting from the server.</p>
-
-<p>We also don&rsquo;t want to render anything about our actual <code>User</code> object &ndash; we probably just want to include the <code>user_id</code>, and nothing else. And because we can load the correct <code>Book</code> models via Ember itself, let&rsquo;s not bother with requesting all the details of every <code>Book</code> in our <code>WishList</code>. Instead, let&rsquo;s just get an array of associated <code>book_ids</code>, and then have Ember render the appropriate ones for us from its data store.</p>
-
-<p>So, to serialize or not to serialize? That is the question. And I think you and I both know the answer.</p>
-
-<h2>ActiveModel Serializers</h2>
-
-<p>Before we can get our serializing on, we&rsquo;ll need to add our new favorite gem to our <code>Gemfile</code>:</p>
-
-<pre><code class="ruby">gem 'active_model_serializers'
-</code></pre>
-
-<p>and then run the <code>bundle</code> command.</p>
-
-<p>Now, we&rsquo;ll want to actually create our serializer, which will work with Rails&#8217; ActiveModel functionality to serialize your persisted Ruby objects into the exact JSON format that we&rsquo;ll specify. Luckily, we can just generate our serializer instead of creating those files:</p>
-
-<pre><code class="ruby">rails g serializer wishList
-</code></pre>
-
-<p>This will create a <code>serializers</code> directory inside of our top-level <code>/app</code> directory since this is the first serializer we&rsquo;ve generated. And it&rsquo;ll add both an empty <code>application_serializer</code> and a <code>wish_list_serializer.rb</code> file inside of that new directory, which looks like this:</p>
-
-<pre><code class="ruby">class WishListSerializer &lt; ApplicationSerializer
-  attributes :id, :name
-
-  has_many :books
-  belongs_to :user
-end
-</code></pre>
-
-<p>The attributes that we&rsquo;ve listed (<code>id</code> and <code>name</code>) are the ones that are <em>whitelisted</em> to be serialized. This basically means that these are the attributes we are allowing the <code>active_model_serializers</code> gem to serialize and make into JSON. The serializer we generated through Rails also recognized the associations that we set up; it created the <code>has_many</code> and <code>belongs_to</code> relationships that we setup inside of our <code>Book</code>, <code>User</code>, and <code>WishList</code> Rails models.</p>
-
-<p>Cool, but how can we check what our data structure looks like? Well, we can start our server (<code>rails server</code>) and then head over to where our index route lives (<code>http://localhost:3000/wish_list</code>). Our JSON response will be rendered through our <code>index</code> action in our <code>WishListsController</code>:</p>
-
-<pre><code class="json">{
-    "wish_lists":
-        [
-            {
-                "id":43,
-                "name":"Favorite Shakespeare Plays To Re-Read",
-                "user":
-                    {
-                        "id": 1,
-                        "username": "Vaidehi"
-                    },
-                "books":
-                    [
-                        {
-                            "id": 24,
-                            "title": "A Midsummer Night's Dream",
-                            "author": "William Shakespeare"
-                        },
-                        {
-                            "id": 48,
-                            "title": "The Tempest",
-                            "author": "William Shakespeare"
-                        },
-                        {
-                            "id": 13,
-                            "title": "Much Ado About Nothing",
-                            "author": "William Shakespeare"
-                        }
-                    ]
-            }
-        ]
-}
-</code></pre>
-
-<p>Well, our data looks a <em>little</em> bit better. For one thing, our whitelisted attributes and associations have been put under a <code>wish_lists</code> key, which will have an array of <code>WishList</code> objects for the <code>current_user</code>, just as we wrote out in our <code>WishListsController</code>.</p>
-
-<p>Although it&rsquo;s great that this gem generated all this for us, and for free, we already know that we&rsquo;re going to have to tweak this a bit. First, let&rsquo;s get rid of that <code>belongs_to :user</code> line, and instead just render a <code>user_id</code> attribute:</p>
-
-<pre><code class="ruby">class WishListSerializer &lt; ApplicationSerializer
-  attributes :id, :name, :user_id
-
-  has_many :books
-end
-</code></pre>
-
-<p>Because we&rsquo;ve set up the associations in both models, the <code>active_model_serializer</code> will look directly for an <code>id</code> attribute on a <code>User</code> association, and add that as a key in our JSON object, rather than creating a <code>user</code> key that points to an entire JSON <code>User</code> object. What does our JSON object look like now?</p>
-
-<pre><code class="json">{
-    "wish_lists":
-        [
-            {
-                "id":43,
-                "name":"Favorite Shakespeare Plays To Re-Read",
-                "user_id":1,
-                "books":
-                    [
-                        {
-                            "id": 24,
-                            "title": "A Midsummer Night's Dream",
-                            "author": "William Shakespeare"
-                        },
-                        {
-                            "id": 48,
-                            "title": "The Tempest",
-                            "author": "William Shakespeare"
-                        },
-                        {
-                            "id": 13,
-                            "title": "Much Ado About Nothing",
-                            "author": "William Shakespeare"
-                        }
-                    ]
-            }
-        ]
-}
-</code></pre>
-
-<p>Okay, another step in the right direction. But, what about those annoying <code>Book</code> objects &ndash; how do we turn those objects into just an array of <code>book_ids</code>?</p>
-
-<p>The answer is&hellip;through another serializer, of course! And also some snazzy customization.</p>
-
-<h2>Customizing Your Serializer</h2>
-
-<p>Before we can go about spicing up the JSON response generated by our <code>WishList Serializer</code>, we are going to have to generate a new serializer for our <code>Book</code> objects. Thank goodness we already know how to do all that:</p>
-
-<pre><code class="ruby">rails g serializer book
-</code></pre>
-
-<p>which will generate a <code>book_serializer.rb</code> file like this:</p>
-
-<pre><code class="ruby">class BookSerializer &lt; ApplicationSerializer
-  attributes :id, :title, :author
-
-  belongs_to :wish_list
-end
-</code></pre>
-
-<p>Step one, successfully accomplished! Now, time to bedazzle our serializer. Let&rsquo;s say that the front end of our application doesn&rsquo;t need all that information &ndash; instead, it needs just an array of <code>book_ids</code>. We can just edit our serializer so that we&rsquo;re only using the information that we want to use:</p>
-
-<pre><code class="ruby">class BookSerializer &lt; ApplicationSerializer
-  attributes :id
-end
-</code></pre>
-
-<p>Now comes step two: telling our <code>WishList Serializer</code> to refer to our <code>BookSerializer</code>, and use <em>that</em> to serialize each book associated with a wish list. If only there was an easy way to do that&hellip;</p>
-
-<pre><code class="ruby">class WishListSerializer &lt; ApplicationSerializer
-    attributes :id, :name, :user_id, :books
-
-    private
-    def books
-        BookSerializer.new(object.books).attributes
-    end
-end
-</code></pre>
-
-<p>Oh, interesting! We&rsquo;ve just created our <em>very own</em> attribute on the <code>WishListSerializer</code>. And what does that method (which is private, because we don&rsquo;t wany any other part of our application to call it) do, exactly? Well, it creates a new instance of our <code>BookSerializer</code>, and runs that serializer for each <code>Book</code> object, returning the attributes that we told it to serializer.</p>
-
-<p>What&rsquo;s really awesome about this is that if we suddenly decide that we now want not just an array of <code>ids</code>, but also the <code>title</code> of each <code>Book</code> object, we can just add that attribute into our <code>BookSerializer</code> by modifying the line to <code>attributes :id, :title</code>, and <em>tada</em>! We have an array of <code>Book</code> objects that have both an <code>id</code> <em>and</em> a <code>title</code>. So easy, right?!</p>
-
-<p>The super cool thing about implementing serializers is that our <code>UsersController</code> hasn&rsquo;t changed at all in this process:</p>
-
-<pre><code class="ruby">class UsersController &lt; ApplicationController
-  def index
-    @wish_lists = current_user.wish_lists
-
-    render json: @wish_lists
-  end
-end
-</code></pre>
-
-<p>All that&rsquo;s happening now is that Rails is looking for a serializer for our <code>WishList</code> objects on the <code>current_user</code>, and if it finds one (which it will, since we made it!), it uses that to serialize the appropriate data and render it into a JSON format.</p>
-
-<p>Serializers are pretty fantastic because they&rsquo;re easy to generate, customize, and use. In fact, we could even create multiple serializer for the same <em>type</em> of object. We could have a <code>BookDetails Serializer</code>, which might return a ton of information about a book, rather than just its <code>id</code> and <code>title</code>. All we&rsquo;d have to do to use it is specify the serializer within our controller action:</p>
-
-<pre><code class="ruby">render json: @books, each_serializer: BookDetailsSerializer
-</code></pre>
-
-<p>Pretty amazing stuff, right? This will make integrating our JavaScript front end with our Rails API so much easier. We can serialize all of the things! And then we should probably teach this doggy how to serialize things, too. He&rsquo;s probably confused because he hasn&rsquo;t read this blog post yet:</p>
-
-<iframe src="//giphy.com/embed/xDQ3Oql1BN54c" width="480" height="332" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>active_model_serializers</code> gem provides a ton of functionality for structuring a JSON response from your Rails API. Read about all the methods it provides in its <a href="https://github.com/rails-api/active_model_serializers">great documenation</a>.</li>
-<li>Still curious about serializers? Check out <a href="https://robots.thoughtbot.com/better-serialization-less-as-json">this cool post</a> and <a href="https://blog.engineyard.com/2015/active-model-serializers">this one</a>, too!</li>
-<li>Serializers are also great for caching. To learn more about why they matter, read this <a href="https://robots.thoughtbot.com/fast-json-apis-in-rails-with-key-based-caches-and">more advanced</a> blog post!</li>
 </ul>
 
 ]]></content>

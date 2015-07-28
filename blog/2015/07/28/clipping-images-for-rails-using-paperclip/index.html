@@ -1,0 +1,464 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Clipping Images for Rails: Using Paperclip - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="They say that a picture is worth a thousand words. How they came up with a such a nice, conveniently specific number number I&rsquo;ll never know. &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/07/28/clipping-images-for-rails-using-paperclip">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Clipping Images for Rails: Using Paperclip</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-07-28T08:42:36-04:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:42 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><img src="http://www.officemuseum.com/1894_Gem_Paper_Clip_adv_discovered_by_The_Early_Office_Museum.JPG" style="display: block; margin-left: auto; margin-right: auto;"/></p>
+
+<p>They say that a picture is worth a thousand words. How they came up with a such a nice, conveniently specific number number I&rsquo;ll never know. But what I do know is that everything on the web is just data floating around in cyberspace. And when I say everything, I really do mean <em>everything</em> &ndash; including pictures!</p>
+
+<p>I&rsquo;ve worked on a few different projects that have required building out an interface to allow a user or an admin to upload images. The first time that I had to do this, I knew that there were a few different Rails gems out there to help make this magic happen. But I didn&rsquo;t really understand what was going on when I implemented these gems the first time around. To be quite honest, the first time I had to implement file uploading, I just followed the setup steps rather blindly. Now that I&rsquo;ve had to solve the same problem multiple times, however, I feel a bit more comfortable with the process.</p>
+
+<p>There are a few different gems out there for handing file attachment in Rails, but my favorite one to use so far has been <strong>paperclip</strong>. Created by the super cool developers over at <a href="https://github.com/thoughtbot/paperclip">ThoughtBot</a>, the paperclip gem is fairly simple and straightforward to use. The reason that I like this gem in particular is that it fits seamlessly into the Rails framework. Files and attachments are treated just like an attribute on an ActiveRecord object, which makes the setup process both easy and intuitive. However, that doesn&rsquo;t mean that it&rsquo;s not intimidating at first! Luckily, we&rsquo;re going to walk through using the paperclip gem together.</p>
+
+<!--more-->
+
+
+<h2>How To Start Clipping</h2>
+
+<iframe src="//giphy.com/embed/xXG9gNuwQcN1u" width="480" height="425" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Since <code>paperclip</code> is a gem, the first thing we&rsquo;ll have to do before we really get started on clipping anything is add it to our <code>Gemfile</code>:</p>
+
+<p><code>gem "paperclip", "~&gt; 4.3"</code></p>
+
+<p>and then <code>bundle install</code>, because it&rsquo;s what all the cool kids do. This is also a good time to make sure that we have <code>ImageMagick</code>, which is one of <code>paperclip</code>&rsquo;s dependencies. (We can always run <code>brew install imagemagick</code> to install it if we don&rsquo;t have it already.)</p>
+
+<p>Now it&rsquo;s time to get clipping! And take a look at our schema, obvs. For our Bookstore app, we want each of our authors to have a headshot image uploaded and associated with their work. This is going to be super important from a user experience point of view, and it will be something that will be displayed on the show page of any given author.</p>
+
+<p>There are two ways to go about actually adding an attachment to our model; one of them is is a bit easier because it generates a migration for you. But we&rsquo;ll go ahead and write our own migration to start.</p>
+
+<p>We already have an <code>Author</code> model and migration. What we need to do is add an <code>attachment</code> column that&rsquo;ll handle everything from file uploading to associating a file with a specific <code>Author</code> object. So, we can just write a migration (<code>rails g migration AddProfileMediaToAuthors</code>) that will add an <code>attachment</code> column to our <code>Authors</code> table:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddProfileMediaToAuthors</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">up</span>
+</span><span class='line'>    <span class="n">add_attachment</span> <span class="ss">:authors</span><span class="p">,</span> <span class="ss">:profile_media</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">down</span>
+</span><span class='line'>    <span class="n">remove_attachment</span> <span class="ss">:authors</span><span class="p">,</span> <span class="ss">:profile_media</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We&rsquo;ll call our attachment columns <code>profile_media</code> to preemptively namespace the different types of attachments that we might have on a single <code>Author</code>&rsquo;s page. And just in case you needed a little refresher on the difference between the <code>up</code> and <code>down</code> methods, head <a href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">over here</a>.</p>
+
+<p>Okay, now we&rsquo;ll run <code>rake db:migrate</code>, and take a look at our <code>schema.rb</code> file. Let&rsquo;s see what happened:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">create_table</span> <span class="s2">&quot;authors&quot;</span><span class="p">,</span> <span class="ss">force</span><span class="p">:</span> <span class="ss">:cascade</span> <span class="k">do</span> <span class="o">|</span><span class="n">t</span><span class="o">|</span>
+</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">string</span>   <span class="s2">&quot;firstname&quot;</span>
+</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">string</span>   <span class="s2">&quot;lastname&quot;</span>
+</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">datetime</span> <span class="s2">&quot;created_at&quot;</span><span class="p">,</span>         <span class="ss">null</span><span class="p">:</span> <span class="kp">false</span>
+</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">datetime</span> <span class="s2">&quot;updated_at&quot;</span><span class="p">,</span>         <span class="ss">null</span><span class="p">:</span> <span class="kp">false</span>
+</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">string</span>   <span class="s2">&quot;profile_media_file_name&quot;</span>
+</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">string</span>   <span class="s2">&quot;profile_media_content_type&quot;</span>
+</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">integer</span>  <span class="s2">&quot;profile_media_file_size&quot;</span>
+</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">datetime</span> <span class="s2">&quot;profile_media_updated_at&quot;</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Interesting! So our <code>add_attachment</code> method actually did a lot of things for us, didn&rsquo;t it? That&rsquo;s because it&rsquo;s actually a helper method does a lot of important things that <code>paperclip</code> relies on:</p>
+
+<ol>
+<li>It adds a <code>file_name</code> for our attachment.</li>
+<li>It adds a <code>content_type</code> for our attachments, which will be the <em>mime type</em> of our images.</li>
+<li>It adds the <code>file_size</code> of our attachments.</li>
+<li>It creates a <code>updated_at</code> column, which is particularly useful since we can order and sort our attachments/images by <code>datetime</code> format.</li>
+</ol>
+
+
+<p>Now we need to hook up our database migration with the corresponding model!</p>
+
+<h2>Objects With Attached Files</h2>
+
+<p><img src="http://2.bp.blogspot.com/_khdFP9RCQSw/TSPePSmnscI/AAAAAAAAAK4/My8FyIo8Xuo/s1600/a-jpeg-is-worth-approximately-a-thousand-words.gif" style="display: block; margin-left: auto; margin-right: auto;"/></p>
+
+<p>Inside of our <code>Author</code> class, we need want to add one very important line to our model: <code>has_attached_file</code>. The important thing about this method is that it needs to correspond to whatever we named our attachment in our migrations from earlier. In our case, we called our attachments <code>profile_media</code>, so that&rsquo;s exactly what we&rsquo;ll use inside of our model as well:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">has_attached_file</span> <span class="ss">:profile_media</span><span class="p">,</span>
+</span><span class='line'>      <span class="ss">styles</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>          <span class="ss">large</span><span class="p">:</span> <span class="s2">&quot;500x500&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="ss">medium</span><span class="p">:</span> <span class="s2">&quot;300x300&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="ss">thumb</span><span class="p">:</span> <span class="s2">&quot;100x100&quot;</span>
+</span><span class='line'>      <span class="p">},</span>
+</span><span class='line'>      <span class="ss">default_url</span><span class="p">:</span> <span class="s2">&quot;/images/:style/missing_profile_media.png&quot;</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This line sets up a few defaults for us and gives us the option of having a few different sizes for our <code>profile_media</code>. The <code>default_url</code> can be helpful if we ever want to give our attachment url a default and avoid an instance of <code>nil</code>. The sizes that we specify here are what we&rsquo;ll use inside of our views:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">=</span> <span class="n">link_to</span> <span class="n">image_tag</span><span class="p">(</span><span class="n">author</span><span class="o">.</span><span class="n">profile_media</span><span class="o">.</span><span class="n">url</span><span class="p">(</span><span class="ss">:thumb</span><span class="p">)),</span> <span class="n">author</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">url</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>But the most important part of making all of this work is, of course, permitting our media to be seen! (I&rsquo;m looking at you, strong params!). All we need to do is add our attachment name (<code>profile_media</code>) to our permitted parameters, which is already being used by our controller actions:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AuthorsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">create</span>
+</span><span class='line'>      <span class="n">author</span> <span class="o">=</span> <span class="no">Author</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">author_params</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">private</span>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">author_params</span>
+</span><span class='line'>      <span class="n">params</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="ss">:author</span><span class="p">)</span><span class="o">.</span><span class="n">permit</span><span class="p">(</span><span class="ss">:firstname</span><span class="p">,</span> <span class="ss">:lastname</span><span class="p">,</span> <span class="ss">:profile_media</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pretty simple, right? But these are just the bare bones of <code>paperclip</code>. We can spice things up a bit, too!</p>
+
+<h2>Validating And Customizing Our Clippings</h2>
+
+<p>Once we have the gem up and working, it&rsquo;s super easy to add some bells and whistles and write it to fit our application&rsquo;s specific standards. The developers at ThoughtBot actually have several different validators that we can implement, including <code>AttachmentContentTypeValidator</code>, <code>AttachmentPresenceValidator</code>, and <code>AttachmentSizeValidator</code>. Personally, however, I prefer the old school helper methods, which function in exactly the same way.</p>
+
+<p>Let&rsquo;s add a <code>validates_attachment_content_type</code> to our <code>Author</code> class, and validate that the content being uploaded is actually an <code>image</code>. We can do that with a nice regular expression:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">has_attached_file</span> <span class="ss">:profile_media</span><span class="p">,</span>
+</span><span class='line'>      <span class="ss">styles</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>          <span class="ss">large</span><span class="p">:</span> <span class="s2">&quot;500x500&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="ss">medium</span><span class="p">:</span> <span class="s2">&quot;300x300&quot;</span><span class="p">,</span>
+</span><span class='line'>          <span class="ss">thumb</span><span class="p">:</span> <span class="s2">&quot;100x100&quot;</span>
+</span><span class='line'>      <span class="p">},</span>
+</span><span class='line'>          <span class="ss">default_url</span><span class="p">:</span> <span class="s2">&quot;/images/:style/missing_profile_media.png&quot;</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">validates_attachment_content_type</span> <span class="ss">:profile_media</span><span class="p">,</span> <span class="ss">content_type</span><span class="p">:</span> <span class="sr">/\Aimage\/.*\Z/</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We can also validate the size and presence of our attachment as well:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">validates</span> <span class="ss">:profile_image</span><span class="p">,</span> <span class="ss">attachment_presence</span><span class="p">:</span> <span class="ss">:true</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">validates_attachment_size</span> <span class="ss">:profile_media</span><span class="p">,</span> <span class="ss">size</span><span class="p">:</span> <span class="p">{</span> <span class="k">in</span><span class="p">:</span> <span class="mi">0</span><span class="o">.</span><span class="n">.</span><span class="mi">100</span><span class="o">.</span><span class="n">kilobytes</span> <span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And what about deleting attachments? Well, because <code>paperclip</code> is designed to work so well with ActiveRecord, any attachment we create is treated just like an attribute. As the documentation explains,</p>
+
+<blockquote><p>The intent behind <code>paperclip</code> was to keep setup as easy as possible and to treat files as much like other attributes as possible. This means they aren&rsquo;t saved to their final locations on disk, nor are they deleted if set to nil, until ActiveRecord::Base#save is called. It manages validations based on size and presence, if required.</p></blockquote>
+
+<p>Since the only way to delete an attachment is by setting the attribute to <code>nil</code>, there are a few different ways to actually go about deleting attachments. One implementation that I like to use is writing a custom method that checks whether an <code>Author</code> object has it&rsquo;s <code>profile_media</code> attribute equal to <code>nil</code> before saving it:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">before_save</span> <span class="ss">:delete_profile_media</span><span class="p">,</span>
+</span><span class='line'>      <span class="k">if</span><span class="p">:</span> <span class="o">-&gt;</span> <span class="p">{</span> <span class="n">remove_profile_media</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">profile_media_updated_at_changed?</span> <span class="p">}</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="kp">attr_accessor</span> <span class="ss">:remove_profile_media</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">private</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">delete_profile_media</span>
+</span><span class='line'>          <span class="nb">self</span><span class="o">.</span><span class="n">profile_media</span> <span class="o">=</span> <span class="kp">nil</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In this structure, I also create an attribute on my <code>Author</code> object called <code>remove_profile_media</code>, which will either be <code>0</code> or <code>1</code>, based on whether a box on a form has been checked or not. If the button is checked, <code>remove_profile_media</code> will be set to <code>1</code>, and I&rsquo;ll call the <code>delete_profile_media</code> method in my <code>before_save</code> hook.</p>
+
+<p>If deleting data is something that scares you (or if you&rsquo;re a fan of the <code>acts_as_paranoid</code> gem) there&rsquo;s also another option. You can just preserve your files along with your &ldquo;soft deleted&rdquo; models:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">has_attached_file</span> <span class="ss">:profile_media</span><span class="p">,</span> <span class="p">{</span>
+</span><span class='line'>      <span class="ss">preserve_files</span><span class="p">:</span> <span class="s2">&quot;true&quot;</span><span class="p">,</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This extra line prevents any data in our <code>profile_media</code> columns from being completely erased when the model is soft deleted. The good news here is that when the object is restored later on, our images will be too! And that is just as good of a reason as any to celebrate!</p>
+
+<iframe src="//giphy.com/embed/osMIREQbo3s2c" width="480" height="255" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>paperclip</code> gem really needs only two things to function properly: a <code>has_attached_file :attachment</code> in the model and an <code>attachment_file_name</code> column in the database. The <code>attachment_content_type</code> is only required if you&rsquo;re going to use content type validation.</li>
+<li>If you want to see some <code>paperclip</code> in action, check out this <a href="http://railscasts.com/episodes/134-paperclip">RailsCast</a> that covers all the basics.</li>
+<li>Want to dive into the <code>paperclip</code> source code? Go for it! Perhaps you can start by checking out their well-documented <a href="http://www.rubydoc.info/gems/paperclip/Paperclip/ClassMethods">class methods</a>.</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-07-28T08:42:36-04:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:42 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/07/28/clipping-images-for-rails-using-paperclip/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/07/28/clipping-images-for-rails-using-paperclip/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing/" title="Previous Post: All The Columns Fit To Index: Unique + Compound Indexing">&laquo; All The Columns Fit To Index: Unique + Compound Indexing</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/07/28/clipping-images-for-rails-using-paperclip/">Clipping Images for Rails: Using Paperclip</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing/">All the Columns Fit to Index: Unique + Compound Indexing</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/">Writing Smart Migrations: References, Reversible, and Indexes</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/07/taskmanaging-your-app-part-2-service-objects/">Taskmanaging Your App, Part 2: Service Objects</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/">Taskmanaging Your App, Part 1: Using Rake</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
