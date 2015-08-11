@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Markdown | Words and Code]]></title>
+  <link href="http://vaidehijoshi.github.io/blog/categories/markdown/atom.xml" rel="self"/>
+  <link href="http://vaidehijoshi.github.io/"/>
+  <updated>2015-08-11T08:52:33-04:00</updated>
+  <id>http://vaidehijoshi.github.io/</id>
+  <author>
+    <name><![CDATA[Vaidehi Joshi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Rolling Out the Redcarpet for Rendering Markdown]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/08/11/rolling-out-the-redcarpet-for-rendering-markdown/"/>
+    <updated>2015-08-11T08:47:54-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/08/11/rolling-out-the-redcarpet-for-rendering-markdown</id>
+    <content type="html"><![CDATA[<p><img src="http://cdn.lolbrary.com/2013/12/6/lolbrary.com_45273_1386359887.jpg" style="display: block; margin-left: auto; margin-right: auto; max-width: 400px; max-height: 500px;"/></p>
+
+<p>Sometimes, it&rsquo;s the little things that matter the most. As cool and complex as your giant application might be, small details like a toggleable button, or beautiful-formatted and styled dropdown select can have the biggest impact on the look and feel of the rest of your application.</p>
+
+<p>Once you&rsquo;ve built out the skeleton of your application and filled in the backend functionality, the next step is to connect the all the logic with your frontend framework. And once you&rsquo;ve done that, you start to see all the gaping holes that you need to fix next. One of the applications that I have been working on recently got to that state. Once I ensured that the user-facing page corresponded to the admin panel, it was time to fix all the little things that I had been putting off until we got the application working!</p>
+
+<p>One of those minute details was rendering markdown. While building out the application, we were just using Ruby string primitives in our database to render text. But no one wants to see a long five-paragraph article rendered as a single, huge block of text, right? So, we had to make our text easily editable on the admin panel and renderable &mdash; that&rsquo;s word, right? &mdash; on the user-facing side. At first, I had no idea how to go about doing this. But it turns out that (no surprise here!) this problem has been solved before! All we had to do next was figure out how to implement someone else&rsquo;s solution on our own application. Luckily, the answer to our prayers is as simple as rolling out the <code>redcarpet</code> gem.</p>
+
+<!--more-->
+
+
+<h2>Markdown: What is it?</h2>
+
+<p><img src="http://kirkstrobeck.github.io/whatismarkdown.com/img/markdown.png" style="display: block; margin-left: auto; margin-right: auto; max-width: 400px; max-height: 300px;"/></p>
+
+<p>The Markdown language didn&rsquo;t exist until 2004, when it was created by John Gruber of <a href="http://daringfireball.net/">Daring Fireball</a> blog fame. Unlike markup languages such as HTML or RTF (Rich Text Format), Markdown was created to not have any tags for formatting &ldquo;instructions&rdquo; when rendered. Instead, it is structured to be <a href="http://whatismarkdown.com/">readable without formatting</a> or any tags. Ultimately, the language converts simple text into structurally valid markup HTML (or XHTML).</p>
+
+<p>We interact with Markdown a lot, even though we might not always realize it. Files that end in <code>.md</code>, for example, are written in Markdown, and a lot of blog generators (including octopress and jekyll) use Markdown as their formatting language. In fact, this language is exactly what allows us to write something like this into a code snippet or CMS parser:</p>
+
+<pre><code># I'm a heading
+
+This is a list:
+
+* thing one
+* thing two
+* thing three
+
+And here's some *italics* and some **bold**.
+</code></pre>
+
+<p>which will then be processed by Markdown to render actually <em>this</em> HTML in our templates:</p>
+
+<p>&#8220;`html</p>
+
+<h1>I&#8217;m a heading</h1>
+
+
+
+
+<p>This is a list:</p>
+
+
+
+
+<ul>
+  <li>thing one</li>
+  <li>thing two</li>
+  <li>thing three</li>
+</ul>
+
+
+
+
+<p>And here&#8217;s some <em>italics</em> and some <strong>bold</strong>.</p>
+
+
+<pre><code>
+Not only is that incredibly cool, but it's also a powerful templating tool! There's one slight problem, however: our templates don't look anything like this. We have neither any Markdown, nor any HTML! Instead, we're just rendering long strings (saved in our Postgres database as `text` attributes) that look like this:
+
+`Here's a news article about Harper Lee's new novel, Go Set A Watchman, but it has no formatting at all...`
+
+So, how do we get our text to look like the beautiful markup from above? Why, by using a special Markdown gem, of course!
+
+## HTML All Of The Things
+
+Markdown processig in Ruby is made especially easy thanks to a library called `redcarpet`, created by a Github developer named &lt;a href="https://github.com/vmg"&gt;Vicent Marti&lt;/a&gt; (thanks, Vicent!). The library is available as a gem, and its parser doesn't require any additional installed libraries aside from Ruby itself.
+
+Let's get set up by adding it to our `Gemfile`:
+
+`gem "redcarpet"`
+
+and bundling up this gem:
+
+`$ bundle install`
+
+Great. Now we need figure out how to recarpet our application using this library! The first thing I like to do whenever I'm working with a library or gem that's completely new to me is decipher what exactly I'm working with here. Thankfully, the `redcarpet` documentation is really fantastic, and they answer this question almost immediately:
+
+&gt;"The core of the Redcarpet library is the Redcarpet::Markdown class. Each instance of the class is attached to a Renderer object; the Markdown class performs parsing of a document and uses the attached renderer to generate output."
+
+Okay...what does this mean, exactly? Well, it's actually not *too* complicated. The library has a `Redcarpet::Markdown` class, which --- you guessed it --- is going to be responsible for handling the transforming/parsing of Markdown to markup (we'll be using HTML, in our case). But it's also attached to a Renderer object, it seems.
+
+An example will help us visualize what exactly is going on here:
+
+`markdown = Redcarpet::Markdown.new(renderer, extensions = {})`
+
+Interesting! the new instance of our `Redcarpet::Markdown` class takes two arguments, one of which *is* our Renderer object. It also seems to take a hash of `extensions`, but we'll come back to that in a bit.
+
+We know that we want to pass in a renderer to our `Redcarpet::Markdown` class...but what are our options? It turns out that there are two built-in renderers that the `redcarpet` library uses: `Redcarpet::Render::HTML` and `Redcarpet::Render::XHTML`. 
+
+*Protip: the `redcarpet` renderers are actually implemented in C, which means that they are incredibly performant and so much faster than other Ruby Markdown renderers!*
+
+Since we want our articles to render HTML, we'll stick with the former renderer rather than the latter:
+
+`markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)`
+
+It's important to note that what's *actually* happening here is that we are creating a new *instance* of an HTML renderer, and passing that to our `Redcarpet::Markdown` object. This is crucial to remember because our `Redcarpet::Render::HTML` can also take its own set of options! When we initialize our HTML renderer, we have the option of passing some flags to it. And then, we pass our HTML renderer to our `markdown` object, which will actually handle parsing it:
+</code></pre>
+
+<p>renderer = Redcarpet::Render::HTML.new(render_options)
+markdown = Redcarpet::Markdown.new(renderer, extensions)
+&#8220;`</p>
+
+<p>We won&rsquo;t add any options to start, but don&rsquo;t forget that this is what&rsquo;s <em>actually</em> happening! Now it&rsquo;s time for a deep breath; next, we&rsquo;ll need to actually implement this <code>markdown</code> object in our application!</p>
+
+<p><img src="http://g-ecx.images-amazon.com/images/G/01/askville/137733_9521259_mywrite/html_cat.jpg" style="display: block; margin-left: auto; margin-right: auto; max-width: 500px; max-height: 400px;"/><br></p>
+
+<p>The first thing we&rsquo;ll want to do is add our <code>markdown</code> object to the class that will need our Markdown parser. For our Bookstore application, we&rsquo;ll have a set of news articles that will show up on our homepage when a user signs in. This means that we&rsquo;ll want our <code>Article</code> objects to be able to implement markdown. Since this is something our <em>entire</em> class should be able to do, we&rsquo;ll add our <code>markdown</code> object as a class method to our <code>Article</code> model:</p>
+
+<pre><code class="ruby">class Article &lt; ActiveRecord::Base
+  class &lt;&lt; self
+    def markdown
+      Redcarpet::Markdown.new(Redcarpet::Render::HTML)
+    end
+  end
+end
+</code></pre>
+
+<p>This method isn&rsquo;t doing anything aside from creating a new instance of a <code>Redcarpet::Markdown</code> parser, with a <code>Redcarpet::Render::HTML</code> renderer. Next, we&rsquo;ll want to add write a migration that will create another column in our database that will save our markdown content:</p>
+
+<pre><code class="ruby">class AddMarkdownContentToArticles &lt; ActiveRecord::Migration
+  def change
+    add_column :articles, :markdown_content, :text
+  end
+end
+</code></pre>
+
+<p>The reason that we have two different columns for persisting content is simple: we have two different types of content that we&rsquo;re dealing with. The <code>content</code> column in the database is what the admins will edit in the admin panel, while the <code>markdown_content</code> column is what will be rendered to the user.</p>
+
+<p>This will be especially evident when we integrate this with our Ember frontend, which would require us to serialize all the data that Rails is passing to the Ember models. In our <code>ArticleSerializer</code>, we are are only passing our <code>markdown_content</code> through to the frontend:</p>
+
+<pre><code class="ruby">class ArticleSerializer &lt; ApplicationSerializer
+    attributes :id, :slug, :title, :markdown_content, :published_at
+end
+</code></pre>
+
+<p>On the other hand, in our <code>Admin::ArticleSerializer</code>, which is hooked up to our admin panel, we are <em>only</em> passing the raw <code>:content</code>, which is our content <em>before</em> is has been parsed through our <code>markdown</code> object:</p>
+
+<pre><code class="ruby">module Admin
+  class ArticleSerializer &lt; ApplicationSerializer
+    attributes :id, :slug, :title, :content, :published_at
+  end
+end
+</code></pre>
+
+<p>Nice! We have everything set up, finally. Let&rsquo;s make sure that we&rsquo;re actually parsing our <code>content</code> and assigning our <code>markdown_content</code> when our article is saved. We can do this by adding a <code>before_save</code> hook, which will call whatever method we pass it right before our <code>Article</code> model is saved:</p>
+
+<pre><code class="ruby">class Article &lt; ActiveRecord::Base
+  class &lt;&lt; self
+    def markdown
+      Redcarpet::Markdown.new(Redcarpet::Render::HTML)
+    end
+  end
+
+  before_save :assign_markdown_content, if: -&gt; { content_changed? }
+
+  def assign_markdown_content
+    assign_attributes({
+      markdown_content: self.class.markdown.render(content)
+    })
+  end
+end
+</code></pre>
+
+<p>Cool! We wrote a <code>assign_markdown_content</code> method that assigns the <code>markdown_content</code> attribute on our <code>Article</code>. And what exactly is it using to assign the <code>markdown_content</code>? Oh, that&rsquo;s right: our <code>markdown</code> object! We&rsquo;re calling the <code>markdown</code> class method, and passing the <code>Article</code>&rsquo;s content to its <code>render</code> method, which means that the <code>Redcarpet::Markdown</code> instance will parse the content into HTML!</p>
+
+<p>We&rsquo;re also doing a pre-check in our <code>before_save</code> by passing a proc to this callback which will only call the <code>assign_markdown_content</code> method if our <code>content</code> column in the database has changed (isn&rsquo;t that <code>content_changed?</code> method is a cool ActiveRecord trick?). This means that we&rsquo;re not assigning attributes on our <code>Article</code> unless we really need to. This is super efficient because it means avoiding unnecessary queries to our database!</p>
+
+<h2>Carpeting Options</h2>
+
+<p>The last part of this <code>redcarpet</code> magic is rendering our content in our views and adding any options we might need. If we wanted to do this in a simple Rails view, we could just ask the <code>Article</code> object for its <code>markdown_content</code>:</p>
+
+<pre><code class="slim">article
+  = @article.markdown_content.html_safe
+</code></pre>
+
+<p>We might need to call <code>html_safe</code> on this particular column since Rails will try to escape the content automatically. We could do a similar thing in an Ember view as well, using triple handlebars to handle the HTML safe issue:</p>
+
+<p><code>&lt;article&gt;}&lt;/article&gt;</code></p>
+
+<p>Now that we finally have everything working, we can add some cool options to our renderer! You&rsquo;ll remember that the <code>Redcarpet::Markdown</code> class takes a hash of options.</p>
+
+<p>In my opinion, the most helpful and important option to pass in is <code>autolink</code>. It&rsquo;s super crucial if you don&rsquo;t know what your content might look like, since it parses links even when they&rsquo;re not enclosed in <code>&lt; &gt;</code> characters. It will detect autolinks for http, https, and ftp protocols, and it also handles email addresses and links that start with <code>www</code>.</p>
+
+<p>We can pass in this option directly as second arguments after we pass in our <code>Redcarpet::Render::HTML</code> object:</p>
+
+<pre><code class="ruby">def markdown
+  Redcarpet::Markdown.new(Redcarpet::Render::HTML, autolink: true)
+end
+</code></pre>
+
+<p>Other helpful options on the <code>Redcarpet::Render::HTML</code> object include <code>tables</code>, <code>space_after_headers</code>, <code>lax_spacing</code>, and <code>highlight</code>. Of course, just as you can pass in options to the markdown object you can do the same for the renderer:</p>
+
+<p><code>Redcarpet::Render::HTML.new(hard_wrap: true, safe_links_only: true, escape_html: true)</code></p>
+
+<p>The <code>escape_html</code> option is particularly interesting because it takes precedence over <code>:no_styles</code>, <code>:no_links</code>, <code>:no_images</code> and <code>:filter_html</code>, which means that any existing html tags will be escaped instead of being removed. I&rsquo;m also pretty sure that it would escape any cats you try to pass in through params as well&hellip;although I haven&rsquo;t tried that one yet.</p>
+
+<p><img src="http://geekandpoke.typepad.com/.a/6a00d8341d3df553ef0120a8b86eae970b-800wi" style="display: block; margin-left: auto; margin-right: auto; max-width: 400px; max-height: 500px;"/><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>redcarpet</code> gem is an awesome way to handle rendering Markdown in Rails. It creates a new instance of a Markdown object, which takes either a HTML or XHTML renderer object. You can also write your own, custom render! Check out the <a href="https://github.com/vmg/redcarpet">documentation</a> to learn more on how to do that.</li>
+<li>Want to see a step-by-step Rails tutorial on <code>redcarpet</code>? Check out <a href="http://railscasts.com/episodes/272-markdown-with-redcarpet">this Railscast</a>.</li>
+<li>Here&rsquo;s a super <a href="https://richonrails.com/articles/rendering-markdown-with-redcarpet">detailed blog post</a> on implementing <code>redcarpet</code>, with some great code snippets and examples.</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>
