@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rails | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-08-11T08:52:33-04:00</updated>
+  <updated>2015-08-11T08:54:46-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -195,7 +195,7 @@ end
 
 <p>We might need to call <code>html_safe</code> on this particular column since Rails will try to escape the content automatically. We could do a similar thing in an Ember view as well, using triple handlebars to handle the HTML safe issue:</p>
 
-<p><code>&lt;article&gt;}&lt;/article&gt;</code></p>
+<p><code>}</code></p>
 
 <p>Now that we finally have everything working, we can add some cool options to our renderer! You&rsquo;ll remember that the <code>Redcarpet::Markdown</code> class takes a hash of options.</p>
 
