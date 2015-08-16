@@ -1,0 +1,405 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Unlocking Ruby Keywords: Begin, End, Ensure, Rescue - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="I recently went down a little bit of rabbit hole in order to do some digging on database transactions. And when I say &ldquo;a little bit&rdquo;, I &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Unlocking Ruby Keywords: Begin, End, Ensure, Rescue</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-08-25T08:40:04-04:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:40 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><iframe src="//giphy.com/embed/VAG0Ct1MbUCju" width="480" height="268" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>I recently went down a little bit of rabbit hole in order to do some <a href="http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions/">digging on database transactions</a>. And when I say &ldquo;a little bit&rdquo;, I mostly mean &ldquo;a lot bit&rdquo;. I opened up the Rails source code for <code>ActiveRecord::Transactions</code>, and I saw some interesting terms I hadn&rsquo;t seen in awhile.</p>
+
+<p>Back when I was first learning Ruby a year ago, I remember reading about keywords. At the time, the only thing that <em>really</em> set them apart for me was the fact that they had special syntax highlighting in my text editor! (Yes, really.) But when I saw them again in the Rails source code, I thought it would be time to get a quick refresher on a few keywords that I saw again and again.</p>
+
+<p>But first: what <em>are</em> keywords, exactly? Well, they&rsquo;re definitely not objects, but instead are reserved words, which are actually <a href="http://stackoverflow.com/a/9446185">defined in the Ruby parser</a>. In fact, there&rsquo;s a whole slew of keywords in Ruby, but the ones that I&rsquo;m the most interested in sharing with you are <code>begin</code>, <code>end</code>, <code>ensure</code>, and <code>rescue</code>. So let&rsquo;s start unlock the door to Ruby with these keywords!</p>
+
+<!--more-->
+
+
+<h2>Begin + End</h2>
+
+<iframe src="//giphy.com/embed/shVNt6dRCNMbu" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>The <code>begin</code> and <code>end</code> blocks are and interesting way of defining a bunch of code that needs to run on it&rsquo;s own, in its own context. Between the <code>begin</code> and <code>end</code> keywords, we can put all the code that we need to run on its own. Just like with normal methods, whatever is the last expression that is evaluated in the <code>begin end</code> block is the result that will be return.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">method_name</span>
+</span><span class='line'>  <span class="k">begin</span>
+</span><span class='line'>      <span class="c1"># our method logic goes here</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Interestingly, the <code>def method_name end</code> keyword syntax of defining a method is also nothing more than a <code>begin end</code> block! I think that this <a href="http://rubylearning.com/satishtalim/ruby_exceptions.html">RubyLearning tutorial</a> explains this pretty well:</p>
+
+<blockquote><p>&ldquo;It is to be noted that the body of a method definition is an implicit begin-end block; the begin is omitted, and the entire body of the method is subject to exception handling, ending with the end of the method.&rdquo;</p></blockquote>
+
+<p>So, if the <code>begin end</code> syntax is just like writing a regular Ruby method, when would we ever use it? Well, it turns out that the <code>begin end</code> block can be helpful for defining chunks of code that need to execute in a certain order. For example, if we wanted to write a method that would split a group of <code>Book</code> objects into various batches, we might have something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">create_or_update_batch</span>
+</span><span class='line'>  <span class="k">if</span> <span class="vi">@batch</span><span class="o">.</span><span class="n">nil?</span>
+</span><span class='line'>      <span class="vi">@batch</span> <span class="o">=</span> <span class="no">BookBatch</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">book_batch</span><span class="o">.</span><span class="n">batch_attrs</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="vi">@batch</span><span class="o">.</span><span class="n">update</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>What we&rsquo;re trying to do here is twofold: first, we want to calculate our <code>BookBatch</code> based on some attributes (<code>batch_attrs</code>) that we&rsquo;re passing in, and then <code>create</code> it. And once we&rsquo;ve done that, we want to <code>update</code> it.</p>
+
+<p>We&rsquo;re always going to want to <code>create</code> our <code>BookBatch</code> if it doesn&rsquo;t already exist, definitely before we go about updating it. We can use the <code>begin end</code> syntax to do the same thing:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">create_or_update_batch</span>
+</span><span class='line'>  <span class="vi">@batch</span> <span class="o">||=</span> <span class="k">begin</span>
+</span><span class='line'>    <span class="no">BookBatch</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">book_batch</span><span class="o">.</span><span class="n">batch_attrs</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="vi">@batch</span><span class="o">.</span><span class="n">update</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In this case, if a <code>@batch</code> instance doesn&rsquo;t already exist, the code between the <code>begin end</code> will run and then the return value (a new <code>BookBatch</code> instance) will be assigned to the <code>@batch</code> instance variable. Only then will the <code>@batch.update</code> line be run.</p>
+
+<p>It turns out that this kind of <a href="http://stackoverflow.com/a/13279295">method architecture</a> takes advantage of the Ruby interpreter&rsquo;s stack. The <code>||=</code> assignment that we are using before the <code>begin end</code> block just takes the last thing from the stack (in this case, <code>BookBatch.create</code>), and assigns it to <code>@batch</code>. Because the code in the <code>begin end</code> block runs independently in its own context, we can use it to contain and encapsulate a bit of logic. This is especially helpful if we want to <code>rescue</code> from an error!</p>
+
+<h2>Rescue</h2>
+
+<iframe src="//giphy.com/embed/3o85xAwT5hvVXhyuli" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>The <code>rescue</code> keyword is pretty cool, and is used by Rubyists quite a lot. It functions to handle exceptions, and takes a single argument: the class/type of error that you want to rescue from.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">create_or_update_batch</span>
+</span><span class='line'>  <span class="vi">@batch</span> <span class="o">||=</span> <span class="k">begin</span>
+</span><span class='line'>    <span class="no">BookBatch</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">book_batch</span><span class="o">.</span><span class="n">batch_attrs</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="vi">@batch</span><span class="o">.</span><span class="n">update</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">rescue</span>
+</span><span class='line'>  <span class="n">raise_book_batch_error</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>One important thing about <code>rescue</code>: it&rsquo;s always written at the same level as our method signature! In the example above, we have written our own <code>raise_book_batch_error</code> method, which will handle the exception once we&rsquo;ve recused from this method. We can pass a specific type of error, or we can allow <code>rescue</code> to default. If you don&rsquo;t pass any parameters to the <code>rescue</code> clause, it defaults to <code>StandardError</code> and will rescue any error by default.</p>
+
+<p>Another important note about <code>rescue</code> is that is occurs at the same level as our method signature. So, if we want to <code>rescue</code> from our <code>create_or_update_batch</code> method, we need to have <code>rescue</code> on the same level as <code>def create_or_update_batch</code>. We could also rescue from <em>inside</em> of a <code>begin end</code> block:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">create_or_update_batch</span>
+</span><span class='line'>  <span class="vi">@batch</span> <span class="o">||=</span> <span class="k">begin</span>
+</span><span class='line'>    <span class="no">BookBatch</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">book_batch</span><span class="o">.</span><span class="n">batch_attrs</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">rescue</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">AttributeAssignmentError</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="vi">@batch</span><span class="o">.</span><span class="n">update</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">rescue</span>
+</span><span class='line'>  <span class="n">raise_book_batch_error</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In this case, the <code>rescue</code> clause inside of our <code>begin end</code> block will rescue any exceptions in its own context. It&rsquo;s also important to note that only one <code>rescue</code> clause of a group will ever be executed.</p>
+
+<h2>Ensure</h2>
+
+<iframe src="//giphy.com/embed/oToYqq3jbiRry" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>All of these blocks can start to be a little much after awhile. Sometimes, all you want to do is make sure that a specific piece of code will always run! Luckily, that&rsquo;s what the <code>ensure</code> keyword is for. This keyword starts a section of code that is always run when an exception is raised. And just like <code>rescue</code>, it&rsquo;s written at the same level as our method&rsquo;s signature.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">create_or_update_batch</span>
+</span><span class='line'>  <span class="vi">@batch</span> <span class="o">||=</span> <span class="k">begin</span>
+</span><span class='line'>    <span class="no">BookBatch</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">book_batch</span><span class="o">.</span><span class="n">batch_attrs</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="vi">@batch</span><span class="o">.</span><span class="n">update</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">rescue</span>
+</span><span class='line'>  <span class="n">raise_book_batch_error</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">ensure</span>
+</span><span class='line'>  <span class="n">clean_up_orphaned_book_batches</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In the example above, we&rsquo;re ensuring that even if a <code>BookBatch</code> was created and didn&rsquo;t get associated in the correct way and was orphaned, the <code>clean_up_orphaned_book_batches</code> method would always run. A good way to think about the <code>ensure</code> keyword is that its the last thing that will run in the method, and it will run no matter what, every single time.</p>
+
+<p>The unique thing about <code>ensure</code> is that it runs <em>even if</em> there were any errors that were raised. The best practice is to usually put <code>ensure</code> at the end, so that the last part of the method will run.</p>
+
+<p>The <code>begin</code>, <code>end</code>, <code>rescue</code>, and <code>ensure</code> methods are a little tricky to understand all together. But once we break them apart and figure out how they work on their own, things start to make a little more sense. Hopefully, diving into the rabbit hole of the Rails source code will be a little easier now. At the very least, we now have the keys to the wonderful world of Ruby keywords!</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>begin end</code> block can be used to execute a block of code in a specific context. <code>Rescue</code> can be used to handle errors, while <code>ensure</code> will always run at the end of a method. The Ruby documentation has the complete list of Ruby keywords, and it&rsquo;s clearly and thoroughly written. Check it out <a href="https://github.com/ruby/ruby/blob/trunk/doc/keywords.rdoc">over here</a>!</li>
+<li>Check out this great <a href="http://blog.rubybestpractices.com/posts/rklemme/003-The_Universe_between_begin_and_end.html">blog post</a> with lots of examples on <code>begin</code> and <code>end</code>, and how to use them in the context of a method.</li>
+<li>Curious how <code>ensure</code> works in the context of an application? Here&rsquo;s a <a href="https://blog.newrelic.com/2014/12/10/weird-ruby-2-rescue-interrupt-ensure/">blog post</a> that dives into exactly that!</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-08-25T08:40:04-04:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:40 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/08/18/safer-sql-using-activerecord-transactions/" title="Previous Post: Safer SQL: Using ActiveRecord Transactions">&laquo; Safer SQL: Using ActiveRecord Transactions</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/">Unlocking Ruby Keywords: Begin, End, Ensure, Rescue</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/18/safer-sql-using-activerecord-transactions/">Safer SQL: Using ActiveRecord Transactions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/11/rolling-out-the-redcarpet-for-rendering-markdown/">Rolling Out the Redcarpet for Rendering Markdown</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/04/safely-storing-your-assets-paperclip-with-aws-plus-heroku/">Safely Storing Your Assets: Paperclip With AWS + Heroku</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/28/clipping-images-for-rails-using-paperclip/">Clipping Images for Rails: Using Paperclip</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

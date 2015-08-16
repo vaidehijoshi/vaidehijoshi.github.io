@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-08-16T11:32:51-04:00</updated>
+  <updated>2015-08-16T13:27:39-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,207 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Unlocking Ruby Keywords: Begin, End, Ensure, Rescue]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/"/>
+    <updated>2015-08-25T08:40:04-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/VAG0Ct1MbUCju" width="480" height="268" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>I recently went down a little bit of rabbit hole in order to do some <a href="http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions/">digging on database transactions</a>. And when I say &ldquo;a little bit&rdquo;, I mostly mean &ldquo;a lot bit&rdquo;. I opened up the Rails source code for <code>ActiveRecord::Transactions</code>, and I saw some interesting terms I hadn&rsquo;t seen in awhile.</p>
+
+<p>Back when I was first learning Ruby a year ago, I remember reading about keywords. At the time, the only thing that <em>really</em> set them apart for me was the fact that they had special syntax highlighting in my text editor! (Yes, really.) But when I saw them again in the Rails source code, I thought it would be time to get a quick refresher on a few keywords that I saw again and again.</p>
+
+<p>But first: what <em>are</em> keywords, exactly? Well, they&rsquo;re definitely not objects, but instead are reserved words, which are actually <a href="http://stackoverflow.com/a/9446185">defined in the Ruby parser</a>. In fact, there&rsquo;s a whole slew of keywords in Ruby, but the ones that I&rsquo;m the most interested in sharing with you are <code>begin</code>, <code>end</code>, <code>ensure</code>, and <code>rescue</code>. So let&rsquo;s start unlock the door to Ruby with these keywords!</p>
+
+<!--more-->
+
+
+<h2>Begin + End</h2>
+
+<iframe src="//giphy.com/embed/shVNt6dRCNMbu" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>The <code>begin</code> and <code>end</code> blocks are and interesting way of defining a bunch of code that needs to run on it&rsquo;s own, in its own context. Between the <code>begin</code> and <code>end</code> keywords, we can put all the code that we need to run on its own. Just like with normal methods, whatever is the last expression that is evaluated in the <code>begin end</code> block is the result that will be return.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">method_name</span>
+</span><span class='line'>  <span class="k">begin</span>
+</span><span class='line'>      <span class="c1"># our method logic goes here</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Interestingly, the <code>def method_name end</code> keyword syntax of defining a method is also nothing more than a <code>begin end</code> block! I think that this <a href="http://rubylearning.com/satishtalim/ruby_exceptions.html">RubyLearning tutorial</a> explains this pretty well:</p>
+
+<blockquote><p>&ldquo;It is to be noted that the body of a method definition is an implicit begin-end block; the begin is omitted, and the entire body of the method is subject to exception handling, ending with the end of the method.&rdquo;</p></blockquote>
+
+<p>So, if the <code>begin end</code> syntax is just like writing a regular Ruby method, when would we ever use it? Well, it turns out that the <code>begin end</code> block can be helpful for defining chunks of code that need to execute in a certain order. For example, if we wanted to write a method that would split a group of <code>Book</code> objects into various batches, we might have something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">create_or_update_batch</span>
+</span><span class='line'>  <span class="k">if</span> <span class="vi">@batch</span><span class="o">.</span><span class="n">nil?</span>
+</span><span class='line'>      <span class="vi">@batch</span> <span class="o">=</span> <span class="no">BookBatch</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">book_batch</span><span class="o">.</span><span class="n">batch_attrs</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="vi">@batch</span><span class="o">.</span><span class="n">update</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>What we&rsquo;re trying to do here is twofold: first, we want to calculate our <code>BookBatch</code> based on some attributes (<code>batch_attrs</code>) that we&rsquo;re passing in, and then <code>create</code> it. And once we&rsquo;ve done that, we want to <code>update</code> it.</p>
+
+<p>We&rsquo;re always going to want to <code>create</code> our <code>BookBatch</code> if it doesn&rsquo;t already exist, definitely before we go about updating it. We can use the <code>begin end</code> syntax to do the same thing:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">create_or_update_batch</span>
+</span><span class='line'>  <span class="vi">@batch</span> <span class="o">||=</span> <span class="k">begin</span>
+</span><span class='line'>    <span class="no">BookBatch</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">book_batch</span><span class="o">.</span><span class="n">batch_attrs</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="vi">@batch</span><span class="o">.</span><span class="n">update</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In this case, if a <code>@batch</code> instance doesn&rsquo;t already exist, the code between the <code>begin end</code> will run and then the return value (a new <code>BookBatch</code> instance) will be assigned to the <code>@batch</code> instance variable. Only then will the <code>@batch.update</code> line be run.</p>
+
+<p>It turns out that this kind of <a href="http://stackoverflow.com/a/13279295">method architecture</a> takes advantage of the Ruby interpreter&rsquo;s stack. The <code>||=</code> assignment that we are using before the <code>begin end</code> block just takes the last thing from the stack (in this case, <code>BookBatch.create</code>), and assigns it to <code>@batch</code>. Because the code in the <code>begin end</code> block runs independently in its own context, we can use it to contain and encapsulate a bit of logic. This is especially helpful if we want to <code>rescue</code> from an error!</p>
+
+<h2>Rescue</h2>
+
+<iframe src="//giphy.com/embed/3o85xAwT5hvVXhyuli" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>The <code>rescue</code> keyword is pretty cool, and is used by Rubyists quite a lot. It functions to handle exceptions, and takes a single argument: the class/type of error that you want to rescue from.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">create_or_update_batch</span>
+</span><span class='line'>  <span class="vi">@batch</span> <span class="o">||=</span> <span class="k">begin</span>
+</span><span class='line'>    <span class="no">BookBatch</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">book_batch</span><span class="o">.</span><span class="n">batch_attrs</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="vi">@batch</span><span class="o">.</span><span class="n">update</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">rescue</span>
+</span><span class='line'>  <span class="n">raise_book_batch_error</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>One important thing about <code>rescue</code>: it&rsquo;s always written at the same level as our method signature! In the example above, we have written our own <code>raise_book_batch_error</code> method, which will handle the exception once we&rsquo;ve recused from this method. We can pass a specific type of error, or we can allow <code>rescue</code> to default. If you don&rsquo;t pass any parameters to the <code>rescue</code> clause, it defaults to <code>StandardError</code> and will rescue any error by default.</p>
+
+<p>Another important note about <code>rescue</code> is that is occurs at the same level as our method signature. So, if we want to <code>rescue</code> from our <code>create_or_update_batch</code> method, we need to have <code>rescue</code> on the same level as <code>def create_or_update_batch</code>. We could also rescue from <em>inside</em> of a <code>begin end</code> block:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">create_or_update_batch</span>
+</span><span class='line'>  <span class="vi">@batch</span> <span class="o">||=</span> <span class="k">begin</span>
+</span><span class='line'>    <span class="no">BookBatch</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">book_batch</span><span class="o">.</span><span class="n">batch_attrs</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">rescue</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">AttributeAssignmentError</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="vi">@batch</span><span class="o">.</span><span class="n">update</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">rescue</span>
+</span><span class='line'>  <span class="n">raise_book_batch_error</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In this case, the <code>rescue</code> clause inside of our <code>begin end</code> block will rescue any exceptions in its own context. It&rsquo;s also important to note that only one <code>rescue</code> clause of a group will ever be executed.</p>
+
+<h2>Ensure</h2>
+
+<iframe src="//giphy.com/embed/oToYqq3jbiRry" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>All of these blocks can start to be a little much after awhile. Sometimes, all you want to do is make sure that a specific piece of code will always run! Luckily, that&rsquo;s what the <code>ensure</code> keyword is for. This keyword starts a section of code that is always run when an exception is raised. And just like <code>rescue</code>, it&rsquo;s written at the same level as our method&rsquo;s signature.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">create_or_update_batch</span>
+</span><span class='line'>  <span class="vi">@batch</span> <span class="o">||=</span> <span class="k">begin</span>
+</span><span class='line'>    <span class="no">BookBatch</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">book_batch</span><span class="o">.</span><span class="n">batch_attrs</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="vi">@batch</span><span class="o">.</span><span class="n">update</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">rescue</span>
+</span><span class='line'>  <span class="n">raise_book_batch_error</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">ensure</span>
+</span><span class='line'>  <span class="n">clean_up_orphaned_book_batches</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In the example above, we&rsquo;re ensuring that even if a <code>BookBatch</code> was created and didn&rsquo;t get associated in the correct way and was orphaned, the <code>clean_up_orphaned_book_batches</code> method would always run. A good way to think about the <code>ensure</code> keyword is that its the last thing that will run in the method, and it will run no matter what, every single time.</p>
+
+<p>The unique thing about <code>ensure</code> is that it runs <em>even if</em> there were any errors that were raised. The best practice is to usually put <code>ensure</code> at the end, so that the last part of the method will run.</p>
+
+<p>The <code>begin</code>, <code>end</code>, <code>rescue</code>, and <code>ensure</code> methods are a little tricky to understand all together. But once we break them apart and figure out how they work on their own, things start to make a little more sense. Hopefully, diving into the rabbit hole of the Rails source code will be a little easier now. At the very least, we now have the keys to the wonderful world of Ruby keywords!</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>begin end</code> block can be used to execute a block of code in a specific context. <code>Rescue</code> can be used to handle errors, while <code>ensure</code> will always run at the end of a method. The Ruby documentation has the complete list of Ruby keywords, and it&rsquo;s clearly and thoroughly written. Check it out <a href="https://github.com/ruby/ruby/blob/trunk/doc/keywords.rdoc">over here</a>!</li>
+<li>Check out this great <a href="http://blog.rubybestpractices.com/posts/rklemme/003-The_Universe_between_begin_and_end.html">blog post</a> with lots of examples on <code>begin</code> and <code>end</code>, and how to use them in the context of a method.</li>
+<li>Curious how <code>ensure</code> works in the context of an application? Here&rsquo;s a <a href="https://blog.newrelic.com/2014/12/10/weird-ruby-2-rescue-interrupt-ensure/">blog post</a> that dives into exactly that!</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Safer SQL: Using ActiveRecord Transactions]]></title>
@@ -4739,210 +4940,6 @@ outer join to start.</p>
 <li>The <code>let</code> syntax allows for lazy evaluation and keeps you from having to create a new instance of an object inside of every single <code>it</code> block. Check out more on the <code>let</code> and <code>let!</code> helper methods over on <a href="http://stackoverflow.com/questions/17407733/trouble-differentiating-rspecs-let-vs-let">this Stack Overflow answer</a> or on <a href="https://www.relishapp.com/rspec/rspec-core/v/2-5/docs/helper-methods/let-and-let">this blog post</a>.</li>
 <li>Use <code>describe</code> blocks to divide up your tests into sections, based on functionality and code cohesion. You can also use <code>context</code> blocks to assert different scenarios that could occur during one method call. Read about the <a href="http://lmws.net/describe-vs-context-in-rspec">difference between describe and context</a>.</li>
 <li>Find out more about different rspec testing conventions at <a href="http://betterspecs.org/">Better Specs</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Querying at Warp Drive: Using ActiveRecord Includes]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/04/07/querying-at-warp-drive-using-activerecord-includes/"/>
-    <updated>2015-04-07T08:36:54-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/04/07/querying-at-warp-drive-using-activerecord-includes</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/Wkym7gz6fu1Nu" width="480" height="271" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>There comes a time in the life of every developer when you stop thinking about whether your code works. Instead, you concern yourself with something else entirely: how <em>efficiently</em> your code works.</p>
-
-<p>In fact, you can trace this back to Kent Beck&rsquo;s <a href="http://c2.com/cgi/wiki?MakeItWorkMakeItRightMakeItFast">philosophy</a> of &ldquo;Make it work, make it right, make it fast.&rdquo; Once you&rsquo;ve got your code doing what you want it to do, you need to make it better. But what do you do with your improved code once you&rsquo;ve set it right? Make sure that it&rsquo;s working as fast as it possibly can, of course!</p>
-
-<p>Code efficiency is a bit of an advanced topic, and I&rsquo;m definitely no expert in it. But I recently learned a pretty awesome querying method that&rsquo;s neither difficult to understand nor too complex to implement. In fact, this method has always been right under your nose, hidden inside of the magic that is ActiveRecord. So what is this magical method, exactly? Well, it&rsquo;s called <strong>includes</strong>, and once you start using it, you&rsquo;ll never make database queries the same way again.</p>
-
-<!--more-->
-
-
-<h2>Inquiries on Querying</h2>
-
-<p>The best way to know how to make your code run at warp drive is by first figuring out how fast it is to start with. But before we get into the issue of speed, let&rsquo;s check out what our code base looks like:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
-</span><span class='line'>  <span class="n">belongs_to</span> <span class="ss">:user</span>
-</span><span class='line'>  <span class="kp">attr_accessor</span> <span class="ss">:details</span>
-</span><span class='line'><span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>
-</span><span class='line'><span class="k">class</span> <span class="nc">User</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
-</span><span class='line'>  <span class="n">has_many</span> <span class="ss">:orders</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
-</span><span class='line'>    <span class="k">def</span> <span class="nf">all_order_details</span>
-</span><span class='line'>      <span class="no">User</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">each</span> <span class="o">|</span><span class="n">user</span><span class="o">|</span>
-</span><span class='line'>        <span class="n">user</span><span class="o">.</span><span class="n">orders</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">order</span><span class="o">|</span>
-</span><span class='line'>          <span class="n">order</span><span class="o">.</span><span class="n">details</span>
-</span><span class='line'>        <span class="k">end</span>
-</span><span class='line'>      <span class="k">end</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Nothing <em>too</em> fancy happening here. We&rsquo;ve got a one-to-many relationship here, with a <code>User</code> object having many <code>Orders</code>, and each <code>Order</code> belonging to a <code>User</code>. There&rsquo;s also a class method called <code>all_order_details</code> in our <code>User</code> class. This method queries for all of the <code>User</code> objects in our database, and loops through each <code>User</code> instance, grabbing each order, and calling <code>details</code> on it. And if we take a look at our <code>Order</code> class, we&rsquo;ll see that <code>details</code> is just an attribute on <code>Order</code>. (Forget what that weird <code>class &lt;&lt; self</code> syntax means? Jog your memory with <a href="http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my/">this post</a> from a few weeks ago.)</p>
-
-<p>Our plan is to use this method in an admin panel or dashboard, which is probably the only place where someone would want to see all the order details of every single order placed by every single user in our system. But even though we&rsquo;re not going to be using this method within all of our views, it&rsquo;s still important that we take a look at what it&rsquo;s doing in order to understand whether we can refactor it and make it faster.</p>
-
-<p>So, this code does pretty much exactly what we want it to do. But how fast does it do its job? The only way to find out is by checking out what happens in our server logs when we call our method:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="mi">2</span><span class="o">.</span><span class="mi">2</span><span class="o">.</span><span class="mi">0</span> <span class="p">:</span><span class="mo">001</span> <span class="o">&gt;</span> <span class="no">User</span><span class="o">.</span><span class="n">all_order_details</span>
-</span><span class='line'>  <span class="no">User</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">1</span><span class="o">.</span><span class="mi">1</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;users&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;users&quot;</span>
-</span><span class='line'>  <span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">6</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;orders&quot;</span> <span class="no">WHERE</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="s2">&quot;user_id&quot;</span> <span class="o">=</span> <span class="p">?</span>  <span class="o">[[</span><span class="s2">&quot;user_id&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="o">]]</span>
-</span><span class='line'>  <span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">1</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;orders&quot;</span> <span class="no">WHERE</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="s2">&quot;user_id&quot;</span> <span class="o">=</span> <span class="p">?</span>  <span class="o">[[</span><span class="s2">&quot;user_id&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="o">]]</span>
-</span><span class='line'>  <span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">1</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;orders&quot;</span> <span class="no">WHERE</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="s2">&quot;user_id&quot;</span> <span class="o">=</span> <span class="p">?</span>  <span class="o">[[</span><span class="s2">&quot;user_id&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="o">]]</span>
-</span><span class='line'>  <span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">1</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;orders&quot;</span> <span class="no">WHERE</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="s2">&quot;user_id&quot;</span> <span class="o">=</span> <span class="p">?</span>  <span class="o">[[</span><span class="s2">&quot;user_id&quot;</span><span class="p">,</span> <span class="mi">4</span><span class="o">]]</span>
-</span><span class='line'>  <span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">1</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;orders&quot;</span> <span class="no">WHERE</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="s2">&quot;user_id&quot;</span> <span class="o">=</span> <span class="p">?</span>  <span class="o">[[</span><span class="s2">&quot;user_id&quot;</span><span class="p">,</span> <span class="mi">5</span><span class="o">]]</span>
-</span><span class='line'>  <span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">1</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;orders&quot;</span> <span class="no">WHERE</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="s2">&quot;user_id&quot;</span> <span class="o">=</span> <span class="p">?</span>  <span class="o">[[</span><span class="s2">&quot;user_id&quot;</span><span class="p">,</span> <span class="mi">6</span><span class="o">]]</span>
-</span><span class='line'>  <span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">1</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;orders&quot;</span> <span class="no">WHERE</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="s2">&quot;user_id&quot;</span> <span class="o">=</span> <span class="p">?</span>  <span class="o">[[</span><span class="s2">&quot;user_id&quot;</span><span class="p">,</span> <span class="mi">7</span><span class="o">]]</span>
-</span><span class='line'>  <span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">1</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;orders&quot;</span> <span class="no">WHERE</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="s2">&quot;user_id&quot;</span> <span class="o">=</span> <span class="p">?</span>  <span class="o">[[</span><span class="s2">&quot;user_id&quot;</span><span class="p">,</span> <span class="mi">8</span><span class="o">]]</span>
-</span><span class='line'>  <span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">1</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;orders&quot;</span> <span class="no">WHERE</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="s2">&quot;user_id&quot;</span> <span class="o">=</span> <span class="p">?</span>  <span class="o">[[</span><span class="s2">&quot;user_id&quot;</span><span class="p">,</span> <span class="mi">9</span><span class="o">]]</span>
-</span><span class='line'>  <span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">1</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;orders&quot;</span> <span class="no">WHERE</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="s2">&quot;user_id&quot;</span> <span class="o">=</span> <span class="p">?</span>  <span class="o">[[</span><span class="s2">&quot;user_id&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="o">]]</span>
-</span><span class='line'> <span class="o">=&gt;</span> <span class="c1"># returns an array of order details</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Whoa, whoa, whoa &ndash; hold up. We&rsquo;ve got a problem.</p>
-
-<iframe src="//giphy.com/embed/iJxHzcuNcCJXi" width="480" height="360" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Sure, we got an array of <code>Order</code> details, which is great. But doesn&rsquo;t it seem kind of weird that we had to make so many queries? Are the red flags going off in your head, too? Time to investigate.</p>
-
-<h2>The N + 1 Problem</h2>
-
-<p>Okay, so maybe you didn&rsquo;t recoil in horror when you saw all those queries. But let me explain why you probably should. In our database, we currently have 10 <code>Users</code>, each of whom has one <code>Order</code>. If we look at the queries we&rsquo;re currently making, you&rsquo;ll notice that we&rsquo;re first loading all of our <code>User</code> objects:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">User</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">1</span><span class="o">.</span><span class="mi">1</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;users&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;users&quot;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Loading all of our <code>Users</code> takes 1.1 milliseconds. But what about our <code>Order</code> details? We need to go through our <code>Users</code> table in order to grab each <code>Order</code>&rsquo;s details. That&rsquo;s exactly what&rsquo;s happening in each one of the queries that looks like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">6</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;orders&quot;</span> <span class="no">WHERE</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="s2">&quot;user_id&quot;</span> <span class="o">=</span> <span class="p">?</span>  <span class="o">[[</span><span class="s2">&quot;user_id&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="o">]]</span>
-</span><span class='line'><span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">1</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;orders&quot;</span> <span class="no">WHERE</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="s2">&quot;user_id&quot;</span> <span class="o">=</span> <span class="p">?</span>  <span class="o">[[</span><span class="s2">&quot;user_id&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="o">]]</span>
-</span><span class='line'><span class="c1"># more queries for each user&#39;s orders</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>We&rsquo;re first loading all the <code>Orders</code> when we look for a <code>User</code> with an <code>id</code> of <code>1</code>, which takes us 0.6 milliseconds. And as we continue querying through the remaining 9 <code>Users</code> in our database, each query takes us 0.1 milliseconds.</p>
-
-<p>Right now, this might not seem like that big of a deal. But we have to keep in mind that we only have ten users so far! Hopefully, we&rsquo;ll have a <em>lot</em> more as our user base grows. And that&rsquo;s where our problem comes in. Actually, our problem is quite common, and it&rsquo;s even got a name: <strong>the n + 1 problem</strong>.</p>
-
-<p>The crux of the n + 1 problem is essentially this: the number of queries you make will directly correspond to the number of objects (n) that you have in your database. This means that we&rsquo;ll have 1 query to get all of our <code>User</code> objects, and n number of <em>additional</em> queries for each <code>User</code> object we want to get order details from.</p>
-
-<p>With only 10 users, we&rsquo;ll make 11 queries in total: 1 query for our users, and 10 for each user we query to load the user&rsquo;s order details. But what if we have 10,000 users? Or if we&rsquo;re being optimistic, 100,000 user? &hellip;Or even a million? Making over a hundred thousand queries is just way too slow and simply not acceptable.</p>
-
-<p>Thankfully, this problem is so common that Rails has a fantastic solution, tailor-made to handle it.</p>
-
-<h2>Smarter Querying</h2>
-
-<p>Rails is a pretty smart cookie &ndash; it allows you to load a bunch of stuff at once ahead of time if you know exactly what you want to query. This is referred to as <strong>eager loading</strong>, and a really easy way to eager load your associations is by using the ActiveRecord method <code>includes</code>.</p>
-
-<p>You can call <code>includes</code> on an object an pass it a parameter of the table you want to load as a symbol name. We can implement this directly on our <code>all_order_details</code> method:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">all_order_details</span>
-</span><span class='line'>  <span class="no">User</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">includes</span><span class="p">(</span><span class="ss">:orders</span><span class="p">)</span><span class="o">.</span><span class="n">each</span> <span class="o">|</span><span class="n">user</span><span class="o">|</span>
-</span><span class='line'>    <span class="n">user</span><span class="o">.</span><span class="n">orders</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">order</span><span class="o">|</span>
-</span><span class='line'>      <span class="n">order</span><span class="o">.</span><span class="n">details</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This may look pretty similar to our original code at first, but when we look at our server logs, we can see a world of difference:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="mi">2</span><span class="o">.</span><span class="mi">2</span><span class="o">.</span><span class="mi">0</span> <span class="p">:</span><span class="mo">002</span> <span class="o">&gt;</span> <span class="no">User</span><span class="o">.</span><span class="n">all_order_details</span>
-</span><span class='line'>  <span class="no">User</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">2</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;users&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;users&quot;</span>
-</span><span class='line'>  <span class="no">Order</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">3</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;orders&quot;</span> <span class="no">WHERE</span> <span class="s2">&quot;orders&quot;</span><span class="o">.</span><span class="s2">&quot;user_id&quot;</span> <span class="no">IN</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
-</span><span class='line'> <span class="o">=&gt;</span> <span class="c1"># returns an array of order details</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Nice. We have something really cool happening here. Instead of making &ldquo;n + 1&rdquo; number of queries, we&rsquo;re only making two queries. We spend 0.2 milliseconds getting our users, and 0.3 milliseconds loading our orders. We&rsquo;re only spending 0.5 milliseconds compared to the 2.6 milliseconds we were spending before.</p>
-
-<p>How does this work, exactly? Eager loading allows you to specify exactly which tables you want to load into memory. Just by loading them, we&rsquo;re reducing the number of queries we&rsquo;re making. It&rsquo;s like telling ActiveRecord, <em>Hey, I already know I want all the Users and I know I want to do something with their associated Orders. So instead of querying the table one instance at a time, why don&rsquo;t you just be super efficient and grab &lsquo;em all for me in one shot?</em> And that&rsquo;s pretty much exactly what Rails will do.</p>
-
-<p>I also like the way that <a href="http://www.theodinproject.com/ruby-on-rails/active-record-queries">the Odin Project</a> explains how <code>includes</code> works:</p>
-
-<blockquote><p>&ldquo;Includes basically takes the name of one or more associations that you&rsquo;d like to load at the same time as your original object and brings them into memory. You can chain it onto other methods like where or order clauses.&rdquo;</p></blockquote>
-
-<p>Other helpful methods that do similar things to solve the n + 1 problem are <code>joins</code>, used for joining multiple tables together, and <code>pluck</code>, which grabs a specific column and returns it in an array format.</p>
-
-<h2>Big O Puts the O In &ldquo;Uh Oh&rdquo;</h2>
-
-<iframe src="//giphy.com/embed/fcpJebgkQ14UE" width="480" height="192" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Dealing with issues of efficiency and speed is a pretty advanced topic, mostly because it gets into the deep depths of computer science and the dreaded concept of <strong>Big O Notation</strong>. Big O deals with the space time complexity of different algorithms.</p>
-
-<p>The n + 1 problem is actually nothing more than a Big O problem, because it has to do with how well your algorithm runs. The Big O complexity of an n + 1 problem is <strong>O(n)</strong>, pronounced &ldquo;Oh of n&rdquo;. An O(n) algorithm is one whose performance will grow linearly, and will be directly proportional to the size of input data (the more <code>Users</code> we have, the larger our query of each user&rsquo;s order details).</p>
-
-<p>Big O should always be <a href="http://rob-bell.net/2009/06/a-beginners-guide-to-big-o-notation/">taken into consideration</a> while building an app. But that being said, it should never be the first thing that you think about &ndash; particularly if you are a reatively junior developer. The space time complexity of your algorithm is something you can think about while refactoring your code, or rethinking how you&rsquo;re approaching or solving a problem.</p>
-
-<p>Being able to evaluate an algorithm&rsquo;s efficiency is definitely something to work towards, but it&rsquo;s also something that takes practice. Implementing ActiveRecord&rsquo;s <code>includes</code> method is a good way to start playing around with speed and efficiency &ndash; plus, you&rsquo;ll make some kickass queries in the process, and that always feels pretty awesome. (I mean, obviously it&rsquo;s not as awesome as going warp speed on the Enterprise, but hey, it&rsquo;s an acceptable alternative.)</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>includes</code> method can be chained on to any ActiveRecord model, and takes parameters of an association/table name, passed in as a symbol. Read more about it in the <a href="http://guides.rubyonrails.org/active_record_querying.html#eager-loading-associations">Rails docs</a>.</li>
-<li>If you&rsquo;re still curious about the n + 1 problem, check out another good example of it <a href="http://www.sitepoint.com/silver-bullet-n1-problem/">over here</a>.</li>
-<li>Big O Notation got you down? Check out <a href="http://nathanmlong.com/2015/03/understanding-big-o-notation/">this awesome resource</a>, which has graphs to go along with each code snippet example of different types of notation.</li>
 </ul>
 
 ]]></content>

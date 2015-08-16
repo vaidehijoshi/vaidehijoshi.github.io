@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="Is there anything more satisfying than writing concise, perfect line of SQL and then watching it query your database exactly as you expected? &hellip;">
+  <meta name="description" content="I recently went down a little bit of rabbit hole in order to do some digging on database transactions. And when I say &ldquo;a little bit&rdquo;, I &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,56 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/">Unlocking Ruby Keywords: Begin, End, Ensure, Rescue</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-08-25T08:40:04-04:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:40 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/VAG0Ct1MbUCju" width="480" height="268" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>I recently went down a little bit of rabbit hole in order to do some <a href="http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions/">digging on database transactions</a>. And when I say &ldquo;a little bit&rdquo;, I mostly mean &ldquo;a lot bit&rdquo;. I opened up the Rails source code for <code>ActiveRecord::Transactions</code>, and I saw some interesting terms I hadn&rsquo;t seen in awhile.</p>
+
+<p>Back when I was first learning Ruby a year ago, I remember reading about keywords. At the time, the only thing that <em>really</em> set them apart for me was the fact that they had special syntax highlighting in my text editor! (Yes, really.) But when I saw them again in the Rails source code, I thought it would be time to get a quick refresher on a few keywords that I saw again and again.</p>
+
+<p>But first: what <em>are</em> keywords, exactly? Well, they&rsquo;re definitely not objects, but instead are reserved words, which are actually <a href="http://stackoverflow.com/a/9446185">defined in the Ruby parser</a>. In fact, there&rsquo;s a whole slew of keywords in Ruby, but the ones that I&rsquo;m the most interested in sharing with you are <code>begin</code>, <code>end</code>, <code>ensure</code>, and <code>rescue</code>. So let&rsquo;s start unlock the door to Ruby with these keywords!</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -520,56 +570,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/06/16/babys-first-conference-recapping-reddotrubyconf/">Baby&#8217;s First Conference: Recapping RedDotRubyConf</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-06-16T08:29:28-04:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:29 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/conferences/'>conferences</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>, <a class='category' href='/blog/categories/talks/'>talks</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><iframe src="https://www.flickr.com/photos/reddotrubyconf/18777106586/in/photostream/player/" width="500" height="333" frameborder="0" allowfullscreen webkitallowfullscreen mozallowfullscreen oallowfullscreen msallowfullscreen></iframe>
-
-
-<p>A week ago, I was on a code overload in Singapore. What was I doing on the other side of the world? Why, giving (and attending!) my very first talk at a Ruby conference, of course!</p>
-
-<p>I was lucky enough to join some serious Ruby powerhouses at the <a href="reddotrubyconf.com">Red Dot Ruby Conference</a> earlier this month. And it was such a cool first conference experience. But, because I had to give a talk, I was pretty preoccupied with writing my speech and creating some fun slides to accompany it. What I forgot in the process was that I would be an audience member at the conference, too! (Pretty silly, I know).</p>
-
-<p>My lightning talk was <a href="http://confreaks.tv/videos/rdrc2015-lightning-talk-refactoring-of-self">just a few minutes</a>, which meant that for the majority of the two-day conference, I had the unique opportunity to listen to some really fantastic talks. And I learned <em>so much</em>. I also got to meet some interesting, talented, and creative people who have made some very significant and core contributions to the Ruby and Rails communities and codebases. Summing up everything that happened in those two days is a bit difficult since every talk was informative in many ways. But I&rsquo;ll recap at least some of the dopest things I learned about while I was there. But if you want the full effect, you should probably <a href="http://i.ytimg.com/vi/_kRtkrBumBw/maxresdefault.jpg">eat a durian</a> while reading this post &ndash; just sayin&#8217;.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/06/16/babys-first-conference-recapping-reddotrubyconf/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -585,6 +585,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/">Unlocking Ruby Keywords: Begin, End, Ensure, Rescue</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/08/18/safer-sql-using-activerecord-transactions/">Safer SQL: Using ActiveRecord Transactions</a>
       </li>
     
@@ -598,10 +602,6 @@
     
       <li class="post">
         <a href="/blog/2015/07/28/clipping-images-for-rails-using-paperclip/">Clipping Images for Rails: Using Paperclip</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing/">All the Columns Fit to Index: Unique + Compound Indexing</a>
       </li>
     
   </ul>
