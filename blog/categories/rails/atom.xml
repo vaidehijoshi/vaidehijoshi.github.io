@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rails | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-08-11T08:56:11-04:00</updated>
+  <updated>2015-08-16T11:32:51-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,220 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Safer SQL: Using ActiveRecord Transactions]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions/"/>
+    <updated>2015-08-18T08:11:32-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/Djnfk5gnoNXqM" width="480" height="356" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>Is there anything more satisfying than writing concise, perfect line of SQL and then watching it query your database exactly as you expected? Probably not. Writing &mdash; and subsequently watching! &mdash; an efficient database query is one of my favorite parts of building an application.</p>
+
+<p>But if there&rsquo;s one thing about software development that I&rsquo;ve learned over the past few months, it&rsquo;s this: projects can get out of control, rather quickly. You start off with your basic models, but then as you add one feature after another, things can start to get out of hand. At that point, your focus as a developer shifts and spreads out to various things. You can&rsquo;t just care about how readable your code is; you also have to consider how efficient it is, and how different units of your application might be breaking other parts (hopefully not unbeknownst to you!). In other words, you have to consider how defensive and <em>safe</em> your code actually is.</p>
+
+<p>Recently, while writing some background jobs and creating some service objects for a new feature, I realized the importance of executing and enforcing safe code. The good news is that there&rsquo;s a really helpful, life-saving ActiveRecord <strong>transaction</strong> method that allows you to do exactly this. And the really great news? You get to watch your SQL queries execute safely as a result!</p>
+
+<!--more-->
+
+
+<h2>Database Handshakes</h2>
+
+<iframe src="//giphy.com/embed/gVYk3rI8YjtAI" width="480" height="422" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>As our application grows, there are inevitably going to be different models that depend upon each other. To make things more complicated, those models are going to have to change as our Users take different actions, and that means that we&rsquo;ll need to update different associated parts of our schema as a result. For example, let&rsquo;s say that we have a background job that&rsquo;s responsible for processing an <code>Order</code> on an <code>User</code>. This background job has a service class that takes care of saving an <code>Order</code> when it has been charged, billing the <code>User</code>, and adding a sale to an <code>Vendor</code> object, which will then be visible on the vendor&rsquo;s dashboard panel/admin page.</p>
+
+<pre><code class="ruby">if order.process
+    user.charge
+    vendor.add_sale
+end
+</code></pre>
+
+<p>In other words, we&rsquo;re basically transferring money from our <code>User</code> object to our <code>Vendor</code> objects. At first glance, this might not seem like a potentially &ldquo;unsafe&rdquo; set of queries, but here&rsquo;s where things can get a bit tricky: imagine that our <code>User</code>&rsquo;s credit card information is rejected, or for some reason, the charge cannot be created. In that scenario, we&rsquo;d want to handle the errors and make sure that the <code>add_sale</code> method is <em>not</em> called on our <code>Vendor</code> object. However&hellip;we aren&rsquo;t really safeguarding our code against this situation at all, are we?</p>
+
+<p>But, fear not - it&rsquo;s not a totally hopeless situation! In fact, we can take care of this problem pretty easily by using ActiveRecord&rsquo;s <code>transaction</code> blocks.</p>
+
+<p>The <code>transaction</code> method is defined in the Rails source code under the <code>ActiveRecord::Transactions</code> module. This method takes a block, and whenever it is invoked, the block that is passed to it will be executed inside of a <em>database transaction</em>. If, in the course of executing that block, an <code>exception</code> is raised, the database transaction will automatically be rolled back. No SQL will be executed, and no new data will be added to the database</p>
+
+<pre><code class="ruby">Order.transaction do
+    @order.process
+    @user.charge
+    @vendor.add_sale
+end
+</code></pre>
+
+<p>So what does this mean, exactly? Well, now that we&rsquo;ve wrapped the logic of our three methods inside of a <code>transaction</code> method, we can safely assert that in the case that <em>any</em> of these three methods raises an <code>exception</code> (in other words, fails for any reason), the entire process should fail.</p>
+
+<p>The important piece of this is that we&rsquo;ll never be adding or updating any data (or writing to our database) unless all of these methods are successful. It&rsquo;s crucial for us to ensure that this is the case because we&rsquo;d never want to call the <code>add_sale</code> method and write data to our <code>vendor</code> if the <code>order</code> didn&rsquo;t successfully <code>process</code>, or if our <code>user</code> wasn&rsquo;t successfully <code>charged</code>.</p>
+
+<p>I like to think of these blocks as a &ldquo;handshake&rdquo; between your application and your database: your application and database have an understanding that one will hand off information to the other in a &ldquo;transaction&rdquo;, and when the deal actually goes through, they shake hands and make it official&hellip;or something more poetic. If that made no sense &mdash; or if you&rsquo;re not a big fan of metaphors &mdash; here&rsquo;s how the Rails documentation explains <code>transactions</code>:</p>
+
+<blockquote><p>&ldquo;Transactions are protective blocks where SQL statements are only permanent if they can all succeed as one atomic action. Transactions enforce the integrity of the database and guard the data against program errors or database break-downs. So basically you should use transaction blocks whenever you have a number of statements that must be executed together or not at all.&rdquo;</p></blockquote>
+
+<h2>The Rules of Transacting</h2>
+
+<iframe src="//giphy.com/embed/cGDgkEeqA78Q" width="480" height="397" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>Because ActiveRecord transactions can be easily explained and simplified as a single method, it&rsquo;s easy to forget the idiosyncrasies that make this method work. There are a few things to keep in mind so that we can get the most out of these blocks.</p>
+
+<h3>1. Opening database connections</h3>
+
+<p>A transaction opens up a single database connection. This means that when we call the <code>transaction</code> method, the method can only be invoked on the <em>current</em> database connection. This is important to remember if our application writes to multiple database at once; for example, if our <code>Order</code> and our <code>Vendor</code> data lived in two different databases, we&rsquo;d need to nest our transactions:</p>
+
+<pre><code class="ruby">Order.transaction do
+    Vendor.transaction do 
+        order.process
+        user.charge
+        vendor.add_sale
+    end
+end
+</code></pre>
+
+<p>It&rsquo;s generally a good idea to avoid nested transactions, mostly because the relationship between parent and child transactions can get complicated. This is especially the case because rollbacks are contained <em>inside</em> of their transactions blocks. I think that Mark Daggett explains this pretty well in <a href="http://markdaggett.com/blog/2011/12/01/transactions-in-rails/">his blog</a>:</p>
+
+<blockquote><p>&ldquo;ActiveRecord::Rollback does not propagate outside of the containing transaction block and so the parent transaction does not receive the exception nested inside the child. I find it easier to think of nested transactions like the child who dumps its contents into the parent container, leaving the child transaction empty. To ensure a rollback is received by the parent transaction you must add the <code>requires_new: true</code>. option to the child transaction.&rdquo;</p></blockquote>
+
+<h3>2. Different classes, one transaction</h3>
+
+<p>Because transactions are bound to <em>database connections</em>, we can mix different types of models inside of a <code>transaction</code> block. In fact, that&rsquo;s exactly what we were doing when we wrote our initial transaction:</p>
+
+<pre><code class="ruby">Order.transaction do
+    @order.process
+    @user.charge
+    @vendor.add_sale
+end
+</code></pre>
+
+<h3>3. Class and instance methods</h3>
+
+<p>The great part about <code>transaction</code> is that it is available to us as both a class <em>and</em> an instance method for our ActiveRecord models. What does this mean, exactly? Well, the short answer is that we can write a transaction is lots of different ways, since we can invoke the <code>transaction</code> method on a class or an instance.</p>
+
+<p>For example, we could have written this:
+<code>ruby
+User.transaction do
+    # methods we want to call go here
+end
+</code></p>
+
+<p>Or this:
+<code>ruby
+Vendor.transaction do
+    # methods we want to call go here
+end
+</code></p>
+
+<p>Or any of these:
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="vi">@order</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'><span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;@user.transaction do</span>
+</span><span class='line'><span class="sr">end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="vi">@vendor</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>And if we were writing a method <em>inside</em> of the <code>Order</code>, <code>Vendor</code>, or <code>User</code> classes, these options would have worked as well:</p>
+
+<pre><code class="ruby">self.transaction do
+end
+
+self.class.transaction do
+end
+</code></pre>
+
+<p>The key here is that the <code>transaction</code> can be called on <em>any class</em> that inherits from <code>ActiveRecord::Base</code>. Why is that the key? Well, you might remember that we initially started off wanting to write a transaction inside of our service object&hellip;right? In that case, we can&rsquo;t use something like <code>transaction do</code>, because <code>self</code> is the service object class, which <em>does <strong>not</strong> inherit</em> from <code>ActiveRecord::Base</code>!</p>
+
+<p>So, what do? Well, just call the transaction method onto <code>ActiveRecord::Base</code> directly! there&rsquo;s a quick fix for that.
+<code>ruby
+ActiveRecord::Base.transaction do
+    # methods we want to call go here
+end
+</code></p>
+
+<p>When in doubt, we can always just call the <code>transaction</code> method onto the <code>ActiveRecord::Base</code> class directly to be sure that it will run.</p>
+
+<h3>4. Exceptions are the rule</h3>
+
+<p>There&rsquo;s one golden rule of the <code>transaction</code> block: it will <strong>only rollback the transaction if an error is raised</strong>.</p>
+
+<p>Why is this important? Well, calling something like <code>save</code> or <code>destroy</code> inside of a transaction will not raise an error; if something goes wrong, these methods will simply return <code>false</code>. Which means that our <code>transaction</code> block will continue, since there was no error raised!</p>
+
+<p>Uh oh&hellip;how to fix? Just use the <code>save!</code> and <code>destroy!</code> methods instead! These are both ActiveRecord methods which raise an exception if they don&rsquo;t execute successfully:</p>
+
+<pre><code class="ruby">ActiveRecord::Base.transaction do
+    @order.destroy!
+    @user.save!
+end
+</code></pre>
+
+<p>And that&rsquo;s exactly what we need in this case, because we want the entire transaction to be closed if one or both of these methods are unsuccessful, and we want to tell the database that no data has changed. If we really, <em>really</em> wanted to use <code>save</code> instead of <code>save!</code>, we&rsquo;d have to manually <code>raise</code> an error in the block for our transaction to work as expected.</p>
+
+<h2>Transactions Under The Hood</h2>
+
+<iframe src="//giphy.com/embed/iUOzkJmvnFfqM" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>One of the interesting things about how <code>transaction</code> works under the hood has to do with how the <code>save</code> and <code>destroy</code> methods work. It turns out that Rails actually wraps the <code>save</code> and <code>destroy</code> methods in their own <code>transaction</code>s! So, we were using <code>ActiveRecord::Base.transaction</code> all along, without probably ever knowing what was really happening! Pretty crazy, right?</p>
+
+<p>There are a couple reasons that <code>save</code> and <code>destroy</code> are particularly curious. First, because they each occur in their own transactions, this means that we&rsquo;ll never need to write a <code>transaction</code> block to update a single record. In fact, that&rsquo;s exactly what Rails is  doing for us when we call something like <code>@user.save</code> &mdash; it&rsquo;s running a <code>transaction</code> block behind the scenes.</p>
+
+<p>The second reason this is interesting is because of callbacks that are associated with these two methods. A callback hook like <code>after_save</code> is actually part of the same active transaction that was opened when we called <code>@user.save</code>. So, if we wanted our code to execute <em>outside</em> of Rails&#8217; default <code>transaction</code> that wraps around <code>save</code> or <code>destroy</code>, we&rsquo;d want to use callback hooks like <code>after_commit</code> or <code>after_destroy</code>. If we want something specific to happen when the <code>save</code> <code>transaction</code> succeeds, we&rsquo;d have to use the <code>after_commit</code> callback, and if we want something specific to happen when the <code>save</code> <code>transaction</code> fails, we could use the <code>after_rollback</code> hook.</p>
+
+<p>While reading about transactions and the <code>save</code> and <code>destroy</code> methods, I discovered another really interesting method called <code>with_transaction_returning_status</code>. The <a href="https://github.com/rails/rails/blob/master/activerecord/lib/active_record/transactions.rb">transactions source code</a> is a bit of a rabbit hole, but if we spend some time reading through it, there&rsquo;s a lot to learn.</p>
+
+<p>In a nutshell, the <code>with_transaction_returning_status</code> is responsible for actually <em>raising</em> an <code>ActiveRecord::Rollback</code>. Somewhere inside of the black box of Rails magic, when we see an error caused by a <code>save</code> transaction that looks like this:</p>
+
+<pre><code>:001 &gt; user = User.find(1)
+:002 &gt; user.save
+    (0.2ms)  begin transaction
+    User Exists (0.6ms)  SELECT * FROM "users" WHERE ("users"."id" = 1)
+   (0.1ms)  rollback transaction
+ =&gt; false 
+</code></pre>
+
+<p>it&rsquo;s actually a method like <code>with_transaction_returning_status</code> that&rsquo;s responsible for causing that rollback to happen! Here&rsquo;s a truncated example of the source code; we can see that this method defines a local <code>status</code> variable, sets and returns the <code>status</code> if the <code>transaction</code> is successful, and <code>raises</code> an error, if the <code>status</code> is not defined:</p>
+
+<pre><code class="ruby">def with_transaction_returning_status
+    status = nil
+    self.class.transaction do
+        # some Rails magic here that captures the
+        # return value of a save or destroy method,
+        # and then sets that to the status.
+
+        raise ActiveRecord::Rollback unless status
+    end
+    status
+end
+</code></pre>
+
+<p>The Rails documentation also briefly explains exactly what&rsquo;s happening:</p>
+
+<blockquote><p>Executes <code>method</code> within a transaction and captures its return value as a status flag. If the status is true the transaction is committed, otherwise a ROLLBACK is issued. In any case the status flag is returned.</p></blockquote>
+
+<p>Transactions are all around us, it seems, from the most everyday methods to the more complicated ones that we write ourselves. They&rsquo;re a great way of keeping our code safe while also defending against things like duplicate SQL queries.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>ActiveRecord&rsquo;s <code>transaction</code> method takes a block, and will only execute the block and write to your database if no exceptions are raised.</li>
+<li>You can defined the <code>transaction</code> method on any class that <em>inherits from</em> <code>ActiveRecord::Base</code>, and that transaction will open up a single new database connection.</li>
+<li>Check out the Jeff Casimir helpful <a href="https://gist.github.com/jcasimir/1098368">summary of transactions</a> in his Gist. Or, if you&rsquo;re looking for a challenge, head over to the Rails <a href="http://api.rubyonrails.org/classes/ActiveRecord/Transactions/ClassMethods.html">documentation</a> on ActiveRecord transactions.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Rolling Out the Redcarpet for Rendering Markdown]]></title>
@@ -722,172 +936,6 @@ end
 <li>There are three main types of indexing: <em>single-column</em>, <em>compound</em>, and <em>unique</em> indexes. Compound indexes create an index on two ore more columns in a database, while unique indexes create a restraint on a single column index.</li>
 <li>This <a href="http://stackoverflow.com/a/1049392">StackOverflow answer</a> is the best explanation of how compound indexes actually work in terms of running a query. If you&rsquo;re still confused, give it a read!</li>
 <li>Uniqueness validations are super cool! Read more about them over <a href="https://robots.thoughtbot.com/the-perils-of-uniqueness-validations">here</a>, and check out some real-life examples of how to use them <a href="http://nyonura.com/blog/2014/Partial-Indexes-with-PostgreSQL-and-Rails/">here</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Writing Smart Migrations: References, Reversible, and Indexes]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/"/>
-    <updated>2015-07-14T08:47:19-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/SUtPZfyDenHoY" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>All it takes is a single feature to make you realize how well &ndash; or perhaps not so well &ndash; you&rsquo;ve written your application. Depending on if you&rsquo;ve done a good job of separating concerns, abstracting and encapsulating bits of functionality into cohesive code, and just generally not repeating yourself&hellip;well, you&rsquo;ll probably be way more enthusiastic about adding a huge new feature to an already massive application. But if you haven&rsquo;t done any of those things&hellip;well, you might find yourself doing a massive rewrite of your codebase just to implement a single feature.</p>
-
-<p>Luckily, the application I started adding a feature to last week is pretty well-built, which makes it flexible enough to add new functionality relatively easily. Yet even the most well-thought-out applications need to be teased apart and glued back together during the course of their lives. Often times, a big part of building out a new feature is restructuring the architecture of your application. When you&rsquo;re working with larger code bases (legacy code in particular), that can be the most daunting task. But a lot of the intimidation of that begins to dissipate once you know how to go about restructuring a schema which already exists without breaking all the the things.</p>
-
-<p>The first step in this process is writing migrations to change how the objects in your application and database relate to one another. Of course, knowing how to write the proper migration to suit your needs is just half the battle; the other half is writing a migration that makes object lookup in your database efficient and super fast. Even though I&rsquo;ve <a href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">written about migrations</a> before, I&rsquo;m learning that there&rsquo;s always so much more to know. So, let&rsquo;s get learning!</p>
-
-<!--more-->
-
-
-<h2>Referencing Your References</h2>
-
-<p>A really quick way to clean up our code is by changing the way that we create associations between objects from within our migrations. One feature we&rsquo;ll want to add is to have our <code>Book</code>s belong to a <code>Genre</code>. So far, we&rsquo;ve categorized our <code>Author</code>s by genre, but we&rsquo;ll want to be able to sort and organize our <code>Book</code> objects in a similar way.</p>
-
-<p>We often use <code>belongs_to</code> and <code>has_many</code> inside of our migrations, which is totally valid. But in this case, it probably makes more sense to use something called <code>references</code>. According to the Rails <a href="https://github.com/rails/rails/blob/88aa2efd692619e87eee88dfc48d608bea9bcdb4/activerecord/lib/active_record/connection_adapters/abstract/schema_definitions.rb#L421">source code</a>, <code>references</code> is just an alias of <code>belongs_to</code>. But, a <code>Book</code> doesn&rsquo;t really &ldquo;belong to&rdquo; a <code>Genre</code>, it&rsquo;s more that it should be able to &ldquo;reference&rdquo; the genre that it&rsquo;s associated with. We can add a reference fairly easily just like this:</p>
-
-<pre><code class="ruby">class AddGenreToBooks &lt; ActiveRecord::Migration
-  def change
-    add_reference :books, :genre
-  end
-end
-</code></pre>
-
-<p>This will create a <code>genre_id</code> column inside of our <code>Books</code> table. We could also have done this initially inside of a <code>change</code> method, and written something like <code>t.references(:genre)</code> inside of our migration method. We also have the option to add a <code>type</code>, and specify whether the reference is a <code>polymorphic</code> association or not, as explained by the <a href="http://apidock.com/rails/ActiveRecord/ConnectionAdapters/Table/references">Rails API</a>:</p>
-
-<blockquote><p><code>references</code>: Adds a reference. Optionally adds a type column, if :polymorphic option is provided. The reference column will be an integer by default, the :type option can be used to specify a different type. A foreign key will be created if a foreign_key option is passed.</p></blockquote>
-
-<p>Using <code>references</code> instead of a typical <code>has_many</code> and <code>belongs_to</code> gives us a bit more flexibility moving forward, especially if we know that we&rsquo;ll be adding different types of associations in the long run.</p>
-
-<h2>Reverse, reverse!</h2>
-
-<p>One big feature we want to add to our Bookstore app is giving our <code>Books</code> a rating. There&rsquo;ll be some slightly complicated logic on the backend for this feature to actually work, since we&rsquo;ll need to update a <code>Book</code>&rsquo;s rating every single time a <code>User</code> rates it. But, let&rsquo;s not worry too much about how that logic will be implemented just yet. Instead, it&rsquo;ll be more helpful to break down this larger problem into a few smaller, bite-sized pieces.</p>
-
-<p>First things first: do what we know. And we know that we&rsquo;ll need to give every <code>Book</code> a <code>rating</code> attribute. We&rsquo;ll want this to use Ruby BigDecimal, so we&rsquo;ll specify that in our migration. This migration will start out pretty simple, since all we want to do is just give our <code>Book</code>s a new attribute:</p>
-
-<pre><code class="ruby">class AddRatingColumnToBooks &lt; ActiveRecord::Migration
-  def change
-    add_column :books, :rating, :decimal
-  end
-end
-</code></pre>
-
-<p>If we run <code>rake db:migrate</code>, and then open up our console, we can very quickly check that this added a column, just as we expected:</p>
-
-<pre><code>♥ rails c
-&gt; Book.all.pluck(:rating)
-# =&gt; [nil, nil, nil, nil, nil, nil]
-</code></pre>
-
-<p>Uh oh, that&rsquo;s not so great. We really don&rsquo;t want all of the <code>Book</code>s that are <em>already</em> inside of our database to have <code>nil</code> values for their <code>rating</code>. Honestly, a more accurate representation of their <code>rating</code> would just be <code>0</code>, since none of our <code>User</code>s have actually given these products a rating yet.</p>
-
-<p>What would be really nice is if we could do <em>two</em> things within this single migration: give our <code>Books</code> a <code>rating</code> column (done!), and set all of our pre-existing <code>Books</code> to have a <code>rating</code> of <code>0</code>. How can we do that? Well, by using <code>reversible</code>, of course!</p>
-
-<p>We already know that we can use the <code>up</code> and <code>down</code> methods to migrate &ldquo;up&rdquo; and &ldquo;down&rdquo; the history or &ldquo;life&rdquo; of our database. But there&rsquo;s also another handy method that can help us out here, called <code>reversible</code>. Here&rsquo;s what the <a href="http://edgeguides.rubyonrails.org/active_record_migrations.html">Rails Guides</a> say about <code>reversible</code>:</p>
-
-<blockquote><p>Complex migrations may require processing that Active Record doesn&rsquo;t know how to reverse. You can use <code>reversible</code> to specify what to do when running a migration and what else to do when reverting it. Using <code>reversible</code> will ensure that the instructions are executed in the right order too.</p></blockquote>
-
-<iframe src="//giphy.com/embed/11EAsNbNMMcO3u" width="480" height="148" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>So how can we implement <code>reversible</code> here? Well, to start, we need a reversible block, which takes a direction. If you&rsquo;re thinking that the direction should be <code>up</code> or <code>down</code>, you&rsquo;d be right! Since we&rsquo;re only adding a column in this migration, we don&rsquo;t need to worry about a <code>down</code> method, since migrating down will automatically just drop the <code>rating</code> column that we&rsquo;re adding. What we do need to do is make sure that when we migrate <em>up</em>, we&rsquo;re also updating our current <code>Book</code> records. We can do that by specifying the <code>up</code> method on our direction, and then pass a block to <code>reversible</code> telling it what to do:</p>
-
-<pre><code class="ruby">class AddRatingColumnToBooks &lt; ActiveRecord::Migration
-  def change
-    add_column :books, :rating, :decimal
-
-    reversible do |direction|
-      direction.up { Book.update_all(rating: 0.0) }
-    end
-  end
-end
-</code></pre>
-
-<p>Cool, this migration seems great. Now, we&rsquo;re not only adding a <code>rating</code> column to our <code>Books</code> table, but we&rsquo;re also updating all of our pre-existing <code>Book</code> objects so that they have some default value for their <code>rating</code>. Nothing about this should break ever, right?</p>
-
-<p>Wrong! Why? Because we can rename anything we want at any time&hellip;and then forget to change all of our files. When we decide to start selling music or movies and go full-on Amazon in our application, we&rsquo;ll probably want to rename our <code>Books</code> table to something like <code>Product</code> or <code>Item</code>. We&rsquo;ll create a new migration to rename our table, change our model names, and everything will be fine. Except for one teeny, tiny little problem: when we decide to deploy to Heroku and try to run <code>rake db:migrate</code>, everything will explode. And why might that happen? Well, because we renamed our table, and now we&rsquo;re trying to run a migration on a <code>Books</code> table for a <code>Book</code> model, which, at this moment in time, <em>doesn&rsquo;t even exist</em>.</p>
-
-<p>So, how can we fix this? Well, we can actually define a <code>Book</code> model inside of this very migration file. And, we can do it all in a single line:</p>
-
-<pre><code class="ruby">class AddRatingColumnToBooks &lt; ActiveRecord::Migration
-  class Book &lt; ActiveRecord::Base; end
-
-  def change
-    add_column :books, :rating, :decimal
-
-    reversible do |direction|
-      direction.up { Book.update_all(rating: 0.0) }
-    end
-  end
-end
-</code></pre>
-
-<p>Nice! Now, even if we forget to rename our old migrations, we can be sure that ActiveRecord won&rsquo;t complain if it can&rsquo;t find a <code>Book</code> model when this migration tries to run. In fact, it will <em>always</em> find a model no matter what we might rename our model or table to in the future because we&rsquo;ve defined an empty <code>Book</code> class inside of this migration file. We can be sure that this is the case because Ruby will first look for a class declaration inside of a file before searching anywhere else!</p>
-
-<h2>Index All The Things</h2>
-
-<p>Okay, time to get efficient. Let&rsquo;s look back at our first migration, where we were adding <code>Genre</code>s to <code>Book</code>s:</p>
-
-<pre><code class="ruby">class AddGenreToBooks &lt; ActiveRecord::Migration
-  def change
-    add_reference :books, :genre
-  end
-end
-</code></pre>
-
-<p>This is fine, but there&rsquo;s one slight problem here: what if we only have a few <code>Genre</code>s, but a ton of <code>Book</code>s? When we want to run a method like <code>where</code> or <code>sort_by</code>, how will our application handle this? Well, without even testing out our query, we know it&rsquo;s not going to go so well. And why not? Because, as it stands, our application will have to sort through <em>every single one</em> of our books to find the ones that match our query. And after a couple hundred or thousands of books, this is going to massively slow down our application.</p>
-
-<p>But, we&rsquo;re smart enough to foresee that problem! We&rsquo;ll outsmart our application from the get-go, and just write a smart migration to begin with:</p>
-
-<pre><code class="ruby">class AddGenreToBooks &lt; ActiveRecord::Migration
-  def change
-    add_reference :books, :genre, index: true
-  end
-end
-</code></pre>
-
-<p>If we open up our <code>db/structure.sql</code>, we&rsquo;ll see this:</p>
-
-<pre><code class="sql">CREATE TABLE books (
-  rating numeric(10,2),
-  genre_id integer
-);
-
-CREATE INDEX index_books_on_genre_id ON books USING btree (genre_id);
-</code></pre>
-
-<p>This created an <code>index</code> on our <code>Books</code> table, which is referenced to <code>Genre</code>. This is pretty amazing, because it means that our table will now use integers (not strings or any other data type) to look up an item on our table. Integer lookup is the cheapest and fastest way to look up an item in a database, which means that it&rsquo;s going to speed up our database like crazy!</p>
-
-<p>We also could have just written a completely new migraiton for this as well, which would implement the <code>add_index</code> method:</p>
-
-<pre><code class="ruby">class AddGenreIndexToBooks &lt; ActiveRecord::Migration
-  def change
-    add_index(:books, :genre)
-  end
-end
-</code></pre>
-
-<p>We could also use the <code>add_index</code> method to create unique indexes, or named indexes, as highlighted in the <a href="http://apidock.com/rails/ActiveRecord/ConnectionAdapters/SchemaStatements/add_index">documentation</a>. Sometimes, it&rsquo;s actually <a href="http://makandracards.com/makandra/32353-psa-index-true-in-rails-migrations-does-not-work-as-you-d-expect">safer</a> to use the <code>add_index</code> method rather than <code>index: true</code>.</p>
-
-<p>Now our migrations are not just clear and concise, but they&rsquo;re also helping our application run smoother and quicker in the process. Writing smart migrations can not only save us a lot of time down the road, but they make feature-writing a lot more fun! Not as fun as running wildly through the safari, but hey &ndash; it&rsquo;s a close second:</p>
-
-<iframe src="//giphy.com/embed/cyrx5VQ8PiWoE" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>Using <code>references</code> in a migration is the same as <code>belongs_to</code>, but can make your code more clear. The <code>reversible</code> method is great for specifying how your migration should handle a reverse migration. Indexes are an easy way of adding an iteger column to speed up database queries.</li>
-<li>Need to see another example of manipulating data from within a migraiton? This <a href="http://railsguides.net/change-data-in-migrations-like-a-boss/">blog post</a> walks through some great examples using the <code>up</code> and <code>down</code> methods.</li>
-<li>Check out this great <a href="https://www.reinteractive.net/posts/178-reversible-migrations-with-active-record">post</a> on how to implement <code>reversible</code> in different situations!</li>
 </ul>
 
 ]]></content>

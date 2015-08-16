@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Ruby | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-08-11T08:56:11-04:00</updated>
+  <updated>2015-08-16T11:32:51-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,220 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Safer SQL: Using ActiveRecord Transactions]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions/"/>
+    <updated>2015-08-18T08:11:32-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/Djnfk5gnoNXqM" width="480" height="356" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>Is there anything more satisfying than writing concise, perfect line of SQL and then watching it query your database exactly as you expected? Probably not. Writing &mdash; and subsequently watching! &mdash; an efficient database query is one of my favorite parts of building an application.</p>
+
+<p>But if there&rsquo;s one thing about software development that I&rsquo;ve learned over the past few months, it&rsquo;s this: projects can get out of control, rather quickly. You start off with your basic models, but then as you add one feature after another, things can start to get out of hand. At that point, your focus as a developer shifts and spreads out to various things. You can&rsquo;t just care about how readable your code is; you also have to consider how efficient it is, and how different units of your application might be breaking other parts (hopefully not unbeknownst to you!). In other words, you have to consider how defensive and <em>safe</em> your code actually is.</p>
+
+<p>Recently, while writing some background jobs and creating some service objects for a new feature, I realized the importance of executing and enforcing safe code. The good news is that there&rsquo;s a really helpful, life-saving ActiveRecord <strong>transaction</strong> method that allows you to do exactly this. And the really great news? You get to watch your SQL queries execute safely as a result!</p>
+
+<!--more-->
+
+
+<h2>Database Handshakes</h2>
+
+<iframe src="//giphy.com/embed/gVYk3rI8YjtAI" width="480" height="422" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>As our application grows, there are inevitably going to be different models that depend upon each other. To make things more complicated, those models are going to have to change as our Users take different actions, and that means that we&rsquo;ll need to update different associated parts of our schema as a result. For example, let&rsquo;s say that we have a background job that&rsquo;s responsible for processing an <code>Order</code> on an <code>User</code>. This background job has a service class that takes care of saving an <code>Order</code> when it has been charged, billing the <code>User</code>, and adding a sale to an <code>Vendor</code> object, which will then be visible on the vendor&rsquo;s dashboard panel/admin page.</p>
+
+<pre><code class="ruby">if order.process
+    user.charge
+    vendor.add_sale
+end
+</code></pre>
+
+<p>In other words, we&rsquo;re basically transferring money from our <code>User</code> object to our <code>Vendor</code> objects. At first glance, this might not seem like a potentially &ldquo;unsafe&rdquo; set of queries, but here&rsquo;s where things can get a bit tricky: imagine that our <code>User</code>&rsquo;s credit card information is rejected, or for some reason, the charge cannot be created. In that scenario, we&rsquo;d want to handle the errors and make sure that the <code>add_sale</code> method is <em>not</em> called on our <code>Vendor</code> object. However&hellip;we aren&rsquo;t really safeguarding our code against this situation at all, are we?</p>
+
+<p>But, fear not - it&rsquo;s not a totally hopeless situation! In fact, we can take care of this problem pretty easily by using ActiveRecord&rsquo;s <code>transaction</code> blocks.</p>
+
+<p>The <code>transaction</code> method is defined in the Rails source code under the <code>ActiveRecord::Transactions</code> module. This method takes a block, and whenever it is invoked, the block that is passed to it will be executed inside of a <em>database transaction</em>. If, in the course of executing that block, an <code>exception</code> is raised, the database transaction will automatically be rolled back. No SQL will be executed, and no new data will be added to the database</p>
+
+<pre><code class="ruby">Order.transaction do
+    @order.process
+    @user.charge
+    @vendor.add_sale
+end
+</code></pre>
+
+<p>So what does this mean, exactly? Well, now that we&rsquo;ve wrapped the logic of our three methods inside of a <code>transaction</code> method, we can safely assert that in the case that <em>any</em> of these three methods raises an <code>exception</code> (in other words, fails for any reason), the entire process should fail.</p>
+
+<p>The important piece of this is that we&rsquo;ll never be adding or updating any data (or writing to our database) unless all of these methods are successful. It&rsquo;s crucial for us to ensure that this is the case because we&rsquo;d never want to call the <code>add_sale</code> method and write data to our <code>vendor</code> if the <code>order</code> didn&rsquo;t successfully <code>process</code>, or if our <code>user</code> wasn&rsquo;t successfully <code>charged</code>.</p>
+
+<p>I like to think of these blocks as a &ldquo;handshake&rdquo; between your application and your database: your application and database have an understanding that one will hand off information to the other in a &ldquo;transaction&rdquo;, and when the deal actually goes through, they shake hands and make it official&hellip;or something more poetic. If that made no sense &mdash; or if you&rsquo;re not a big fan of metaphors &mdash; here&rsquo;s how the Rails documentation explains <code>transactions</code>:</p>
+
+<blockquote><p>&ldquo;Transactions are protective blocks where SQL statements are only permanent if they can all succeed as one atomic action. Transactions enforce the integrity of the database and guard the data against program errors or database break-downs. So basically you should use transaction blocks whenever you have a number of statements that must be executed together or not at all.&rdquo;</p></blockquote>
+
+<h2>The Rules of Transacting</h2>
+
+<iframe src="//giphy.com/embed/cGDgkEeqA78Q" width="480" height="397" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>Because ActiveRecord transactions can be easily explained and simplified as a single method, it&rsquo;s easy to forget the idiosyncrasies that make this method work. There are a few things to keep in mind so that we can get the most out of these blocks.</p>
+
+<h3>1. Opening database connections</h3>
+
+<p>A transaction opens up a single database connection. This means that when we call the <code>transaction</code> method, the method can only be invoked on the <em>current</em> database connection. This is important to remember if our application writes to multiple database at once; for example, if our <code>Order</code> and our <code>Vendor</code> data lived in two different databases, we&rsquo;d need to nest our transactions:</p>
+
+<pre><code class="ruby">Order.transaction do
+    Vendor.transaction do 
+        order.process
+        user.charge
+        vendor.add_sale
+    end
+end
+</code></pre>
+
+<p>It&rsquo;s generally a good idea to avoid nested transactions, mostly because the relationship between parent and child transactions can get complicated. This is especially the case because rollbacks are contained <em>inside</em> of their transactions blocks. I think that Mark Daggett explains this pretty well in <a href="http://markdaggett.com/blog/2011/12/01/transactions-in-rails/">his blog</a>:</p>
+
+<blockquote><p>&ldquo;ActiveRecord::Rollback does not propagate outside of the containing transaction block and so the parent transaction does not receive the exception nested inside the child. I find it easier to think of nested transactions like the child who dumps its contents into the parent container, leaving the child transaction empty. To ensure a rollback is received by the parent transaction you must add the <code>requires_new: true</code>. option to the child transaction.&rdquo;</p></blockquote>
+
+<h3>2. Different classes, one transaction</h3>
+
+<p>Because transactions are bound to <em>database connections</em>, we can mix different types of models inside of a <code>transaction</code> block. In fact, that&rsquo;s exactly what we were doing when we wrote our initial transaction:</p>
+
+<pre><code class="ruby">Order.transaction do
+    @order.process
+    @user.charge
+    @vendor.add_sale
+end
+</code></pre>
+
+<h3>3. Class and instance methods</h3>
+
+<p>The great part about <code>transaction</code> is that it is available to us as both a class <em>and</em> an instance method for our ActiveRecord models. What does this mean, exactly? Well, the short answer is that we can write a transaction is lots of different ways, since we can invoke the <code>transaction</code> method on a class or an instance.</p>
+
+<p>For example, we could have written this:
+<code>ruby
+User.transaction do
+    # methods we want to call go here
+end
+</code></p>
+
+<p>Or this:
+<code>ruby
+Vendor.transaction do
+    # methods we want to call go here
+end
+</code></p>
+
+<p>Or any of these:
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="vi">@order</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'><span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sr">&lt;p&gt;@user.transaction do</span>
+</span><span class='line'><span class="sr">end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="vi">@vendor</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure></p>
+
+<p>And if we were writing a method <em>inside</em> of the <code>Order</code>, <code>Vendor</code>, or <code>User</code> classes, these options would have worked as well:</p>
+
+<pre><code class="ruby">self.transaction do
+end
+
+self.class.transaction do
+end
+</code></pre>
+
+<p>The key here is that the <code>transaction</code> can be called on <em>any class</em> that inherits from <code>ActiveRecord::Base</code>. Why is that the key? Well, you might remember that we initially started off wanting to write a transaction inside of our service object&hellip;right? In that case, we can&rsquo;t use something like <code>transaction do</code>, because <code>self</code> is the service object class, which <em>does <strong>not</strong> inherit</em> from <code>ActiveRecord::Base</code>!</p>
+
+<p>So, what do? Well, just call the transaction method onto <code>ActiveRecord::Base</code> directly! there&rsquo;s a quick fix for that.
+<code>ruby
+ActiveRecord::Base.transaction do
+    # methods we want to call go here
+end
+</code></p>
+
+<p>When in doubt, we can always just call the <code>transaction</code> method onto the <code>ActiveRecord::Base</code> class directly to be sure that it will run.</p>
+
+<h3>4. Exceptions are the rule</h3>
+
+<p>There&rsquo;s one golden rule of the <code>transaction</code> block: it will <strong>only rollback the transaction if an error is raised</strong>.</p>
+
+<p>Why is this important? Well, calling something like <code>save</code> or <code>destroy</code> inside of a transaction will not raise an error; if something goes wrong, these methods will simply return <code>false</code>. Which means that our <code>transaction</code> block will continue, since there was no error raised!</p>
+
+<p>Uh oh&hellip;how to fix? Just use the <code>save!</code> and <code>destroy!</code> methods instead! These are both ActiveRecord methods which raise an exception if they don&rsquo;t execute successfully:</p>
+
+<pre><code class="ruby">ActiveRecord::Base.transaction do
+    @order.destroy!
+    @user.save!
+end
+</code></pre>
+
+<p>And that&rsquo;s exactly what we need in this case, because we want the entire transaction to be closed if one or both of these methods are unsuccessful, and we want to tell the database that no data has changed. If we really, <em>really</em> wanted to use <code>save</code> instead of <code>save!</code>, we&rsquo;d have to manually <code>raise</code> an error in the block for our transaction to work as expected.</p>
+
+<h2>Transactions Under The Hood</h2>
+
+<iframe src="//giphy.com/embed/iUOzkJmvnFfqM" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>One of the interesting things about how <code>transaction</code> works under the hood has to do with how the <code>save</code> and <code>destroy</code> methods work. It turns out that Rails actually wraps the <code>save</code> and <code>destroy</code> methods in their own <code>transaction</code>s! So, we were using <code>ActiveRecord::Base.transaction</code> all along, without probably ever knowing what was really happening! Pretty crazy, right?</p>
+
+<p>There are a couple reasons that <code>save</code> and <code>destroy</code> are particularly curious. First, because they each occur in their own transactions, this means that we&rsquo;ll never need to write a <code>transaction</code> block to update a single record. In fact, that&rsquo;s exactly what Rails is  doing for us when we call something like <code>@user.save</code> &mdash; it&rsquo;s running a <code>transaction</code> block behind the scenes.</p>
+
+<p>The second reason this is interesting is because of callbacks that are associated with these two methods. A callback hook like <code>after_save</code> is actually part of the same active transaction that was opened when we called <code>@user.save</code>. So, if we wanted our code to execute <em>outside</em> of Rails&#8217; default <code>transaction</code> that wraps around <code>save</code> or <code>destroy</code>, we&rsquo;d want to use callback hooks like <code>after_commit</code> or <code>after_destroy</code>. If we want something specific to happen when the <code>save</code> <code>transaction</code> succeeds, we&rsquo;d have to use the <code>after_commit</code> callback, and if we want something specific to happen when the <code>save</code> <code>transaction</code> fails, we could use the <code>after_rollback</code> hook.</p>
+
+<p>While reading about transactions and the <code>save</code> and <code>destroy</code> methods, I discovered another really interesting method called <code>with_transaction_returning_status</code>. The <a href="https://github.com/rails/rails/blob/master/activerecord/lib/active_record/transactions.rb">transactions source code</a> is a bit of a rabbit hole, but if we spend some time reading through it, there&rsquo;s a lot to learn.</p>
+
+<p>In a nutshell, the <code>with_transaction_returning_status</code> is responsible for actually <em>raising</em> an <code>ActiveRecord::Rollback</code>. Somewhere inside of the black box of Rails magic, when we see an error caused by a <code>save</code> transaction that looks like this:</p>
+
+<pre><code>:001 &gt; user = User.find(1)
+:002 &gt; user.save
+    (0.2ms)  begin transaction
+    User Exists (0.6ms)  SELECT * FROM "users" WHERE ("users"."id" = 1)
+   (0.1ms)  rollback transaction
+ =&gt; false 
+</code></pre>
+
+<p>it&rsquo;s actually a method like <code>with_transaction_returning_status</code> that&rsquo;s responsible for causing that rollback to happen! Here&rsquo;s a truncated example of the source code; we can see that this method defines a local <code>status</code> variable, sets and returns the <code>status</code> if the <code>transaction</code> is successful, and <code>raises</code> an error, if the <code>status</code> is not defined:</p>
+
+<pre><code class="ruby">def with_transaction_returning_status
+    status = nil
+    self.class.transaction do
+        # some Rails magic here that captures the
+        # return value of a save or destroy method,
+        # and then sets that to the status.
+
+        raise ActiveRecord::Rollback unless status
+    end
+    status
+end
+</code></pre>
+
+<p>The Rails documentation also briefly explains exactly what&rsquo;s happening:</p>
+
+<blockquote><p>Executes <code>method</code> within a transaction and captures its return value as a status flag. If the status is true the transaction is committed, otherwise a ROLLBACK is issued. In any case the status flag is returned.</p></blockquote>
+
+<p>Transactions are all around us, it seems, from the most everyday methods to the more complicated ones that we write ourselves. They&rsquo;re a great way of keeping our code safe while also defending against things like duplicate SQL queries.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>ActiveRecord&rsquo;s <code>transaction</code> method takes a block, and will only execute the block and write to your database if no exceptions are raised.</li>
+<li>You can defined the <code>transaction</code> method on any class that <em>inherits from</em> <code>ActiveRecord::Base</code>, and that transaction will open up a single new database connection.</li>
+<li>Check out the Jeff Casimir helpful <a href="https://gist.github.com/jcasimir/1098368">summary of transactions</a> in his Gist. Or, if you&rsquo;re looking for a challenge, head over to the Rails <a href="http://api.rubyonrails.org/classes/ActiveRecord/Transactions/ClassMethods.html">documentation</a> on ActiveRecord transactions.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Rolling Out the Redcarpet for Rendering Markdown]]></title>
@@ -730,170 +944,6 @@ end
 <li>Service objects are POROs that you can use to encapsulate a specific piece of functionality, and can help you separate concerns in your application.</li>
 <li>Still curious about the theory behind service objects in Rails applications? Check out <a href="https://blog.engineyard.com/2014/keeping-your-rails-controllers-dry-with-services">this tutorial</a> and this super helpful <a href="http://blog.codeclimate.com/blog/2012/10/17/7-ways-to-decompose-fat-activerecord-models/">post</a>, which unpacks service objects in the context of refactoring.</li>
 <li>Where else can you use a service object? Well, a lot of places! This <a href="http://brewhouse.io/blog/2014/04/30/gourmet-service-objects.html">blog post</a> has a ton of examples of how to use them throughout your application.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Taskmanaging Your App, Part 1: Using Rake]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/"/>
-    <updated>2015-06-30T08:49:58-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/uRziFAtdD6H60" width="480" height="362" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Rake tasks: we&rsquo;ve all used &lsquo;em. From migrating our database to seeding it, we run commands using <code>rake</code> all of the time! But what actually happens when you run a rake task? And where is all this stuff defined, exactly? And how do you write a customized rake task of your very own?</p>
-
-<p>These were the questions I was asking myself last week, when I had to write a rake task to stage some data for an application I was working on. I knew exactly what my rake task was supposed to accomplish, and I had a general idea of the code that had to live inside of it. I didn&rsquo;t quite know how to write my rake task, however. And I definitely didn&rsquo;t know what was going on inside of the Ruby interpreter when it would read my yet-to-exist task.</p>
-
-<p>So, I set out to answer some of those questions, and learned a bit about how rake works in the process. It was an interesting rabbit hole to dive down, particularly since I had never before questioned what was happening when I ran a rake command in my command line. When you&rsquo;re first starting out with code, it&rsquo;s okay to accept some of the obfuscation that is inherently a part of the abstraction of larger applications. But you should never go too long without questioning why and how a certain thing works the way that it does. And that&rsquo;s exactly what we&rsquo;ll do with our beloved rake commands.</p>
-
-<!--more-->
-
-
-<h2>Form And Function</h2>
-
-<p>We use the <code>rake</code> command so often that it might be easy to forget that it&rsquo;s <em>actually</em> part of a gem! Most everything we use &ndash; including that little gem called <code>rails</code> &ndash; relies on the <code>rake</code> gem as a dependency. And everything we could ever want to know about <code>rake</code>&rsquo;s form and function can be found in a single place: the <code>Rakefile</code>, a top-level file that exists in any application that uses this gem to manage and run tasks of all kinds.</p>
-
-<p>So what&rsquo;s inside of our <code>Rakefile</code> after we generate a brand new Rails application? Something that looks like this:</p>
-
-<pre><code class="ruby"># Add your own tasks in files placed in lib/tasks ending in .rake,
-# for example lib/tasks/capistrano.rake, and they will automatically be available to Rake.
-
-require File.expand_path('../config/application', __FILE__)
-
-Rails.application.load_tasks
-</code></pre>
-
-<p>Pretty empty, right? Except that there&rsquo;s a pretty important line in there at the end which invokes a <code>load_tasks</code> method on our application object, which is what allows rake to load tasks into our application itself. But how do we fill up this Rakefile with some awesome rake tasks? Well, if we read carefully, it seems like <code>rake</code> is telling us exactly what we need to do.</p>
-
-<p>Let&rsquo;s start by creating a data staging task that will load some initial data into our application so that we have something to work with while in development. We&rsquo;ll create a <code>stage_data.rake</code> file nested inside of our <code>lib/tasks</code> directories. But that&rsquo;s empty too! You know what that means, don&rsquo;t you? Time to write some tasks.</p>
-
-<h2>Managing Our Task Management</h2>
-
-<iframe src="//giphy.com/embed/gw3woz6oWXK48iE8" width="480" height="432" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Since we&rsquo;re working within the context of a mid-size Rails application, the first thing we probably want to do is namespace our rake tasks. We can do that a namespace block:</p>
-
-<pre><code class="ruby">namespace :data do
-end
-</code></pre>
-
-<p>This is how we can break up all the tasks that are concerned with managing data. But for now, let&rsquo;s just work on writing a single task, which will stage our development environment with some sample data to help us while we&rsquo;re building out the front end later on.</p>
-
-<p>In order to write our rake task, we really just need two things: a description and then a <code>task</code> block. We know what we want our task to do, so that&rsquo;s what we&rsquo;ll put in our description. What we write here will be mostly to help us later on, when we want to know what tasks are available to us, and what exactly they do.</p>
-
-<p>We&rsquo;ll also want to specify any dependencies that this task might have.</p>
-
-<p>After the <code>desc</code> term, we&rsquo;re describing what our task will do, and then setting the command that we&rsquo;ll use to run the task itself. We&rsquo;re also specifying any dependencies that this task might have. In our case, the only thing that this task <em>depends upon</em> is the application itself. So, we want to make sure that our entire Rails application is loaded before running this task:</p>
-
-<pre><code class="ruby">namespace :data do
-    desc "Stage environment with sample data."
-    task stage: :environment do
-    end
-end
-</code></pre>
-
-<p>Interestingly, all that&rsquo;s happening here is that a method called <code>task</code> is being invoked, and the key-value pair that we provided it (<code>stage: :environment</code>) is telling <code>task</code> exactly which other methods to execute before running the subsequent task we have defined inside of the block. I like how <a href="http://tutorials.jumpstartlab.com/topics/systems/automation.html">this tutorial</a> explains what&rsquo;s going on behind the scenes:</p>
-
-<blockquote><p>It starts with the task method which takes a hash parameter. The key will be the name of the task. The value stored under that key, here <code>:environment</code>, indicates which other Rake tasks should be run before this task is run. Think of them like dependencies. When your task depends on <code>:environment</code>, it will load your entire Rails application. If your task doesn’t actually need Rails, don’t depend on :environment and you can greatly increase startup time and decrease memory usage.</p></blockquote>
-
-<p>Another cool thing to keep in mind is the description. We know that our task description (after the <code>desc</code>) will show up again at some point. But when, exactly? Well, it comes into play when we run the <code>rake -T</code> command, which lists out all the tasks available to our specific application:</p>
-
-<pre><code class="ruby">♥ rake -T
-rake data:stage          # Stage environment with sample data.
-</code></pre>
-
-<p>Cool! Whatever we write in our description is exactly what will be output if and when this command is run in the future. Now, how do we get this task to create some sample data every time it&rsquo;s run? Well, we&rsquo;ll want to use ActiveRecord in order to actually persist some objects to our database. There&rsquo;s a handy block method on <code>ActiveRecord::Base</code> that does exactly this:</p>
-
-<pre><code class="ruby">namespace :data do
-    desc "Stage environment with sample data."
-    task stage: :environment do
-        ActiveRecord::Base.transaction do
-            poetry = Genre.create!(name: 'Poetry')
-
-            POETRY_SUBGENRES = ['lyric', 'drama', 'epic']
-
-            POETRY_SUBGENRES.each do |genre|
-                SubGenre.create!(sub_genre: genre, parent_genre: poetry)
-            end
-        end
-    end
-end
-</code></pre>
-
-<p>Nice! We&rsquo;re creating a genre and some sub genres, and associating them together. We could also add in authors and books to make this task a bit more robust. And to get really fancy, we could import a csv of all this information if it lived somewhere else!</p>
-
-<h2>Extending Our Tasks Further</h2>
-
-<p>Now that we know how to structure our rake tasks, we can add more tasks into the very same file. In fact, we can take advantage of the namespacing that we set up early on right now! Let&rsquo;s create a <code>rake data:reset</code> task that will work almost the same as the task we wrote above. The only difference being that this task will destroy any data that was staged (or any that might be hanging around, for some strange reason).</p>
-
-<p>We can write that task inside of our same file, inside of our namespace:</p>
-
-<pre><code class="ruby">namespace :data do
-    desc "Stage environment with sample data."
-    task stage: :environment do
-        # the task we just wrote lives here!
-    end
-
-    desc "Resets and clears all the sample data."
-    task reset: :environment do
-      ActiveRecord::Base.transaction do
-        Genre.destroy_all
-        SubGenre.destroy_all
-      end
-    end
-end
-</code></pre>
-
-<p>All we&rsquo;re doing is using the handy methods that ActiveRecord gives us for free inside of the blocks we&rsquo;ve defined in our task. And now when we run <code>rake -T</code>, we&rsquo;ll see this:</p>
-
-<pre><code class="ruby">♥ rake -T
-rake data:stage          # Stage environment with sample data.
-rake data:reset          # Resets and clears all the sample data.
-</code></pre>
-
-<p>Look at us! We&rsquo;re rake task writing masters! We could get even fancier and make one task <em>depend upon</em> the other. Remember how the block syntax with the <code>task</code> method works? We can use the form of that syntax to make our task function the way we want to:</p>
-
-<pre><code class="ruby">namespace :data do
-    desc "Resets and stages the environment with sample data."
-    task stage: [:environment, :reset] do
-        # the task we wrote lives here!
-    end
-end
-</code></pre>
-
-<p>Now, we&rsquo;re specifying that not only should the <code>task</code> method load the environment, but it should also run the <code>rake data:reset</code> task before running the <code>rake data:stage</code> task! This could be super useful in development, when you don&rsquo;t want to have your database filled with duplicate data.</p>
-
-<p>Another fun thing we could do is pass in parameters to our rake task:</p>
-
-<pre><code class="ruby">namespace :data do
-  desc "Stages the environment with specific amount of sample book data."
-  task create_books: [:books_to_create] :environment do
-    number_of_books = args[:books_to_create]
-    # Uses the books_to_create variable to
-    # create the number of books we want.
-  end
-end
-</code></pre>
-
-<p>Now, when we call the <code>rake data:create_books[100]</code> method, we could have our rake task generate 100 books for us based on the input argument we provided it.</p>
-
-<p>This is pretty fun, right? We could put a ton of tasks that do all sorts of application management for us, and it would be no problem. Except that it would be, and here&rsquo;s why: we never want too much logic in one single part of our application. In other words, we want to separate out what different sections of application are concerned with. We probably could abstract out a lot of what these tasks into something else (another object?), which would help keep our rake tasks nice and lean.</p>
-
-<p>It turns out that this is a pretty common situation to run into, and not just with rake tasks! There&rsquo;s a really cool pattern that implements a special kind of object that performs a service for you so that your code can stay simple, without too much logic in it. These objects are called <em>service objects</em>, and until I saw them in some production-level code, I had never really thought about their purpose. Tune in again next week, when I&rsquo;ll dive into service objects and how they help us serparate concerns in our code. Until then, here&rsquo;s a rake-themed gif to tide you over:</p>
-
-<iframe src="//giphy.com/embed/5xtDarAX9eDPODdPMoo" width="480" height="480" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>Rake tasks are just Ruby code written inside of a either a <code>.rake</code> file in the <code>/app/tasks</code> directory, or sometimes within a <code>Rakefile</code> itself.</li>
-<li>A rake task needs a description and a <code>task</code> block. The description is what will be seen when you run <code>rake -T</code>, and the <code>task</code> block is where you&rsquo;ll write what the task actually has to do, and specify any dependencies.</li>
-<li>Need to see another example of how to make a rake task? Check out this awesome <a href="http://jasonseifer.com/2010/04/06/rake-tutorial">tutorial on rake</a>, or watch <a href="http://railscasts.com/episodes/66-custom-rake-tasks">this RailsCast</a>.</li>
 </ul>
 
 ]]></content>

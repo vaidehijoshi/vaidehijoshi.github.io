@@ -1,0 +1,487 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Safer SQL: Using ActiveRecord Transactions - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="Is there anything more satisfying than writing concise, perfect line of SQL and then watching it query your database exactly as you expected? &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Safer SQL: Using ActiveRecord Transactions</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-08-18T08:11:32-04:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:11 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>, <a class='category' href='/blog/categories/sql/'>sql</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><iframe src="//giphy.com/embed/Djnfk5gnoNXqM" width="480" height="356" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>Is there anything more satisfying than writing concise, perfect line of SQL and then watching it query your database exactly as you expected? Probably not. Writing &mdash; and subsequently watching! &mdash; an efficient database query is one of my favorite parts of building an application.</p>
+
+<p>But if there&rsquo;s one thing about software development that I&rsquo;ve learned over the past few months, it&rsquo;s this: projects can get out of control, rather quickly. You start off with your basic models, but then as you add one feature after another, things can start to get out of hand. At that point, your focus as a developer shifts and spreads out to various things. You can&rsquo;t just care about how readable your code is; you also have to consider how efficient it is, and how different units of your application might be breaking other parts (hopefully not unbeknownst to you!). In other words, you have to consider how defensive and <em>safe</em> your code actually is.</p>
+
+<p>Recently, while writing some background jobs and creating some service objects for a new feature, I realized the importance of executing and enforcing safe code. The good news is that there&rsquo;s a really helpful, life-saving ActiveRecord <strong>transaction</strong> method that allows you to do exactly this. And the really great news? You get to watch your SQL queries execute safely as a result!</p>
+
+<!--more-->
+
+
+<h2>Database Handshakes</h2>
+
+<iframe src="//giphy.com/embed/gVYk3rI8YjtAI" width="480" height="422" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>As our application grows, there are inevitably going to be different models that depend upon each other. To make things more complicated, those models are going to have to change as our Users take different actions, and that means that we&rsquo;ll need to update different associated parts of our schema as a result. For example, let&rsquo;s say that we have a background job that&rsquo;s responsible for processing an <code>Order</code> on an <code>User</code>. This background job has a service class that takes care of saving an <code>Order</code> when it has been charged, billing the <code>User</code>, and adding a sale to an <code>Vendor</code> object, which will then be visible on the vendor&rsquo;s dashboard panel/admin page.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">if</span> <span class="n">order</span><span class="o">.</span><span class="n">process</span>
+</span><span class='line'>  <span class="n">user</span><span class="o">.</span><span class="n">charge</span>
+</span><span class='line'>  <span class="n">vendor</span><span class="o">.</span><span class="n">add_sale</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In other words, we&rsquo;re basically transferring money from our <code>User</code> object to our <code>Vendor</code> objects. At first glance, this might not seem like a potentially &ldquo;unsafe&rdquo; set of queries, but here&rsquo;s where things can get a bit tricky: imagine that our <code>User</code>&rsquo;s credit card information is rejected, or for some reason, the charge cannot be created. In that scenario, we&rsquo;d want to handle the errors and make sure that the <code>add_sale</code> method is <em>not</em> called on our <code>Vendor</code> object. However&hellip;we aren&rsquo;t really safeguarding our code against this situation at all, are we?</p>
+
+<p>But, fear not - it&rsquo;s not a totally hopeless situation! In fact, we can take care of this problem pretty easily by using ActiveRecord&rsquo;s <code>transaction</code> blocks.</p>
+
+<p>The <code>transaction</code> method is defined in the Rails source code under the <code>ActiveRecord::Transactions</code> module. This method takes a block, and whenever it is invoked, the block that is passed to it will be executed inside of a <em>database transaction</em>. If, in the course of executing that block, an <code>exception</code> is raised, the database transaction will automatically be rolled back. No SQL will be executed, and no new data will be added to the database</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Order</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'>  <span class="vi">@order</span><span class="o">.</span><span class="n">process</span>
+</span><span class='line'>  <span class="vi">@user</span><span class="o">.</span><span class="n">charge</span>
+</span><span class='line'>  <span class="vi">@vendor</span><span class="o">.</span><span class="n">add_sale</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So what does this mean, exactly? Well, now that we&rsquo;ve wrapped the logic of our three methods inside of a <code>transaction</code> method, we can safely assert that in the case that <em>any</em> of these three methods raises an <code>exception</code> (in other words, fails for any reason), the entire process should fail.</p>
+
+<p>The important piece of this is that we&rsquo;ll never be adding or updating any data (or writing to our database) unless all of these methods are successful. It&rsquo;s crucial for us to ensure that this is the case because we&rsquo;d never want to call the <code>add_sale</code> method and write data to our <code>vendor</code> if the <code>order</code> didn&rsquo;t successfully <code>process</code>, or if our <code>user</code> wasn&rsquo;t successfully <code>charged</code>.</p>
+
+<p>I like to think of these blocks as a &ldquo;handshake&rdquo; between your application and your database: your application and database have an understanding that one will hand off information to the other in a &ldquo;transaction&rdquo;, and when the deal actually goes through, they shake hands and make it official&hellip;or something more poetic. If that made no sense &mdash; or if you&rsquo;re not a big fan of metaphors &mdash; here&rsquo;s how the Rails documentation explains <code>transactions</code>:</p>
+
+<blockquote><p>&ldquo;Transactions are protective blocks where SQL statements are only permanent if they can all succeed as one atomic action. Transactions enforce the integrity of the database and guard the data against program errors or database break-downs. So basically you should use transaction blocks whenever you have a number of statements that must be executed together or not at all.&rdquo;</p></blockquote>
+
+<h2>The Rules of Transacting</h2>
+
+<iframe src="//giphy.com/embed/cGDgkEeqA78Q" width="480" height="397" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>Because ActiveRecord transactions can be easily explained and simplified as a single method, it&rsquo;s easy to forget the idiosyncrasies that make this method work. There are a few things to keep in mind so that we can get the most out of these blocks.</p>
+
+<h3>1. Opening database connections</h3>
+
+<p>A transaction opens up a single database connection. This means that when we call the <code>transaction</code> method, the method can only be invoked on the <em>current</em> database connection. This is important to remember if our application writes to multiple database at once; for example, if our <code>Order</code> and our <code>Vendor</code> data lived in two different databases, we&rsquo;d need to nest our transactions:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Order</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'>  <span class="no">Vendor</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">order</span><span class="o">.</span><span class="n">process</span>
+</span><span class='line'>      <span class="n">user</span><span class="o">.</span><span class="n">charge</span>
+</span><span class='line'>      <span class="n">vendor</span><span class="o">.</span><span class="n">add_sale</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>It&rsquo;s generally a good idea to avoid nested transactions, mostly because the relationship between parent and child transactions can get complicated. This is especially the case because rollbacks are contained <em>inside</em> of their transactions blocks. I think that Mark Daggett explains this pretty well in <a href="http://markdaggett.com/blog/2011/12/01/transactions-in-rails/">his blog</a>:</p>
+
+<blockquote><p>&ldquo;ActiveRecord::Rollback does not propagate outside of the containing transaction block and so the parent transaction does not receive the exception nested inside the child. I find it easier to think of nested transactions like the child who dumps its contents into the parent container, leaving the child transaction empty. To ensure a rollback is received by the parent transaction you must add the <code>requires_new: true</code>. option to the child transaction.&rdquo;</p></blockquote>
+
+<h3>2. Different classes, one transaction</h3>
+
+<p>Because transactions are bound to <em>database connections</em>, we can mix different types of models inside of a <code>transaction</code> block. In fact, that&rsquo;s exactly what we were doing when we wrote our initial transaction:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Order</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'>  <span class="vi">@order</span><span class="o">.</span><span class="n">process</span>
+</span><span class='line'>  <span class="vi">@user</span><span class="o">.</span><span class="n">charge</span>
+</span><span class='line'>  <span class="vi">@vendor</span><span class="o">.</span><span class="n">add_sale</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>3. Class and instance methods</h3>
+
+<p>The great part about <code>transaction</code> is that it is available to us as both a class <em>and</em> an instance method for our ActiveRecord models. What does this mean, exactly? Well, the short answer is that we can write a transaction is lots of different ways, since we can invoke the <code>transaction</code> method on a class or an instance.</p>
+
+<p>For example, we could have written this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">User</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'>  <span class="c1"># methods we want to call go here</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Or this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Vendor</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'>  <span class="c1"># methods we want to call go here</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Or any of these:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="vi">@order</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="vi">@user</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="vi">@vendor</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And if we were writing a method <em>inside</em> of the <code>Order</code>, <code>Vendor</code>, or <code>User</code> classes, these options would have worked as well:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">self</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="nb">self</span><span class="o">.</span><span class="n">class</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The key here is that the <code>transaction</code> can be called on <em>any class</em> that inherits from <code>ActiveRecord::Base</code>. Why is that the key? Well, you might remember that we initially started off wanting to write a transaction inside of our service object&hellip;right? In that case, we can&rsquo;t use something like <code>transaction do</code>, because <code>self</code> is the service object class, which <em>does <strong>not</strong> inherit</em> from <code>ActiveRecord::Base</code>!</p>
+
+<p>So, what do? Well, just call the transaction method onto <code>ActiveRecord::Base</code> directly! there&rsquo;s a quick fix for that.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'>  <span class="c1"># methods we want to call go here</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>When in doubt, we can always just call the <code>transaction</code> method onto the <code>ActiveRecord::Base</code> class directly to be sure that it will run.</p>
+
+<h3>4. Exceptions are the rule</h3>
+
+<p>There&rsquo;s one golden rule of the <code>transaction</code> block: it will <strong>only rollback the transaction if an error is raised</strong>.</p>
+
+<p>Why is this important? Well, calling something like <code>save</code> or <code>destroy</code> inside of a transaction will not raise an error; if something goes wrong, these methods will simply return <code>false</code>. Which means that our <code>transaction</code> block will continue, since there was no error raised!</p>
+
+<p>Uh oh&hellip;how to fix? Just use the <code>save!</code> and <code>destroy!</code> methods instead! These are both ActiveRecord methods which raise an exception if they don&rsquo;t execute successfully:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'>  <span class="vi">@order</span><span class="o">.</span><span class="n">destroy!</span>
+</span><span class='line'>  <span class="vi">@user</span><span class="o">.</span><span class="n">save!</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And that&rsquo;s exactly what we need in this case, because we want the entire transaction to be closed if one or both of these methods are unsuccessful, and we want to tell the database that no data has changed. If we really, <em>really</em> wanted to use <code>save</code> instead of <code>save!</code>, we&rsquo;d have to manually <code>raise</code> an error in the block for our transaction to work as expected.</p>
+
+<h2>Transactions Under The Hood</h2>
+
+<iframe src="//giphy.com/embed/iUOzkJmvnFfqM" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>One of the interesting things about how <code>transaction</code> works under the hood has to do with how the <code>save</code> and <code>destroy</code> methods work. It turns out that Rails actually wraps the <code>save</code> and <code>destroy</code> methods in their own <code>transaction</code>s! So, we were using <code>ActiveRecord::Base.transaction</code> all along, without probably ever knowing what was really happening! Pretty crazy, right?</p>
+
+<p>There are a couple reasons that <code>save</code> and <code>destroy</code> are particularly curious. First, because they each occur in their own transactions, this means that we&rsquo;ll never need to write a <code>transaction</code> block to update a single record. In fact, that&rsquo;s exactly what Rails is  doing for us when we call something like <code>@user.save</code> &mdash; it&rsquo;s running a <code>transaction</code> block behind the scenes.</p>
+
+<p>The second reason this is interesting is because of callbacks that are associated with these two methods. A callback hook like <code>after_save</code> is actually part of the same active transaction that was opened when we called <code>@user.save</code>. So, if we wanted our code to execute <em>outside</em> of Rails&#8217; default <code>transaction</code> that wraps around <code>save</code> or <code>destroy</code>, we&rsquo;d want to use callback hooks like <code>after_commit</code> or <code>after_destroy</code>. If we want something specific to happen when the <code>save</code> <code>transaction</code> succeeds, we&rsquo;d have to use the <code>after_commit</code> callback, and if we want something specific to happen when the <code>save</code> <code>transaction</code> fails, we could use the <code>after_rollback</code> hook.</p>
+
+<p>While reading about transactions and the <code>save</code> and <code>destroy</code> methods, I discovered another really interesting method called <code>with_transaction_returning_status</code>. The <a href="https://github.com/rails/rails/blob/master/activerecord/lib/active_record/transactions.rb">transactions source code</a> is a bit of a rabbit hole, but if we spend some time reading through it, there&rsquo;s a lot to learn.</p>
+
+<p>In a nutshell, the <code>with_transaction_returning_status</code> is responsible for actually <em>raising</em> an <code>ActiveRecord::Rollback</code>. Somewhere inside of the black box of Rails magic, when we see an error caused by a <code>save</code> transaction that looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="p">:</span><span class="mo">001</span> <span class="o">&gt;</span> <span class="n">user</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span><span class='line'><span class="p">:</span><span class="mo">002</span> <span class="o">&gt;</span> <span class="n">user</span><span class="o">.</span><span class="n">save</span>
+</span><span class='line'>  <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">2</span><span class="n">ms</span><span class="p">)</span>  <span class="k">begin</span> <span class="n">transaction</span>
+</span><span class='line'>  <span class="no">User</span> <span class="no">Exists</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">6</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="o">*</span> <span class="no">FROM</span> <span class="s2">&quot;users&quot;</span> <span class="no">WHERE</span> <span class="p">(</span><span class="s2">&quot;users&quot;</span><span class="o">.</span><span class="s2">&quot;id&quot;</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+</span><span class='line'>   <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">1</span><span class="n">ms</span><span class="p">)</span>  <span class="n">rollback</span> <span class="n">transaction</span>
+</span><span class='line'> <span class="o">=&gt;</span> <span class="kp">false</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>it&rsquo;s actually a method like <code>with_transaction_returning_status</code> that&rsquo;s responsible for causing that rollback to happen! Here&rsquo;s a truncated example of the source code; we can see that this method defines a local <code>status</code> variable, sets and returns the <code>status</code> if the <code>transaction</code> is successful, and <code>raises</code> an error, if the <code>status</code> is not defined:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">with_transaction_returning_status</span>
+</span><span class='line'>  <span class="n">status</span> <span class="o">=</span> <span class="kp">nil</span>
+</span><span class='line'>  <span class="nb">self</span><span class="o">.</span><span class="n">class</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'>      <span class="c1"># some Rails magic here that captures the</span>
+</span><span class='line'>      <span class="c1"># return value of a save or destroy method,</span>
+</span><span class='line'>      <span class="c1"># and then sets that to the status.</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">raise</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Rollback</span> <span class="k">unless</span> <span class="n">status</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>  <span class="n">status</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The Rails documentation also briefly explains exactly what&rsquo;s happening:</p>
+
+<blockquote><p>Executes <code>method</code> within a transaction and captures its return value as a status flag. If the status is true the transaction is committed, otherwise a ROLLBACK is issued. In any case the status flag is returned.</p></blockquote>
+
+<p>Transactions are all around us, it seems, from the most everyday methods to the more complicated ones that we write ourselves. They&rsquo;re a great way of keeping our code safe while also defending against things like duplicate SQL queries.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>ActiveRecord&rsquo;s <code>transaction</code> method takes a block, and will only execute the block and write to your database if no exceptions are raised.</li>
+<li>You can defined the <code>transaction</code> method on any class that <em>inherits from</em> <code>ActiveRecord::Base</code>, and that transaction will open up a single new database connection.</li>
+<li>Check out the Jeff Casimir helpful <a href="https://gist.github.com/jcasimir/1098368">summary of transactions</a> in his Gist. Or, if you&rsquo;re looking for a challenge, head over to the Rails <a href="http://api.rubyonrails.org/classes/ActiveRecord/Transactions/ClassMethods.html">documentation</a> on ActiveRecord transactions.</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-08-18T08:11:32-04:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:11 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>, <a class='category' href='/blog/categories/sql/'>sql</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/08/11/rolling-out-the-redcarpet-for-rendering-markdown/" title="Previous Post: Rolling Out The Redcarpet For Rendering Markdown">&laquo; Rolling Out The Redcarpet For Rendering Markdown</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/08/18/safer-sql-using-activerecord-transactions/">Safer SQL: Using ActiveRecord Transactions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/11/rolling-out-the-redcarpet-for-rendering-markdown/">Rolling Out the Redcarpet for Rendering Markdown</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/04/safely-storing-your-assets-paperclip-with-aws-plus-heroku/">Safely Storing Your Assets: Paperclip With AWS + Heroku</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/28/clipping-images-for-rails-using-paperclip/">Clipping Images for Rails: Using Paperclip</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing/">All the Columns Fit to Index: Unique + Compound Indexing</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

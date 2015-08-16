@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="This blog post is part of a series on State Machines. Read Part 1 here. Until you encounter a state machine in a gem, framework, or within someone &hellip;">
+  <meta name="description" content="It was the best of times. It was the worst of times. It was&hellip;refactoring time! Well it was for me yesterday, at least. Refactoring your own &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,55 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable/">Delegating All of the Things With Ruby Forwardable</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-03-31T08:35:27-04:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>8:35 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/refactoring/'>refactoring</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><img src="http://assets.amuniversal.com/77c6dce06d5c01301d80001dd8b71c47" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>It was the best of times. It was the worst of times. It was&hellip;refactoring time! Well it was for me yesterday, at least.</p>
+
+<p>Refactoring your own code has a great payoff at the end, but boy, does it take some work to get there. Something I&rsquo;ve noticed about my own code recently is that I&rsquo;m now able to know that something needs to be refactored pretty easily. I&rsquo;ve been having a lot of gut feelings about parts of my code that just <em>feel</em> wrong, inefficient, and repetitive. The problem is, even though I know where my code is weak, I don&rsquo;t usually know <em>how</em> to go about making my code better.</p>
+
+<p>And this is where making effective use of resources (read: The Art Of Effective Googling) comes quite in handy. Yesterday, however, I used even better resource &ndash; a more experienced developer! We took a look at my code and came up with some ways I could refactor it. I learned about a pretty interesting module that could save me lines of code and keep my application <a href="http://en.wikipedia.org/wiki/Don%27t_repeat_yourself">DRY</a>. And now I get to share it with you! This module is called <a href="http://ruby-doc.org/stdlib-2.0/libdoc/forwardable/rdoc/Forwardable.html">Forwardable</a>, and trust me when I say that it&rsquo;s going to make you want to delegate all the things.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -546,53 +595,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/01/23/the-fog-creek-fellowship-lessons-in-fearlessness-and-fortitude/">The Fog Creek Fellowship: Lessons in Fearlessness and Fortitude</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-01-23T14:04:16-05:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>2:04 pm</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/flatiron/'>flatiron</a>, <a class='category' href='/blog/categories/non-technical/'>non-technical</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>There are a lot of scary things out there. To start, there are lions and tigers and bears. But if you go a bit below the surface, that&rsquo;s where you&rsquo;ll hit the dark stuff &ndash; the kind of stuff that I was forced to confront when I started as a student at <a href="http://www.flatironschool.com">The Flatiron School</a>.</p>
-
-<p>Sure, learning how to program is really hard &ndash; it&rsquo;s not just learning another language, it&rsquo;s learning an entirely new way to think. But, working on code is far easier than working on yourself. My twelve weeks at The Flatiron School pushed me to deal with some tough thoughts, most of which had always lurked in the skeleton closets of my mind: <em>I don&rsquo;t know if I can do this. I&rsquo;m not cut out for this. I&rsquo;m not prepared. I&rsquo;m not smart enough. I won&rsquo;t fit in. I can&rsquo;t undersand. I won&rsquo;t understand.</em></p>
-
-<p>Most of us have all had these thoughts at some point in our lives, regardless of what we look like or what we do for a living. Some of us have stopped dead in our tracks, sometimes unable to move beyond them at all. But learning to code meant dealing with these fears on a daily basis; at some point, I just stopped listening to them entirely.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/01/23/the-fog-creek-fellowship-lessons-in-fearlessness-and-fortitude/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/4">&larr; Older</a>
@@ -610,6 +612,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/08/18/safer-sql-using-activerecord-transactions/">Safer SQL: Using ActiveRecord Transactions</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/08/11/rolling-out-the-redcarpet-for-rendering-markdown/">Rolling Out the Redcarpet for Rendering Markdown</a>
       </li>
     
@@ -623,10 +629,6 @@
     
       <li class="post">
         <a href="/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing/">All the Columns Fit to Index: Unique + Compound Indexing</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/">Writing Smart Migrations: References, Reversible, and Indexes</a>
       </li>
     
   </ul>

@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-08-11T08:56:11-04:00</updated>
+  <updated>2015-08-16T11:32:51-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,289 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Safer SQL: Using ActiveRecord Transactions]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions/"/>
+    <updated>2015-08-18T08:11:32-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/Djnfk5gnoNXqM" width="480" height="356" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>Is there anything more satisfying than writing concise, perfect line of SQL and then watching it query your database exactly as you expected? Probably not. Writing &mdash; and subsequently watching! &mdash; an efficient database query is one of my favorite parts of building an application.</p>
+
+<p>But if there&rsquo;s one thing about software development that I&rsquo;ve learned over the past few months, it&rsquo;s this: projects can get out of control, rather quickly. You start off with your basic models, but then as you add one feature after another, things can start to get out of hand. At that point, your focus as a developer shifts and spreads out to various things. You can&rsquo;t just care about how readable your code is; you also have to consider how efficient it is, and how different units of your application might be breaking other parts (hopefully not unbeknownst to you!). In other words, you have to consider how defensive and <em>safe</em> your code actually is.</p>
+
+<p>Recently, while writing some background jobs and creating some service objects for a new feature, I realized the importance of executing and enforcing safe code. The good news is that there&rsquo;s a really helpful, life-saving ActiveRecord <strong>transaction</strong> method that allows you to do exactly this. And the really great news? You get to watch your SQL queries execute safely as a result!</p>
+
+<!--more-->
+
+
+<h2>Database Handshakes</h2>
+
+<iframe src="//giphy.com/embed/gVYk3rI8YjtAI" width="480" height="422" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>As our application grows, there are inevitably going to be different models that depend upon each other. To make things more complicated, those models are going to have to change as our Users take different actions, and that means that we&rsquo;ll need to update different associated parts of our schema as a result. For example, let&rsquo;s say that we have a background job that&rsquo;s responsible for processing an <code>Order</code> on an <code>User</code>. This background job has a service class that takes care of saving an <code>Order</code> when it has been charged, billing the <code>User</code>, and adding a sale to an <code>Vendor</code> object, which will then be visible on the vendor&rsquo;s dashboard panel/admin page.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">if</span> <span class="n">order</span><span class="o">.</span><span class="n">process</span>
+</span><span class='line'>  <span class="n">user</span><span class="o">.</span><span class="n">charge</span>
+</span><span class='line'>  <span class="n">vendor</span><span class="o">.</span><span class="n">add_sale</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In other words, we&rsquo;re basically transferring money from our <code>User</code> object to our <code>Vendor</code> objects. At first glance, this might not seem like a potentially &ldquo;unsafe&rdquo; set of queries, but here&rsquo;s where things can get a bit tricky: imagine that our <code>User</code>&rsquo;s credit card information is rejected, or for some reason, the charge cannot be created. In that scenario, we&rsquo;d want to handle the errors and make sure that the <code>add_sale</code> method is <em>not</em> called on our <code>Vendor</code> object. However&hellip;we aren&rsquo;t really safeguarding our code against this situation at all, are we?</p>
+
+<p>But, fear not - it&rsquo;s not a totally hopeless situation! In fact, we can take care of this problem pretty easily by using ActiveRecord&rsquo;s <code>transaction</code> blocks.</p>
+
+<p>The <code>transaction</code> method is defined in the Rails source code under the <code>ActiveRecord::Transactions</code> module. This method takes a block, and whenever it is invoked, the block that is passed to it will be executed inside of a <em>database transaction</em>. If, in the course of executing that block, an <code>exception</code> is raised, the database transaction will automatically be rolled back. No SQL will be executed, and no new data will be added to the database</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Order</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'>  <span class="vi">@order</span><span class="o">.</span><span class="n">process</span>
+</span><span class='line'>  <span class="vi">@user</span><span class="o">.</span><span class="n">charge</span>
+</span><span class='line'>  <span class="vi">@vendor</span><span class="o">.</span><span class="n">add_sale</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So what does this mean, exactly? Well, now that we&rsquo;ve wrapped the logic of our three methods inside of a <code>transaction</code> method, we can safely assert that in the case that <em>any</em> of these three methods raises an <code>exception</code> (in other words, fails for any reason), the entire process should fail.</p>
+
+<p>The important piece of this is that we&rsquo;ll never be adding or updating any data (or writing to our database) unless all of these methods are successful. It&rsquo;s crucial for us to ensure that this is the case because we&rsquo;d never want to call the <code>add_sale</code> method and write data to our <code>vendor</code> if the <code>order</code> didn&rsquo;t successfully <code>process</code>, or if our <code>user</code> wasn&rsquo;t successfully <code>charged</code>.</p>
+
+<p>I like to think of these blocks as a &ldquo;handshake&rdquo; between your application and your database: your application and database have an understanding that one will hand off information to the other in a &ldquo;transaction&rdquo;, and when the deal actually goes through, they shake hands and make it official&hellip;or something more poetic. If that made no sense &mdash; or if you&rsquo;re not a big fan of metaphors &mdash; here&rsquo;s how the Rails documentation explains <code>transactions</code>:</p>
+
+<blockquote><p>&ldquo;Transactions are protective blocks where SQL statements are only permanent if they can all succeed as one atomic action. Transactions enforce the integrity of the database and guard the data against program errors or database break-downs. So basically you should use transaction blocks whenever you have a number of statements that must be executed together or not at all.&rdquo;</p></blockquote>
+
+<h2>The Rules of Transacting</h2>
+
+<iframe src="//giphy.com/embed/cGDgkEeqA78Q" width="480" height="397" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>Because ActiveRecord transactions can be easily explained and simplified as a single method, it&rsquo;s easy to forget the idiosyncrasies that make this method work. There are a few things to keep in mind so that we can get the most out of these blocks.</p>
+
+<h3>1. Opening database connections</h3>
+
+<p>A transaction opens up a single database connection. This means that when we call the <code>transaction</code> method, the method can only be invoked on the <em>current</em> database connection. This is important to remember if our application writes to multiple database at once; for example, if our <code>Order</code> and our <code>Vendor</code> data lived in two different databases, we&rsquo;d need to nest our transactions:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Order</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'>  <span class="no">Vendor</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">order</span><span class="o">.</span><span class="n">process</span>
+</span><span class='line'>      <span class="n">user</span><span class="o">.</span><span class="n">charge</span>
+</span><span class='line'>      <span class="n">vendor</span><span class="o">.</span><span class="n">add_sale</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>It&rsquo;s generally a good idea to avoid nested transactions, mostly because the relationship between parent and child transactions can get complicated. This is especially the case because rollbacks are contained <em>inside</em> of their transactions blocks. I think that Mark Daggett explains this pretty well in <a href="http://markdaggett.com/blog/2011/12/01/transactions-in-rails/">his blog</a>:</p>
+
+<blockquote><p>&ldquo;ActiveRecord::Rollback does not propagate outside of the containing transaction block and so the parent transaction does not receive the exception nested inside the child. I find it easier to think of nested transactions like the child who dumps its contents into the parent container, leaving the child transaction empty. To ensure a rollback is received by the parent transaction you must add the <code>requires_new: true</code>. option to the child transaction.&rdquo;</p></blockquote>
+
+<h3>2. Different classes, one transaction</h3>
+
+<p>Because transactions are bound to <em>database connections</em>, we can mix different types of models inside of a <code>transaction</code> block. In fact, that&rsquo;s exactly what we were doing when we wrote our initial transaction:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Order</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'>  <span class="vi">@order</span><span class="o">.</span><span class="n">process</span>
+</span><span class='line'>  <span class="vi">@user</span><span class="o">.</span><span class="n">charge</span>
+</span><span class='line'>  <span class="vi">@vendor</span><span class="o">.</span><span class="n">add_sale</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>3. Class and instance methods</h3>
+
+<p>The great part about <code>transaction</code> is that it is available to us as both a class <em>and</em> an instance method for our ActiveRecord models. What does this mean, exactly? Well, the short answer is that we can write a transaction is lots of different ways, since we can invoke the <code>transaction</code> method on a class or an instance.</p>
+
+<p>For example, we could have written this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">User</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'>  <span class="c1"># methods we want to call go here</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Or this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Vendor</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'>  <span class="c1"># methods we want to call go here</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Or any of these:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="vi">@order</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="vi">@user</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="vi">@vendor</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And if we were writing a method <em>inside</em> of the <code>Order</code>, <code>Vendor</code>, or <code>User</code> classes, these options would have worked as well:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">self</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'><span class="nb">self</span><span class="o">.</span><span class="n">class</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The key here is that the <code>transaction</code> can be called on <em>any class</em> that inherits from <code>ActiveRecord::Base</code>. Why is that the key? Well, you might remember that we initially started off wanting to write a transaction inside of our service object&hellip;right? In that case, we can&rsquo;t use something like <code>transaction do</code>, because <code>self</code> is the service object class, which <em>does <strong>not</strong> inherit</em> from <code>ActiveRecord::Base</code>!</p>
+
+<p>So, what do? Well, just call the transaction method onto <code>ActiveRecord::Base</code> directly! there&rsquo;s a quick fix for that.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'>  <span class="c1"># methods we want to call go here</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>When in doubt, we can always just call the <code>transaction</code> method onto the <code>ActiveRecord::Base</code> class directly to be sure that it will run.</p>
+
+<h3>4. Exceptions are the rule</h3>
+
+<p>There&rsquo;s one golden rule of the <code>transaction</code> block: it will <strong>only rollback the transaction if an error is raised</strong>.</p>
+
+<p>Why is this important? Well, calling something like <code>save</code> or <code>destroy</code> inside of a transaction will not raise an error; if something goes wrong, these methods will simply return <code>false</code>. Which means that our <code>transaction</code> block will continue, since there was no error raised!</p>
+
+<p>Uh oh&hellip;how to fix? Just use the <code>save!</code> and <code>destroy!</code> methods instead! These are both ActiveRecord methods which raise an exception if they don&rsquo;t execute successfully:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'>  <span class="vi">@order</span><span class="o">.</span><span class="n">destroy!</span>
+</span><span class='line'>  <span class="vi">@user</span><span class="o">.</span><span class="n">save!</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And that&rsquo;s exactly what we need in this case, because we want the entire transaction to be closed if one or both of these methods are unsuccessful, and we want to tell the database that no data has changed. If we really, <em>really</em> wanted to use <code>save</code> instead of <code>save!</code>, we&rsquo;d have to manually <code>raise</code> an error in the block for our transaction to work as expected.</p>
+
+<h2>Transactions Under The Hood</h2>
+
+<iframe src="//giphy.com/embed/iUOzkJmvnFfqM" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>One of the interesting things about how <code>transaction</code> works under the hood has to do with how the <code>save</code> and <code>destroy</code> methods work. It turns out that Rails actually wraps the <code>save</code> and <code>destroy</code> methods in their own <code>transaction</code>s! So, we were using <code>ActiveRecord::Base.transaction</code> all along, without probably ever knowing what was really happening! Pretty crazy, right?</p>
+
+<p>There are a couple reasons that <code>save</code> and <code>destroy</code> are particularly curious. First, because they each occur in their own transactions, this means that we&rsquo;ll never need to write a <code>transaction</code> block to update a single record. In fact, that&rsquo;s exactly what Rails is  doing for us when we call something like <code>@user.save</code> &mdash; it&rsquo;s running a <code>transaction</code> block behind the scenes.</p>
+
+<p>The second reason this is interesting is because of callbacks that are associated with these two methods. A callback hook like <code>after_save</code> is actually part of the same active transaction that was opened when we called <code>@user.save</code>. So, if we wanted our code to execute <em>outside</em> of Rails&#8217; default <code>transaction</code> that wraps around <code>save</code> or <code>destroy</code>, we&rsquo;d want to use callback hooks like <code>after_commit</code> or <code>after_destroy</code>. If we want something specific to happen when the <code>save</code> <code>transaction</code> succeeds, we&rsquo;d have to use the <code>after_commit</code> callback, and if we want something specific to happen when the <code>save</code> <code>transaction</code> fails, we could use the <code>after_rollback</code> hook.</p>
+
+<p>While reading about transactions and the <code>save</code> and <code>destroy</code> methods, I discovered another really interesting method called <code>with_transaction_returning_status</code>. The <a href="https://github.com/rails/rails/blob/master/activerecord/lib/active_record/transactions.rb">transactions source code</a> is a bit of a rabbit hole, but if we spend some time reading through it, there&rsquo;s a lot to learn.</p>
+
+<p>In a nutshell, the <code>with_transaction_returning_status</code> is responsible for actually <em>raising</em> an <code>ActiveRecord::Rollback</code>. Somewhere inside of the black box of Rails magic, when we see an error caused by a <code>save</code> transaction that looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="p">:</span><span class="mo">001</span> <span class="o">&gt;</span> <span class="n">user</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span><span class='line'><span class="p">:</span><span class="mo">002</span> <span class="o">&gt;</span> <span class="n">user</span><span class="o">.</span><span class="n">save</span>
+</span><span class='line'>  <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">2</span><span class="n">ms</span><span class="p">)</span>  <span class="k">begin</span> <span class="n">transaction</span>
+</span><span class='line'>  <span class="no">User</span> <span class="no">Exists</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">6</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="o">*</span> <span class="no">FROM</span> <span class="s2">&quot;users&quot;</span> <span class="no">WHERE</span> <span class="p">(</span><span class="s2">&quot;users&quot;</span><span class="o">.</span><span class="s2">&quot;id&quot;</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+</span><span class='line'>   <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">1</span><span class="n">ms</span><span class="p">)</span>  <span class="n">rollback</span> <span class="n">transaction</span>
+</span><span class='line'> <span class="o">=&gt;</span> <span class="kp">false</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>it&rsquo;s actually a method like <code>with_transaction_returning_status</code> that&rsquo;s responsible for causing that rollback to happen! Here&rsquo;s a truncated example of the source code; we can see that this method defines a local <code>status</code> variable, sets and returns the <code>status</code> if the <code>transaction</code> is successful, and <code>raises</code> an error, if the <code>status</code> is not defined:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">with_transaction_returning_status</span>
+</span><span class='line'>  <span class="n">status</span> <span class="o">=</span> <span class="kp">nil</span>
+</span><span class='line'>  <span class="nb">self</span><span class="o">.</span><span class="n">class</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
+</span><span class='line'>      <span class="c1"># some Rails magic here that captures the</span>
+</span><span class='line'>      <span class="c1"># return value of a save or destroy method,</span>
+</span><span class='line'>      <span class="c1"># and then sets that to the status.</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">raise</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Rollback</span> <span class="k">unless</span> <span class="n">status</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>  <span class="n">status</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The Rails documentation also briefly explains exactly what&rsquo;s happening:</p>
+
+<blockquote><p>Executes <code>method</code> within a transaction and captures its return value as a status flag. If the status is true the transaction is committed, otherwise a ROLLBACK is issued. In any case the status flag is returned.</p></blockquote>
+
+<p>Transactions are all around us, it seems, from the most everyday methods to the more complicated ones that we write ourselves. They&rsquo;re a great way of keeping our code safe while also defending against things like duplicate SQL queries.</p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>ActiveRecord&rsquo;s <code>transaction</code> method takes a block, and will only execute the block and write to your database if no exceptions are raised.</li>
+<li>You can defined the <code>transaction</code> method on any class that <em>inherits from</em> <code>ActiveRecord::Base</code>, and that transaction will open up a single new database connection.</li>
+<li>Check out the Jeff Casimir helpful <a href="https://gist.github.com/jcasimir/1098368">summary of transactions</a> in his Gist. Or, if you&rsquo;re looking for a challenge, head over to the Rails <a href="http://api.rubyonrails.org/classes/ActiveRecord/Transactions/ClassMethods.html">documentation</a> on ActiveRecord transactions.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Rolling Out the Redcarpet for Rendering Markdown]]></title>
@@ -4660,386 +4943,6 @@ outer join to start.</p>
 <li>The <code>includes</code> method can be chained on to any ActiveRecord model, and takes parameters of an association/table name, passed in as a symbol. Read more about it in the <a href="http://guides.rubyonrails.org/active_record_querying.html#eager-loading-associations">Rails docs</a>.</li>
 <li>If you&rsquo;re still curious about the n + 1 problem, check out another good example of it <a href="http://www.sitepoint.com/silver-bullet-n1-problem/">over here</a>.</li>
 <li>Big O Notation got you down? Check out <a href="http://nathanmlong.com/2015/03/understanding-big-o-notation/">this awesome resource</a>, which has graphs to go along with each code snippet example of different types of notation.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Delegating All of the Things With Ruby Forwardable]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable/"/>
-    <updated>2015-03-31T08:35:27-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable</id>
-    <content type="html"><![CDATA[<p><img src="http://assets.amuniversal.com/77c6dce06d5c01301d80001dd8b71c47" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>It was the best of times. It was the worst of times. It was&hellip;refactoring time! Well it was for me yesterday, at least.</p>
-
-<p>Refactoring your own code has a great payoff at the end, but boy, does it take some work to get there. Something I&rsquo;ve noticed about my own code recently is that I&rsquo;m now able to know that something needs to be refactored pretty easily. I&rsquo;ve been having a lot of gut feelings about parts of my code that just <em>feel</em> wrong, inefficient, and repetitive. The problem is, even though I know where my code is weak, I don&rsquo;t usually know <em>how</em> to go about making my code better.</p>
-
-<p>And this is where making effective use of resources (read: The Art Of Effective Googling) comes quite in handy. Yesterday, however, I used even better resource &ndash; a more experienced developer! We took a look at my code and came up with some ways I could refactor it. I learned about a pretty interesting module that could save me lines of code and keep my application <a href="http://en.wikipedia.org/wiki/Don%27t_repeat_yourself">DRY</a>. And now I get to share it with you! This module is called <a href="http://ruby-doc.org/stdlib-2.0/libdoc/forwardable/rdoc/Forwardable.html">Forwardable</a>, and trust me when I say that it&rsquo;s going to make you want to delegate all the things.</p>
-
-<!--more-->
-
-
-<h2>Infatuation With Delegation</h2>
-
-<p>Before we even get to Ruby&rsquo;s Forwardable module, let&rsquo;s first make sure we understand delegation. So, <em>whut</em> exactly is delegation? It&rsquo;s probably exactly what you imagine it to be. In plain English, when you delegate something to someone else, you divide up responsibilities amongst yourselves. For example, if I had someone to delegate all these blog posts to, I wouldn&rsquo;t have to write all of them myself! But I digress; back to programming.</p>
-
-<p>Delegation in programming is not too different. When an object has a lot of responsibilities and things to do, it&rsquo;s generally easier to give some of those responsibilities to another object &ndash; a &ldquo;helper&rdquo; object &ndash; to avoid repetition and keep things working efficiently. Let&rsquo;s put this in some technical context for a hot minute: we can use a technique called <strong>encapsulation</strong> to pack a bunch of functionality into a single object&rsquo;s class and instance methods.</p>
-
-<iframe src="//giphy.com/embed/UOpdmwKA7la0g" width="480" height="207" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Ok, maybe you&rsquo;re not a fan of technical jargon. Maybe you&rsquo;d much rather prefer a real-life example of delegation? Alright, here you are:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Product</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">sku</span>
-</span><span class='line'>    <span class="c1"># Returns a sku specific to a</span>
-</span><span class='line'>    <span class="c1"># particular instance of a product.</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">class</span> <span class="nc">Book</span> <span class="o">&lt;&lt;</span> <span class="no">Product</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">author</span>
-</span><span class='line'>    <span class="c1"># Returns an Author object</span>
-</span><span class='line'>    <span class="c1"># associated with that book.</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Yup, that&rsquo;s right. Class inheritance, a concept I&rsquo;ve <a href="http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my/">written about</a> <a href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance-part-1/">a couple times</a> that you&rsquo;re probably pretty familiar with at this point, is a type of delegation.</p>
-
-<p>Since a <code>Book</code> object inherits from a <code>Product</code> object, it has both an <code>author</code> method an a <code>sku</code> method. When you ask a <code>Book</code> for its <code>sku</code>, it first looks in the <code>Book</code> class, and when it doesn&rsquo;t find the method in there, it delegates up to its parent class, which is the <code>Product</code> class. Instead of making the <code>Book</code> responsible for all the functionality, we&rsquo;re using the <code>Product</code> object to take care of doing the logic and finding and returning the correct <code>sku</code>.</p>
-
-<p>See, you&rsquo;ve already worked with delegation! Nothing to fear here. Now let&rsquo;s apply delegation to the Forwardable module.</p>
-
-<h2>Put Your Best Foot Forward</h2>
-
-<p>The best way to see Ruby Forwardable in action is by using it to actually refactor something. So, let&rsquo;s take a look at what our raw code looks like right now:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Book</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">language</span>
-</span><span class='line'>    <span class="s2">&quot;English&quot;</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">year</span>
-</span><span class='line'>    <span class="s2">&quot;1926&quot;</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">author</span>
-</span><span class='line'>    <span class="s2">&quot;Ernest Hemingway&quot;</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">title</span>
-</span><span class='line'>    <span class="s2">&quot;The Sun Also Rises&quot;</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">class</span> <span class="nc">Product</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span>
-</span><span class='line'>    <span class="vi">@book</span> <span class="o">=</span> <span class="no">Book</span><span class="o">.</span><span class="n">new</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">language</span>
-</span><span class='line'>    <span class="vi">@book</span><span class="o">.</span><span class="n">language</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">year</span>
-</span><span class='line'>    <span class="vi">@book</span><span class="o">.</span><span class="n">year</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">author</span>
-</span><span class='line'>    <span class="vi">@book</span><span class="o">.</span><span class="n">author</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">info</span>
-</span><span class='line'>    <span class="vi">@book</span><span class="o">.</span><span class="n">title</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Ugh. You&rsquo;ve probably already recoiled in horror. We have a <code>Book</code> object, which has a <code>language</code>, <code>year</code>, <code>author</code>, and <code>title</code>. And we have a <code>Product</code> object, which creates a new instance of a <code>Book</code> object, and then pretty much repeats all those methods again, using the instance it creates in the <code>initialize</code> method.</p>
-
-<p>We already know this code is bad. But how to go about refactoring it? Use Forwardable, obvs, and do some forwarding! We&rsquo;ll delegate all the handling of information to the <code>Book</code> object. Our <code>Product</code> class doesn&rsquo;t need to worry about that!</p>
-
-<p>Cool. So how do we do this? Like so:</p>
-
-<ul>
-<li>Let&rsquo;s first get rid of all of those methods in the <code>Product</code> class. We&rsquo;ll keep our <code>initialize</code> method, since that&rsquo;s how we&rsquo;ll create a new instance of <code>Book</code> in order to have something that we can call methods on. Now our class looks pretty empty:</li>
-</ul>
-
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Product</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span>
-</span><span class='line'>    <span class="vi">@book</span> <span class="o">=</span> <span class="no">Book</span><span class="o">.</span><span class="n">new</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<ul>
-<li>We&rsquo;ll add the Forwardable module, part of the Ruby standard library, by extending it in the first line of the class:</li>
-</ul>
-
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="kp">extend</span> <span class="no">Forwardable</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<ul>
-<li>Now we&rsquo;ll specify the methods that we to call on a <code>Book</code> object <em>through</em> our <code>Product</code> class by using the <code>def_delegators</code> method, available through Forwardable:</li>
-</ul>
-
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">def_delegators</span> <span class="ss">:@book</span><span class="p">,</span> <span class="ss">:language</span><span class="p">,</span> <span class="ss">:year</span><span class="p">,</span> <span class="ss">:author</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<ul>
-<li>We also want to get the title as well, but we want to rename that method as <code>info</code>. We can use <code>def_delegator</code> in order to do that:</li>
-</ul>
-
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">def_delegator</span> <span class="ss">:@book</span><span class="p">,</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">:info</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Now we&rsquo;ve cut down these two classes a lot. Our refactored code looks like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Book</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">language</span>
-</span><span class='line'>    <span class="s2">&quot;English&quot;</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">year</span>
-</span><span class='line'>    <span class="s2">&quot;1926&quot;</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">author</span>
-</span><span class='line'>    <span class="s2">&quot;Ernest Hemingway&quot;</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">title</span>
-</span><span class='line'>    <span class="s2">&quot;The Sun Also Rises&quot;</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">class</span> <span class="nc">Product</span>
-</span><span class='line'>  <span class="kp">extend</span> <span class="no">Forwardable</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">def_delegators</span> <span class="ss">:@book</span><span class="p">,</span> <span class="ss">:language</span><span class="p">,</span> <span class="ss">:year</span><span class="p">,</span> <span class="ss">:author</span>
-</span><span class='line'>    <span class="n">def_delegator</span> <span class="ss">:@book</span><span class="p">,</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">:info</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span>
-</span><span class='line'>    <span class="vi">@book</span> <span class="o">=</span> <span class="no">Book</span><span class="o">.</span><span class="n">new</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>What can this refactored code actually do? Well, it lets us call <code>info</code> on a <code>Product</code> and get back the title of the book! And it allows us to call <code>year</code> directly on an instance of <code>Product</code>:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">p</span> <span class="o">=</span> <span class="no">Product</span><span class="o">.</span><span class="n">new</span>
-</span><span class='line'> <span class="o">=&gt;</span> <span class="c1">#&lt;Product:0x007feb2183ea78 @book=#&lt;Book:0x007feb2183e9d8&gt;&gt; </span>
-</span><span class='line'><span class="nb">p</span><span class="o">.</span><span class="n">year</span>
-</span><span class='line'> <span class="o">=&gt;</span> <span class="s2">&quot;1926&quot;</span>
-</span><span class='line'><span class="nb">p</span><span class="o">.</span><span class="n">info</span>
-</span><span class='line'> <span class="o">=&gt;</span> <span class="s2">&quot;The Sun Also Rises&quot;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>But wait &ndash; we didn&rsquo;t write a <code>year</code> method in the <code>Product</code> class! Well, okay, we <em>kind</em> of did. We used <code>def_delegators</code>, to tell the <code>Product</code> class that it should respond to three methods: <code>language</code>, <code>author</code>, and <code>year</code>. And, we&rsquo;re telling the <code>Product</code> class to respond to each of these methods by calling it on an instance of <code>@book</code>.</p>
-
-<p>And how did we rewrite that <code>title</code> method, exactly? We used <code>def_delegator</code> (singular, not plural!) to tell the <code>Product</code> class to respond to a method called <code>info</code> by calling <code>title</code> on <code>@book</code>. The reason that this works is only because we already have a <code>title</code> method defined on all instances of the <code>Book</code> class.</p>
-
-<h2>Delegate Like You Mean It</h2>
-
-<p>Using the Forwardable module comes in handy not just for refactoring, but also for your initial structuring of an application. Anytime you have an object handling lots of functionality, think about whether you can encapsulate that functionality into another class, and delegate the methods that aren&rsquo;t directly required into that &ldquo;helper&rdquo; class.</p>
-
-<p>There are some great blog posts with examples of how to use the Forwardable module effectively. Here&rsquo;s an implementation on a Reading List class (think Goodreads):</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ReadingList</span>
-</span><span class='line'>    <span class="kp">extend</span> <span class="no">Forwardable</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">def_delegators</span> <span class="ss">:@books</span><span class="p">,</span> <span class="ss">:map</span><span class="p">,</span> <span class="ss">:size</span><span class="p">,</span> <span class="ss">:&lt;&lt;</span><span class="p">,</span> <span class="ss">:shuffle</span>
-</span><span class='line'>    <span class="n">def_delegator</span> <span class="ss">:@books</span><span class="p">,</span> <span class="ss">:shift</span><span class="p">,</span> <span class="ss">:remove_book</span>
-</span><span class='line'>    <span class="n">def_delegator</span> <span class="ss">:@books</span><span class="p">,</span> <span class="ss">:push</span><span class="p">,</span> <span class="ss">:add_book</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="k">def</span> <span class="nf">initialize</span>
-</span><span class='line'>        <span class="vi">@books</span> <span class="o">=</span> <span class="o">[]</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>There&rsquo;s some pretty bomb stuff happening in such few lines. The <code>ReadingList</code> class gets initialized with an empty array, which we save as an instance variable, <code>@books</code>. Then we&rsquo;ve also our <code>def_delegators</code>, which delegate <code>map</code>, <code>size</code>, <code>&lt;&lt;</code>, and <code>shuffle</code> to the <code>@books</code>. And we have two methods that we (kinda) wrote: <code>remove_book</code> and <code>add_book</code>.</p>
-
-<p>That&rsquo;s a lot of stuff for 9 lines of code! So what can this do, exactly? Well, let&rsquo;s see our reading list in action:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">vaidehis_list</span> <span class="o">=</span> <span class="no">ReadingList</span><span class="o">.</span><span class="n">new</span>
-</span><span class='line'> <span class="o">=&gt;</span> <span class="c1">#&lt;ReadingList:0x007feb21a6d0b0 @books=[]&gt; </span>
-</span><span class='line'><span class="n">vaidehis_list</span><span class="o">.</span><span class="n">add_book</span><span class="p">(</span><span class="s1">&#39;For Whom The Bell Tolls&#39;</span><span class="p">)</span>
-</span><span class='line'> <span class="o">=&gt;</span> <span class="o">[</span><span class="s2">&quot;For Whom The Bell Tolls&quot;</span><span class="o">]</span>
-</span><span class='line'><span class="n">vaidehis_list</span><span class="o">.</span><span class="n">add_book</span><span class="p">(</span><span class="s1">&#39;The Old Man And The Sea&#39;</span><span class="p">)</span>
-</span><span class='line'> <span class="o">=&gt;</span> <span class="o">[</span><span class="s2">&quot;For Whom The Bell Tolls&quot;</span><span class="p">,</span> <span class="s2">&quot;The Old Man And The Sea&quot;</span><span class="o">]</span>
-</span><span class='line'> <span class="n">vaidehis_list</span><span class="o">.</span><span class="n">add_book</span><span class="p">(</span><span class="s1">&#39;To Have And To Have Not&#39;</span><span class="p">)</span>
-</span><span class='line'> <span class="o">=&gt;</span> <span class="o">[</span><span class="s2">&quot;For Whom The Bell Tolls&quot;</span><span class="p">,</span> <span class="s2">&quot;The Old Man And The Sea&quot;</span><span class="p">,</span> <span class="s2">&quot;To Have And To Have Not&quot;</span><span class="o">]</span>
-</span><span class='line'><span class="n">vaidehis_list</span><span class="o">.</span><span class="n">size</span>
-</span><span class='line'> <span class="o">=&gt;</span> <span class="mi">3</span>
-</span><span class='line'><span class="n">vaidehis_list</span><span class="o">.</span><span class="n">shuffle</span>
-</span><span class='line'> <span class="o">=&gt;</span> <span class="o">[</span><span class="s2">&quot;For Whom The Bell Tolls&quot;</span><span class="p">,</span> <span class="s2">&quot;To Have And To Have Not&quot;</span><span class="p">,</span> <span class="s2">&quot;The Old Man And The Sea&quot;</span><span class="o">]</span>
-</span><span class='line'><span class="n">vaidehis_list</span><span class="o">.</span><span class="n">remove_book</span>
-</span><span class='line'> <span class="o">=&gt;</span> <span class="s2">&quot;For Whom The Bell Tolls&quot;</span>
-</span><span class='line'><span class="n">vaidehis_list</span><span class="o">.</span><span class="n">size</span>
-</span><span class='line'> <span class="o">=&gt;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p><em>Dayummmmm</em>. Pretty sweet, right? We get to call all these methods directly on our <code>ReadingList</code> class! But what are they actually getting called on? Well, by using <code>def_delegators</code> and <code>def_delegator</code>, we&rsquo;re telling our <code>ReadingList</code> class to call methods like <code>shift</code> and <code>shuffle</code> on our <code>@books</code> instance. And here&rsquo;s where it gets pretty cool: our <code>@books</code> variable is&hellip;an ARRAY.</p>
-
-<p>Just in case you&rsquo;re not as enthused about this fact as I am, let me explain what this means. It means that we can have access to every single method available on an array instance. Just in case you&rsquo;re wondering, all instance of <code>Array</code>s have 113 methods available to them (not including the 54 methods available to all instance of <code>Object</code>)! All we&rsquo;d have to do is add a method (literally, you can choose any method available on an array) like <code>flat_map</code> to our <code>def_delegators</code> line, and tada! It&rsquo;s ours to use on our <code>ReadingList</code> object.</p>
-
-<p>You can see how this can get pretty powerful, pretty fast. In just a few lines of code, we&rsquo;re exercising the functionality of an entire plain old ruby object (PORO), simply by delegating methods through Forwardable.</p>
-
-<p>Okay, that was a lot of refactoring magic. I told you, right? Lots of effort, but lots of payoff! Now, if you&rsquo;ll excuse me, I apparently have some books to read.</p>
-
-<iframe src="//giphy.com/embed/112iFz2Y2b1Pwc" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>Delegation is the idea that an object can delegate a task to an associated &ldquo;helper&rdquo; object.</li>
-<li>The Forwardable module uses <code>def_delegators</code> to delegate methods to another Ruby object, and <code>def_delegator</code> to rename a method that&rsquo;s being delegated to another object.</li>
-<li>For another example of this module, read this <a href="http://oneofthesedaysblog.com/ruby-day-4-forwardable">incredibly thorough</a> blog post on implementing Forwardable.</li>
-<li>Curious about delegation patterns in Object-Oriented Programming? <a href="http://radar.oreilly.com/2014/02/delegation-patterns-in-ruby.html">This post</a> has gotcha covered.</li>
 </ul>
 
 ]]></content>
