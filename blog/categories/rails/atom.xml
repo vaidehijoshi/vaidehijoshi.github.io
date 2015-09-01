@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rails | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-08-16T13:27:39-04:00</updated>
+  <updated>2015-09-01T08:51:06-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,154 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Inflections Everywhere: Using ActiveSupport Inflector]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/"/>
+    <updated>2015-09-01T08:45:22-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/JEIRAmTTfUgYE" width="480" height="264" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Words are pretty important. But do you know what&rsquo;s more important than words? <em>Grammar</em>. (Can you tell that I was an English major?) Despite how big of a book nerd I am, there&rsquo;s acually a crucial reason as to why we should keep things like grammar in consideration: convention.</p>
+
+<p>At it&rsquo;s very core &mdash; pun totally intended &mdash; the Rails framework is based in conventions. We rely on the framework to create our models, controllers, and views in a specific file structure, and for them to be named in a certain way. But what we often forget is that we also rely on Rails to be smart enough to handle strange edge cases, like knowing that a <code>mice</code> table should store the <code>Mouse</code> model objects, and that the <code>MiceController</code> should be responsible for passing those objects back and forth!</p>
+
+<p>It all seems pretty automagical. But we have to keep in mind that it was the Rails core team that created and established these conventions, which means that they&rsquo;re not magic &mdash; they&rsquo;re just code! And as much as we can rely on preexisting Rails conventions, there might be times that we need to tweak our code to abide by those conventions. And because computers are not people (and because English is a crazy language with so many strange exceptions), we&rsquo;re probably going to run into a roadblock when dealing with grammar naming conventions. Thankfully, there&rsquo;s a great tool to help with this problem: the Rails <strong>Inflector</strong>, also known as every grammar nerd&rsquo;s dream.</p>
+
+<!--more-->
+
+
+<h2>Meet The Inflector</h2>
+
+<iframe src="//giphy.com/embed/yLV9y5wb0Qb1m" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>The Rails Inflector is actually a part of the ActiveSupport module, which is truly a beast of a module, and probably warrants a few blog posts of its own. The tl;dr version of ActiveSupport is this: it provides a bunch of different patterns to transform simple Ruby strings. The inflector library in particular is responsible for handling the pluralization of different strings.</p>
+
+<p>An important thing to note about the inflections library is that it&rsquo;s pretty much set in stone. According to <a href="http://api.rubyonrails.org/classes/ActiveSupport/Inflector.html">the documentation</a>, these rules are never going to change so that Rails can remain backwards-compatible for older applications:</p>
+
+<blockquote><p>&ldquo;The Rails core team has stated patches for the inflections library will not be accepted in order to avoid breaking legacy applications which may be relying on errant inflections. If you discover an incorrect inflection and require it for your application or wish to define rules for languages other than English, please correct or add them yourself.&rdquo;</p></blockquote>
+
+<p>Basically, what this means is that Rails provides us with some basic inflections; however, if we want to create our own custom grammar rules (or if we notice something that&rsquo;s incorrect), we have to write our own inflections for our application. It&rsquo;s also worth noting that if we want to create models that are <em>not</em> English words, we&rsquo;d need to write our own pluralize rules for those as well. But before we go about writing completely new inflections, let&rsquo;s first see what inflector methods we have available to us!</p>
+
+<h2>Inflector Methods</h2>
+
+<iframe src="//giphy.com/embed/l41lS9B8KYJ9dYZck" width="480" height="283" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>The <code>ActiveSupport::Inflector</code> module has a handful of public instance methods that are available for us to use. In fact, when I was first learning Rails, I played around with these methods in irb, but didn&rsquo;t really know (much less <em>understand</em>) where they were coming from. But it turns out that the Inflector methods can be super useful! Here are some of my favorites:</p>
+
+<h3><code>humanize</code></h3>
+
+<p>This method is great for displaying an attribute name to end users. It deletes any leading underscores, replaces underscores with spaces, downcase all words (except acronyms), and capitalizes the first word. Basically, it makes your attributes human-readable, which can be helpful for displaying an error message to your user:</p>
+
+<pre><code class="ruby">♥ rails console
+Loading development environment (Rails 4.1.4)
+irb(main):001:0&gt; humanize(author.first_name) 
+=&gt; "First name"
+</code></pre>
+
+<h3><code>titleize</code></h3>
+
+<p>The <code>titleize</code> method is pretty perfect for our bookstore application. It capitalizes all the words and replaces underscores with spaces:</p>
+
+<pre><code class="ruby">irb(main):002:0&gt; 'of_mice_and_men'.titleize
+=&gt; "Of Mice And Men"
+</code></pre>
+
+<p><em>Protip: this method is also aliased as <code>titlecase</code>.</em></p>
+
+<h3><code>parameterize</code></h3>
+
+<p>This method replaces special characters in a string so that it can be used in a URL (think sluggable names with hyphens):</p>
+
+<pre><code class="ruby">irb(main):003:0&gt; 'Of Mice And Men'.parameterize
+=&gt; "of-mice-and-men"
+</code></pre>
+
+<h3><code>singularize</code></h3>
+
+<p>The <code>singularize</code> method does exactly what you think it would do: it returns the singular form of a word in a string:</p>
+
+<pre><code class="ruby">irb(main):004:0&gt; 'mice'.singularize
+=&gt; "mouse"
+irb(main):005:0&gt; 'men'.singularize
+=&gt; "man"
+</code></pre>
+
+<h3><code>pluralize</code></h3>
+
+<p>And the <code>pluralize</code> method does the opposite things: returns the plural form of a word in string format:</p>
+
+<pre><code class="ruby">irb(main):006:0&gt; "mouse".pluralize
+=&gt; "mice"
+irb(main):007:0&gt; "man".pluralize
+=&gt; "men"
+</code></pre>
+
+<p>There are tons more Inflector methods that are very <a href="http://api.rubyonrails.org/classes/ActiveSupport/Inflector.html">well-documented</a>. In fact, there are so many great methods that you might be thinking to yourself, <em>why would I ever have to write my own methods?</em></p>
+
+<p>Well, what if we wanted <code>Specimen</code> objects, which needed to be pluralized as <code>Specimens</code>. We could assume that Rails will handle that for us&hellip;or we could double-check:</p>
+
+<pre><code class="ruby">irb(main):008:0&gt; "specimen".pluralize
+=&gt; "specimen"
+</code></pre>
+
+<p>Oops! It seems like the predefined inflections are taking hold here and parsing &ldquo;men&rdquo; as the plural form of &ldquo;man&rdquo;, like we saw earlier. You know what this means&hellip;time to write our <em>own</em> inflections!</p>
+
+<h2>New Inflection Rules</h2>
+
+<p>One of the coolest public instance methods of the <code>`ActiveSupport::Inflector</code> module is the method that allows us to specify our own inflector rules. This method is appropiately named <code>inflections</code>, and it does some interesting things.</p>
+
+<p>The <code>inflections</code> method yields to a singleton instance of <code>ActiveSupport::Inflector::Inflections</code>. It can be passed an optional locale, which is how we could write inflection rules for other languages; the default locale is English (specified as the argument <code>:en</code>).</p>
+
+<p>We can write our own inflections inside of the <code>config/initializers/inflections.rb</code> file. This file actually already exists and will look like this when we first open it:</p>
+
+<pre><code class="ruby"># Be sure to restart your server when you modify this file.
+
+# Add new inflection rules using the following format. Inflections
+# are locale specific, and you may define rules for as many different
+# locales as you wish. All of these examples are active by default:
+# ActiveSupport::Inflector.inflections(:en) do |inflect|
+#   inflect.plural /^(ox)$/i, '\1en'
+#   inflect.singular /^(ox)en/i, '\1'
+#   inflect.irregular 'person', 'people'
+#   inflect.uncountable %w( fish sheep )
+# end
+
+# These inflection rules are supported but not enabled by default:
+# ActiveSupport::Inflector.inflections(:en) do |inflect|
+#   inflect.acronym 'RESTful'
+# end
+</code></pre>
+
+<p>We can already see how to go about writing our inflections with the examples in this file, including some of the methods we can use, depending on what our edge case is. There are actually a lot of <a href="http://api.rubyonrails.org/classes/ActiveSupport/Inflector/Inflections.html">methods available</a> to us inside of our inflections block, some of the most helpful being <code>plural</code>, <code>singular</code>, <code>uncountable</code>, and <code>irregular</code>. In our case, we&rsquo;re dealing with an irregular inflection wherein <code>specimen</code> needs to be pluralized as <code>specimens</code>, so we&rsquo;ll use the <code>irregular</code> method, which takes two arguments: the singular and the plural form of the word as strings.</p>
+
+<pre><code class="ruby">ActiveSupport::Inflector.inflections(:en) do |inflect|
+  inflect.irregular 'specimen', 'specimens'
+en
+</code></pre>
+
+<p>Awesome! Now our entire application will know about this inflection rule. And the really great thing about this is that our new rule that we just wrote is added at the top of this file, which means that our irregular rule for <code>specimen</code> will be the first of the singularization and pluralization rules that is run. This ensures that our rules will always run before any of the preexisting rules that come with <code>ActiveSupport::Inflector</code>.</p>
+
+<p>Whew &mdash; that was quite an inflection adventure! But now the next time we have a grammar mistake, we can fix it easily, just like the strange puppet (is a gopher? A beaver? I don&rsquo;t know!) keeps telling us to do:</p>
+
+<iframe src="//giphy.com/embed/DIBVWfW8vtQli" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>ActiveSupport::Inflector</code> handles a lot of the grammar rules in Rails. The <code>inflections.rb</code> file is where we can write our own inflection rules. Check out all the preexisting inflections in the Rails <a href="https://github.com/rails/rails/blob/92f567ab30f240a1de152061a6eee76ca6c4da86/activesupport/lib/active_support/inflections.rb">source code</a>.</li>
+<li>Curious how Rails knows what grammar rules to follow? Check out <a href="http://ilanasufrin.github.io/blog/2014/07/30/a-rails-grammar-lesson/">this blog post</a>, which explains it all.</li>
+<li>If you are very brave, dig through the <a href="https://github.com/rails/rails/blob/6c75a111995a9aab09e19c2b6a8a42162f689bc6/activesupport/lib/active_support/inflector/inflections.rb">source code</a> for all of the methods available to <code>inflections</code>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Safer SQL: Using ActiveRecord Transactions]]></title>
@@ -756,186 +904,6 @@ end
 <li>The <code>paperclip</code> gem really needs only two things to function properly: a <code>has_attached_file :attachment</code> in the model and an <code>attachment_file_name</code> column in the database. The <code>attachment_content_type</code> is only required if you&rsquo;re going to use content type validation.</li>
 <li>If you want to see some <code>paperclip</code> in action, check out this <a href="http://railscasts.com/episodes/134-paperclip">RailsCast</a> that covers all the basics.</li>
 <li>Want to dive into the <code>paperclip</code> source code? Go for it! Perhaps you can start by checking out their well-documented <a href="http://www.rubydoc.info/gems/paperclip/Paperclip/ClassMethods">class methods</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[All the Columns Fit to Index: Unique + Compound Indexing]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing/"/>
-    <updated>2015-07-21T08:02:04-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/MMEfo9QQgKInK" width="480" height="269" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Database indexing: the last frontier. Well, okay, not the <em>last</em> frontier perse&hellip;more like the frontier that I&rsquo;ve been reading about a lot recently. While learning about writing about <a href="http://vaidehijoshi.github.io/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/">smart and efficient</a> migrations, I stumbled upon a rabbit hole that I had to restrain myself from going down: the rabbit hole of <strong>database indexing</strong>. But this week, I allowed myself to explore and learn some more about how indexes work.</p>
-
-<p>As the cat gif above might already suggest, an index in a database is much like an index in a book: a place where you can quickly look up the exact information that you need. We already know that indexing can be super helpful when it comes to application performance. Using indexes forces our database to use integers to look up rows &ndash; which are just representations of items or objects &ndash; in our database. The reason that they&rsquo;re so efficient is because looking up something in a database is both fast <em>and</em> cheap if we use an integer to do it (using a string on the other hand, is much, much slower and more expensive). By implementing a simple index, we can speed up a single query by seconds!</p>
-
-<p>But it turns out that even a single index can be complicated. And that&rsquo;s because there are so many kinds of indexes available for us to use. In fact, there&rsquo;s a whole <em>world</em> of different types of database indexes out there. Of course, knowing the options available to us when it comes to database indexing is just half the battle; the other half is knowing when it&rsquo;s the right time to use all these different types of indexes. The best way to learn is by playing around with some indexing ourselves &ndash; so let&rsquo;s dive in!</p>
-
-<!--more-->
-
-
-<h2>Indexes All Around Us</h2>
-
-<p>The most common index type that we have dealt with so far are <strong>single-column</strong> indexes. They work pretty much exactly as their name would suggest: they create an index on a specific column of a database. So far, almost all of the indexes we&rsquo;ve generated have been indexed on a specific single column of a table.</p>
-
-<iframe src="//giphy.com/embed/bjDq7WCjstuPS" width="480" height="329" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Let&rsquo;s think for a second: when we use a PostgreSQL to run a migration, the one column that always gets generated is an <code>id</code> column, which is unique for every row in that database, even if the object is deleted. If we think about it, that&rsquo;s an example of an index. In fact, PostgreSQL automatically generates an index for the primary key of any table, and always generates a new, unique key for each new row in the database.</p>
-
-<p>One of the very first migrations we ran for our Bookstore application looked like this:</p>
-
-<pre><code class="ruby">class CreateBooks &lt; ActiveRecord::Migration
-  def change
-    create_table :books do |t|
-      t.string :title
-    end 
-  end
-end
-</code></pre>
-
-<p>and generated a tiny little table, which didn&rsquo;t have all that much &ndash; but it did have an index as its <code>id</code> primary key column, which we can confirm by looking at our <code>structure.sql</code> file:</p>
-
-<pre><code class="sql">CREATE TABLE books (
-    id integer NOT NULL,
-    title character varying(255)
-)
-</code></pre>
-
-<p>The advantage of having an <code>id integer</code> column here is that our database can very easily look up a specific row in our <code>books</code> table by using the index. We can also see that there&rsquo;s automatically a <code>NOT NULL</code> validation that prevents any row in the database from being created <em>without</em> an <code>id</code>. This isn&rsquo;t something that we wrote &ndash; this is something that Postgres does automatically! And although it might seem pretty obvious and a bit simple right now, it&rsquo;s important to note &ndash; especially since indexes can get rather complicated, rather fast.</p>
-
-<p>Another form of indexing that we&rsquo;ve played around with is adding our own indexes to <code>has_many</code> and <code>belongs_to</code> associations, often by using <code>references</code> to alias those relationships:</p>
-
-<pre><code class="ruby">class AddGenreToBooks &lt; ActiveRecord::Migration
-  def change
-    add_reference :books, :genre, index: true
-  end
-end
-</code></pre>
-
-<p>And if we already have a relationship set up, we can just write a quick migration to manually add an index to our <code>books</code> table:</p>
-
-<pre><code class="ruby">class AddGenreIndexToBooks &lt; ActiveRecord::Migration
-  def change
-    add_index :books, :genre
-  end
-end
-</code></pre>
-
-<p>This migration adds an index on <code>genre_id</code> column within our <code>books</code> table, which makes it very quick and easy to look up a book by it&rsquo;s corresponding genre. This is still only a single-column, or <strong>independent index</strong>, because it is only dealing with a single column within a database table. But if there are single indexes, that must mean that the idea of &ldquo;multiple&rdquo; indexes is also must be a real thing, right?</p>
-
-<h2>Two Indexes Are (Sometimes) Better Than One</h2>
-
-<p>Indexes are easy to add; what&rsquo;s harder is knowing what <em>kind</em> of index to add. Sometimes, a single-column index does the trick. But it&rsquo;s also possible that it&rsquo;s quite the right tool for the job.</p>
-
-<p>Let&rsquo;s say that we are doing an overhaul on our Bookstore application and scaling for size. We&rsquo;ve decided that in addition to selling our own curated selection of books, we&rsquo;re also going to allow new, lesser-known bookstores to sign up for our service and sell their own books. Our vendors will have their own admin panel (think vendor portal), and the bookstore staff will have a separate admin panel from which to monitor all the sales across all the vendors who are signed up for our service.</p>
-
-<p>All of our admins (staff and vendors) have an <code>user_id</code>. But, our staff and our vendors aren&rsquo;t just simple users of our application &ndash; they have special roles, and need access to specific pages, depending on their roles. Our admins also have an <code>admin_id</code> in addition to their base <code>user_ids</code>, while our vendors have a <code>vendor_id</code>, based on their roles as smaller-scale booksellers who will be using our software to sell their products.</p>
-
-<p>Within our staff admin panel, we want our admins to be able to quickly view all sales across our signed up vendors, in addition to one specific vendors sales reports. If an admin logs into the admin panel and clicks on a specific bookseller, the panel should immediately load all the information pertinent to that specific vendor.</p>
-
-<p>The first thing we might think to do is what we already know &ndash; namely, add an index on the columns we know we want to look up:</p>
-
-<pre><code class="ruby">class AddIndexesToUsers &lt; ActiveRecord::Migration
-    def change
-        add_index :users
-        add_index :users, :vendor_id
-    end
-end
-</code></pre>
-
-<p>However, these indexes don&rsquo;t actually do what we think they&rsquo;ll do. This adds an index to the primary key column on our <code>users</code> table, which will allow us to quickly look up a single <code>User</code>. It also adds an index to our <code>vendor_id</code> column, and allows us to look up a <code>User</code> instance based on its <code>vendor_id</code>, if it has one.</p>
-
-<p>But here&rsquo;s the rub: we&rsquo;re only adding a single index in this migration. That is to say, we&rsquo;re adding an index on our <code>user_ids</code>, and we&rsquo;re adding an index on our <code>vendor_ids</code>. What we <em>really</em> need is an index that first sorts our data by <code>user_id</code>, and then filters down to the users that match our <code>vendor_id</code>.</p>
-
-<iframe src="//giphy.com/embed/PUBxelwT57jsQ" width="480" height="332" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Don&rsquo;t worry, this is totally doable! We just need to index <em>two</em> columns, instead of one. Actually, there&rsquo;s a perfect name &ndash; or set of names &ndash; for what we need: a <strong>compound index</strong> (aka a concatenated, multi-column, composite or combined index).</p>
-
-<p>Ultimately, we want our database to execute a query that looks something like this:</p>
-
-<pre><code class="sql">SELECT * FROM users WHERE user_id = ? AND vendor_id = ?;
-</code></pre>
-
-<p>so that we can avoid writing a SQL statement in our <code>UsersController</code> like we have now (ew, let&rsquo;s not do that):</p>
-
-<pre><code>class UsersController &lt; ApplicationController
-    def sign_in
-        @user = User.where("user_id = ? AND vendor_id = ?", params[:user_id], params[:vendor_id])
-        # authenticate and sign in the vendor
-    end
-end
-</code></pre>
-
-<p>So how are we going to manage all of this, you might ask? Well, pretty easily. Writing a compound index is almost as easy as writing a single-column index:</p>
-
-<pre><code class="ruby">class AddIndexesToUsers &lt; ActiveRecord::Migration
-    def change
-        add_index :users, [:id, vendor_id]
-    end
-end
-</code></pre>
-
-<p>And that&rsquo;s it! But what&rsquo;s happening, exactly? Well, we&rsquo;re still creating a single index, but we&rsquo;re doing it across multiple columns. The first column (<code>user_id</code>) is the primary &ldquo;sort criterion&rdquo;, and the second column (<code>vendor_id</code>) is the secondary &ldquo;sort criterion&rdquo;. The important thing to remember here is that <em>order matters</em>. We&rsquo;ll only ever look up a vendor by <code>user_id</code> first, and then by <code>vendor_id</code>. This makes sense if you think about it, since we&rsquo;ll first want to authenticate by the user currently logged in (in other words, using the current session).</p>
-
-<p>I really liked the way that Markus Winand describes two-column indexing on <a href="http://use-the-index-luke.com/sql/where-clause/the-equals-operator/concatenated-keys">his blog</a>:</p>
-
-<blockquote><p>The ordering of a two-column index is therefore like the ordering of a telephone directory: it is first sorted by surname, then by first name. That means that a two-column index does not support searching on the second column alone; that would be like searching a telephone directory by first name.</p></blockquote>
-
-<p>Compound indexes are super cool because they let you quickly look up the first field/column in a database, and then quickly look up <em>another</em> field/column in a database &ndash; but only within the records that were returned by the first index. At the end of the query, you&rsquo;ll only have rows that satisfy parts of that <code>AND</code> SQL query we wrote earlier!</p>
-
-<h2>Indexes Like None Other</h2>
-
-<p>I think we can all agree that indexing can help us narrow down a lot of rows in a database and is probably the coolest filtration system ever invented by and for developers. But that&rsquo;s not all that indexes can do! They can also prevent some pretty sticky situations that we often overlook.</p>
-
-<p>By now, something that we&rsquo;re all familiar with is validations. One of the most common kinds of validations that we see in our Rails models all of the time is <code>uniqueness:true</code>, or <code>validates_uniqueness_of</code>. However, here&rsquo;s something we don&rsquo;t always think about (or perhaps never even realized): these validations only occur at the the ActiveRecord level. And this fact can pose some problems.</p>
-
-<p>Imagine two vendors are signing up to use our Bookstore app. They both want to name their store the same thing, but we definitely don&rsquo;t want that to happen. So we add this line to our <code>Users</code> table:</p>
-
-<pre><code class="ruby">module User
-    class Vendor &lt; ActiveRecord::Base
-      validates :store_name, presence: true, uniqueness: true
-    end
-end
-</code></pre>
-
-<p>Cool, so this is fine then, right? Wrong! Because we just sent out an email blast telling all these potential vendors that they could sign up for a free 60-day trial. Now, all of a sudden, tons of vendors are signing up! And it just so happens, that two of them signed up at almost the exact same second, and wanted to use the same name: <code>Super Cool Books</code> (I know, I know, what are the chances, right?!)</p>
-
-<p>Here&rsquo;s the problem: the moment that both of these potential vendors signed up for our service, no row in our polymorphic <code>vendors</code> database existed with a <code>store_name</code> that corresponded to the string, <code>Super Cool Books</code>. So what did ActiveRecord do? It created a new row! Actually&hellip;it created <em>two</em> new rows. At almost the exact same time. With the <em>exact same store name</em>. Uh oh.</p>
-
-<p>So how can we fix this? We need to take our <code>uniqueness</code> validation down another level. In fact, we need to make our <em>database</em> responsible for validating uniqueness. And we can do this by adding a <strong>unique index</strong>.</p>
-
-<p>Again, this is pretty easy. We just need to add a <code>unique: true</code> constraint on the column that we want to be able to index:</p>
-
-<pre><code class="ruby">class AddStoreNameIndexToVendors
-  def change
-    add_index :vendors, :store_name, unique: true
-  end
-end
-</code></pre>
-
-<p>Now, when two vendors try to sign up to be called <code>Super Cool Books</code>, only one will actually be able to have that name. As soon as an unique index is created on the <code>store_name</code> column of our <code>vendors</code> database, any other record that tries to be created with that index will raise a <code>ActiveRecord::RecordNotUnique</code> error. This is going to be super helpful to us in avoiding inconsistant data, particularly when we know that a lot of data is going to be created at once.</p>
-
-<p>The world of indexes is mostly uncharted territory. It&rsquo;s also important to keep in mind that you never want to create <em>too</em> many indexes, and only ones that we actually need, since they will <a href="http://www.rubyonrails365.com/low-hanging-fruits-for-better-sql-performance-in-rails/">slow down</a> the &ldquo;write&rdquo; time to the database (whenever we use SQL commands like <code>UPDATE</code> or <code>CREATE</code>, for example). But that doesn&rsquo;t mean we can&rsquo;t learn about the different kinds of indexes that exist and be completely wowed at how amazing databases are. See, this cat is completely floored &ndash; and quite frankly, I am too:</p>
-
-<iframe src="//giphy.com/embed/vSSdLSLbGIXio" width="480" height="453" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>There are three main types of indexing: <em>single-column</em>, <em>compound</em>, and <em>unique</em> indexes. Compound indexes create an index on two ore more columns in a database, while unique indexes create a restraint on a single column index.</li>
-<li>This <a href="http://stackoverflow.com/a/1049392">StackOverflow answer</a> is the best explanation of how compound indexes actually work in terms of running a query. If you&rsquo;re still confused, give it a read!</li>
-<li>Uniqueness validations are super cool! Read more about them over <a href="https://robots.thoughtbot.com/the-perils-of-uniqueness-validations">here</a>, and check out some real-life examples of how to use them <a href="http://nyonura.com/blog/2014/Partial-Indexes-with-PostgreSQL-and-Rails/">here</a>.</li>
 </ul>
 
 ]]></content>

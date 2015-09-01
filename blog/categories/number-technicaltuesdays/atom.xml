@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-08-16T13:27:39-04:00</updated>
+  <updated>2015-09-01T08:51:06-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,154 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Inflections Everywhere: Using ActiveSupport Inflector]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/"/>
+    <updated>2015-09-01T08:45:22-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/JEIRAmTTfUgYE" width="480" height="264" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Words are pretty important. But do you know what&rsquo;s more important than words? <em>Grammar</em>. (Can you tell that I was an English major?) Despite how big of a book nerd I am, there&rsquo;s acually a crucial reason as to why we should keep things like grammar in consideration: convention.</p>
+
+<p>At it&rsquo;s very core &mdash; pun totally intended &mdash; the Rails framework is based in conventions. We rely on the framework to create our models, controllers, and views in a specific file structure, and for them to be named in a certain way. But what we often forget is that we also rely on Rails to be smart enough to handle strange edge cases, like knowing that a <code>mice</code> table should store the <code>Mouse</code> model objects, and that the <code>MiceController</code> should be responsible for passing those objects back and forth!</p>
+
+<p>It all seems pretty automagical. But we have to keep in mind that it was the Rails core team that created and established these conventions, which means that they&rsquo;re not magic &mdash; they&rsquo;re just code! And as much as we can rely on preexisting Rails conventions, there might be times that we need to tweak our code to abide by those conventions. And because computers are not people (and because English is a crazy language with so many strange exceptions), we&rsquo;re probably going to run into a roadblock when dealing with grammar naming conventions. Thankfully, there&rsquo;s a great tool to help with this problem: the Rails <strong>Inflector</strong>, also known as every grammar nerd&rsquo;s dream.</p>
+
+<!--more-->
+
+
+<h2>Meet The Inflector</h2>
+
+<iframe src="//giphy.com/embed/yLV9y5wb0Qb1m" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>The Rails Inflector is actually a part of the ActiveSupport module, which is truly a beast of a module, and probably warrants a few blog posts of its own. The tl;dr version of ActiveSupport is this: it provides a bunch of different patterns to transform simple Ruby strings. The inflector library in particular is responsible for handling the pluralization of different strings.</p>
+
+<p>An important thing to note about the inflections library is that it&rsquo;s pretty much set in stone. According to <a href="http://api.rubyonrails.org/classes/ActiveSupport/Inflector.html">the documentation</a>, these rules are never going to change so that Rails can remain backwards-compatible for older applications:</p>
+
+<blockquote><p>&ldquo;The Rails core team has stated patches for the inflections library will not be accepted in order to avoid breaking legacy applications which may be relying on errant inflections. If you discover an incorrect inflection and require it for your application or wish to define rules for languages other than English, please correct or add them yourself.&rdquo;</p></blockquote>
+
+<p>Basically, what this means is that Rails provides us with some basic inflections; however, if we want to create our own custom grammar rules (or if we notice something that&rsquo;s incorrect), we have to write our own inflections for our application. It&rsquo;s also worth noting that if we want to create models that are <em>not</em> English words, we&rsquo;d need to write our own pluralize rules for those as well. But before we go about writing completely new inflections, let&rsquo;s first see what inflector methods we have available to us!</p>
+
+<h2>Inflector Methods</h2>
+
+<iframe src="//giphy.com/embed/l41lS9B8KYJ9dYZck" width="480" height="283" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>The <code>ActiveSupport::Inflector</code> module has a handful of public instance methods that are available for us to use. In fact, when I was first learning Rails, I played around with these methods in irb, but didn&rsquo;t really know (much less <em>understand</em>) where they were coming from. But it turns out that the Inflector methods can be super useful! Here are some of my favorites:</p>
+
+<h3><code>humanize</code></h3>
+
+<p>This method is great for displaying an attribute name to end users. It deletes any leading underscores, replaces underscores with spaces, downcase all words (except acronyms), and capitalizes the first word. Basically, it makes your attributes human-readable, which can be helpful for displaying an error message to your user:</p>
+
+<pre><code class="ruby">♥ rails console
+Loading development environment (Rails 4.1.4)
+irb(main):001:0&gt; humanize(author.first_name) 
+=&gt; "First name"
+</code></pre>
+
+<h3><code>titleize</code></h3>
+
+<p>The <code>titleize</code> method is pretty perfect for our bookstore application. It capitalizes all the words and replaces underscores with spaces:</p>
+
+<pre><code class="ruby">irb(main):002:0&gt; 'of_mice_and_men'.titleize
+=&gt; "Of Mice And Men"
+</code></pre>
+
+<p><em>Protip: this method is also aliased as <code>titlecase</code>.</em></p>
+
+<h3><code>parameterize</code></h3>
+
+<p>This method replaces special characters in a string so that it can be used in a URL (think sluggable names with hyphens):</p>
+
+<pre><code class="ruby">irb(main):003:0&gt; 'Of Mice And Men'.parameterize
+=&gt; "of-mice-and-men"
+</code></pre>
+
+<h3><code>singularize</code></h3>
+
+<p>The <code>singularize</code> method does exactly what you think it would do: it returns the singular form of a word in a string:</p>
+
+<pre><code class="ruby">irb(main):004:0&gt; 'mice'.singularize
+=&gt; "mouse"
+irb(main):005:0&gt; 'men'.singularize
+=&gt; "man"
+</code></pre>
+
+<h3><code>pluralize</code></h3>
+
+<p>And the <code>pluralize</code> method does the opposite things: returns the plural form of a word in string format:</p>
+
+<pre><code class="ruby">irb(main):006:0&gt; "mouse".pluralize
+=&gt; "mice"
+irb(main):007:0&gt; "man".pluralize
+=&gt; "men"
+</code></pre>
+
+<p>There are tons more Inflector methods that are very <a href="http://api.rubyonrails.org/classes/ActiveSupport/Inflector.html">well-documented</a>. In fact, there are so many great methods that you might be thinking to yourself, <em>why would I ever have to write my own methods?</em></p>
+
+<p>Well, what if we wanted <code>Specimen</code> objects, which needed to be pluralized as <code>Specimens</code>. We could assume that Rails will handle that for us&hellip;or we could double-check:</p>
+
+<pre><code class="ruby">irb(main):008:0&gt; "specimen".pluralize
+=&gt; "specimen"
+</code></pre>
+
+<p>Oops! It seems like the predefined inflections are taking hold here and parsing &ldquo;men&rdquo; as the plural form of &ldquo;man&rdquo;, like we saw earlier. You know what this means&hellip;time to write our <em>own</em> inflections!</p>
+
+<h2>New Inflection Rules</h2>
+
+<p>One of the coolest public instance methods of the <code>`ActiveSupport::Inflector</code> module is the method that allows us to specify our own inflector rules. This method is appropiately named <code>inflections</code>, and it does some interesting things.</p>
+
+<p>The <code>inflections</code> method yields to a singleton instance of <code>ActiveSupport::Inflector::Inflections</code>. It can be passed an optional locale, which is how we could write inflection rules for other languages; the default locale is English (specified as the argument <code>:en</code>).</p>
+
+<p>We can write our own inflections inside of the <code>config/initializers/inflections.rb</code> file. This file actually already exists and will look like this when we first open it:</p>
+
+<pre><code class="ruby"># Be sure to restart your server when you modify this file.
+
+# Add new inflection rules using the following format. Inflections
+# are locale specific, and you may define rules for as many different
+# locales as you wish. All of these examples are active by default:
+# ActiveSupport::Inflector.inflections(:en) do |inflect|
+#   inflect.plural /^(ox)$/i, '\1en'
+#   inflect.singular /^(ox)en/i, '\1'
+#   inflect.irregular 'person', 'people'
+#   inflect.uncountable %w( fish sheep )
+# end
+
+# These inflection rules are supported but not enabled by default:
+# ActiveSupport::Inflector.inflections(:en) do |inflect|
+#   inflect.acronym 'RESTful'
+# end
+</code></pre>
+
+<p>We can already see how to go about writing our inflections with the examples in this file, including some of the methods we can use, depending on what our edge case is. There are actually a lot of <a href="http://api.rubyonrails.org/classes/ActiveSupport/Inflector/Inflections.html">methods available</a> to us inside of our inflections block, some of the most helpful being <code>plural</code>, <code>singular</code>, <code>uncountable</code>, and <code>irregular</code>. In our case, we&rsquo;re dealing with an irregular inflection wherein <code>specimen</code> needs to be pluralized as <code>specimens</code>, so we&rsquo;ll use the <code>irregular</code> method, which takes two arguments: the singular and the plural form of the word as strings.</p>
+
+<pre><code class="ruby">ActiveSupport::Inflector.inflections(:en) do |inflect|
+  inflect.irregular 'specimen', 'specimens'
+en
+</code></pre>
+
+<p>Awesome! Now our entire application will know about this inflection rule. And the really great thing about this is that our new rule that we just wrote is added at the top of this file, which means that our irregular rule for <code>specimen</code> will be the first of the singularization and pluralization rules that is run. This ensures that our rules will always run before any of the preexisting rules that come with <code>ActiveSupport::Inflector</code>.</p>
+
+<p>Whew &mdash; that was quite an inflection adventure! But now the next time we have a grammar mistake, we can fix it easily, just like the strange puppet (is a gopher? A beaver? I don&rsquo;t know!) keeps telling us to do:</p>
+
+<iframe src="//giphy.com/embed/DIBVWfW8vtQli" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>ActiveSupport::Inflector</code> handles a lot of the grammar rules in Rails. The <code>inflections.rb</code> file is where we can write our own inflection rules. Check out all the preexisting inflections in the Rails <a href="https://github.com/rails/rails/blob/92f567ab30f240a1de152061a6eee76ca6c4da86/activesupport/lib/active_support/inflections.rb">source code</a>.</li>
+<li>Curious how Rails knows what grammar rules to follow? Check out <a href="http://ilanasufrin.github.io/blog/2014/07/30/a-rails-grammar-lesson/">this blog post</a>, which explains it all.</li>
+<li>If you are very brave, dig through the <a href="https://github.com/rails/rails/blob/6c75a111995a9aab09e19c2b6a8a42162f689bc6/activesupport/lib/active_support/inflector/inflections.rb">source code</a> for all of the methods available to <code>inflections</code>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Unlocking Ruby Keywords: Begin, End, Ensure, Rescue]]></title>
@@ -718,188 +866,6 @@ $ heroku config:set AWS_SECRET_ACCESS_KEY=our_secret_access_key
 <li>Environment variables are how we can store our secret credentials; they live inside of the <code>.env</code> file and should never be committed to source control! Want to read more about env variables in Rails? Check out this great <a href="http://bayendor.github.io/blog/2015/01/16/managing-rails-environment-variables/">blog post</a> and this super <a href="http://railsapps.github.io/rails-environment-variables.html">informative tutorial</a>.</li>
 <li>The <code>aws-sdk</code> gem is an easy way to integrate <code>paperclip</code> and AWS S3. You can dive into the gem&rsquo;s <a href="https://github.com/aws/aws-sdk-ruby">source code</a> to learn more!</li>
 <li>Heroku has some fantastic guides on how to <a href="https://devcenter.heroku.com/articles/s3#s3-setup">set up S3</a> and how to upload files to S3 <a href="https://devcenter.heroku.com/articles/paperclip-s3">using paperclip</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Clipping Images for Rails: Using Paperclip]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/07/28/clipping-images-for-rails-using-paperclip/"/>
-    <updated>2015-07-28T08:42:36-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/07/28/clipping-images-for-rails-using-paperclip</id>
-    <content type="html"><![CDATA[<p><img src="http://www.officemuseum.com/1894_Gem_Paper_Clip_adv_discovered_by_The_Early_Office_Museum.JPG" style="display: block; margin-left: auto; margin-right: auto;"/></p>
-
-<p>They say that a picture is worth a thousand words. How they came up with a such a nice, conveniently specific number number I&rsquo;ll never know. But what I do know is that everything on the web is just data floating around in cyberspace. And when I say everything, I really do mean <em>everything</em> &ndash; including pictures!</p>
-
-<p>I&rsquo;ve worked on a few different projects that have required building out an interface to allow a user or an admin to upload images. The first time that I had to do this, I knew that there were a few different Rails gems out there to help make this magic happen. But I didn&rsquo;t really understand what was going on when I implemented these gems the first time around. To be quite honest, the first time I had to implement file uploading, I just followed the setup steps rather blindly. Now that I&rsquo;ve had to solve the same problem multiple times, however, I feel a bit more comfortable with the process.</p>
-
-<p>There are a few different gems out there for handing file attachment in Rails, but my favorite one to use so far has been <strong>paperclip</strong>. Created by the super cool developers over at <a href="https://github.com/thoughtbot/paperclip">ThoughtBot</a>, the paperclip gem is fairly simple and straightforward to use. The reason that I like this gem in particular is that it fits seamlessly into the Rails framework. Files and attachments are treated just like an attribute on an ActiveRecord object, which makes the setup process both easy and intuitive. However, that doesn&rsquo;t mean that it&rsquo;s not intimidating at first! Luckily, we&rsquo;re going to walk through using the paperclip gem together.</p>
-
-<!--more-->
-
-
-<h2>How To Start Clipping</h2>
-
-<iframe src="//giphy.com/embed/xXG9gNuwQcN1u" width="480" height="425" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Since <code>paperclip</code> is a gem, the first thing we&rsquo;ll have to do before we really get started on clipping anything is add it to our <code>Gemfile</code>:</p>
-
-<p><code>gem "paperclip", "~&gt; 4.3"</code></p>
-
-<p>and then <code>bundle install</code>, because it&rsquo;s what all the cool kids do. This is also a good time to make sure that we have <code>ImageMagick</code>, which is one of <code>paperclip</code>&rsquo;s dependencies. (We can always run <code>brew install imagemagick</code> to install it if we don&rsquo;t have it already.)</p>
-
-<p>Now it&rsquo;s time to get clipping! And take a look at our schema, obvs. For our Bookstore app, we want each of our authors to have a headshot image uploaded and associated with their work. This is going to be super important from a user experience point of view, and it will be something that will be displayed on the show page of any given author.</p>
-
-<p>There are two ways to go about actually adding an attachment to our model; one of them is is a bit easier because it generates a migration for you. But we&rsquo;ll go ahead and write our own migration to start.</p>
-
-<p>We already have an <code>Author</code> model and migration. What we need to do is add an <code>attachment</code> column that&rsquo;ll handle everything from file uploading to associating a file with a specific <code>Author</code> object. So, we can just write a migration (<code>rails g migration AddProfileMediaToAuthors</code>) that will add an <code>attachment</code> column to our <code>Authors</code> table:</p>
-
-<pre><code class="ruby">class AddProfileMediaToAuthors &lt; ActiveRecord::Migration
-  def self.up
-    add_attachment :authors, :profile_media
-  end
-
-  def self.down
-    remove_attachment :authors, :profile_media
-  end
-end
-</code></pre>
-
-<p>We&rsquo;ll call our attachment columns <code>profile_media</code> to preemptively namespace the different types of attachments that we might have on a single <code>Author</code>&rsquo;s page. And just in case you needed a little refresher on the difference between the <code>up</code> and <code>down</code> methods, head <a href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">over here</a>.</p>
-
-<p>Okay, now we&rsquo;ll run <code>rake db:migrate</code>, and take a look at our <code>schema.rb</code> file. Let&rsquo;s see what happened:</p>
-
-<pre><code class="ruby">create_table "authors", force: :cascade do |t|
-    t.string   "firstname"
-    t.string   "lastname"
-    t.datetime "created_at",         null: false
-    t.datetime "updated_at",         null: false
-    t.string   "profile_media_file_name"
-    t.string   "profile_media_content_type"
-    t.integer  "profile_media_file_size"
-    t.datetime "profile_media_updated_at"
-end
-</code></pre>
-
-<p>Interesting! So our <code>add_attachment</code> method actually did a lot of things for us, didn&rsquo;t it? That&rsquo;s because it&rsquo;s actually a helper method does a lot of important things that <code>paperclip</code> relies on:</p>
-
-<ol>
-<li>It adds a <code>file_name</code> for our attachment.</li>
-<li>It adds a <code>content_type</code> for our attachments, which will be the <em>mime type</em> of our images.</li>
-<li>It adds the <code>file_size</code> of our attachments.</li>
-<li>It creates a <code>updated_at</code> column, which is particularly useful since we can order and sort our attachments/images by <code>datetime</code> format.</li>
-</ol>
-
-
-<p>Now we need to hook up our database migration with the corresponding model!</p>
-
-<h2>Objects With Attached Files</h2>
-
-<p><img src="http://2.bp.blogspot.com/_khdFP9RCQSw/TSPePSmnscI/AAAAAAAAAK4/My8FyIo8Xuo/s1600/a-jpeg-is-worth-approximately-a-thousand-words.gif" style="display: block; margin-left: auto; margin-right: auto;"/></p>
-
-<p>Inside of our <code>Author</code> class, we need want to add one very important line to our model: <code>has_attached_file</code>. The important thing about this method is that it needs to correspond to whatever we named our attachment in our migrations from earlier. In our case, we called our attachments <code>profile_media</code>, so that&rsquo;s exactly what we&rsquo;ll use inside of our model as well:</p>
-
-<pre><code class="ruby">class Author &lt; ActiveRecord::Base
-  has_attached_file :profile_media, 
-    styles: { 
-        large: "500x500", 
-        medium: "300x300", 
-        thumb: "100x100" 
-    }, 
-    default_url: "/images/:style/missing_profile_media.png"
-end
-</code></pre>
-
-<p>This line sets up a few defaults for us and gives us the option of having a few different sizes for our <code>profile_media</code>. The <code>default_url</code> can be helpful if we ever want to give our attachment url a default and avoid an instance of <code>nil</code>. The sizes that we specify here are what we&rsquo;ll use inside of our views:</p>
-
-<pre><code class="ruby">= link_to image_tag(author.profile_media.url(:thumb)), author.profile.url
-</code></pre>
-
-<p>But the most important part of making all of this work is, of course, permitting our media to be seen! (I&rsquo;m looking at you, strong params!). All we need to do is add our attachment name (<code>profile_media</code>) to our permitted parameters, which is already being used by our controller actions:</p>
-
-<pre><code class="ruby">class AuthorsController &lt; ApplicationController
-    def create
-        author = Author.create(author_params)
-    end
-
-    private
-      def author_params
-        params.require(:author).permit(:firstname, :lastname, :profile_media)
-      end
-end
-</code></pre>
-
-<p>Pretty simple, right? But these are just the bare bones of <code>paperclip</code>. We can spice things up a bit, too!</p>
-
-<h2>Validating And Customizing Our Clippings</h2>
-
-<p>Once we have the gem up and working, it&rsquo;s super easy to add some bells and whistles and write it to fit our application&rsquo;s specific standards. The developers at ThoughtBot actually have several different validators that we can implement, including <code>AttachmentContentTypeValidator</code>, <code>AttachmentPresenceValidator</code>, and <code>AttachmentSizeValidator</code>. Personally, however, I prefer the old school helper methods, which function in exactly the same way.</p>
-
-<p>Let&rsquo;s add a <code>validates_attachment_content_type</code> to our <code>Author</code> class, and validate that the content being uploaded is actually an <code>image</code>. We can do that with a nice regular expression:</p>
-
-<pre><code class="ruby">class Author &lt; ActiveRecord::Base
-    has_attached_file :profile_media, 
-        styles: { 
-            large: "500x500", 
-            medium: "300x300", 
-            thumb: "100x100" 
-        }, 
-        default_url: "/images/:style/missing_profile_media.png"
-
-    validates_attachment_content_type :profile_media, content_type: /\Aimage\/.*\Z/
-end
-</code></pre>
-
-<p>We can also validate the size and presence of our attachment as well:</p>
-
-<pre><code class="ruby">validates :profile_image, attachment_presence: :true
-
-validates_attachment_size :profile_media, size: { in: 0..100.kilobytes }
-</code></pre>
-
-<p>And what about deleting attachments? Well, because <code>paperclip</code> is designed to work so well with ActiveRecord, any attachment we create is treated just like an attribute. As the documentation explains,</p>
-
-<blockquote><p>The intent behind <code>paperclip</code> was to keep setup as easy as possible and to treat files as much like other attributes as possible. This means they aren&rsquo;t saved to their final locations on disk, nor are they deleted if set to nil, until ActiveRecord::Base#save is called. It manages validations based on size and presence, if required.</p></blockquote>
-
-<p>Since the only way to delete an attachment is by setting the attribute to <code>nil</code>, there are a few different ways to actually go about deleting attachments. One implementation that I like to use is writing a custom method that checks whether an <code>Author</code> object has it&rsquo;s <code>profile_media</code> attribute equal to <code>nil</code> before saving it:</p>
-
-<pre><code class="ruby">class Author &lt; ActiveRecord::Base
-    before_save :delete_profile_media, 
-        if: -&gt; { remove_profile_media == '1' &amp;&amp; !profile_media_updated_at_changed? }
-
-    attr_accessor :remove_profile_media
-
-    private
-        def delete_profile_media
-            self.profile_media = nil
-        end
-end
-</code></pre>
-
-<p>In this structure, I also create an attribute on my <code>Author</code> object called <code>remove_profile_media</code>, which will either be <code>0</code> or <code>1</code>, based on whether a box on a form has been checked or not. If the button is checked, <code>remove_profile_media</code> will be set to <code>1</code>, and I&rsquo;ll call the <code>delete_profile_media</code> method in my <code>before_save</code> hook.</p>
-
-<p>If deleting data is something that scares you (or if you&rsquo;re a fan of the <code>acts_as_paranoid</code> gem) there&rsquo;s also another option. You can just preserve your files along with your &ldquo;soft deleted&rdquo; models:</p>
-
-<pre><code class="ruby">class Author &lt; ActiveRecord::Base
-    has_attached_file :profile_media, {
-        preserve_files: "true",
-    }
-end
-</code></pre>
-
-<p>This extra line prevents any data in our <code>profile_media</code> columns from being completely erased when the model is soft deleted. The good news here is that when the object is restored later on, our images will be too! And that is just as good of a reason as any to celebrate!</p>
-
-<iframe src="//giphy.com/embed/osMIREQbo3s2c" width="480" height="255" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>paperclip</code> gem really needs only two things to function properly: a <code>has_attached_file :attachment</code> in the model and an <code>attachment_file_name</code> column in the database. The <code>attachment_content_type</code> is only required if you&rsquo;re going to use content type validation.</li>
-<li>If you want to see some <code>paperclip</code> in action, check out this <a href="http://railscasts.com/episodes/134-paperclip">RailsCast</a> that covers all the basics.</li>
-<li>Want to dive into the <code>paperclip</code> source code? Go for it! Perhaps you can start by checking out their well-documented <a href="http://www.rubydoc.info/gems/paperclip/Paperclip/ClassMethods">class methods</a>.</li>
 </ul>
 
 ]]></content>

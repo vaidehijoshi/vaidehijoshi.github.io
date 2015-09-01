@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-08-16T13:27:39-04:00</updated>
+  <updated>2015-09-01T08:51:06-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,199 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Inflections Everywhere: Using ActiveSupport Inflector]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/"/>
+    <updated>2015-09-01T08:45:22-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/JEIRAmTTfUgYE" width="480" height="264" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Words are pretty important. But do you know what&rsquo;s more important than words? <em>Grammar</em>. (Can you tell that I was an English major?) Despite how big of a book nerd I am, there&rsquo;s acually a crucial reason as to why we should keep things like grammar in consideration: convention.</p>
+
+<p>At it&rsquo;s very core &mdash; pun totally intended &mdash; the Rails framework is based in conventions. We rely on the framework to create our models, controllers, and views in a specific file structure, and for them to be named in a certain way. But what we often forget is that we also rely on Rails to be smart enough to handle strange edge cases, like knowing that a <code>mice</code> table should store the <code>Mouse</code> model objects, and that the <code>MiceController</code> should be responsible for passing those objects back and forth!</p>
+
+<p>It all seems pretty automagical. But we have to keep in mind that it was the Rails core team that created and established these conventions, which means that they&rsquo;re not magic &mdash; they&rsquo;re just code! And as much as we can rely on preexisting Rails conventions, there might be times that we need to tweak our code to abide by those conventions. And because computers are not people (and because English is a crazy language with so many strange exceptions), we&rsquo;re probably going to run into a roadblock when dealing with grammar naming conventions. Thankfully, there&rsquo;s a great tool to help with this problem: the Rails <strong>Inflector</strong>, also known as every grammar nerd&rsquo;s dream.</p>
+
+<!--more-->
+
+
+<h2>Meet The Inflector</h2>
+
+<iframe src="//giphy.com/embed/yLV9y5wb0Qb1m" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>The Rails Inflector is actually a part of the ActiveSupport module, which is truly a beast of a module, and probably warrants a few blog posts of its own. The tl;dr version of ActiveSupport is this: it provides a bunch of different patterns to transform simple Ruby strings. The inflector library in particular is responsible for handling the pluralization of different strings.</p>
+
+<p>An important thing to note about the inflections library is that it&rsquo;s pretty much set in stone. According to <a href="http://api.rubyonrails.org/classes/ActiveSupport/Inflector.html">the documentation</a>, these rules are never going to change so that Rails can remain backwards-compatible for older applications:</p>
+
+<blockquote><p>&ldquo;The Rails core team has stated patches for the inflections library will not be accepted in order to avoid breaking legacy applications which may be relying on errant inflections. If you discover an incorrect inflection and require it for your application or wish to define rules for languages other than English, please correct or add them yourself.&rdquo;</p></blockquote>
+
+<p>Basically, what this means is that Rails provides us with some basic inflections; however, if we want to create our own custom grammar rules (or if we notice something that&rsquo;s incorrect), we have to write our own inflections for our application. It&rsquo;s also worth noting that if we want to create models that are <em>not</em> English words, we&rsquo;d need to write our own pluralize rules for those as well. But before we go about writing completely new inflections, let&rsquo;s first see what inflector methods we have available to us!</p>
+
+<h2>Inflector Methods</h2>
+
+<iframe src="//giphy.com/embed/l41lS9B8KYJ9dYZck" width="480" height="283" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>The <code>ActiveSupport::Inflector</code> module has a handful of public instance methods that are available for us to use. In fact, when I was first learning Rails, I played around with these methods in irb, but didn&rsquo;t really know (much less <em>understand</em>) where they were coming from. But it turns out that the Inflector methods can be super useful! Here are some of my favorites:</p>
+
+<h3><code>humanize</code></h3>
+
+<p>This method is great for displaying an attribute name to end users. It deletes any leading underscores, replaces underscores with spaces, downcase all words (except acronyms), and capitalizes the first word. Basically, it makes your attributes human-readable, which can be helpful for displaying an error message to your user:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">♥</span> <span class="n">rails</span> <span class="n">console</span>
+</span><span class='line'><span class="no">Loading</span> <span class="n">development</span> <span class="n">environment</span> <span class="p">(</span><span class="no">Rails</span> <span class="mi">4</span><span class="o">.</span><span class="mi">1</span><span class="o">.</span><span class="mi">4</span><span class="p">)</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">001</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="n">humanize</span><span class="p">(</span><span class="n">author</span><span class="o">.</span><span class="n">first_name</span><span class="p">)</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="s2">&quot;First name&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3><code>titleize</code></h3>
+
+<p>The <code>titleize</code> method is pretty perfect for our bookstore application. It capitalizes all the words and replaces underscores with spaces:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">002</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="s1">&#39;of_mice_and_men&#39;</span><span class="o">.</span><span class="n">titleize</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="s2">&quot;Of Mice And Men&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><em>Protip: this method is also aliased as <code>titlecase</code>.</em></p>
+
+<h3><code>parameterize</code></h3>
+
+<p>This method replaces special characters in a string so that it can be used in a URL (think sluggable names with hyphens):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">003</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="s1">&#39;Of Mice And Men&#39;</span><span class="o">.</span><span class="n">parameterize</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="s2">&quot;of-mice-and-men&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3><code>singularize</code></h3>
+
+<p>The <code>singularize</code> method does exactly what you think it would do: it returns the singular form of a word in a string:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">004</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="s1">&#39;mice&#39;</span><span class="o">.</span><span class="n">singularize</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="s2">&quot;mouse&quot;</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">005</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="s1">&#39;men&#39;</span><span class="o">.</span><span class="n">singularize</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="s2">&quot;man&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3><code>pluralize</code></h3>
+
+<p>And the <code>pluralize</code> method does the opposite things: returns the plural form of a word in string format:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">006</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="s2">&quot;mouse&quot;</span><span class="o">.</span><span class="n">pluralize</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="s2">&quot;mice&quot;</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">007</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="s2">&quot;man&quot;</span><span class="o">.</span><span class="n">pluralize</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="s2">&quot;men&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>There are tons more Inflector methods that are very <a href="http://api.rubyonrails.org/classes/ActiveSupport/Inflector.html">well-documented</a>. In fact, there are so many great methods that you might be thinking to yourself, <em>why would I ever have to write my own methods?</em></p>
+
+<p>Well, what if we wanted <code>Specimen</code> objects, which needed to be pluralized as <code>Specimens</code>. We could assume that Rails will handle that for us&hellip;or we could double-check:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">00</span><span class="mi">8</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="s2">&quot;specimen&quot;</span><span class="o">.</span><span class="n">pluralize</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="s2">&quot;specimen&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Oops! It seems like the predefined inflections are taking hold here and parsing &ldquo;men&rdquo; as the plural form of &ldquo;man&rdquo;, like we saw earlier. You know what this means&hellip;time to write our <em>own</em> inflections!</p>
+
+<h2>New Inflection Rules</h2>
+
+<p>One of the coolest public instance methods of the <code>`ActiveSupport::Inflector</code> module is the method that allows us to specify our own inflector rules. This method is appropiately named <code>inflections</code>, and it does some interesting things.</p>
+
+<p>The <code>inflections</code> method yields to a singleton instance of <code>ActiveSupport::Inflector::Inflections</code>. It can be passed an optional locale, which is how we could write inflection rules for other languages; the default locale is English (specified as the argument <code>:en</code>).</p>
+
+<p>We can write our own inflections inside of the <code>config/initializers/inflections.rb</code> file. This file actually already exists and will look like this when we first open it:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1"># Be sure to restart your server when you modify this file.</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># Add new inflection rules using the following format. Inflections</span>
+</span><span class='line'><span class="c1"># are locale specific, and you may define rules for as many different</span>
+</span><span class='line'><span class="c1"># locales as you wish. All of these examples are active by default:</span>
+</span><span class='line'><span class="c1"># ActiveSupport::Inflector.inflections(:en) do |inflect|</span>
+</span><span class='line'><span class="c1">#   inflect.plural /^(ox)$/i, &#39;\1en&#39;</span>
+</span><span class='line'><span class="c1">#   inflect.singular /^(ox)en/i, &#39;\1&#39;</span>
+</span><span class='line'><span class="c1">#   inflect.irregular &#39;person&#39;, &#39;people&#39;</span>
+</span><span class='line'><span class="c1">#   inflect.uncountable %w( fish sheep )</span>
+</span><span class='line'><span class="c1"># end</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># These inflection rules are supported but not enabled by default:</span>
+</span><span class='line'><span class="c1"># ActiveSupport::Inflector.inflections(:en) do |inflect|</span>
+</span><span class='line'><span class="c1">#   inflect.acronym &#39;RESTful&#39;</span>
+</span><span class='line'><span class="c1"># end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We can already see how to go about writing our inflections with the examples in this file, including some of the methods we can use, depending on what our edge case is. There are actually a lot of <a href="http://api.rubyonrails.org/classes/ActiveSupport/Inflector/Inflections.html">methods available</a> to us inside of our inflections block, some of the most helpful being <code>plural</code>, <code>singular</code>, <code>uncountable</code>, and <code>irregular</code>. In our case, we&rsquo;re dealing with an irregular inflection wherein <code>specimen</code> needs to be pluralized as <code>specimens</code>, so we&rsquo;ll use the <code>irregular</code> method, which takes two arguments: the singular and the plural form of the word as strings.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">ActiveSupport</span><span class="o">::</span><span class="no">Inflector</span><span class="o">.</span><span class="n">inflections</span><span class="p">(</span><span class="ss">:en</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">inflect</span><span class="o">|</span>
+</span><span class='line'>  <span class="n">inflect</span><span class="o">.</span><span class="n">irregular</span> <span class="s1">&#39;specimen&#39;</span><span class="p">,</span> <span class="s1">&#39;specimens&#39;</span>
+</span><span class='line'><span class="n">en</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Awesome! Now our entire application will know about this inflection rule. And the really great thing about this is that our new rule that we just wrote is added at the top of this file, which means that our irregular rule for <code>specimen</code> will be the first of the singularization and pluralization rules that is run. This ensures that our rules will always run before any of the preexisting rules that come with <code>ActiveSupport::Inflector</code>.</p>
+
+<p>Whew &mdash; that was quite an inflection adventure! But now the next time we have a grammar mistake, we can fix it easily, just like the strange puppet (is a gopher? A beaver? I don&rsquo;t know!) keeps telling us to do:</p>
+
+<iframe src="//giphy.com/embed/DIBVWfW8vtQli" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>ActiveSupport::Inflector</code> handles a lot of the grammar rules in Rails. The <code>inflections.rb</code> file is where we can write our own inflection rules. Check out all the preexisting inflections in the Rails <a href="https://github.com/rails/rails/blob/92f567ab30f240a1de152061a6eee76ca6c4da86/activesupport/lib/active_support/inflections.rb">source code</a>.</li>
+<li>Curious how Rails knows what grammar rules to follow? Check out <a href="http://ilanasufrin.github.io/blog/2014/07/30/a-rails-grammar-lesson/">this blog post</a>, which explains it all.</li>
+<li>If you are very brave, dig through the <a href="https://github.com/rails/rails/blob/6c75a111995a9aab09e19c2b6a8a42162f689bc6/activesupport/lib/active_support/inflector/inflections.rb">source code</a> for all of the methods available to <code>inflections</code>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Unlocking Ruby Keywords: Begin, End, Ensure, Rescue]]></title>
@@ -4646,300 +4839,6 @@ outer join to start.</p>
 <li>This post only covers a couple of the tricks that <code>FactoryGirl</code> has up her sleeve. To read them all, check out the gem&rsquo;s <a href="http://www.rubydoc.info/gems/factory_girl/file/GETTING_STARTED.md">extensive documentation</a>.</li>
 <li>This tutorial is super detailed and I referred to it frequently while writing this blog post. If you want to learn more about testing and implementing <code>FactoryGirl</code>, <a href="http://everydayrails.com/2012/03/19/testing-series-rspec-models-factory-girl.html">give it a read</a>.</li>
 <li>Did you know that factories and fixtures are actually quite different? No? Well then, you should read <a href="https://semaphoreci.com/blog/2014/01/14/rails-testing-antipatterns-fixtures-and-factories.html">this post</a> and get all caught up.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Tackling Those Tests, Part 1: The How, When, and What of Rspec Testing]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/"/>
-    <updated>2015-04-14T08:17:03-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing</id>
-    <content type="html"><![CDATA[<p><img src="http://www.datamation.com/imagesvr_ce/306/philosophy-geeks.jpg" style="display: block; margin-left: auto; margin-right: auto; width: 50%; height: 50%;"></p>
-
-<p>Up until two weeks ago, I had one great fear: <em>testing</em>. And, to be clear, when I say &ldquo;fear&rdquo;, what I actually mean is sheer terror.</p>
-
-<p>My test-writing anxiety stems from the fact that I&rsquo;ve never really had to do it before. I mean, I&rsquo;ve had to make tons of tests <em>pass</em>, which means that I read other people&rsquo;s tests all the time. Yet I&rsquo;ve somehow made it thus far in my coding career without ever having to write relatively complex tests of my own. But that all changed a few weeks ago, when I was forced to finally confront my fear of testing.</p>
-
-<p>The thing about conquering fears, however, is that usually involves doing the very thing that you&rsquo;re afraid of. So, I spent the better portion of a week learning how and when to write tests, all while encountering a couple painful bugs along the way. It was not a fun week, but the good news is that I can write a fully-functioning test suite now! And now that I know more about testing, I actually find it kind of fun &ndash; so fun, in fact, that I&rsquo;m going to share it with you!</p>
-
-<!--more-->
-
-
-<h2>Ain&rsquo;t No Spec Like Rspec</h2>
-
-<p>Before we get into the how and when of testing, we first need to setup our Rails application with <code>rspec</code>, a behavior-driven development framework built specifically for testing in Ruby.</p>
-
-<p>We&rsquo;ll first want to add <code>rspec-rails</code> to our the development and test group in our <code>Gemfile</code>:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">group</span> <span class="ss">:development</span><span class="p">,</span> <span class="ss">:test</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">gem</span> <span class="s1">&#39;rspec-rails&#39;</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Next, we&rsquo;ll run a quick <code>bundle install</code>, and then generate a <code>/spec</code> folder by running <code>rails generate rspec:install</code>. We now have access to a <code>rails_helper.rb</code> and <code>spec_helper.rb</code> file inside of our <code>/spec</code> directory.</p>
-
-<p>Finally, we&rsquo;ll want to add files for everything that we want to test. But let&rsquo;s start simple for now and just test our <code>ReadingList</code> model. The path to this spec file should be <code>/spec/models/reading_list_spec.rb</code>, so we&rsquo;ll need to add a <code>models</code> directory and a <code>reading_list_spec.rb</code> file.</p>
-
-<p>Once we&rsquo;ve done that, we can check that everything is setup properly by running our <code>rspec</code> command:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">♥</span> <span class="n">rspec</span>
-</span><span class='line'><span class="no">No</span> <span class="n">examples</span> <span class="n">found</span><span class="o">.</span>
-</span><span class='line'>
-</span><span class='line'>
-</span><span class='line'><span class="no">Finished</span> <span class="k">in</span> <span class="mi">0</span><span class="o">.</span><span class="mo">00023</span> <span class="n">seconds</span> <span class="p">(</span><span class="n">files</span> <span class="n">took</span> <span class="mi">0</span><span class="o">.</span><span class="mi">08619</span> <span class="n">seconds</span> <span class="n">to</span> <span class="nb">load</span><span class="p">)</span>
-</span><span class='line'><span class="mi">0</span> <span class="n">examples</span><span class="p">,</span> <span class="mi">0</span> <span class="n">failures</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>You know what needs to happen next, right? It&rsquo;s time for us to write some tests.</p>
-
-<iframe src="//giphy.com/embed/nhj799TYbxG80" width="480" height="235" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Okay, I feel your pain. But I promise, we&rsquo;re going to get through this together.</p>
-
-<h2>Knowing What To Test</h2>
-
-<p>I&rsquo;ve found that the best way to start writing tests is by picking one section to work on first. Otherwise, it can just be so overwhelming and might make you want to give up completely. Let&rsquo;s take a look at what our <code>ReadingList</code> model:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ReadingList</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
-</span><span class='line'>  <span class="n">belongs_to</span> <span class="ss">:user</span>
-</span><span class='line'>  <span class="n">has_many</span> <span class="ss">:books</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="kp">attr_accessor</span> <span class="ss">:read</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">books_read</span>
-</span><span class='line'>    <span class="n">books</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="ss">read</span><span class="p">:</span> <span class="kp">true</span><span class="p">)</span><span class="o">.</span><span class="n">count</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">books_unread</span>
-</span><span class='line'>    <span class="n">books</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="ss">read</span><span class="p">:</span> <span class="kp">false</span><span class="p">)</span><span class="o">.</span><span class="n">count</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">percentage_read</span>
-</span><span class='line'>    <span class="n">read</span> <span class="o">=</span> <span class="n">books_read</span><span class="o">.</span><span class="n">to_f</span>
-</span><span class='line'>    <span class="n">unread</span> <span class="o">=</span> <span class="n">books_unread</span><span class="o">.</span><span class="n">to_f</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">calculate_percentage</span><span class="p">(</span><span class="n">read</span><span class="p">,</span> <span class="n">unread</span><span class="p">)</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">calculate_percentage</span><span class="p">(</span><span class="n">read</span><span class="p">,</span> <span class="n">unread</span><span class="p">)</span>
-</span><span class='line'>    <span class="p">((</span><span class="n">read</span> <span class="o">/</span> <span class="n">unread</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Whoa, this seems like a lot. But fear not! Programming is nothing more than breaking down big problems into smaller, bite-sized pieces. And that&rsquo;s exactly what we&rsquo;ll do when writing these tests.</p>
-
-<p>Let&rsquo;s look at the <code>percentage_read</code> method to start. This is the instance method that we&rsquo;ll actually want to call somewhere in our view. It uses the number of books marked <code>read</code> (which will always be a boolean <code>true</code> or <code>false</code> value), and calculates the <code>User</code>&rsquo;s reading progress on the list, returning a percentage.</p>
-
-<p>But even though this is the method we want to test, a deeper look reveals that it actually relies and calls upon three other methods: <code>books_read</code>, <code>books_unread</code>, and <code>calculate_percentage</code>. This should be a big red flag, because it means that we need to test these three methods individually, first. The flow of our code is actually directing us in our test-writing process: we can decide which tests to write and in which order by looking at our method&rsquo;s dependencies.</p>
-
-<p>So, let&rsquo;s hop to it:</p>
-
-<ul>
-<li>We&rsquo;ll start by first requiring <code>rails_helper</code> in our <code>reading_list_spec.rb</code>, and stubbing out our tests with a block:</li>
-</ul>
-
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="s1">&#39;rails_helper&#39;</span>
-</span><span class='line'>
-</span><span class='line'><span class="no">RSpec</span><span class="o">.</span><span class="n">describe</span> <span class="no">ReadingList</span><span class="p">,</span> <span class="ss">:type</span> <span class="o">=&gt;</span> <span class="ss">:model</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">describe</span> <span class="s2">&quot;#percentage_read&quot;</span> <span class="k">do</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>We can use a <code>describe</code> block to break up our tests into different sections. They will come in handy as our tests start to grow, and will make our test suite easier to read &ndash; not just when we come back to look at them later, but also when another developer digs through our code. The <code>#</code> symbol before our method name denotes that <code>percentage_read</code> is an instance method, another important distinction to make as we go about adding more tests.</p>
-
-<ul>
-<li>Next, we&rsquo;ll describe what our method <em>should</em> do by using <code>it</code> blocks</li>
-</ul>
-
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'>  <span class="n">describe</span> <span class="s2">&quot;#percentage_read&quot;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="n">it</span> <span class="s2">&quot;finds the number of read books in a list&quot;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">it</span> <span class="s2">&quot;finds the number of unread books in a list&quot;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">it</span> <span class="s2">&quot;calculates a percentage when given two values&quot;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">it</span> <span class="s2">&quot;calculates the percentage of books read in a list&quot;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<ul>
-<li>Now we need to add some data &ndash; but not too much! We only want enough data to test the functionality of our method. Let&rsquo;s create a list with two books, one marked read and the other not marked read. We&rsquo;ll add this before our <code>describe</code> and <code>it</code> blocks:</li>
-</ul>
-
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'>  <span class="n">let</span><span class="p">(</span><span class="ss">:list</span><span class="p">)</span> <span class="p">{</span> <span class="no">ReadingList</span><span class="o">.</span><span class="n">create!</span><span class="p">(</span><span class="ss">title</span><span class="p">:</span> <span class="s2">&quot;Vaidehi&#39;s List&quot;</span> <span class="p">}</span>
-</span><span class='line'>  <span class="n">let</span><span class="p">(</span><span class="ss">:book1</span><span class="p">)</span> <span class="p">{</span> <span class="n">list</span><span class="o">.</span><span class="n">books</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="ss">title</span><span class="p">:</span> <span class="s2">&quot;A Game Of Thrones&quot;</span><span class="p">,</span> <span class="ss">read</span><span class="p">:</span> <span class="kp">true</span><span class="p">)</span> <span class="p">}</span>
-</span><span class='line'>  <span class="n">let</span><span class="p">(</span><span class="ss">:book2</span><span class="p">)</span> <span class="p">{</span> <span class="n">list</span><span class="o">.</span><span class="n">books</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="ss">title</span><span class="p">:</span> <span class="s2">&quot;A Storm Of Swords&quot;</span><span class="p">,</span> <span class="ss">read</span><span class="p">:</span> <span class="kp">false</span><span class="p">)</span> <span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Wait, what&rsquo;s that <code>let</code> doing in there? The answer is: something magical! It creates an instance of <code>ReadingList</code> and makes a reference to it called <code>list</code>, which is then accessible to us in each of our <code>it</code> blocks. The <code>let</code> syntax is <a href="http://www.reddit.com/r/ruby/comments/2bcz12/newbie_to_rspec_why_use_let_instead_of_a_local/">an alternative</a> to creating local variables inside <em>every single</em> one of our <code>it</code> blocks.</p>
-
-<ul>
-<li>Finally, we&rsquo;ll add some expectations for our model&rsquo;s behavior when each method is called. Our finished test suite now looks like this:</li>
-</ul>
-
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">RSpec</span><span class="o">.</span><span class="n">describe</span> <span class="no">ReadingList</span><span class="p">,</span> <span class="ss">:type</span> <span class="o">=&gt;</span> <span class="ss">:model</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">let</span><span class="p">(</span><span class="ss">:list</span><span class="p">)</span> <span class="p">{</span> <span class="no">ReadingList</span><span class="o">.</span><span class="n">create!</span><span class="p">(</span><span class="ss">title</span><span class="p">:</span> <span class="s2">&quot;Vaidehi&#39;s List&quot;</span> <span class="p">}</span>
-</span><span class='line'>  <span class="n">let</span><span class="p">(</span><span class="ss">:book1</span><span class="p">)</span> <span class="p">{</span> <span class="n">list</span><span class="o">.</span><span class="n">books</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="ss">title</span><span class="p">:</span> <span class="s2">&quot;A Game Of Thrones&quot;</span><span class="p">,</span> <span class="ss">read</span><span class="p">:</span> <span class="kp">true</span><span class="p">)</span> <span class="p">}</span>
-</span><span class='line'>  <span class="n">let</span><span class="p">(</span><span class="ss">:book2</span><span class="p">)</span> <span class="p">{</span> <span class="n">list</span><span class="o">.</span><span class="n">books</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="ss">title</span><span class="p">:</span> <span class="s2">&quot;A Storm Of Swords&quot;</span><span class="p">,</span> <span class="ss">read</span><span class="p">:</span> <span class="kp">false</span><span class="p">)</span> <span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">describe</span> <span class="s2">&quot;#percentage_read&quot;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="n">it</span> <span class="s2">&quot;finds the number of read books in a list&quot;</span> <span class="k">do</span>
-</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="n">list</span><span class="o">.</span><span class="n">books_read</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">it</span> <span class="s2">&quot;finds the number of unread books in a list&quot;</span> <span class="k">do</span>
-</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="n">list</span><span class="o">.</span><span class="n">books_unread</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">it</span> <span class="s2">&quot;calculates a percentage when given two values&quot;</span> <span class="k">do</span>
-</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="n">list</span><span class="o">.</span><span class="n">calculate_percentage</span><span class="p">(</span><span class="mi">3</span><span class="o">.</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="o">.</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span><span class="p">(</span><span class="mi">75</span><span class="o">.</span><span class="mo">00</span><span class="p">)</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">it</span> <span class="s2">&quot;calculates the percentage of books read in a list&quot;</span> <span class="k">do</span>
-</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="n">list</span><span class="o">.</span><span class="n">percentage_read</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span><span class="p">(</span><span class="mi">50</span><span class="o">.</span><span class="mo">00</span><span class="p">)</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Each one of our tests is just a single line, specifying our exact expectations! Pretty awesome, right? This makes for relatively DRY code, which is pretty easy to understand.</p>
-
-<h2>Testing Your Assumptions</h2>
-
-<p>Now that we know <em>how</em> to write tests, it&rsquo;s time to address the question of <em>when</em> and <em>what</em> to test. Here&rsquo;s a good rule of thumb that I adhere to: <strong>test your assumptions</strong>. Whenever we write code, we make a ton of assumptions. The problem with making assumptions, however, is that you forget or don&rsquo;t realize that you made them, and then they end up coming back to screw you.</p>
-
-<p><img src="http://www.explainxkcd.com/wiki/images/e/e6/when_you_assume.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>In fact, even the tests we just wrote are based on a lot of assumptions. And there are a lot of things that we haven&rsquo;t considered. For example:</p>
-
-<ol>
-<li>Does the <code>read</code> attribute on a <code>ReadingList</code> object only accept a <code>boolean</code> value? What if someone tries to pass a non-boolean value as <code>read</code>?</li>
-<li>What is the default value of the <code>read</code> attribute?</li>
-<li>What if <code>read</code> is nil &ndash; what will break?</li>
-<li>What if the return value of <code>books_unread</code> is <code>0</code>?</li>
-</ol>
-
-
-<p>Just FYI, I discovered the answer to number 4, which looks like this:</p>
-
-<blockquote class="twitter-tweet tw-align-center" lang="en"><p>Uh oh&#8230;I did a bad thing: <a href="http://t.co/uFZEkyCPRl">pic.twitter.com/uFZEkyCPRl</a></p>&mdash; Vaidehi Joshi (@vaidehijoshi) <a href="https://twitter.com/vaidehijoshi/status/583994491570229249">April 3, 2015</a></blockquote>
-
-
-<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
-
-
-<p>This is all to say that we must write tests for behavior that <em>should</em> and <em>should not</em> occur. We&rsquo;d probably want to write validations to prevent <code>nil</code> values, and we&rsquo;d definitely want to raise an error whenever we try to divide by <code>0</code>. We aren&rsquo;t just testing for what we can see &ndash; we also need to test for things we can&rsquo;t see, and any edge cases that we can think of.</p>
-
-<p>Learning the how, when, and what of testing is a process that comes with time and practice. The more tests you write, the better you&rsquo;ll get at testing. Of course, there are few tips and tricks of the testing trade that can very quickly and easily save you a lot of heartache.</p>
-
-<p>Tune in again next Tuesday, when I&rsquo;ll delve into generating fixtures for test data using FactoryGirl &ndash; a trick that&rsquo;s going to make your testing life so much easier.</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>All <code>rspec</code> tests have an <code>it</code> block, which describes what behavior is expected. This block should never be too big, and contains an assertion of what expected value should be returned.</li>
-<li>The <code>let</code> syntax allows for lazy evaluation and keeps you from having to create a new instance of an object inside of every single <code>it</code> block. Check out more on the <code>let</code> and <code>let!</code> helper methods over on <a href="http://stackoverflow.com/questions/17407733/trouble-differentiating-rspecs-let-vs-let">this Stack Overflow answer</a> or on <a href="https://www.relishapp.com/rspec/rspec-core/v/2-5/docs/helper-methods/let-and-let">this blog post</a>.</li>
-<li>Use <code>describe</code> blocks to divide up your tests into sections, based on functionality and code cohesion. You can also use <code>context</code> blocks to assert different scenarios that could occur during one method call. Read about the <a href="http://lmws.net/describe-vs-context-in-rspec">difference between describe and context</a>.</li>
-<li>Find out more about different rspec testing conventions at <a href="http://betterspecs.org/">Better Specs</a>.</li>
 </ul>
 
 ]]></content>

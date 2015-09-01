@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="A week ago, I was on a code overload in Singapore. What was I doing on the other side of the world? Why, giving (and attending!) my very first talk &hellip;">
+  <meta name="description" content="Lesson number one when it comes to developing for the web: everything is just data. When you send something to the server in a request, or when you &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,56 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/06/23/to-serialize-or-not-to-serialize-activemodel-serializers/">To Serialize or Not to Serialize: ActiveModel Serializers</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-06-23T08:10:05-04:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>8:10 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/WgTf8fPTjJZAI" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Lesson number one when it comes to developing for the web: everything is just data. When you send something to the server in a request, or when you get something back from the server as a response, all you&rsquo;re really dealing with is data. Simple enough to remember, right? Wrong. Because data can be complicated. Especially when you consider the fact that it has to be passed back and forth in very specific ways. And if you don&rsquo;t format your data correctly, your computer is going to be very, very mad at you (or probably just throw a really unhelpful error message).</p>
+
+<p>I encountered the complications of data formatting the hard way, while trying to pass data between two parts of my application. I wanted to send some data to update a Ruby object in my Postgres database on the server-side, and then I wanted the Rails side to send back an updated response. As if that wasn&rsquo;t enough, I then needed the Ember front end to grab the updated data and immediately render it to the user on the client-side. Data formatting can already be complex when you have only one framework or language; throw in another framework and language, and, well&hellip;you might feel like you&rsquo;re having a little bit of a meltdown.</p>
+
+<p>But fear not! Because here&rsquo;s one awesome thing about data: once you understand the way that it&rsquo;s structured, it&rsquo;s pretty simple to use. And when it comes to working on a more intricate Rails + JavaScript application (like the one I was building recently), there&rsquo;s one kind of data manipulation you&rsquo;re probably going to have to do at some point or another: data serialization. When working with a JavaScript front end, you&rsquo;ll probably have to serialize your data into a <strong>JSON format</strong>, which is short for <em>JavaScript Object Notation</em>. Thankfully, there&rsquo;s a handy gem that makes this so easy that you&rsquo;ll never again question whether or not to serialize your data.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/06/23/to-serialize-or-not-to-serialize-activemodel-serializers/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -520,55 +570,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/">Tackling Those Tests, Part 1: The How, When, and What of Rspec Testing</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-04-14T08:17:03-04:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:17 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>, <a class='category' href='/blog/categories/testing/'>testing</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><img src="http://www.datamation.com/imagesvr_ce/306/philosophy-geeks.jpg" style="display: block; margin-left: auto; margin-right: auto; width: 50%; height: 50%;"></p>
-
-<p>Up until two weeks ago, I had one great fear: <em>testing</em>. And, to be clear, when I say &ldquo;fear&rdquo;, what I actually mean is sheer terror.</p>
-
-<p>My test-writing anxiety stems from the fact that I&rsquo;ve never really had to do it before. I mean, I&rsquo;ve had to make tons of tests <em>pass</em>, which means that I read other people&rsquo;s tests all the time. Yet I&rsquo;ve somehow made it thus far in my coding career without ever having to write relatively complex tests of my own. But that all changed a few weeks ago, when I was forced to finally confront my fear of testing.</p>
-
-<p>The thing about conquering fears, however, is that usually involves doing the very thing that you&rsquo;re afraid of. So, I spent the better portion of a week learning how and when to write tests, all while encountering a couple painful bugs along the way. It was not a fun week, but the good news is that I can write a fully-functioning test suite now! And now that I know more about testing, I actually find it kind of fun &ndash; so fun, in fact, that I&rsquo;m going to share it with you!</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/3">&larr; Older</a>
@@ -586,6 +587,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/">Inflections Everywhere: Using ActiveSupport Inflector</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/">Unlocking Ruby Keywords: Begin, End, Ensure, Rescue</a>
       </li>
     
@@ -599,10 +604,6 @@
     
       <li class="post">
         <a href="/blog/2015/08/04/safely-storing-your-assets-paperclip-with-aws-plus-heroku/">Safely Storing Your Assets: Paperclip With AWS + Heroku</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/28/clipping-images-for-rails-using-paperclip/">Clipping Images for Rails: Using Paperclip</a>
       </li>
     
   </ul>

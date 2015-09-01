@@ -1,0 +1,397 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Inflections Everywhere: Using ActiveSupport Inflector - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="Words are pretty important. But do you know what&rsquo;s more important than words? Grammar. (Can you tell that I was an English major?) Despite how &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Inflections Everywhere: Using ActiveSupport Inflector</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-09-01T08:45:22-04:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>8:45 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><iframe src="//giphy.com/embed/JEIRAmTTfUgYE" width="480" height="264" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Words are pretty important. But do you know what&rsquo;s more important than words? <em>Grammar</em>. (Can you tell that I was an English major?) Despite how big of a book nerd I am, there&rsquo;s acually a crucial reason as to why we should keep things like grammar in consideration: convention.</p>
+
+<p>At it&rsquo;s very core &mdash; pun totally intended &mdash; the Rails framework is based in conventions. We rely on the framework to create our models, controllers, and views in a specific file structure, and for them to be named in a certain way. But what we often forget is that we also rely on Rails to be smart enough to handle strange edge cases, like knowing that a <code>mice</code> table should store the <code>Mouse</code> model objects, and that the <code>MiceController</code> should be responsible for passing those objects back and forth!</p>
+
+<p>It all seems pretty automagical. But we have to keep in mind that it was the Rails core team that created and established these conventions, which means that they&rsquo;re not magic &mdash; they&rsquo;re just code! And as much as we can rely on preexisting Rails conventions, there might be times that we need to tweak our code to abide by those conventions. And because computers are not people (and because English is a crazy language with so many strange exceptions), we&rsquo;re probably going to run into a roadblock when dealing with grammar naming conventions. Thankfully, there&rsquo;s a great tool to help with this problem: the Rails <strong>Inflector</strong>, also known as every grammar nerd&rsquo;s dream.</p>
+
+<!--more-->
+
+
+<h2>Meet The Inflector</h2>
+
+<iframe src="//giphy.com/embed/yLV9y5wb0Qb1m" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>The Rails Inflector is actually a part of the ActiveSupport module, which is truly a beast of a module, and probably warrants a few blog posts of its own. The tl;dr version of ActiveSupport is this: it provides a bunch of different patterns to transform simple Ruby strings. The inflector library in particular is responsible for handling the pluralization of different strings.</p>
+
+<p>An important thing to note about the inflections library is that it&rsquo;s pretty much set in stone. According to <a href="http://api.rubyonrails.org/classes/ActiveSupport/Inflector.html">the documentation</a>, these rules are never going to change so that Rails can remain backwards-compatible for older applications:</p>
+
+<blockquote><p>&ldquo;The Rails core team has stated patches for the inflections library will not be accepted in order to avoid breaking legacy applications which may be relying on errant inflections. If you discover an incorrect inflection and require it for your application or wish to define rules for languages other than English, please correct or add them yourself.&rdquo;</p></blockquote>
+
+<p>Basically, what this means is that Rails provides us with some basic inflections; however, if we want to create our own custom grammar rules (or if we notice something that&rsquo;s incorrect), we have to write our own inflections for our application. It&rsquo;s also worth noting that if we want to create models that are <em>not</em> English words, we&rsquo;d need to write our own pluralize rules for those as well. But before we go about writing completely new inflections, let&rsquo;s first see what inflector methods we have available to us!</p>
+
+<h2>Inflector Methods</h2>
+
+<iframe src="//giphy.com/embed/l41lS9B8KYJ9dYZck" width="480" height="283" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>The <code>ActiveSupport::Inflector</code> module has a handful of public instance methods that are available for us to use. In fact, when I was first learning Rails, I played around with these methods in irb, but didn&rsquo;t really know (much less <em>understand</em>) where they were coming from. But it turns out that the Inflector methods can be super useful! Here are some of my favorites:</p>
+
+<h3><code>humanize</code></h3>
+
+<p>This method is great for displaying an attribute name to end users. It deletes any leading underscores, replaces underscores with spaces, downcase all words (except acronyms), and capitalizes the first word. Basically, it makes your attributes human-readable, which can be helpful for displaying an error message to your user:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">♥</span> <span class="n">rails</span> <span class="n">console</span>
+</span><span class='line'><span class="no">Loading</span> <span class="n">development</span> <span class="n">environment</span> <span class="p">(</span><span class="no">Rails</span> <span class="mi">4</span><span class="o">.</span><span class="mi">1</span><span class="o">.</span><span class="mi">4</span><span class="p">)</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">001</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="n">humanize</span><span class="p">(</span><span class="n">author</span><span class="o">.</span><span class="n">first_name</span><span class="p">)</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="s2">&quot;First name&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3><code>titleize</code></h3>
+
+<p>The <code>titleize</code> method is pretty perfect for our bookstore application. It capitalizes all the words and replaces underscores with spaces:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">002</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="s1">&#39;of_mice_and_men&#39;</span><span class="o">.</span><span class="n">titleize</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="s2">&quot;Of Mice And Men&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><em>Protip: this method is also aliased as <code>titlecase</code>.</em></p>
+
+<h3><code>parameterize</code></h3>
+
+<p>This method replaces special characters in a string so that it can be used in a URL (think sluggable names with hyphens):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">003</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="s1">&#39;Of Mice And Men&#39;</span><span class="o">.</span><span class="n">parameterize</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="s2">&quot;of-mice-and-men&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3><code>singularize</code></h3>
+
+<p>The <code>singularize</code> method does exactly what you think it would do: it returns the singular form of a word in a string:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">004</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="s1">&#39;mice&#39;</span><span class="o">.</span><span class="n">singularize</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="s2">&quot;mouse&quot;</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">005</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="s1">&#39;men&#39;</span><span class="o">.</span><span class="n">singularize</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="s2">&quot;man&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3><code>pluralize</code></h3>
+
+<p>And the <code>pluralize</code> method does the opposite things: returns the plural form of a word in string format:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">006</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="s2">&quot;mouse&quot;</span><span class="o">.</span><span class="n">pluralize</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="s2">&quot;mice&quot;</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">007</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="s2">&quot;man&quot;</span><span class="o">.</span><span class="n">pluralize</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="s2">&quot;men&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>There are tons more Inflector methods that are very <a href="http://api.rubyonrails.org/classes/ActiveSupport/Inflector.html">well-documented</a>. In fact, there are so many great methods that you might be thinking to yourself, <em>why would I ever have to write my own methods?</em></p>
+
+<p>Well, what if we wanted <code>Specimen</code> objects, which needed to be pluralized as <code>Specimens</code>. We could assume that Rails will handle that for us&hellip;or we could double-check:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">00</span><span class="mi">8</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="s2">&quot;specimen&quot;</span><span class="o">.</span><span class="n">pluralize</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="s2">&quot;specimen&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Oops! It seems like the predefined inflections are taking hold here and parsing &ldquo;men&rdquo; as the plural form of &ldquo;man&rdquo;, like we saw earlier. You know what this means&hellip;time to write our <em>own</em> inflections!</p>
+
+<h2>New Inflection Rules</h2>
+
+<p>One of the coolest public instance methods of the <code>`ActiveSupport::Inflector</code> module is the method that allows us to specify our own inflector rules. This method is appropiately named <code>inflections</code>, and it does some interesting things.</p>
+
+<p>The <code>inflections</code> method yields to a singleton instance of <code>ActiveSupport::Inflector::Inflections</code>. It can be passed an optional locale, which is how we could write inflection rules for other languages; the default locale is English (specified as the argument <code>:en</code>).</p>
+
+<p>We can write our own inflections inside of the <code>config/initializers/inflections.rb</code> file. This file actually already exists and will look like this when we first open it:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1"># Be sure to restart your server when you modify this file.</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># Add new inflection rules using the following format. Inflections</span>
+</span><span class='line'><span class="c1"># are locale specific, and you may define rules for as many different</span>
+</span><span class='line'><span class="c1"># locales as you wish. All of these examples are active by default:</span>
+</span><span class='line'><span class="c1"># ActiveSupport::Inflector.inflections(:en) do |inflect|</span>
+</span><span class='line'><span class="c1">#   inflect.plural /^(ox)$/i, &#39;\1en&#39;</span>
+</span><span class='line'><span class="c1">#   inflect.singular /^(ox)en/i, &#39;\1&#39;</span>
+</span><span class='line'><span class="c1">#   inflect.irregular &#39;person&#39;, &#39;people&#39;</span>
+</span><span class='line'><span class="c1">#   inflect.uncountable %w( fish sheep )</span>
+</span><span class='line'><span class="c1"># end</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># These inflection rules are supported but not enabled by default:</span>
+</span><span class='line'><span class="c1"># ActiveSupport::Inflector.inflections(:en) do |inflect|</span>
+</span><span class='line'><span class="c1">#   inflect.acronym &#39;RESTful&#39;</span>
+</span><span class='line'><span class="c1"># end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We can already see how to go about writing our inflections with the examples in this file, including some of the methods we can use, depending on what our edge case is. There are actually a lot of <a href="http://api.rubyonrails.org/classes/ActiveSupport/Inflector/Inflections.html">methods available</a> to us inside of our inflections block, some of the most helpful being <code>plural</code>, <code>singular</code>, <code>uncountable</code>, and <code>irregular</code>. In our case, we&rsquo;re dealing with an irregular inflection wherein <code>specimen</code> needs to be pluralized as <code>specimens</code>, so we&rsquo;ll use the <code>irregular</code> method, which takes two arguments: the singular and the plural form of the word as strings.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">ActiveSupport</span><span class="o">::</span><span class="no">Inflector</span><span class="o">.</span><span class="n">inflections</span><span class="p">(</span><span class="ss">:en</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">inflect</span><span class="o">|</span>
+</span><span class='line'>  <span class="n">inflect</span><span class="o">.</span><span class="n">irregular</span> <span class="s1">&#39;specimen&#39;</span><span class="p">,</span> <span class="s1">&#39;specimens&#39;</span>
+</span><span class='line'><span class="n">en</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Awesome! Now our entire application will know about this inflection rule. And the really great thing about this is that our new rule that we just wrote is added at the top of this file, which means that our irregular rule for <code>specimen</code> will be the first of the singularization and pluralization rules that is run. This ensures that our rules will always run before any of the preexisting rules that come with <code>ActiveSupport::Inflector</code>.</p>
+
+<p>Whew &mdash; that was quite an inflection adventure! But now the next time we have a grammar mistake, we can fix it easily, just like the strange puppet (is a gopher? A beaver? I don&rsquo;t know!) keeps telling us to do:</p>
+
+<iframe src="//giphy.com/embed/DIBVWfW8vtQli" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>ActiveSupport::Inflector</code> handles a lot of the grammar rules in Rails. The <code>inflections.rb</code> file is where we can write our own inflection rules. Check out all the preexisting inflections in the Rails <a href="https://github.com/rails/rails/blob/92f567ab30f240a1de152061a6eee76ca6c4da86/activesupport/lib/active_support/inflections.rb">source code</a>.</li>
+<li>Curious how Rails knows what grammar rules to follow? Check out <a href="http://ilanasufrin.github.io/blog/2014/07/30/a-rails-grammar-lesson/">this blog post</a>, which explains it all.</li>
+<li>If you are very brave, dig through the <a href="https://github.com/rails/rails/blob/6c75a111995a9aab09e19c2b6a8a42162f689bc6/activesupport/lib/active_support/inflector/inflections.rb">source code</a> for all of the methods available to <code>inflections</code>.</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-09-01T08:45:22-04:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>8:45 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/" title="Previous Post: Unlocking Ruby Keywords: Begin, End, Ensure, Rescue">&laquo; Unlocking Ruby Keywords: Begin, End, Ensure, Rescue</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/">Inflections Everywhere: Using ActiveSupport Inflector</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/">Unlocking Ruby Keywords: Begin, End, Ensure, Rescue</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/18/safer-sql-using-activerecord-transactions/">Safer SQL: Using ActiveRecord Transactions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/11/rolling-out-the-redcarpet-for-rendering-markdown/">Rolling Out the Redcarpet for Rendering Markdown</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/04/safely-storing-your-assets-paperclip-with-aws-plus-heroku/">Safely Storing Your Assets: Paperclip With AWS + Heroku</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
