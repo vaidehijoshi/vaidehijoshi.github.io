@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Ruby | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-09-01T08:51:06-04:00</updated>
+  <updated>2015-09-01T08:52:29-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -145,7 +145,7 @@ en
 
 <p>Awesome! Now our entire application will know about this inflection rule. And the really great thing about this is that our new rule that we just wrote is added at the top of this file, which means that our irregular rule for <code>specimen</code> will be the first of the singularization and pluralization rules that is run. This ensures that our rules will always run before any of the preexisting rules that come with <code>ActiveSupport::Inflector</code>.</p>
 
-<p>Whew &mdash; that was quite an inflection adventure! But now the next time we have a grammar mistake, we can fix it easily, just like the strange puppet (is a gopher? A beaver? I don&rsquo;t know!) keeps telling us to do:</p>
+<p>Whew &mdash; that was quite an inflection adventure! But now the next time we have a grammar mistake, we can fix it easily, just like this slightly strange puppet (is a gopher? A beaver? I don&rsquo;t know!) keeps telling us to do:</p>
 
 <iframe src="//giphy.com/embed/DIBVWfW8vtQli" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
