@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Conferences | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/conferences/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-09-01T08:52:29-04:00</updated>
+  <updated>2015-09-06T16:16:13-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -37,7 +37,7 @@
 <p>André&rsquo;s talk definitely caught my attention when he gave an example of a company that went out of business in a day because they lost <em>all</em> of their data because their severs were hacked. Yes, you read that right: lost all their data, shut down in a day. Pretty terrifying, right?</p>
 
 <div style="text-align:center">
-    <iframe width="560" height="315" src="https://www.youtube.com/embed/eHmXar6TNUo?showinfo=0" frameborder="0" allowfullscreen></iframe><br>
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/eHmXar6TNUo?rel=0&amp;showinfo=0" frameborder="0" allowfullscreen></iframe><br>
 </div>
 
 
@@ -62,7 +62,7 @@
 <p>My favorite talk of the entire conference came from Sam Saffron, the co-founder of Discourse and one of the first employees at StackExchange. To be honest, this talk was less an exercise is learning new things and more a revelation in all the things that I <em>didn&rsquo;t</em> know. And all the things that I knew nothing about centered around one thing: <strong>efficiency</strong>.</p>
 
 <div style="text-align:center">
-    <iframe width="560" height="315" src="https://www.youtube.com/embed/aP5NNkzb4og?showinfo=0" frameborder="0" allowfullscreen></iframe><br>
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/aP5NNkzb4og?rel=0&amp;showinfo=0" frameborder="0" allowfullscreen></iframe><br>
 </div>
 
 
@@ -112,7 +112,7 @@ https://github.com/SamSaffron/memory_profiler">over here</a>.</p>
 
 <p>Compared to things like security, optimization, and language design, a smelly durian doesn&rsquo;t seem nearly as bad. In fact, I&rsquo;d say that as far as developers go, we as a Ruby community have got it pretty good. But probably not as good as this dog right here:</p>
 
-<iframe src="//giphy.com/embed/Ps3UNgJew0H7y" width="480" height="347" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+<iframe src="//giphy.com/embed/Ps3UNgJew0H7y" width="480" height="347" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
 
 <h2>tl;dr?</h2>
