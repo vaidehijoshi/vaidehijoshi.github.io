@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="Words are pretty important. But do you know what&rsquo;s more important than words? Grammar. (Can you tell that I was an English major?) Despite how &hellip;">
+  <meta name="description" content="There&rsquo;s one thing that everyone loves: getting mail! But there&rsquo;s one thing that all developers would rather avoid: sending mail. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,56 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/09/08/youve-got-mail-action-mailer-plus-letter-opener/">You&#8217;ve Got Mail: Action Mailer + Letter_Opener</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-09-08T21:45:34-04:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:45 pm</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/9xfgwmsfIaSYg" width="480" height="265" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>There&rsquo;s one thing that everyone loves: getting mail! But there&rsquo;s one thing that all developers would rather avoid: sending mail. Unfortunately, this paradox perfectly describes the joys and horrors of getting your application to send a single email.</p>
+
+<p>I recently worked on building out a password reset feature for one of our applications. In order for this feature to work, I had to figure out how to get my Rails application to send an email to our user with a password reset token in case they had forgotten their password. I thought that handling the authentication and token aspect of this would be complicated, but it turned out that learning about mailers was the more fun part. I had never actually worked with Rails mailers before, and honestly, I thought that I was in over my head (this also might be partly attributed to the fact that I had just come back from a two-week vacation and felt like I had completely forgotten how to code).</p>
+
+<p>So, I did what any developer would do: I cried and went home. Okay, okay, I&rsquo;m just kidding! What I <em>actually</em> did was read through the documentation, play around with my application and, in the process, taught myself how to use Rails Action Mailer. I never thought that I&rsquo;d say this but, getting that feature to work and seeing that email pop up was incredibly exciting. In fact, I don&rsquo;t think I&rsquo;ve ever been more excited about sending and receiving an email. But don&rsquo;t let me tell you how thrilling it was &mdash; let&rsquo;s create our own mailer and experience it together!</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/09/08/youve-got-mail-action-mailer-plus-letter-opener/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -522,56 +572,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/">Taskmanaging Your App, Part 1: Using Rake</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-06-30T08:49:58-04:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:49 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><iframe src="//giphy.com/embed/uRziFAtdD6H60" width="480" height="362" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Rake tasks: we&rsquo;ve all used &lsquo;em. From migrating our database to seeding it, we run commands using <code>rake</code> all of the time! But what actually happens when you run a rake task? And where is all this stuff defined, exactly? And how do you write a customized rake task of your very own?</p>
-
-<p>These were the questions I was asking myself last week, when I had to write a rake task to stage some data for an application I was working on. I knew exactly what my rake task was supposed to accomplish, and I had a general idea of the code that had to live inside of it. I didn&rsquo;t quite know how to write my rake task, however. And I definitely didn&rsquo;t know what was going on inside of the Ruby interpreter when it would read my yet-to-exist task.</p>
-
-<p>So, I set out to answer some of those questions, and learned a bit about how rake works in the process. It was an interesting rabbit hole to dive down, particularly since I had never before questioned what was happening when I ran a rake command in my command line. When you&rsquo;re first starting out with code, it&rsquo;s okay to accept some of the obfuscation that is inherently a part of the abstraction of larger applications. But you should never go too long without questioning why and how a certain thing works the way that it does. And that&rsquo;s exactly what we&rsquo;ll do with our beloved rake commands.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -587,6 +587,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/09/08/youve-got-mail-action-mailer-plus-letter-opener/">You&#8217;ve Got Mail: Action Mailer + Letter_Opener</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/">Inflections Everywhere: Using ActiveSupport Inflector</a>
       </li>
     
@@ -600,10 +604,6 @@
     
       <li class="post">
         <a href="/blog/2015/08/11/rolling-out-the-redcarpet-for-rendering-markdown/">Rolling Out the Redcarpet for Rendering Markdown</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/08/04/safely-storing-your-assets-paperclip-with-aws-plus-heroku/">Safely Storing Your Assets: Paperclip With AWS + Heroku</a>
       </li>
     
   </ul>

@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-09-06T16:16:13-04:00</updated>
+  <updated>2015-09-08T22:19:58-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,226 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[You've Got Mail: Action Mailer + Letter_Opener]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/09/08/youve-got-mail-action-mailer-plus-letter-opener/"/>
+    <updated>2015-09-08T21:45:34-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/09/08/youve-got-mail-action-mailer-plus-letter-opener</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/9xfgwmsfIaSYg" width="480" height="265" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>There&rsquo;s one thing that everyone loves: getting mail! But there&rsquo;s one thing that all developers would rather avoid: sending mail. Unfortunately, this paradox perfectly describes the joys and horrors of getting your application to send a single email.</p>
+
+<p>I recently worked on building out a password reset feature for one of our applications. In order for this feature to work, I had to figure out how to get my Rails application to send an email to our user with a password reset token in case they had forgotten their password. I thought that handling the authentication and token aspect of this would be complicated, but it turned out that learning about mailers was the more fun part. I had never actually worked with Rails mailers before, and honestly, I thought that I was in over my head (this also might be partly attributed to the fact that I had just come back from a two-week vacation and felt like I had completely forgotten how to code).</p>
+
+<p>So, I did what any developer would do: I cried and went home. Okay, okay, I&rsquo;m just kidding! What I <em>actually</em> did was read through the documentation, play around with my application and, in the process, taught myself how to use Rails Action Mailer. I never thought that I&rsquo;d say this but, getting that feature to work and seeing that email pop up was incredibly exciting. In fact, I don&rsquo;t think I&rsquo;ve ever been more excited about sending and receiving an email. But don&rsquo;t let me tell you how thrilling it was &mdash; let&rsquo;s create our own mailer and experience it together!</p>
+
+<!--more-->
+
+
+<h2>Generating Some Mail(ers)</h2>
+
+<iframe src="//giphy.com/embed/izxswKdmqmQrS" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>Rails has a wonderful built-in mailing system called Action Mailer, which allows us to send email from our application as long as we have a <strong>mailer model</strong>. Mailers are actually a lot like controllers: they have their own <code>app/mailers</code> directory, and each mailer has its own associated view as well. Each mailer also inherits from <code>ActionMailer::Base</code>, and just like controllers, can be generated really easily.</p>
+
+<p>For our bookstore app, we won&rsquo;t start off with anything <em>too</em> fancy just yet. Instead, let&rsquo;s stick with a simple mailer that will be responsible for one little thing: sending an order confirmation email whenever a user successfully places an order (did your mind immediately jump to using a <a href="http://vaidehijoshi.github.io/blog/2015/03/24/a-machine-state-of-mind-part-2-implementing-state-machines/">state machine</a>? I hope so!)</p>
+
+<p>To start, we&rsquo;ll use Rails to generate a mailer:</p>
+
+<p><code>♥ bin/rails generate mailer Order</code></p>
+
+<p>Running this command in the terminal generates a few different files for us. We now have an <code>app/mailers</code> directory, with an <code>order_mailer.rb</code> and <code>application_mailer.rb</code> file. It also generates three files inside of <code>app/views</code>: <code>order_mailer</code>, <code>layouts/mailer.text.erb</code>, and <code>layouts/mailer.html.erb</code>, as well as test units for our order mailer (<code>order_mailer_test.rb</code>).</p>
+
+<p>Depending on how many mailers this application will have, it might not makes sense to generate all of these files. If we decided to manually create our mailer rather than generating it, we&rsquo;d need to keep one thing in mind: our mailer <em>must</em> be a file inside of the <code>mailers</code> directory, and it <em>must</em> inherit from <code>ActionMailer::Base</code> (unless, of course, we wanted to use a mailer from another library, such as the <code>Devise::Mailer</code> from the <code>devise</code> gem).</p>
+
+<p>The mailer model has methods defined on it that allows us to actually specify how and where an email is sent. Right now, however, our mailer models look pretty empty! Inside of our generated <code>ApplicationMailer</code>, the only setup we have is our layout configuration and our <code>from</code> address:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ApplicationMailer</span> <span class="o">&lt;</span> <span class="no">ActionMailer</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">default</span> <span class="ss">from</span><span class="p">:</span> <span class="s2">&quot;help@vaidehisbookstore.com&quot;</span>
+</span><span class='line'>  <span class="n">layout</span> <span class="s1">&#39;mailer&#39;</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>While our <code>order_mailer.rb</code> is completely empty:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">OrderMailer</span> <span class="o">&lt;</span> <span class="no">ApplicationMailer</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Since mailers are so much like controllers, we can approach writing them in a similar way. The first thing we&rsquo;ll do is write some actions. Just like with controllers, we want our methods to adhere to the single-responsiblity principle, which means that they should be handling only one thing at a time. We&rsquo;ll start by writing a <code>confirmation_email</code> method, which will take an <code>Order</code> object as its parameter.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">OrderMailer</span> <span class="o">&lt;</span> <span class="no">ApplicationMailer</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">confirmation_email</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+</span><span class='line'>    <span class="vi">@order</span> <span class="o">=</span> <span class="n">order</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Just like in controllers, any instance variables that we define in our method &mdash; in this case, <code>@order</code> &mdash; become available for us to use inside of our views. This will be important when we want to render the user&rsquo;s information via our <code>@order</code> instance. But&hellip;we&rsquo;re not actually <em>mailing</em> anything right now, are we? Of course not! In order to actually create our message and render our email templates, we need to use the <code>mail</code> method.</p>
+
+<p>The <code>mail</code> method is defined on <code>ActionMailer::Base</code> (hence why every mailer should always inherit from it so that it has access to this very crucial method). If we look at <a href="http://apidock.com/rails/ActionMailer/Base/mail">the documentation</a> for this method, we can see that it accepts a headers hash, which is where we can specify the most-used headers in an email message. Some of the options we can pass in include <code>subject</code>, <code>to</code>, <code>from</code>, <code>cc</code>, and <code>date</code>, among others. For now, we&rsquo;ll just pass in a <code>to</code> option and a <code>subject</code> option:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">OrderMailer</span> <span class="o">&lt;</span> <span class="no">ApplicationMailer</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">confirmation_email</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+</span><span class='line'>    <span class="vi">@order</span> <span class="o">=</span> <span class="n">order</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">mail</span><span class="p">(</span><span class="ss">to</span><span class="p">:</span> <span class="n">order</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">email</span><span class="p">,</span> <span class="ss">subject</span><span class="p">:</span> <span class="s2">&quot;Your Order </span><span class="si">#{</span><span class="vi">@order</span><span class="o">.</span><span class="n">number</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If we wanted to get <em>really</em> fancy, we could specify <code>default</code> values for any of these headers (except for <code>date</code>) inside of our <code>OrderMailer</code> class. Alternatively, we could also write our <code>mail</code> method as a block, which would allow us to render specific templates &mdash; a piece of functionality that might be nice as we add more methods to this mailer over time. We could also use the block syntax in order to render plain text directly without using a template, which would look something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">mail</span><span class="p">(</span><span class="ss">to</span><span class="p">:</span> <span class="n">order</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">email</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="nb">format</span><span class="o">|</span>
+</span><span class='line'>  <span class="nb">format</span><span class="o">.</span><span class="n">text</span> <span class="p">{</span> <span class="n">render</span> <span class="ss">plain</span><span class="p">:</span> <span class="s2">&quot;Hi, </span><span class="si">#{</span><span class="n">order</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">email</span><span class="si">}</span><span class="s2">!&quot;</span> <span class="p">}</span>
+</span><span class='line'>  <span class="nb">format</span><span class="o">.</span><span class="n">html</span> <span class="p">{</span> <span class="n">render</span> <span class="ss">html</span><span class="p">:</span> <span class="s2">&quot;&lt;h1&gt;Hi, </span><span class="si">#{</span><span class="n">order</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">email</span><span class="si">}</span><span class="s2">!&lt;/h1&gt;&quot;</span><span class="o">.</span><span class="n">html_safe</span> <span class="p">}</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>But let&rsquo;s hold off on all these bells and whistles. Let&rsquo;s just get this method into our state machine and actually <em>send</em> this bad boy.</p>
+
+<h2>Send Me Some Mail</h2>
+
+<p>Now for the fun part: sending and receiving our mail! There are two methods we can use to send an email: <code>deliver_now</code> and <code>deliver_later</code>. The former sends our email inline (in the same request-response cycle), while the latter sends emails in the background by integrating with Active Job.</p>
+
+<p>We already wrote our <code>confirmation_email</code> method, so now we just need to invoke it. But, we defined it on our mailer class. However, we don&rsquo;t need to instantiate a new instance of our <code>OrderMailer</code> class (like we would have to do with a service object, for example). Instead, we can just call our <code>confirmation_email</code> method on our mailer class directly. Since brevity is the soul of wit, here&rsquo;s a truncated version of the state machine in our <code>order.rb</code> file, which is where we&rsquo;ll invoke this method:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="kp">include</span> <span class="no">AASM</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="n">aasm</span> <span class="ss">column</span><span class="p">:</span> <span class="s1">&#39;state&#39;</span><span class="p">,</span> <span class="ss">whiny_transitions</span><span class="p">:</span> <span class="kp">false</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">state</span> <span class="ss">:complete</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">event</span> <span class="ss">:completed</span><span class="p">,</span> <span class="ss">after</span><span class="p">:</span> <span class="ss">:send_confirmation_email</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">send_confirmation_email</span>
+</span><span class='line'>      <span class="no">OrderMailer</span><span class="o">.</span><span class="n">confirmation_email</span><span class="p">(</span><span class="nb">self</span><span class="p">)</span><span class="o">.</span><span class="n">deliver_now</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>You&rsquo;ll remember that our <code>confirmation_email</code> method takes an <code>Order</code> as a parameter, which is why we&rsquo;re passing in <code>self</code>, the <code>Order</code> object, into the method, before chaining on <code>deliver_now</code> at the end of it. Now, after our <code>completed</code> event is called, this email will be sent. But how do we know what our email will say, exactly? Well, we can head over to our email templates to find out.</p>
+
+<iframe src="//giphy.com/embed/eRIrROHUPJvgs" width="480" height="348" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>When we generated our mailer, one of the files that was generated was <code>app/views/layouts/mailer.html.erb</code>. If we take a look inside of this file, we&rsquo;ll see that it&rsquo;s pretty simple; in fact, all it&rsquo;s going to do for now is <code>yield</code> to whatever template needs to be rendered. If we wanted to add styles or formatting that would apply to <em>all</em> of our mailers, this is where it would go:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='erb'><span class='line'><span class="x">&lt;html&gt;</span>
+</span><span class='line'><span class="x">  &lt;body&gt;</span>
+</span><span class='line'><span class="x">    </span><span class="cp">&lt;%=</span> <span class="k">yield</span> <span class="cp">%&gt;</span><span class="x"></span>
+</span><span class='line'><span class="x">  &lt;/body&gt;</span>
+</span><span class='line'><span class="x">&lt;/html&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>For things pertaining specifically to our <code>OrderMailer</code> template, we&rsquo;ll need to visit the view for that mailer, which will live inside of <code>app/views/order_mailer/confirmation_email.html.erb</code>. We can again think of how controllers work with their associated views (for example, an <code>index</code> action corresponds to an <code>index.html.erb</code> file). Similarly, our <code>OrderMailer</code> class knows about its own specific view because its name is the same as the mailer&rsquo;s method (<code>confirmation_email</code>). This is where we can put the text for our email template; for now, it won&rsquo;t be anything too special and will just use our <code>@order</code> instance from the <code>confirmation_email</code> method we wrote in the <code>OrderMailer</code> to retrieve and render the order number and user&rsquo;s email:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='erb'><span class='line'><span class="x">Hello </span><span class="cp">&lt;%=</span> <span class="vi">@order</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">email</span> <span class="cp">%&gt;</span><span class="x">,</span>
+</span><span class='line'>
+</span><span class='line'><span class="x">This email confirms your order </span><span class="cp">&lt;%=</span> <span class="vi">@order</span><span class="o">.</span><span class="n">number</span> <span class="cp">%&gt;</span><span class="x">.</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Awesome! Now, in development, we can test this out by placing an order, triggering the <code>send_confirmation_email</code> method in our state machine, and using our <code>OrderMailer</code> to send an email in a sychronous request to our user&rsquo;s email address. That&rsquo;s a <em>lot</em> to do, but we made it happen!</p>
+
+<h2>Letter Opener + Instant Delivery</h2>
+
+<p>Before we get too email-happy, here&rsquo;s a thought: how much do you really <em>like</em> email? I don&rsquo;t know about you, but I would really rather not get an email every single time I test out my mailer in development. Thankfully, there&rsquo;s a gem that was created to solve precisely this very problem: <code>letter_opener</code>.</p>
+
+<p>This gem intercepts our mailer and allows us to preview an email from within our browser instead of actually sending the email to an email address. One of the great benefits of this &mdash; in addition to both saving space in our inbox and not having to set up email delivery in our development environment &mdash; is us not having to worry about sending test emails by accident to someone else&rsquo;s email address!</p>
+
+<p>Adding <code>letter_opener</code> to our application is pretty easy, and the documentation is <a href="https://github.com/ryanb/letter_opener">easy to follow</a>. First, we&rsquo;ll add the gem to the <code>:development</code> group in our <code>Gemfile</code>:</p>
+
+<p><code>gem "letter_opener", group: :development</code></p>
+
+<p>After we run <code>bundle install</code> in our terminal, we&rsquo;ll need to do one last step: setting up our mailer configurations. Basically, all this means is that we need to specifically set up our development environment such that it will use our <code>letter_opener</code> gem as its <em>delivery method</em>. In fact, that&rsquo;s pretty much the only line we need to add in our <code>config/environments/development.rb</code> file:</p>
+
+<p><code>config.action_mailer.delivery_method = :letter_opener</code></p>
+
+<p>The <code>delivery_method</code> acepts a delivery method object and defaults to <code>:smtp</code>. Since we want <code>letter_opener</code> to handle our mail deliveries, we&rsquo;ll just set our delivery method on Action Mailer to the gem that we want to use.</p>
+
+<p>Now that we&rsquo;ve set this up, any email that is sent by Action Mailer will be intercepted and open up in a new tab in our browser, rather than actually being sent to an email address. These files will be stored temporarily in <code>tmp/letter_opener</code>.</p>
+
+<p>But as <em>lovely</em> and helpful as it is to have all these test emails popping up in our browser, there&rsquo;s one thing that would be even nicer to have: all of these emails being triggered <em>outside</em> of the request-response cycle. In other words, what we want to do is to run these requests asychronously. Well, what does the documentation say about making this happen?</p>
+
+<blockquote><p>&ldquo;Active Job&rsquo;s default behavior is to execute jobs <code>:inline</code>. So, you can use
+<code>deliver_later</code> now to send emails, and when you later decide to start sending
+them from a background job, you&rsquo;ll only need to set up Active Job to use a queueing
+backend (Sidekiq, Resque, etc).&rdquo;</p></blockquote>
+
+<p>Okay, it sounds like we need to learn a little bit about Active Job and set up a queueing backend to send our emails in a job. But let&rsquo;s save that for another blog post. Tune in again next week, when I&rsquo;ll delve into the basics of Active Job and asychronous processes. Until then, have fun opening those emails!</p>
+
+<iframe src="//giphy.com/embed/u8IJtQ7dfZhn2" width="480" height="433" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Rails mailers inherit from <code>ActionMailer::Base</code>, and work just like controllers, with actions and corresponding views. Check out this <a href="http://www.gotealeaf.com/blog/handling-emails-in-rails">fantastic post</a> on sending emails using Action Mailer to dive into the details.</li>
+<li>There are a lot of different header options that you can pass to <code>ActionMailer::Base</code>. Read more about them <a href="http://apidock.com/rails/ActionMailer/Base/headers">over here</a>.</li>
+<li>Curious about how to go about configuring Action Mailer to make the mailing magic happen? The <a href="http://guides.rubyonrails.org/configuring.html#configuring-action-mailer">Rails Guides</a> have a great tutorial on how to do that.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Inflections Everywhere: Using ActiveSupport Inflector]]></title>
@@ -4582,263 +4802,6 @@ outer join to start.</p>
 <li>The <code>shoulda-matchers</code> gem helps you keep your code DRY and test for associations and validations. The <code>database_cleaner</code> gem keeps your database clean between tests and helps you avoid problems related to repeat data.</li>
 <li>Both of these gems have well-written and maintained documentation. Read them both! (<a href="http://matchers.shoulda.io/docs/v2.8.0/">shoulda</a> docs and <a href="https://github.com/DatabaseCleaner/database_cleaner">database cleaner</a> docs)</li>
 <li>If you&rsquo;re curious about the difference between transactions, truncations, and deletions, check out <a href="http://makandracards.com/makandra/13045-understanding-database-cleaning-strategies-in-tests">this post</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Tackling Those Tests, Part 2: Getting Fun and Functional With FactoryGirl]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/"/>
-    <updated>2015-04-21T08:34:19-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl</id>
-    <content type="html"><![CDATA[<p><img src="https://33.media.tumblr.com/0b9992ca5a259a54c16199c2de69c903/tumblr_mtjab8Yo0U1rlp47to1_500.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p><em>This blog post is part of a series on testing. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/">here</a>.</em></p>
-
-<p>Good things always come in pairs, and that couldn&rsquo;t be more true when it comes to testing. Like milk and cookies or peanut butter and jelly, test suites and test data are at their best when they&rsquo;re put together. As we discovered last week, a thoughtful test suite is important when it comes to checking our assumptions. But even the most comprehensive test suite is nothing without the appropriate amount &ndash; and type &ndash; of test data to support it.</p>
-
-<p>Every Rails application comes with a production, development, and test environment, and good test data is an indication of a well-constructed testing environment. But not all data is created equally. To take a cue from George Orwell, we could go so far as to claim that some forms of test data are more equal than others.</p>
-
-<p>Enter <strong>FactoryGirl</strong>, a gem that I&rsquo;ve recently discovered to be the most efficient way and painless way of creating test data within a Rails application. Generating test data is often the culprit for not only a great deal of pain and sufferring, but also some annoying bugs that are hard to catch. In fact, one of the most excruciating bugs I&rsquo;ve ever dealt with came from a single line of code, meant to create some test data. So it seems fitting that this week we tackle the most dangerous (yet thrilling!) part of testing: generating test data.</p>
-
-<!--more-->
-
-
-<h2>Setting Up The Factory Floor</h2>
-
-<p>Since we&rsquo;re implementing <code>FactoryGirl</code> on top of a Rails application, we&rsquo;ll work exclusively with the <code>factory_girl_rails</code> gem, which has been built specifically for this purpose.</p>
-
-<p>Once we&rsquo;ve added <code>gem 'factory_girl_rails'</code> to our <code>Gemfile</code> and run a <code>bundle install</code> in the terminal, we&rsquo;re ready to start setting up our factories. We&rsquo;ll start by creating factories for our <code>ReadingList</code> model from last week&rsquo;s post.</p>
-
-<ul>
-<li><p>Within our <code>/spec</code> directory, we&rsquo;ll need to create a <code>factories</code> directory. This is where each of the factories for each model will live.</p></li>
-<li><p>Inside of our <code>/spec/factories/</code> subdirectory, we&rsquo;ll create a file for our <code>ReadingList</code> factory. The convention for naming factories is to use the plural form of the model name in snake case, with the word &ldquo;factory&rdquo; appended to the end. In our case, that file would be named <code>reading_lists_factory.rb</code>.</p></li>
-<li><p>In our newly-created <code>ReadingList</code> Factory, we&rsquo;ll add a block that defines what our <code>FactoryGirl</code> object will look like. Every single factory you make for any instance of test data will begin with a block exactly like this one:</p></li>
-</ul>
-
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">FactoryGirl</span><span class="o">.</span><span class="n">define</span> <span class="k">do</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<ul>
-<li>Next, we&rsquo;ll want to give this test object a name. For this very basic test suite, we only want to test one <code>ReadingList</code> object, so we&rsquo;ll stick with a simple name: <code>reading_list</code>. Keep in mind that whatever name we give this test object is what we&rsquo;ll be using to refer to it inside of our tests. Inside of our initial <code>FactoryGirl</code> block, we&rsquo;ll define this specific object like this:</li>
-</ul>
-
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">FactoryGirl</span><span class="o">.</span><span class="n">define</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">factory</span> <span class="ss">:reading_list</span><span class="p">,</span>  <span class="k">do</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<ul>
-<li>Lastly, we need to define some attributes for our test object. For now, our <code>ReadingList</code> test object needs only three columns in the database: one for its <code>id</code>, one for its <code>title</code>, and a foreign key of the <code>User</code> it belongs to. Here&rsquo;s what our final test object definition looks like:</li>
-</ul>
-
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">FactoryGirl</span><span class="o">.</span><span class="n">define</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">factory</span> <span class="ss">:reading_list</span><span class="p">,</span>  <span class="k">do</span>
-</span><span class='line'>    <span class="n">user</span>
-</span><span class='line'>    <span class="n">title</span> <span class="s2">&quot;Books I Want To Read&quot;</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Pretty cool, right? We don&rsquo;t have to give our test object an <code>id</code>, because <code>FactoryGirl</code> will generate one when we call on it to create a new test object. So what&rsquo;s that <code>user</code> line doing in there? Well, it&rsquo;s creating an association between two factories! When <code>FactoryGirl</code> sees <code>user</code>, it looks for a file with the path <code>/spec/factories/user_factory.rb</code>, and creates an instance of a <code>User</code> test object, which it then uses to build our <code>ReadingList</code> object.</p>
-
-<p>But right now, our code will give us a big, nasty error. Can you guess the reason behind that? Why, we don&rsquo;t have a <code>User</code> factory, of course! I guess we better get on that.</p>
-
-<iframe src="//giphy.com/embed/W6vq5qLStzYys" width="480" height="244" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>Form Follows Function</h2>
-
-<p>Now that we know how to set up our factories pretty quickly, we can hop on making a <code>users_factory</code>. For now, our <code>User</code> objects have only a <code>first_name</code> and a <code>last_name</code> attribute, so we&rsquo;ll create a <code>User</code> test object that satisfies these requirements.</p>
-
-<p>But, some <code>Users</code> can also be <code>admin</code>s, but this is an optional trait that not all <code>User</code>s will have. This is something we definitely want to test, but we also want to keep our code DRY. How do we handle this? By nesting factories!</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">FactoryGirl</span><span class="o">.</span><span class="n">define</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">factory</span> <span class="ss">:user</span> <span class="k">do</span>
-</span><span class='line'>    <span class="n">first_name</span> <span class="s2">&quot;Vaidehi&quot;</span>
-</span><span class='line'>    <span class="n">last_name</span> <span class="s2">&quot;Joshi&quot;</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">factory</span> <span class="ss">:admin</span> <span class="k">do</span>
-</span><span class='line'>      <span class="n">admin</span> <span class="kp">true</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This tells FactoryGirl to define two different <code>user</code> instances: a <code>user</code> test object, and an <code>admin</code> test object, which inherits the traits of the <code>user</code> object &ndash; namely, its <code>first_name</code> and <code>last_name</code> attributes.</p>
-
-<p>While we&rsquo;re at it, why don&rsquo;t we set up our <code>books_factory</code> as well? That might look something a little like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">FactoryGirl</span><span class="o">.</span><span class="n">define</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">factory</span> <span class="ss">:book1</span><span class="p">,</span> <span class="ss">class</span><span class="p">:</span> <span class="no">Book</span> <span class="k">do</span>
-</span><span class='line'>    <span class="n">title</span> <span class="s2">&quot;A Game Of Thrones&quot;</span>
-</span><span class='line'>    <span class="n">reading_list</span>
-</span><span class='line'>    <span class="n">read</span> <span class="kp">true</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">factory</span> <span class="ss">:book2</span><span class="p">,</span> <span class="ss">class</span><span class="p">:</span> <span class="no">Book</span> <span class="k">do</span>
-</span><span class='line'>    <span class="n">title</span> <span class="s2">&quot;A Storm Of Swords&quot;</span>
-</span><span class='line'>    <span class="n">reading_list</span>
-</span><span class='line'>    <span class="n">read</span> <span class="kp">false</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Wait, what&rsquo;s up with the <code>class: Book</code> syntax? We haven&rsquo;t seen that yet! Well, not to worry &ndash; you only have to use it in a specific situation! What exactly <em>is</em> that situation, you might ask? Well, the only time you ever need to explicitly define a FactoryGirl object&rsquo;s class is if the name of the object &ndash; <code>book1</code> or <code>book2</code> in our case &ndash; is different from the object&rsquo;s class name. If we had only a single <code>book</code> test object, we wouldn&rsquo;t have to define the class name, since FactoryGirl will know to look for it in the <code>books_factory.rb</code> file.</p>
-
-<p>Remember last week when we had to manually create two different <code>Book</code> objects every single time we wanted to create a new test object? Well, here we&rsquo;re defining two test objects in a singular, isolated place.</p>
-
-<iframe src="//giphy.com/embed/Q6gPyUYrCk76g" width="480" height="550" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p></p>
-
-
-<p>Awesome! Now it&rsquo;s time to bring it all together in our cleaned-up test suite!</p>
-
-<h2>Bypassing Testing Bugs</h2>
-
-<p>When we wrote out the first iteration of our test suite last week, we had a few different <code>let</code> blocks, inside of which we called <code>create!</code> and <code>build</code> on our different objects. Our <code>let</code> blocks definintely helped us tidy up our tests, since we built and created all of our test objects at once, at the very top of our <code>do</code> block.</p>
-
-<p>But as is the case with most of programming, there&rsquo;s a better way to do that. Now that we&rsquo;ve implemented FactoryGirl, we can cut out some of those blocks, and only call them when we need them. And, we don&rsquo;t need to create an instance with the attributes explicitly defined in a block &ndash; instead, we just tell FactoryGirl to create it for us!</p>
-
-<p>Here&rsquo;s a refactored version of last week&rsquo;s tests, now with the <code>factory_girl_rails</code> to help us out:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="s1">&#39;rails_helper&#39;</span>
-</span><span class='line'>
-</span><span class='line'><span class="no">Describe</span> <span class="no">ReadingList</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">let</span><span class="p">(</span><span class="ss">:reading_list</span><span class="p">)</span> <span class="p">{</span> <span class="n">create</span><span class="p">(</span><span class="ss">:reading_list</span><span class="p">)</span> <span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">it</span> <span class="s1">&#39;belongs to a user&#39;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="n">user</span> <span class="o">=</span> <span class="n">create</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span>
-</span><span class='line'>    <span class="n">expect</span><span class="p">(</span><span class="n">reading_list</span><span class="o">.</span><span class="n">user</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="kp">include</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">it</span> <span class="s1">&#39;has a title&#39;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="n">expect</span><span class="p">(</span><span class="n">reading_list</span><span class="o">.</span><span class="n">title</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span><span class="p">(</span><span class="s2">&quot;Books I Want To Read&quot;</span><span class="p">)</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">describe</span> <span class="s2">&quot;#percentage_read&quot;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="n">it</span> <span class="s2">&quot;calculates the percentage of books read in a list&quot;</span> <span class="k">do</span>
-</span><span class='line'>      <span class="n">book1</span> <span class="o">=</span> <span class="n">create</span><span class="p">(</span><span class="ss">:book1</span><span class="p">)</span>
-</span><span class='line'>      <span class="n">book2</span> <span class="o">=</span> <span class="n">create</span><span class="p">(</span><span class="ss">:book2</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="n">reading_list</span><span class="o">.</span><span class="n">percentage_read</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span><span class="p">(</span><span class="mi">50</span><span class="o">.</span><span class="mo">00</span><span class="p">)</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>You&rsquo;ll notice that I&rsquo;ve replaced <code>build</code> with <code>create</code> in this iteration of tests. I initially had used <code>build</code>, but when I started implementing FactoryGirl, I hit a wall. In fact, I spent an unmentionable number of hours trying to figure out what on earth I was doing wrong!</p>
-
-<p>It turns out I was using the wrong tool for the job. The <code>build</code> method creates an instance, but <em>does not</em> save it. The <code>create</code> method, on the other hand, both creates <em>and</em> persists the object. This was one of the most important debugging lesson I learned while writing tests, and it was not a fun lesson to learn. I hope that at the very least, <em>you</em> won&rsquo;t have to struggle through that bug like I did!</p>
-
-<p>The thing that I valued the most during this debugging process was learning how <code>FactoryGirl</code> actualy works. If those <code>build</code> and <code>create</code> methods seem an awful lot like ActiveRecord to you, that&rsquo;s because it IS ActiveRecord!</p>
-
-<p>In fact, when we call <code>create(:book1)</code>, the magic of <code>FactoryGirl</code> actually does the following:</p>
-
-<ol>
-<li>Creates a new <code>ReadingList</code>.</li>
-<li>Saves the <code>ReadingList</code>.</li>
-<li>Creates a new <code>Book</code>.</li>
-<li>Associates that <code>Book</code> with the <code>ReadingList</code>.</li>
-<li>Saves the <code>Book</code>.</li>
-</ol>
-
-
-<p>Amazing, right? We get so much functionality, all in a single method call! Learning this made me appreciate what <code>FactoryGirl</code> does so much more than if I had just included it blindly in my <code>Gemfile</code> without giving it a second though.</p>
-
-<p>Thoughtbot, the creators of the <code>factory_girl</code> gem, has a great post explaining how it <a href="https://github.com/thoughtbot/factory_girl/wiki/How-factory_girl-interacts-with-ActiveRecord">interacts with ActiveRecord</a>. I found their explaination super helpful when I was first learning about FactoryGirl:</p>
-
-<blockquote><p>When you invoke a factory, factory_girl uses your definitions to compile a list of attributes that should be assigned to that instance, as well as any associated factories. It saves associations first so that foreign keys will be properly set on dependent models. To create an instance, it calls new without any arguments, assigns each attribute (including associations), and then calls save!. factory_girl doesn’t do anything special to create ActiveRecord instances. It doesn’t interact with the database or extend ActiveRecord or your models in any way.</p></blockquote>
-
-<p>Sure, when it comes to the world of testing, the night may be dark and full of terrors. But with <code>FactoryGirl</code> on your side, you&rsquo;ll feel safer, as though you&rsquo;ve got an army of dragons to back you up. In my head, they&rsquo;re super cute ones kinda like these:</p>
-
-<iframe src="//giphy.com/embed/WmqnGHr3oYGR2" width="480" height="259" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p></p>
-
-
-<p>Tune in again next week, when I&rsquo;ll cap off this series by sharing two more gems we can add to our army of testing dragons: <code>shoulda-matchers</code> for writing quick and easy validations, and <code>database_cleaner</code>, the key to unlocking your dreams of a neat and tidy testing database. Until then, test on, my friends &ndash; test on!</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>factory_girl_rails</code> gem is used to generate test data for a Rails application, and each factory defines the attributes and associations of a test object. All factory files should be created in the <code>./spec/factories</code> subdirectory.</li>
-<li>This post only covers a couple of the tricks that <code>FactoryGirl</code> has up her sleeve. To read them all, check out the gem&rsquo;s <a href="http://www.rubydoc.info/gems/factory_girl/file/GETTING_STARTED.md">extensive documentation</a>.</li>
-<li>This tutorial is super detailed and I referred to it frequently while writing this blog post. If you want to learn more about testing and implementing <code>FactoryGirl</code>, <a href="http://everydayrails.com/2012/03/19/testing-series-rspec-models-factory-girl.html">give it a read</a>.</li>
-<li>Did you know that factories and fixtures are actually quite different? No? Well then, you should read <a href="https://semaphoreci.com/blog/2014/01/14/rails-testing-antipatterns-fixtures-and-factories.html">this post</a> and get all caught up.</li>
 </ul>
 
 ]]></content>
