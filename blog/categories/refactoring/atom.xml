@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Refactoring | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/refactoring/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-09-08T22:19:58-04:00</updated>
+  <updated>2015-09-14T00:03:51-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -812,7 +812,7 @@ User Load (1.1ms)  SELECT "users".* FROM "users"
 </span><span class='line'>  <span class="k">end</span>
 </span><span class='line'><span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
 </span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;class Book &amp;lt;&amp;lt; Product</span>
+</span><span class='line'><span class="sr">&lt;p&gt;class Book &amp;lt; Product</span>
 </span><span class='line'><span class="sr">  def author</span>
 </span><span class='line'><span class="sr">    # Returns an Author object</span>
 </span><span class='line'><span class="sr">    # associated with that book.</span>

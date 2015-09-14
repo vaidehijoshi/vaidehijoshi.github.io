@@ -405,7 +405,7 @@
 
 <p><br></p>
 
-<p>When working in Rails, it&rsquo;s all the family &ndash; literally. No matter the size of your application, almost all of your objects are going to be related to each other. You can create however many objects you wan because database rows are cheap, cheap, cheap! But the more objects you make, the harder it is to keep track of the other data that the object relates to (which is generally yet <em>another</em> object).</p>
+<p>When working in Rails, it&rsquo;s all the family &ndash; literally. No matter the size of your application, almost all of your objects are going to be related to each other. You can create however many objects you want because database rows are cheap, cheap, cheap! But the more objects you make, the harder it is to keep track of the other data that the object relates to (which is generally yet <em>another</em> object).</p>
 
 <p>I found myself in such a predicament last week, when I had to make numerous objects relate to one other to create a tree structure. The obvious first approach was to use the <code>belongs_to</code> and <code>has_many</code> relationship. But when I realized that I wanted some <code>Genre</code> objects to belong to <em>other</em> <code>Genre</code> objects, I ran into a problem. Depending solely on the ActiveRecord relationships turned out to be painful, messy, and complicated, and wouldn&rsquo;t make my code very flexible or sustainable over time.</p>
 
