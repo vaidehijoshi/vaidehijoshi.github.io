@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="There&rsquo;s one thing that everyone loves: getting mail! But there&rsquo;s one thing that all developers would rather avoid: sending mail. &hellip;">
+  <meta name="description" content="Last week, I sent a lot of emails &mdash; after all, I was working on creating my very first mailer. But in the process, I also realized something &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,56 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/">Working Hard or Hardly Working, Part 1: Active Job</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-09-15T08:53:51-04:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:53 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/79JlUHyiSzYBi" width="480" height="249" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>Last week, I sent a lot of emails &mdash; after all, I was working on creating my <a href="http://vaidehijoshi.github.io/blog/2015/09/08/youve-got-mail-action-mailer-plus-letter-opener/">very first mailer</a>. But in the process, I also realized something else: waiting for an email to send is <em>not</em> fun. Especially if you can&rsquo;t do anything else while you&rsquo;re waiting.</p>
+
+<p>This problem pretty much encapsculates the reason for the existence and invention of background jobs. I&rsquo;ve actually been playing around with creating and running jobs in different applications for the past few months now, yet I never really felt comfortable with them. I knew that having jobs run certain processes was clearly very important since they kept popping up all over the place. However, I was having trouble wrapping my head around what exactly a background job <em>was</em>, and when and why I would ever need to use one.</p>
+
+<p>Working with ActionMailer turned out to be the perfect stepping-stone to Active Job, which helped me to better understand inline processes, asychronous requests, and how all of these things fit into running a job. Since we already know how to create mailers, that will be the perfect introduction to running our very first job! Integrating ActionMailer and Active Job is a piece of cake, so we&rsquo;ll start with that first. Baby steps, my friends!</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -522,56 +572,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/07/07/taskmanaging-your-app-part-2-service-objects/">Taskmanaging Your App, Part 2: Service Objects</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-07-07T08:28:40-04:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:28 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><iframe src="//giphy.com/embed/xTiTnqpyEF0HbAosfe" width="480" height="480" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Everything seems to perform a service these days. We&rsquo;ve got infrastructure as a service, platforms as a service, and even software as a service. But the servicing doesn&rsquo;t end there: even our software applications often need specific services provided to them. But how, exactly?</p>
-
-<p>Well, if you&rsquo;ve ever opened up a Rails application and peeked inside of the main directories, you can get a good understanding of what exactly the application is doing. Pry into the models directory, and you&rsquo;ll see the kinds of objects the app transforms and manipulates. Open the controllers directory, and you&rsquo;ll see the different <em>CRUD</em> (<em>create, read, update, delete</em>) operations that are permitted by the application, and the various ways of handling requests and responses by the server.</p>
-
-<p>Seems pretty straightforward, right? Except until your application starts to swell in size, and then you&rsquo;re packing a ton of functionality into these two directories. We at least <em>try</em> and keep our models fat, and our controllers skinny. It would be great if just our trying to do that was successful all the time. Yet that&rsquo;s not usually what happens. Instead, things start to get messy, code starts to leak out all over the place, and we all just want to give up and go home. But we don&rsquo;t have to give up just yet! There&rsquo;s one trick that we haven&rsquo;t tried yet, and it&rsquo;s guaranteed to make our lives easier: utilizing <strong>service objects</strong>. Or, in other words, servicing parts of our application and separating our code out into more appropriate places.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/07/07/taskmanaging-your-app-part-2-service-objects/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -587,6 +587,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/">Working Hard or Hardly Working, Part 1: Active Job</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/09/08/youve-got-mail-action-mailer-plus-letter-opener/">You&#8217;ve Got Mail: Action Mailer + Letter_Opener</a>
       </li>
     
@@ -600,10 +604,6 @@
     
       <li class="post">
         <a href="/blog/2015/08/18/safer-sql-using-activerecord-transactions/">Safer SQL: Using ActiveRecord Transactions</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/08/11/rolling-out-the-redcarpet-for-rendering-markdown/">Rolling Out the Redcarpet for Rendering Markdown</a>
       </li>
     
   </ul>

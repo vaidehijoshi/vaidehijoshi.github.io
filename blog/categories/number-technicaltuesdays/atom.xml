@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-09-14T00:03:51-04:00</updated>
+  <updated>2015-09-15T09:05:29-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,119 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Working Hard or Hardly Working, Part 1: Active Job]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/"/>
+    <updated>2015-09-15T08:53:51-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/79JlUHyiSzYBi" width="480" height="249" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>Last week, I sent a lot of emails &mdash; after all, I was working on creating my <a href="http://vaidehijoshi.github.io/blog/2015/09/08/youve-got-mail-action-mailer-plus-letter-opener/">very first mailer</a>. But in the process, I also realized something else: waiting for an email to send is <em>not</em> fun. Especially if you can&rsquo;t do anything else while you&rsquo;re waiting.</p>
+
+<p>This problem pretty much encapsculates the reason for the existence and invention of background jobs. I&rsquo;ve actually been playing around with creating and running jobs in different applications for the past few months now, yet I never really felt comfortable with them. I knew that having jobs run certain processes was clearly very important since they kept popping up all over the place. However, I was having trouble wrapping my head around what exactly a background job <em>was</em>, and when and why I would ever need to use one.</p>
+
+<p>Working with ActionMailer turned out to be the perfect stepping-stone to Active Job, which helped me to better understand inline processes, asychronous requests, and how all of these things fit into running a job. Since we already know how to create mailers, that will be the perfect introduction to running our very first job! Integrating ActionMailer and Active Job is a piece of cake, so we&rsquo;ll start with that first. Baby steps, my friends!</p>
+
+<!--more-->
+
+
+<h2>Jobs: Inline Or Background?</h2>
+
+<iframe src="//giphy.com/embed/jfiHMHRyARhf2" width="480" height="285" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>Background jobs existed far before ActiveJob came into being in December of 2014. In fact, if we take a look at one of our more complex, pre-Rails 4.2 projects, it&rsquo;s likely that we&rsquo;ll see a some classes that are suffixed with <code>Worker</code>. These classes are a little bit like service objects in that they are responsible for taking in an object as a parameter and performing a certain action with or <em>on</em> that object, sometimes implementing a service class in the process of doing so. The &ldquo;worker&rdquo; term really just refers to classes that we use in the background of our application.</p>
+
+<p>But, why would we ever need to run a class in the background of our application? And honestly, what does that even <em>mean</em>? Well, we can start by defining what exactly makes a background job, beginning by peeking inside of our <code>config/application.rb</code> file. There are a lot of things happening inside of here, all of which are setting different configurations inside of our application. But there&rsquo;s one line in particular that we should pay more attention to:</p>
+
+<p><code>Rails.application.config.active_job.queue_adapter = :inline</code></p>
+
+<p>Without even worrying about what <code>queue_adapter</code> is doing for now, we know one thing for sure: our current <code>active_job</code> configuration is set to run <code>inline</code>. Okay, let&rsquo;s try to deduce what <code>inline</code> means, exactly. A quick search in the Rails guides leads us to <a href="http://api.rubyonrails.org/classes/ActiveJob/QueueAdapters/InlineAdapter.html">the documentation</a> for something called the <code>InlineAdapter</code>, which explains:</p>
+
+<blockquote><p>&ldquo;When enqueueing jobs with the Inline adapter, the job will be executed immediately. To use the Inline set the queue_adapter config to <code>:inline</code>.&rdquo;</p></blockquote>
+
+<p>Interesting! So, if running a job <code>inline</code> means that it happens right away, running a job that is <em>not</em> inline means that it will be delayed in its execution &ndash; that is to say, it won&rsquo;t happen immediately, but it&rsquo;ll happen later on. So the next logical question, then, is <em>why</em>?</p>
+
+<p>After doing some digging, the best explanation I&rsquo;ve found for why we&rsquo;d want to run a process <em>not</em> inline but rather in the background, at a later point, comes from <a href="http://ryanselk.com/2014/09/25/using-background-jobs-in-rails-42-with-active-job/">Ryan Selk</a>. I really like the way that he explains the thought-processes behind choosing when to use a background job:</p>
+
+<blockquote><p>&ldquo;One common situation for needing background jobs is consuming external APIs. It is unrealistic to think that all of your external APIs will have 100% uptime. By allowing API interaction to happen in a background job we can manage failures more effectively. Instead of having the user wait for a task to end, we send that task to the background queue. The User can then continue interacting with the app. Background jobs also give us the opportunity to prioritize jobs which are waiting in out background job queue. In many cases using background jobs can significantly reduce the required resources of the app.&rdquo;</p></blockquote>
+
+<p>Ultimately, <strong>it all comes down to waiting</strong>. If there is ever a situation where your application would have to wait for a process &ndash; an email to send, a request to complete, or a response to be received &ndash; that&rsquo;s a sign that you probably should be using a background job, rather than an inline process. In his blog post, Ryan talks about using 3rd party APIs, or performing some form of &ldquo;computation intensive work, such as solving equations or image processing&rdquo;; basically, anything that would require enough time or effort to make our application lag or to keep our user waiting would be a prime candidate for a background job.</p>
+
+<p>So, let&rsquo;s implement a job using Active Job&hellip;that&rsquo;ll be easy, right?</p>
+
+<h2>A Round of Applause for Active Job</h2>
+
+<iframe src="//giphy.com/embed/QOfrQpuGMa9Pi" width="480" height="278" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>When Active Job was <a href="http://weblog.rubyonrails.org/2014/12/19/Rails-4-2-final/">first introduced</a>, one of its most impressive aspects was the fact that you could easily create a job and then later specify the job runner that you wanted to use. Active Job was essentially built to be its own mini-framework, which made it incredibly useful for declaring a job, and then making it run on any backend that you wanted (for example, <code>delayed_job</code> or <code>resque</code>). This also meant that it became super easy (think changing a single line in our application) to switch between different queuing backends. An important thing to remember is that Rails itself doesn&rsquo;t have a job runner; by default, it comes with an &ldquo;immediate runner&rdquo; queuing implementation, which means that each job that is enqueued will run immediately (in other words, it will run <code>inline</code>).</p>
+
+<p>Setting up Active Job is incredibly easy, which is another thing that makes it so beautiful. It comes with a generator, which means that we can run a simple command like this to create a job that would send a newsletter to new users of our application:</p>
+
+<p><code>♥ bin/rails g job new_user_newsletter</code></p>
+
+<p>Of course, we could also just create our own file inside of <code>app/jobs</code>, as long as it inherited from <code>ActiveJob::Base</code>. But let&rsquo;s hold off on writing a complex job for now. Let&rsquo;s try to first get Active Job to work with ActionMailer and send our order confirmation email via our <code>OrderMailer</code> for today.</p>
+
+<p>The first thing we need to do is to choose a queuing backend. I&rsquo;ve found <code>delayed_job_active_record</code> to be a pretty good starting point, so we can add that to our <code>Gemfile</code> and run <code>bundle install</code>. This backend also requires two additional forms of setup: first, a migration that sets up <code>Job</code> objects in Active Record. We can run these commands easily in our terminal:</p>
+
+<pre><code class="ruby">♥ rails generate delayed_job:active_record
+♥ rake db:migrate
+</code></pre>
+
+<p>And secondly, inside of our <code>config/application.rb</code>, we&rsquo;ll need to set our <code>queue_adapter</code> configuration to use <code>delayed_job</code> rather than be set to <code>inline</code> processes:</p>
+
+<p><code>config.active_job.queue_adapter = :delayed_job</code></p>
+
+<p>This last part is very important, as the documentation explains that Rails doesn&rsquo;t have it&rsquo;s own queuing adapter:</p>
+
+<blockquote><p>&ldquo;Rails itself does not provide a sophisticated queuing system and just executes the job immediately if no adapter is set.&rdquo;</p></blockquote>
+
+<p>Without setting up our queuing backend, Active Job won&rsquo;t know what to use to send our email. And speaking of emails, it&rsquo;s finally time to integrate Active Job with ActionMailer!</p>
+
+<h2>BFFS 4EVA: Active Job + ActionMailer</h2>
+
+<p>Active Job is neatly integrated with ActionMailer so that we can easily send emails outside of a single request-response cycle (in other words, asynchronously). There are two methods that exist on the ActionMailer module that we can use. In fact, we already started using one last week: <code>deliver_now</code>.</p>
+
+<p>Inside of our <code>Order</code> class, we were using <code>deliver_now</code> to send a confirmation email that was written inside of our <code>OrderMailer</code>. We probably both need a refresher, so here&rsquo;s the code that uses our favorite thing ever: a state machine!</p>
+
+<pre><code class="ruby">class Order &lt; ActiveRecord::Base
+    include AASM
+
+    aasm column: 'state', whiny_transitions: false do
+        state :complete
+
+        event :completed, after: :send_confirmation_email
+    end
+
+
+    def send_confirmation_email
+        OrderMailer.confirmation_email(self).deliver_now
+    end
+end
+</code></pre>
+
+<p>If we instead change our <code>send_confirmation_email</code> to use <code>deliver_later</code>, we can send our order confirmation email through Active Job, rather than sending it inline, within the same request-response cycle. All of this magic is built into the <code>deliver_later</code> method. In fact, if we take a look at <a href="http://api.rubyonrails.org/classes/ActionMailer/MessageDelivery.html#method-i-deliver_later">the source code</a> for Action Mailer, we&rsquo;ll learn that there are actually two different types of <code>deliver_later</code> methods: <code>deliver_later</code> and <code>deliver_later!</code>. They&rsquo;re both similar in that they both enqueue our email to be delievered through Active Job.</p>
+
+<p>However, when <code>deliver_later!</code> is invoked, it relies on <code>deliver_now!</code>, which delivers an email without checking <code>perform_deliveries</code> and <code>raise_delivery_errors</code>. But, because <code>deliever_later!</code> depends on <code>deliver_now!</code>, which in turn bypasses these two important methods, <code>deliver_later!</code> it will never, ever raise any errors. The documentation suggests that we use this particular method with caution, so if you&rsquo;re unsure, it&rsquo;s probably best to stick with plain old <code>deliver_later</code>.</p>
+
+<p>Integrating ActionMailer with Active Job is probably the easiest way to start using background jobs. But there are a <em>lot</em> of other ways to implement Active Job in our applications! Now we know enough to start writing our own custom jobs that will run asynchronously! In fact, that&rsquo;s exactly what we&rsquo;ll do next week, in part 2 of this series. Get ready to become an Active Job boss and walk around like this:</p>
+
+<iframe src="//giphy.com/embed/a93sBAElVcuNq" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Active Job requires you to set up a queuing backend and use the <code>deliver_later</code> method in order to integrate with ActionMailer.</li>
+<li>The Rails Guides for cover all the basics for Active Job; head <a href="http://edgeguides.rubyonrails.org/active_job_basics.html">over here</a> to read more.</li>
+<li>Even though Active Job is a relatively new feature of Rails, there are a lot of great blog posts that walk through how to use it. Check out <a href="http://www.gotealeaf.com/blog/handling-emails-in-rails">this one</a>, <a href="http://ryanselk.com/2014/09/25/using-background-jobs-in-rails-42-with-active-job/">another one</a>, and <a href="http://www.jetthoughts.com/blog/tech/2015/04/17/time-for-active-job.html">one more</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[You've Got Mail: Action Mailer + Letter_Opener]]></title>
@@ -682,218 +795,6 @@ end
 <li>ActiveRecord&rsquo;s <code>transaction</code> method takes a block, and will only execute the block and write to your database if no exceptions are raised.</li>
 <li>You can defined the <code>transaction</code> method on any class that <em>inherits from</em> <code>ActiveRecord::Base</code>, and that transaction will open up a single new database connection.</li>
 <li>Check out the Jeff Casimir helpful <a href="https://gist.github.com/jcasimir/1098368">summary of transactions</a> in his Gist. Or, if you&rsquo;re looking for a challenge, head over to the Rails <a href="http://api.rubyonrails.org/classes/ActiveRecord/Transactions/ClassMethods.html">documentation</a> on ActiveRecord transactions.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Rolling Out the Redcarpet for Rendering Markdown]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/08/11/rolling-out-the-redcarpet-for-rendering-markdown/"/>
-    <updated>2015-08-11T08:47:54-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/08/11/rolling-out-the-redcarpet-for-rendering-markdown</id>
-    <content type="html"><![CDATA[<p><img src="http://cdn.lolbrary.com/2013/12/6/lolbrary.com_45273_1386359887.jpg" style="display: block; margin-left: auto; margin-right: auto; max-width: 400px; max-height: 500px;"/></p>
-
-<p>Sometimes, it&rsquo;s the little things that matter the most. As cool and complex as your giant application might be, small details like a toggleable button, or beautiful-formatted and styled dropdown select can have the biggest impact on the look and feel of the rest of your application.</p>
-
-<p>Once you&rsquo;ve built out the skeleton of your application and filled in the backend functionality, the next step is to connect the all the logic with your frontend framework. And once you&rsquo;ve done that, you start to see all the gaping holes that you need to fix next. One of the applications that I have been working on recently got to that state. Once I ensured that the user-facing page corresponded to the admin panel, it was time to fix all the little things that I had been putting off until we got the application working!</p>
-
-<p>One of those minute details was rendering markdown. While building out the application, we were just using Ruby string primitives in our database to render text. But no one wants to see a long five-paragraph article rendered as a single, huge block of text, right? So, we had to make our text easily editable on the admin panel and renderable &mdash; that&rsquo;s word, right? &mdash; on the user-facing side. At first, I had no idea how to go about doing this. But it turns out that (no surprise here!) this problem has been solved before! All we had to do next was figure out how to implement someone else&rsquo;s solution on our own application. Luckily, the answer to our prayers is as simple as rolling out the <code>redcarpet</code> gem.</p>
-
-<!--more-->
-
-
-<h2>Markdown: What is it?</h2>
-
-<p><img src="http://kirkstrobeck.github.io/whatismarkdown.com/img/markdown.png" style="display: block; margin-left: auto; margin-right: auto; max-width: 400px; max-height: 300px;"/></p>
-
-<p>The Markdown language didn&rsquo;t exist until 2004, when it was created by John Gruber of <a href="http://daringfireball.net/">Daring Fireball</a> blog fame. Unlike markup languages such as HTML or RTF (Rich Text Format), Markdown was created to not have any tags for formatting &ldquo;instructions&rdquo; when rendered. Instead, it is structured to be <a href="http://whatismarkdown.com/">readable without formatting</a> or any tags. Ultimately, the language converts simple text into structurally valid markup HTML (or XHTML).</p>
-
-<p>We interact with Markdown a lot, even though we might not always realize it. Files that end in <code>.md</code>, for example, are written in Markdown, and a lot of blog generators (including octopress and jekyll) use Markdown as their formatting language. In fact, this language is exactly what allows us to write something like this into a code snippet or CMS parser:</p>
-
-<pre><code># I'm a heading
-
-This is a list:
-
-* thing one
-* thing two
-* thing three
-
-And here's some *italics* and some **bold**.
-</code></pre>
-
-<p>which will then be processed by Markdown to render actually <em>this</em> HTML in our templates:</p>
-
-<p>&#8220;`html</p>
-
-<h1>I&#8217;m a heading</h1>
-
-
-
-
-<p>This is a list:</p>
-
-
-
-
-<ul>
-  <li>thing one</li>
-  <li>thing two</li>
-  <li>thing three</li>
-</ul>
-
-
-
-
-<p>And here&#8217;s some <em>italics</em> and some <strong>bold</strong>.</p>
-
-
-<pre><code>
-Not only is that incredibly cool, but it's also a powerful templating tool! There's one slight problem, however: our templates don't look anything like this. We have neither any Markdown, nor any HTML! Instead, we're just rendering long strings (saved in our Postgres database as `text` attributes) that look like this:
-
-`Here's a news article about Harper Lee's new novel, Go Set A Watchman, but it has no formatting at all...`
-
-So, how do we get our text to look like the beautiful markup from above? Why, by using a special Markdown gem, of course!
-
-## HTML All Of The Things
-
-Markdown processig in Ruby is made especially easy thanks to a library called `redcarpet`, created by a Github developer named &lt;a href="https://github.com/vmg"&gt;Vicent Marti&lt;/a&gt; (thanks, Vicent!). The library is available as a gem, and its parser doesn't require any additional installed libraries aside from Ruby itself.
-
-Let's get set up by adding it to our `Gemfile`:
-
-`gem "redcarpet"`
-
-and bundling up this gem:
-
-`$ bundle install`
-
-Great. Now we need figure out how to recarpet our application using this library! The first thing I like to do whenever I'm working with a library or gem that's completely new to me is decipher what exactly I'm working with here. Thankfully, the `redcarpet` documentation is really fantastic, and they answer this question almost immediately:
-
-&gt;"The core of the Redcarpet library is the Redcarpet::Markdown class. Each instance of the class is attached to a Renderer object; the Markdown class performs parsing of a document and uses the attached renderer to generate output."
-
-Okay...what does this mean, exactly? Well, it's actually not *too* complicated. The library has a `Redcarpet::Markdown` class, which --- you guessed it --- is going to be responsible for handling the transforming/parsing of Markdown to markup (we'll be using HTML, in our case). But it's also attached to a Renderer object, it seems.
-
-An example will help us visualize what exactly is going on here:
-
-`markdown = Redcarpet::Markdown.new(renderer, extensions = {})`
-
-Interesting! the new instance of our `Redcarpet::Markdown` class takes two arguments, one of which *is* our Renderer object. It also seems to take a hash of `extensions`, but we'll come back to that in a bit.
-
-We know that we want to pass in a renderer to our `Redcarpet::Markdown` class...but what are our options? It turns out that there are two built-in renderers that the `redcarpet` library uses: `Redcarpet::Render::HTML` and `Redcarpet::Render::XHTML`. 
-
-*Protip: the `redcarpet` renderers are actually implemented in C, which means that they are incredibly performant and so much faster than other Ruby Markdown renderers!*
-
-Since we want our articles to render HTML, we'll stick with the former renderer rather than the latter:
-
-`markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)`
-
-It's important to note that what's *actually* happening here is that we are creating a new *instance* of an HTML renderer, and passing that to our `Redcarpet::Markdown` object. This is crucial to remember because our `Redcarpet::Render::HTML` can also take its own set of options! When we initialize our HTML renderer, we have the option of passing some flags to it. And then, we pass our HTML renderer to our `markdown` object, which will actually handle parsing it:
-</code></pre>
-
-<p>renderer = Redcarpet::Render::HTML.new(render_options)
-markdown = Redcarpet::Markdown.new(renderer, extensions)
-&#8220;`</p>
-
-<p>We won&rsquo;t add any options to start, but don&rsquo;t forget that this is what&rsquo;s <em>actually</em> happening! Now it&rsquo;s time for a deep breath; next, we&rsquo;ll need to actually implement this <code>markdown</code> object in our application!</p>
-
-<p><img src="http://g-ecx.images-amazon.com/images/G/01/askville/137733_9521259_mywrite/html_cat.jpg" style="display: block; margin-left: auto; margin-right: auto; max-width: 500px; max-height: 400px;"/><br></p>
-
-<p>The first thing we&rsquo;ll want to do is add our <code>markdown</code> object to the class that will need our Markdown parser. For our Bookstore application, we&rsquo;ll have a set of news articles that will show up on our homepage when a user signs in. This means that we&rsquo;ll want our <code>Article</code> objects to be able to implement markdown. Since this is something our <em>entire</em> class should be able to do, we&rsquo;ll add our <code>markdown</code> object as a class method to our <code>Article</code> model:</p>
-
-<pre><code class="ruby">class Article &lt; ActiveRecord::Base
-  class &lt;&lt; self
-    def markdown
-      Redcarpet::Markdown.new(Redcarpet::Render::HTML)
-    end
-  end
-end
-</code></pre>
-
-<p>This method isn&rsquo;t doing anything aside from creating a new instance of a <code>Redcarpet::Markdown</code> parser, with a <code>Redcarpet::Render::HTML</code> renderer. Next, we&rsquo;ll want to add write a migration that will create another column in our database that will save our markdown content:</p>
-
-<pre><code class="ruby">class AddMarkdownContentToArticles &lt; ActiveRecord::Migration
-  def change
-    add_column :articles, :markdown_content, :text
-  end
-end
-</code></pre>
-
-<p>The reason that we have two different columns for persisting content is simple: we have two different types of content that we&rsquo;re dealing with. The <code>content</code> column in the database is what the admins will edit in the admin panel, while the <code>markdown_content</code> column is what will be rendered to the user.</p>
-
-<p>This will be especially evident when we integrate this with our Ember frontend, which would require us to serialize all the data that Rails is passing to the Ember models. In our <code>ArticleSerializer</code>, we are are only passing our <code>markdown_content</code> through to the frontend:</p>
-
-<pre><code class="ruby">class ArticleSerializer &lt; ApplicationSerializer
-    attributes :id, :slug, :title, :markdown_content, :published_at
-end
-</code></pre>
-
-<p>On the other hand, in our <code>Admin::ArticleSerializer</code>, which is hooked up to our admin panel, we are <em>only</em> passing the raw <code>:content</code>, which is our content <em>before</em> is has been parsed through our <code>markdown</code> object:</p>
-
-<pre><code class="ruby">module Admin
-  class ArticleSerializer &lt; ApplicationSerializer
-    attributes :id, :slug, :title, :content, :published_at
-  end
-end
-</code></pre>
-
-<p>Nice! We have everything set up, finally. Let&rsquo;s make sure that we&rsquo;re actually parsing our <code>content</code> and assigning our <code>markdown_content</code> when our article is saved. We can do this by adding a <code>before_save</code> hook, which will call whatever method we pass it right before our <code>Article</code> model is saved:</p>
-
-<pre><code class="ruby">class Article &lt; ActiveRecord::Base
-  class &lt;&lt; self
-    def markdown
-      Redcarpet::Markdown.new(Redcarpet::Render::HTML)
-    end
-  end
-
-  before_save :assign_markdown_content, if: -&gt; { content_changed? }
-
-  def assign_markdown_content
-    assign_attributes({
-      markdown_content: self.class.markdown.render(content)
-    })
-  end
-end
-</code></pre>
-
-<p>Cool! We wrote a <code>assign_markdown_content</code> method that assigns the <code>markdown_content</code> attribute on our <code>Article</code>. And what exactly is it using to assign the <code>markdown_content</code>? Oh, that&rsquo;s right: our <code>markdown</code> object! We&rsquo;re calling the <code>markdown</code> class method, and passing the <code>Article</code>&rsquo;s content to its <code>render</code> method, which means that the <code>Redcarpet::Markdown</code> instance will parse the content into HTML!</p>
-
-<p>We&rsquo;re also doing a pre-check in our <code>before_save</code> by passing a proc to this callback which will only call the <code>assign_markdown_content</code> method if our <code>content</code> column in the database has changed (isn&rsquo;t that <code>content_changed?</code> method is a cool ActiveRecord trick?). This means that we&rsquo;re not assigning attributes on our <code>Article</code> unless we really need to. This is super efficient because it means avoiding unnecessary queries to our database!</p>
-
-<h2>Carpeting Options</h2>
-
-<p>The last part of this <code>redcarpet</code> magic is rendering our content in our views and adding any options we might need. If we wanted to do this in a simple Rails view, we could just ask the <code>Article</code> object for its <code>markdown_content</code>:</p>
-
-<pre><code class="slim">article
-  = @article.markdown_content.html_safe
-</code></pre>
-
-<p>We might need to call <code>html_safe</code> on this particular column since Rails will try to escape the content automatically. We could do a similar thing in an Ember view as well, using triple handlebars to handle the HTML safe issue.</p>
-
-<p>Now that we finally have everything working, we can add some cool options to our renderer! You&rsquo;ll remember that the <code>Redcarpet::Markdown</code> class takes a hash of options.</p>
-
-<p>In my opinion, the most helpful and important option to pass in is <code>autolink</code>. It&rsquo;s super crucial if you don&rsquo;t know what your content might look like, since it parses links even when they&rsquo;re not enclosed in <code>&lt; &gt;</code> characters. It will detect autolinks for http, https, and ftp protocols, and it also handles email addresses and links that start with <code>www</code>.</p>
-
-<p>We can pass in this option directly as second arguments after we pass in our <code>Redcarpet::Render::HTML</code> object:</p>
-
-<pre><code class="ruby">def markdown
-  Redcarpet::Markdown.new(Redcarpet::Render::HTML, autolink: true)
-end
-</code></pre>
-
-<p>Other helpful options on the <code>Redcarpet::Render::HTML</code> object include <code>tables</code>, <code>space_after_headers</code>, <code>lax_spacing</code>, and <code>highlight</code>. Of course, just as you can pass in options to the markdown object you can do the same for the renderer:</p>
-
-<p><code>Redcarpet::Render::HTML.new(hard_wrap: true, safe_links_only: true, escape_html: true)</code></p>
-
-<p>The <code>escape_html</code> option is particularly interesting because it takes precedence over <code>:no_styles</code>, <code>:no_links</code>, <code>:no_images</code> and <code>:filter_html</code>, which means that any existing html tags will be escaped instead of being removed. I&rsquo;m also pretty sure that it would escape any cats you try to pass in through params as well&hellip;although I haven&rsquo;t tried that one yet.</p>
-
-<p><img src="http://geekandpoke.typepad.com/.a/6a00d8341d3df553ef0120a8b86eae970b-800wi" style="display: block; margin-left: auto; margin-right: auto; max-width: 400px; max-height: 500px;"/><br></p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>redcarpet</code> gem is an awesome way to handle rendering Markdown in Rails. It creates a new instance of a Markdown object, which takes either a HTML or XHTML renderer object. You can also write your own, custom render! Check out the <a href="https://github.com/vmg/redcarpet">documentation</a> to learn more on how to do that.</li>
-<li>Want to see a step-by-step Rails tutorial on <code>redcarpet</code>? Check out <a href="http://railscasts.com/episodes/272-markdown-with-redcarpet">this Railscast</a>.</li>
-<li>Here&rsquo;s a super <a href="https://richonrails.com/articles/rendering-markdown-with-redcarpet">detailed blog post</a> on implementing <code>redcarpet</code>, with some great code snippets and examples.</li>
 </ul>
 
 ]]></content>

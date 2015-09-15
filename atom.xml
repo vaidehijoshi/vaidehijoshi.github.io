@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-09-14T00:03:51-04:00</updated>
+  <updated>2015-09-15T09:05:29-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,137 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Working Hard or Hardly Working, Part 1: Active Job]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/"/>
+    <updated>2015-09-15T08:53:51-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/79JlUHyiSzYBi" width="480" height="249" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>Last week, I sent a lot of emails &mdash; after all, I was working on creating my <a href="http://vaidehijoshi.github.io/blog/2015/09/08/youve-got-mail-action-mailer-plus-letter-opener/">very first mailer</a>. But in the process, I also realized something else: waiting for an email to send is <em>not</em> fun. Especially if you can&rsquo;t do anything else while you&rsquo;re waiting.</p>
+
+<p>This problem pretty much encapsculates the reason for the existence and invention of background jobs. I&rsquo;ve actually been playing around with creating and running jobs in different applications for the past few months now, yet I never really felt comfortable with them. I knew that having jobs run certain processes was clearly very important since they kept popping up all over the place. However, I was having trouble wrapping my head around what exactly a background job <em>was</em>, and when and why I would ever need to use one.</p>
+
+<p>Working with ActionMailer turned out to be the perfect stepping-stone to Active Job, which helped me to better understand inline processes, asychronous requests, and how all of these things fit into running a job. Since we already know how to create mailers, that will be the perfect introduction to running our very first job! Integrating ActionMailer and Active Job is a piece of cake, so we&rsquo;ll start with that first. Baby steps, my friends!</p>
+
+<!--more-->
+
+
+<h2>Jobs: Inline Or Background?</h2>
+
+<iframe src="//giphy.com/embed/jfiHMHRyARhf2" width="480" height="285" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>Background jobs existed far before ActiveJob came into being in December of 2014. In fact, if we take a look at one of our more complex, pre-Rails 4.2 projects, it&rsquo;s likely that we&rsquo;ll see a some classes that are suffixed with <code>Worker</code>. These classes are a little bit like service objects in that they are responsible for taking in an object as a parameter and performing a certain action with or <em>on</em> that object, sometimes implementing a service class in the process of doing so. The &ldquo;worker&rdquo; term really just refers to classes that we use in the background of our application.</p>
+
+<p>But, why would we ever need to run a class in the background of our application? And honestly, what does that even <em>mean</em>? Well, we can start by defining what exactly makes a background job, beginning by peeking inside of our <code>config/application.rb</code> file. There are a lot of things happening inside of here, all of which are setting different configurations inside of our application. But there&rsquo;s one line in particular that we should pay more attention to:</p>
+
+<p><code>Rails.application.config.active_job.queue_adapter = :inline</code></p>
+
+<p>Without even worrying about what <code>queue_adapter</code> is doing for now, we know one thing for sure: our current <code>active_job</code> configuration is set to run <code>inline</code>. Okay, let&rsquo;s try to deduce what <code>inline</code> means, exactly. A quick search in the Rails guides leads us to <a href="http://api.rubyonrails.org/classes/ActiveJob/QueueAdapters/InlineAdapter.html">the documentation</a> for something called the <code>InlineAdapter</code>, which explains:</p>
+
+<blockquote><p>&ldquo;When enqueueing jobs with the Inline adapter, the job will be executed immediately. To use the Inline set the queue_adapter config to <code>:inline</code>.&rdquo;</p></blockquote>
+
+<p>Interesting! So, if running a job <code>inline</code> means that it happens right away, running a job that is <em>not</em> inline means that it will be delayed in its execution &ndash; that is to say, it won&rsquo;t happen immediately, but it&rsquo;ll happen later on. So the next logical question, then, is <em>why</em>?</p>
+
+<p>After doing some digging, the best explanation I&rsquo;ve found for why we&rsquo;d want to run a process <em>not</em> inline but rather in the background, at a later point, comes from <a href="http://ryanselk.com/2014/09/25/using-background-jobs-in-rails-42-with-active-job/">Ryan Selk</a>. I really like the way that he explains the thought-processes behind choosing when to use a background job:</p>
+
+<blockquote><p>&ldquo;One common situation for needing background jobs is consuming external APIs. It is unrealistic to think that all of your external APIs will have 100% uptime. By allowing API interaction to happen in a background job we can manage failures more effectively. Instead of having the user wait for a task to end, we send that task to the background queue. The User can then continue interacting with the app. Background jobs also give us the opportunity to prioritize jobs which are waiting in out background job queue. In many cases using background jobs can significantly reduce the required resources of the app.&rdquo;</p></blockquote>
+
+<p>Ultimately, <strong>it all comes down to waiting</strong>. If there is ever a situation where your application would have to wait for a process &ndash; an email to send, a request to complete, or a response to be received &ndash; that&rsquo;s a sign that you probably should be using a background job, rather than an inline process. In his blog post, Ryan talks about using 3rd party APIs, or performing some form of &ldquo;computation intensive work, such as solving equations or image processing&rdquo;; basically, anything that would require enough time or effort to make our application lag or to keep our user waiting would be a prime candidate for a background job.</p>
+
+<p>So, let&rsquo;s implement a job using Active Job&hellip;that&rsquo;ll be easy, right?</p>
+
+<h2>A Round of Applause for Active Job</h2>
+
+<iframe src="//giphy.com/embed/QOfrQpuGMa9Pi" width="480" height="278" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>When Active Job was <a href="http://weblog.rubyonrails.org/2014/12/19/Rails-4-2-final/">first introduced</a>, one of its most impressive aspects was the fact that you could easily create a job and then later specify the job runner that you wanted to use. Active Job was essentially built to be its own mini-framework, which made it incredibly useful for declaring a job, and then making it run on any backend that you wanted (for example, <code>delayed_job</code> or <code>resque</code>). This also meant that it became super easy (think changing a single line in our application) to switch between different queuing backends. An important thing to remember is that Rails itself doesn&rsquo;t have a job runner; by default, it comes with an &ldquo;immediate runner&rdquo; queuing implementation, which means that each job that is enqueued will run immediately (in other words, it will run <code>inline</code>).</p>
+
+<p>Setting up Active Job is incredibly easy, which is another thing that makes it so beautiful. It comes with a generator, which means that we can run a simple command like this to create a job that would send a newsletter to new users of our application:</p>
+
+<p><code>♥ bin/rails g job new_user_newsletter</code></p>
+
+<p>Of course, we could also just create our own file inside of <code>app/jobs</code>, as long as it inherited from <code>ActiveJob::Base</code>. But let&rsquo;s hold off on writing a complex job for now. Let&rsquo;s try to first get Active Job to work with ActionMailer and send our order confirmation email via our <code>OrderMailer</code> for today.</p>
+
+<p>The first thing we need to do is to choose a queuing backend. I&rsquo;ve found <code>delayed_job_active_record</code> to be a pretty good starting point, so we can add that to our <code>Gemfile</code> and run <code>bundle install</code>. This backend also requires two additional forms of setup: first, a migration that sets up <code>Job</code> objects in Active Record. We can run these commands easily in our terminal:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">♥</span> <span class="n">rails</span> <span class="n">generate</span> <span class="ss">delayed_job</span><span class="p">:</span><span class="n">active_record</span>
+</span><span class='line'><span class="err">♥</span> <span class="n">rake</span> <span class="ss">db</span><span class="p">:</span><span class="n">migrate</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And secondly, inside of our <code>config/application.rb</code>, we&rsquo;ll need to set our <code>queue_adapter</code> configuration to use <code>delayed_job</code> rather than be set to <code>inline</code> processes:</p>
+
+<p><code>config.active_job.queue_adapter = :delayed_job</code></p>
+
+<p>This last part is very important, as the documentation explains that Rails doesn&rsquo;t have it&rsquo;s own queuing adapter:</p>
+
+<blockquote><p>&ldquo;Rails itself does not provide a sophisticated queuing system and just executes the job immediately if no adapter is set.&rdquo;</p></blockquote>
+
+<p>Without setting up our queuing backend, Active Job won&rsquo;t know what to use to send our email. And speaking of emails, it&rsquo;s finally time to integrate Active Job with ActionMailer!</p>
+
+<h2>BFFS 4EVA: Active Job + ActionMailer</h2>
+
+<p>Active Job is neatly integrated with ActionMailer so that we can easily send emails outside of a single request-response cycle (in other words, asynchronously). There are two methods that exist on the ActionMailer module that we can use. In fact, we already started using one last week: <code>deliver_now</code>.</p>
+
+<p>Inside of our <code>Order</code> class, we were using <code>deliver_now</code> to send a confirmation email that was written inside of our <code>OrderMailer</code>. We probably both need a refresher, so here&rsquo;s the code that uses our favorite thing ever: a state machine!</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="kp">include</span> <span class="no">AASM</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="n">aasm</span> <span class="ss">column</span><span class="p">:</span> <span class="s1">&#39;state&#39;</span><span class="p">,</span> <span class="ss">whiny_transitions</span><span class="p">:</span> <span class="kp">false</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">state</span> <span class="ss">:complete</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">event</span> <span class="ss">:completed</span><span class="p">,</span> <span class="ss">after</span><span class="p">:</span> <span class="ss">:send_confirmation_email</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">send_confirmation_email</span>
+</span><span class='line'>      <span class="no">OrderMailer</span><span class="o">.</span><span class="n">confirmation_email</span><span class="p">(</span><span class="nb">self</span><span class="p">)</span><span class="o">.</span><span class="n">deliver_now</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If we instead change our <code>send_confirmation_email</code> to use <code>deliver_later</code>, we can send our order confirmation email through Active Job, rather than sending it inline, within the same request-response cycle. All of this magic is built into the <code>deliver_later</code> method. In fact, if we take a look at <a href="http://api.rubyonrails.org/classes/ActionMailer/MessageDelivery.html#method-i-deliver_later">the source code</a> for Action Mailer, we&rsquo;ll learn that there are actually two different types of <code>deliver_later</code> methods: <code>deliver_later</code> and <code>deliver_later!</code>. They&rsquo;re both similar in that they both enqueue our email to be delievered through Active Job.</p>
+
+<p>However, when <code>deliver_later!</code> is invoked, it relies on <code>deliver_now!</code>, which delivers an email without checking <code>perform_deliveries</code> and <code>raise_delivery_errors</code>. But, because <code>deliever_later!</code> depends on <code>deliver_now!</code>, which in turn bypasses these two important methods, <code>deliver_later!</code> it will never, ever raise any errors. The documentation suggests that we use this particular method with caution, so if you&rsquo;re unsure, it&rsquo;s probably best to stick with plain old <code>deliver_later</code>.</p>
+
+<p>Integrating ActionMailer with Active Job is probably the easiest way to start using background jobs. But there are a <em>lot</em> of other ways to implement Active Job in our applications! Now we know enough to start writing our own custom jobs that will run asynchronously! In fact, that&rsquo;s exactly what we&rsquo;ll do next week, in part 2 of this series. Get ready to become an Active Job boss and walk around like this:</p>
+
+<iframe src="//giphy.com/embed/a93sBAElVcuNq" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Active Job requires you to set up a queuing backend and use the <code>deliver_later</code> method in order to integrate with ActionMailer.</li>
+<li>The Rails Guides for cover all the basics for Active Job; head <a href="http://edgeguides.rubyonrails.org/active_job_basics.html">over here</a> to read more.</li>
+<li>Even though Active Job is a relatively new feature of Rails, there are a lot of great blog posts that walk through how to use it. Check out <a href="http://www.gotealeaf.com/blog/handling-emails-in-rails">this one</a>, <a href="http://ryanselk.com/2014/09/25/using-background-jobs-in-rails-42-with-active-job/">another one</a>, and <a href="http://www.jetthoughts.com/blog/tech/2015/04/17/time-for-active-job.html">one more</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[You've Got Mail: Action Mailer + Letter_Opener]]></title>
@@ -4606,202 +4737,6 @@ outer join to start.</p>
 <li>We can use dynamic dispatching to send a method to an object without being explicit about the method&rsquo;s contents within our application. The <code>send</code> and <code>public_send</code> method are two ways of doing this, and both take a string or symbol as a parameter, and use that to call a method of the same name upon the receiving object.</li>
 <li>Learn the basics of metaprogramming over <a href="http://ruby-metaprogramming.rubylearning.com/html/ruby_metaprogramming_2.html">here</a>, and check out the docs on <a href="http://ruby-doc.org/core-2.2.2/Object.html#method-i-send">send</a> and <a href="http://apidock.com/ruby/Object/public_send">public_send</a>.</li>
 <li>Curious about the different types of dynamic method calls out there? This <a href="http://ruby.about.com/od/oo/ss/Dynamic-Method-Calls.htm">blog post</a> covers a few different kinds in depth.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Tackling Those Tests, Part 3: Testing Made Easy With Gems]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems/"/>
-    <updated>2015-04-28T08:50:59-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems</id>
-    <content type="html"><![CDATA[<p><img src="https://imgs.xkcd.com/comics/shouldnt_be_hard.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p><em>This blog post is part of a series on testing. Read Part 2 <a href="http://vaidehijoshi.github.io/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/">here</a>.</em></p>
-
-<p>If there&rsquo;s anything that I&rsquo;ve learned about testing while writing this three-part blog post series, it&rsquo;s this: testing is freaking hard! It&rsquo;s tough to figure out the correct syntax and conventions, particularly when you&rsquo;re just starting out. Figuring out when to write a test is also a tricky business. And then sitting down to actually write the test is pretty difficult, too.</p>
-
-<p>But there are ways to make it easier on yourself. And I should know, because I tried to write my tests the hard way, and I definitely do not recommend it. Here&rsquo;s what I <em>do</em> recommend: GEMS! And lots of &lsquo;em. There are a lot of Ruby gems out there, specifically designed to make your testing life easier.</p>
-
-<p>So, to close off this epic series on testing in Rails, I&rsquo;m going to share my two favorite testing gems: <code>shoulda-matchers</code> and <code>database_cleaner</code>. Once you know how to implement them, your testing life will forever be easier. Because, let&rsquo;s be real &ndash; isn&rsquo;t that the way testing <em>should</em> be?</p>
-
-<!--more-->
-
-
-<h2>You Shoulda Used Shoulda</h2>
-
-<p>Last week, we wrote some tests for a <code>ReadingList</code> object, which we tested using factories. To refresh your memory, every <code>ReadingList</code> has a <code>title</code> attribute, which is just a <code>string</code> value. An important test for this object is a <code>title</code> validation. But what would that look like? Probably something like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="s1">&#39;rails_helper&#39;</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">describe</span> <span class="no">ReadingList</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">context</span> <span class="s1">&#39;has a title&#39;</span> <span class="k">do</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">let</span><span class="p">(</span><span class="ss">:real_list</span><span class="p">)</span> <span class="p">{</span> <span class="n">create</span><span class="p">(</span><span class="ss">:reading_list</span><span class="p">,</span> <span class="ss">title</span><span class="p">:</span> <span class="s2">&quot;my list&quot;</span><span class="p">)</span> <span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">it</span> <span class="s1">&#39;has a title&#39;</span> <span class="k">do</span>
-</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="n">reading_list</span><span class="o">.</span><span class="n">title</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span><span class="p">(</span><span class="s2">&quot;Books I Want To Read&quot;</span><span class="p">)</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">context</span> <span class="s1">&#39;doesn&#39;</span><span class="n">t</span> <span class="n">have</span> <span class="n">a</span> <span class="n">title</span><span class="s1">&#39; do</span>
-</span><span class='line'><span class="s1">    let(:fake_list) { create(:reading_list) }</span>
-</span><span class='line'>
-</span><span class='line'><span class="s1">    it &#39;</span><span class="n">raises</span> <span class="n">an</span> <span class="n">error</span><span class="err">&#39;</span> <span class="k">do</span>
-</span><span class='line'>      <span class="n">expect</span><span class="p">(</span><span class="n">fake_list</span><span class="o">.</span><span class="n">save!</span><span class="p">)</span><span class="n">to</span> <span class="n">raise_error</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Man, that&rsquo;s a lot of work for a single line of Rails code, isn&rsquo;t it? Wait a second &ndash; what if we could shorten this huge test into one line of code? Is is possible? Of course it is! And it&rsquo;s easy too, because the <code>shoulda</code> gem does just that.</p>
-
-<p>To actually use the gem, you just need to add it to the <code>test</code> group within your <code>Gemfile</code>:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">group</span> <span class="ss">:test</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">gem</span> <span class="s1">&#39;rspec-rails&#39;</span>
-</span><span class='line'>  <span class="n">gem</span> <span class="s1">&#39;shoulda-matchers&#39;</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>You also need to add <code>require 'shoulda/matchers'</code> to your <code>rails_helper.rb</code> file. Now we can rewrite our validation test as a single line:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="s1">&#39;rails_helper&#39;</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">describe</span> <span class="no">ReadingList</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">it</span> <span class="p">{</span> <span class="n">should</span> <span class="n">validate_presence_of</span><span class="p">(</span><span class="ss">:title</span><span class="p">)</span> <span class="p">}</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Pretty awesome, right? We can do this for all of our validations now! But wait &ndash; there&rsquo;s more! The <code>shoulda</code> gem takes care of more than just validations. It can also test for associations in ActiveRecord and actions in our controllers! You can even write super specific validations scoped to a particular attribute or object, like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">it</span> <span class="p">{</span> <span class="n">should</span> <span class="n">validate_uniqueness_of</span><span class="p">(</span><span class="ss">:reading_list</span><span class="p">)</span><span class="o">.</span><span class="n">scoped_to</span><span class="p">(</span><span class="ss">:title</span><span class="p">,</span> <span class="ss">:user</span><span class="p">)</span> <span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>YAHHHHSSS we are on a test-writing roll!</p>
-
-<iframe src="//giphy.com/embed/NaNHdFMPAoL2E" width="480" height="241" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>Clean Yo Database</h2>
-
-<p>Now that you can write tests like a pro, you probably have an overwhelming desire to write all the tests and create all the objects and build all the factories. And you totally should. But you should also make sure they don&rsquo;t come back to haunt you.</p>
-
-<p>What do I mean by that, exactly? Well, whenever you run your test suite, you want to be sure that you clean out your database and get rid of any old or repeat data. This is super important when you have a lot of tests. You want to be sure that your test database is getting cleaned after each test, so that the next test starts with an blank database.</p>
-
-<p>Enter <code>database_cleaner</code>, a gem that does exactly what you think it does. Although we&rsquo;re using this gem in conjunction with Rails and RSpec, it also comes in handy for testing with <a href="https://github.com/jnicklas/capybara">capybara</a> and <a href="http://docs.seleniumhq.org/">selenium</a>. I was introduced to this gem by another developer who took one look at my failing test and asked me whether or not I had repeat data. I didn&rsquo;t even realize that database inconsistencies were thing. But they are! And that&rsquo;s why we&rsquo;ll want to use the <code>database_cleaner</code> gem.</p>
-
-<p>Inside of our <code>/spec/rails_helper.rb</code> file, there&rsquo;s a large block that starts with the line <code>RSpec.configure do |config|</code>. That&rsquo;s exactly where our <code>database_cleaner</code> gem code is going to live &ndash; inside of that block.</p>
-
-<p>Inside of that block, we&rsquo;ll stick in this little bit of code:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">config</span><span class="o">.</span><span class="n">before</span><span class="p">(</span><span class="ss">:suite</span><span class="p">)</span> <span class="k">do</span>
-</span><span class='line'><span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">config</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="ss">:each</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">example</span><span class="o">|</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Our <code>config.before(:suite)</code> block is for all the things we want to do before our entire test suite runs. We&rsquo;ll probably want to put in some code that will get rid of old data from previous test suites that we ran earlier.</p>
-
-<p>The <code>config.around(:each)</code> block is for each individual test example that runs in our suite. This is where we would put certain lines of that only need to run for more specific tests (like a capybara test, for example).</p>
-
-<p>But our tests are relatively simple in this example. So, inside of our <code>before(:suite)</code> block, we&rsquo;ll add some instructions:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">config</span><span class="o">.</span><span class="n">before</span><span class="p">(</span><span class="ss">:suite</span><span class="p">)</span> <span class="k">do</span>
-</span><span class='line'>  <span class="k">begin</span>
-</span><span class='line'>    <span class="no">DatabaseCleaner</span><span class="o">.</span><span class="n">strategy</span> <span class="o">=</span> <span class="ss">:transaction</span>
-</span><span class='line'>    <span class="no">DatabaseCleaner</span><span class="o">.</span><span class="n">clean_with</span><span class="p">(</span><span class="ss">:truncation</span><span class="p">)</span>
-</span><span class='line'>    <span class="no">DatabaseCleaner</span><span class="o">.</span><span class="n">start</span>
-</span><span class='line'>  <span class="k">ensure</span>
-</span><span class='line'>    <span class="no">DatabaseCleaner</span><span class="o">.</span><span class="n">clean</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>The <code>start</code> and <code>clean</code> methods hook into the beginning and end of our test suite, ensuring that whatever lines are above actually get executed properly. But what do the two lines above <em>do</em>, exactly?</p>
-
-<p>Well, the <code>clean_with(:truncation)</code> method clears out our test database completely, and the <code>strategy = :transaction</code> method sets the behavior of the database &ldquo;cleaning strategy&rdquo; to be a transaction. Avdi Grimm has a <a href="http://devblog.avdi.org/2012/08/31/configuring-database_cleaner-with-rails-rspec-capybara-and-selenium/">great blog post</a> on what all of this means, and his explanation of transactions is easy to understand:</p>
-
-<blockquote><p>Transactions are very fast, and for all the tests where they do work—that is, any test where the entire test runs in the RSpec process—they are preferable.</p></blockquote>
-
-<p>Okay, cool. But what about our other block? We gotta put some stuff in there, too. But since we don&rsquo;t have any specific instructions or strategies for any of our tests, we&rsquo;ll just run each of our examples normally, inside of a single block:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">config</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="ss">:each</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">example</span><span class="o">|</span>
-</span><span class='line'>  <span class="no">DatabaseCleaner</span><span class="o">.</span><span class="n">cleaning</span> <span class="k">do</span>
-</span><span class='line'>    <span class="n">example</span><span class="o">.</span><span class="n">run</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Nice! In just a handful of lines, we&rsquo;ve saved ourselves hours of heartache trying to figure out why one of our tests isn&rsquo;t passing. Well, at least <em>you</em> saved yourself hours of heartache. I already went through the pain of that while trying to debug my poorly-written tests! But one of us will never have to go through that, which I think is a cause for celebration!</p>
-
-<iframe src="//giphy.com/embed/rO7Rqg58ZbJLO" width="480" height="259" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>shoulda-matchers</code> gem helps you keep your code DRY and test for associations and validations. The <code>database_cleaner</code> gem keeps your database clean between tests and helps you avoid problems related to repeat data.</li>
-<li>Both of these gems have well-written and maintained documentation. Read them both! (<a href="http://matchers.shoulda.io/docs/v2.8.0/">shoulda</a> docs and <a href="https://github.com/DatabaseCleaner/database_cleaner">database cleaner</a> docs)</li>
-<li>If you&rsquo;re curious about the difference between transactions, truncations, and deletions, check out <a href="http://makandracards.com/makandra/13045-understanding-database-cleaning-strategies-in-tests">this post</a>.</li>
 </ul>
 
 ]]></content>
