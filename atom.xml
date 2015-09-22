@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-09-15T09:05:29-04:00</updated>
+  <updated>2015-09-22T08:47:21-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,268 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Working Hard or Hardly Working, Part 2: Custom Jobs]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/"/>
+    <updated>2015-09-22T08:59:45-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs</id>
+    <content type="html"><![CDATA[<p><img src="http://img1.wikia.nocookie.net/__cb20131010232524/lotr/images/3/3f/One_Ring_To_Rule_Them_All.gif" style="display: block; margin-left: auto; margin-right: auto;"/></p>
+
+<p>With the advent of Rails 4.2, one thing is definitely for sure: there is now one background job to rule them all: Active Job. Last week, I learned about Active Job&rsquo;s <a href="http://vaidehijoshi.github.io/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/">easy integration</a> with ActionMailer. But, as nice as it is to have those simple <code>deliver_now</code> and <code>deliver_later</code> methods, there will inevitably be a time that we want to do something more &mdash; something that requires writing our own custom job.</p>
+
+<p>Active Job is, thankfully, very good at letting us do this. Since my ActionMailer post last week, I&rsquo;ve written a few jobs using Active Job&rsquo;s framework. And each time that I&rsquo;ve done it, it&rsquo;s gotten easier and easier. Of course, not all of my jobs have been super complex, but once I understood the basics, I could look at other people&rsquo;s code and understand how it was structure and what exactly was going on.</p>
+
+<p>The only way to get comfortable writing my own custom jobs was by &ndash; wait for it &ndash; actually <em>writing</em> one! So that&rsquo;s exactly what we&rsquo;ll do together. Let&rsquo;s turn our ActionMailer method from last week into its own job that will be able to run asychronously. Hold on to your hats, because we&rsquo;re about to leave the shire.</p>
+
+<!--more-->
+
+
+<h2>Job Generating</h2>
+
+<iframe src="//giphy.com/embed/qxWJDbOnrNOAU" width="480" height="264" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>The most important first step before even generating a job is to make sure that we have our queue adapter set up for Active Job. The default queue adapter for Active Job is to run inline (or, within the <em>same</em> request-response cycle), which means that it will not run in the background. One of the lovely things about Active Job is that we can use any queueing backend that we prefer, as long as we follow the documentation to set it up. Last week, we did this by adding <code>delayed_job</code> to our <code>Gemfile</code>, and setting our queueing configurations inside of <code>config/application.rb</code>:</p>
+
+<p><code>config.active_job.queue_adapter = :delayed_job</code></p>
+
+<p>The <code>delayed_job</code> backend also requires us to run a migration, which adds <code>Delayed::Job</code> objects to our database:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">♥</span> <span class="n">rails</span> <span class="n">generate</span> <span class="ss">delayed_job</span><span class="p">:</span><span class="n">active_record</span>
+</span><span class='line'><span class="err">♥</span> <span class="n">rake</span> <span class="ss">db</span><span class="p">:</span><span class="n">migrate</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This will be important later on, because the only way for us to see any jobs that are enqueued or that have failed is by calling <code>Delayed::Job.all</code> in the console or from within the context of a controller. This migration also adds helpful columns to our <code>delayed_jobs</code> table, including <code>priority</code>, <code>attempts</code>, <code>run_at</code>, <code>failed_at</code>, and <code>last_error</code>. This data would be particularly relevant if we wanted to allow a job to be re-run, or for a job&rsquo;s errors to be displayed within an admin panel.</p>
+
+<p>Now that we have all of our queueing backend setup taken care of, we can start to <em>write</em> our job. At the moment, we have an instance method called <code>send_confirmation_email</code> on our <code>Order</code> class, which uses <code>deliver_now</code> to send an email. You&rsquo;ll remember that we&rsquo;re calling this method from within a state machine:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="kp">include</span> <span class="no">AASM</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="n">aasm</span> <span class="ss">column</span><span class="p">:</span> <span class="s1">&#39;state&#39;</span><span class="p">,</span> <span class="ss">whiny_transitions</span><span class="p">:</span> <span class="kp">false</span> <span class="k">do</span>
+</span><span class='line'>      <span class="c1"># state machine truncated for brevity!</span>
+</span><span class='line'>      <span class="n">state</span> <span class="ss">:complete</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">event</span> <span class="ss">:completed</span><span class="p">,</span> <span class="ss">after</span><span class="p">:</span> <span class="ss">:send_confirmation_email</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">send_confirmation_email</span>
+</span><span class='line'>      <span class="no">OrderMailer</span><span class="o">.</span><span class="n">confirmation_email</span><span class="p">(</span><span class="nb">self</span><span class="p">)</span><span class="o">.</span><span class="n">deliver_now</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We still want to use our <code>OrderMailer</code>, but it would be nice to be able to do that within the context of a background job that exists in its own file, so that we can customize it. Let&rsquo;s generate our job and text unit for our order confirmation emailer, with a nice namespace to boot:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">♥</span> <span class="n">bin</span><span class="o">/</span><span class="n">rails</span> <span class="n">generate</span> <span class="n">job</span> <span class="n">order</span><span class="o">/</span><span class="n">confirmation_emailer</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, inside of <code>app/jobs/order/confirmation_emailer.rb</code>, we have a simple little file that looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">Order</span>
+</span><span class='line'>  <span class="k">class</span> <span class="nc">ConfirmationEmailerJob</span> <span class="o">&lt;</span> <span class="no">ActiveJob</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>          <span class="n">queue_as</span> <span class="ss">:default</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">perform</span><span class="p">()</span>
+</span><span class='line'>          <span class="c1"># Do something later</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>It doesn&rsquo;t look like much, does it? But, it&rsquo;s honestly almost all that we need. The most important thing to know about ActiveJob when it comes to writing a job is this: you must have a <code>perform</code> method. And, as you might expect, the <code>perform</code> method should be, well, responsible for actually <em>performing</em> the job. However, our job doesn&rsquo;t do anything yet. And we&rsquo;re not even calling it anywhere! You know what that means, right? It&rsquo;s time for us to set off on our custom job adventure and start writing!</p>
+
+<h2>Job Writing</h2>
+
+<iframe src="//giphy.com/embed/g7SFZQGzS4HwQ" width="480" height="235" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Since we already know that our <code>perform</code> method is going to be responsible for performing our job, we know that this is where all of our logic should go. It would be nice if we could just pass this background job an <code>order</code> instance, and then tell it what to do with that order. Our <code>OrderMailer</code> has a <code>confirmation_email</code> method that accepts an <code>order</code> object, so we can really just use the mailer inside of our job.</p>
+
+<p>Let&rsquo;s pass an <code>order</code> to our job, and then have the job be responsible for delivering the confirmation email:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">Order</span>
+</span><span class='line'>  <span class="k">class</span> <span class="nc">ConfirmationEmailerJob</span> <span class="o">&lt;</span> <span class="no">ActiveJob</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">perform</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+</span><span class='line'>        <span class="no">OrderMailer</span><span class="o">.</span><span class="n">confirmation_email</span><span class="p">(</span><span class="n">order</span><span class="p">)</span><span class="o">.</span><span class="n">deliver</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Nice! That was easy enough, right? You&rsquo;ll notice that our <code>ConfirmationEmailerJob</code> inherits from <code>ActiveJob::Base</code>. This is very important, because without inherting from this module, our job would have no idea what to do with its <code>perform</code> method! It&rsquo;s crucial to keep this in mind particularly if we are manually creating our jobs and not using the rails generator; in that case, we need to add the <code>ActiveJob::Base</code> inheritance on our own. (I was bit by this recently, so don&rsquo;t make the same mistake that I did!)</p>
+
+<p>Honestly though, this isn&rsquo;t doing that much more than what our <code>OrderMailer</code> did initially. We&rsquo;re writing a <em>custom</em> job, so let&rsquo;s customize what this job can do. In addition to delivering our confirmation email, it would be cool if this job could also update an attribute on our <code>order</code> called <code>confirmation_sent_at</code>. This is just a datetime format attribute that will probably end up in an admin panel or dashboard. And there&rsquo;s a really elegant way that we can update this attribute from within the job:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">Order</span>
+</span><span class='line'>  <span class="k">class</span> <span class="nc">ConfirmationEmailerJob</span> <span class="o">&lt;</span> <span class="no">ActiveJob</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">perform</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+</span><span class='line'>        <span class="no">OrderMailer</span><span class="o">.</span><span class="n">confirmation_email</span><span class="p">(</span><span class="n">order</span><span class="p">)</span><span class="o">.</span><span class="n">deliver</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">order</span><span class="o">.</span><span class="n">touch</span><span class="p">(</span><span class="ss">:confirmation_sent_at</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The <code>touch</code> method is part of ActiveRecord, and allows us to save an ActiveRecord object with the <code>updated_at</code> and <code>updated_on</code> attributes set to the current date and time. It&rsquo;s important to note that there are no validations that are performed by this method, and it&rsquo;s actually only the <code>after_touch</code>, <code>after_commit</code>, and <code>after_rollback</code> ActiveRecord callbacks that are ever executed.</p>
+
+<p>If we called <code>order.touch</code>, we would only update <code>order.updated_at</code>. But, since we have a specific attribute called <code>confirmation_sent_at</code> in order to specifically keep track of our confirmation emails, we can tell the <code>touch</code> method to update that attribute by passing it in as an parameter: <code>order.touch(:confirmation_sent_at)</code>. This is a pretty awesome method, but don&rsquo;t make the mistake of trying to call it on a plain old Ruby object, or on an unsaved ActiveRecord object! The object <em>must</em> be persisted, since the <code>touch</code> method is defined in the <code>ActiveRecord::Persistence</code> module. Otherwise, you&rsquo;ll get an ActiveRecordError, and we don&rsquo;t have time for that silliness!</p>
+
+<p>However, what we <em>do</em> need to do next is call our background job and have it&hellip;well, do it&rsquo;s job!</p>
+
+<h2>Job Winning</h2>
+
+<p>Now that we have our <code>Order::ConfirmationEmailerJob</code> class ready to get to work, it&rsquo;s time for us to actually get to work and start performing. Since we already have our state machine in place, let&rsquo;s just call our job from within our <code>Order</code> class:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="kp">include</span> <span class="no">AASM</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="n">aasm</span> <span class="ss">column</span><span class="p">:</span> <span class="s1">&#39;state&#39;</span><span class="p">,</span> <span class="ss">whiny_transitions</span><span class="p">:</span> <span class="kp">false</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">state</span> <span class="ss">:complete</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">event</span> <span class="ss">:completed</span><span class="p">,</span> <span class="n">after</span> <span class="k">do</span>
+</span><span class='line'>          <span class="no">Order</span><span class="o">::</span><span class="no">ConfirmationEmailerJob</span><span class="o">.</span><span class="n">perform_later</span><span class="p">(</span><span class="nb">self</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Nice! The <code>perform_later</code> method on our <code>Order::ConfirmationEmailerJob</code> will instantiate our job and call <code>perform</code> on it. Since we&rsquo;re already in the context of the <code>Order</code> model, we can simply pass in <code>self</code>, which is just the <code>order</code> instance, into our job, which will know exactly what to do with it. We&rsquo;re also taking advantage of the <code>after</code> callback in our state machine, and invoking our job directly inside of our <code>completed</code> event. Alternatively, we could have abstracted this out into a method for a more granular separation of concerns. But since our job is pretty simple, it also makes sense to put it directly into the <code>after</code> block.</p>
+
+<p>Now, when we call <code>order.completed!</code>, our state machine will transition our <code>order</code> object to the state <code>'complete'</code>, and after the event, it will create a new instance of our <code>Order::ConfirmationEmailerJob</code>, which will call the <code>perform</code> method asychronously, and will use <code>delayed_job</code> to enqueue the job in the background. The emailer job would then send our order confirmation email using ActionMailer, and then it would update the <code>confirmation_sent_at</code> attribute on our <code>order</code> instance. And, if we wanted to see what the job looked like while it was being running asychronously, we could open up the rails console and run <code>Delayed::Job.last</code>, which would show us all the details about the most recent job that we had called.</p>
+
+<p>Wow, that&rsquo;s a <em>lot</em> of things happening in a pretty complex sequence! That tiny little <code>perform</code> method isn&rsquo;t looking so tiny after all, is it?</p>
+
+<p>Interestingly, the job that we wrote is still a lot simpler than how Rails jobs used to be written. Before Active Job was integrated into Rails 4.2, we weren&rsquo;t able to pass in an <code>order</code> instance into the <code>perform</code> method of our job. Instead, we had to pass in the <code>id</code> of an object, and then look it up inside of our job:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">Order</span>
+</span><span class='line'>  <span class="k">class</span> <span class="nc">ConfirmationEmailerJob</span> <span class="o">&lt;</span> <span class="no">ActiveJob</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>      <span class="kp">attr_reader</span> <span class="ss">:order_id</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="ss">order_id</span><span class="p">:)</span>
+</span><span class='line'>          <span class="vi">@order_id</span> <span class="o">=</span> <span class="n">order_id</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">perform</span>
+</span><span class='line'>        <span class="no">OrderMailer</span><span class="o">.</span><span class="n">confirmation_email</span><span class="p">(</span><span class="n">order</span><span class="p">)</span><span class="o">.</span><span class="n">deliver</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">order</span><span class="o">.</span><span class="n">touch</span><span class="p">(</span><span class="ss">:confirmation_sent_at</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="kp">private</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">order</span>
+</span><span class='line'>          <span class="no">Order</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">order_id</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Not as nice as clean as what we wrote initially, right? But still, despite all the extra lines of code, it&rsquo;s pretty amazing that all of these actions can be performed asynchronously, and within different request-response cycles. Rails&#8217; ActiveJob truly does rule all.</p>
+
+<iframe src="//giphy.com/embed/zGnnFpOB1OjMQ" width="480" height="215" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The most important part about setting up a job through ActiveJob is inheriting from <code>ActiveJob::Base</code>, and implementing a <code>perform</code> method. Now, we can actually pass in instances of objects to the <code>perform</code> method, rather than ids, which is all thanks to <a href="http://dev.mikamai.com/post/96343027199/rails-42-new-gems-active-job-and-global-id">global ids</a>.</li>
+<li>Curious how the <code>touch</code> method works? Check out <a href="http://apidock.com/rails/ActiveRecord/Persistence/touch">the documentation</a> on this amazing little function.</li>
+<li>Here&rsquo;s a <a href="http://railscasts.com/episodes/171-delayed-job?autoplay=true">great railscast</a> on setting up a job &ndash; keep in mind though, it&rsquo;s pre-Rails 4.2 and ActiveJob!</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Working Hard or Hardly Working, Part 1: Active Job]]></title>
@@ -4527,216 +4789,6 @@ outer join to start.</p>
 <li>The <code>Kernel</code> module is mixed into the <code>Object</code> class, which means all methods (including private methods!) defined on this module are accesible to all Ruby objects, making them &ldquo;global&rdquo; functions.</li>
 <li>Even though a method&rsquo;s implicit receiver is <code>self</code>, the context of <code>self</code> changes depending on which class you are in; this is particularly important when dealing with &ldquo;global&rdquo; functions.</li>
 <li>Curious about <code>main</code> and <code>self</code> in <code>irb</code>? Check out these two great <a href="http://www.sitepoint.com/rubys-top-self-object/">blog</a> <a href="https://banisterfiend.wordpress.com/2010/11/23/what-is-the-ruby-top-level/">posts</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Metaprogramming Dynamic Methods: Using Public_send]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/"/>
-    <updated>2015-05-05T08:38:29-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send</id>
-    <content type="html"><![CDATA[<p><img src="http://imgs.xkcd.com/comics/hofstadter.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>A really amazing thing happened to me last week: I wrote some code that I was actually proud of! I was trying to solve an interesting problem for an application I started building at work recently, and I implemented the first solution that came into my mind. And after I took a step back from my text editor and actually looked at what I had written, I realized something. My code was actually <em>good</em>.</p>
-
-<p>The very fact that I was so surprised and thrilled at the prospect of writing good code speaks volumes to the nature of programming. Most of the time I abhor the methods I write because I know they could be written better, but I don&rsquo;t have the syntactical flow (yet!) to write them well. So last week&rsquo;s incident of &ldquo;code pride&rdquo;, however fleeting, was rather noteworthy.</p>
-
-<p>I looked back on my code over the weekend and thought about what made it seem so beautiful to me. What did I do differently that made me beam with pride knowing that I had been the one to write that particular method? The short answer to that question is: metaprogramming. <strong>Metaprogramming</strong> is nothing more than abstraction of code, which often means that your code will write more code for you! Of course, there are a lot of different techniques and approaches to this, and I&rsquo;m certainly no expert. But I did learn a little something about a meta method called <code>public_send</code>, and I&rsquo;ll show you just how I used it!</p>
-
-<!--more-->
-
-
-<h2>Gotta Dispatch? Do It Dynamically.</h2>
-
-<p>Everything in Ruby &ndash; everything in programming, really &ndash; is just an abstraction. We sprinkle some syntactic sugar to make our lives easier and code simpler, but it&rsquo;s all just an abstraction of something else. When we&rsquo;re refactoring by metaprogramming, it&rsquo;s this same concept of abstraction that we have to keep in mind. And when we look for and find patterns within our code, it&rsquo;s generally a sign that we could be encapsulating and abstracting away that piece of functionality.</p>
-
-<p>My favorite example of abstraction is <strong>method dispatching</strong>. Method dispatching is how we send a message to an object. And boy, do we do that a lot. Since everything in Ruby is an object, whenever you want an object to do something, you have to send it a message. And luckily, because Ruby is so great, the method we use to &ldquo;send&rdquo; messages is called just that: <code>send</code>.</p>
-
-<p>The <code>send</code> method is called in our programs way more than we might realize. For example, if we open up our console and do some simple math:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>2.2.0 &gt; 3 + 4
-</span><span class='line'> =&gt; 7</span></code></pre></td></tr></table></div></figure>
-
-
-<p>what we&rsquo;re <em>really</em> doing is sending a message to the <code>3</code> Integer object, and telling it to perform an action (<code>+</code>) in terms of another object (the <code>4</code> Integer object):</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>2.2.0 &gt; 3.send(:+, 4)
-</span><span class='line'> =&gt; 7</span></code></pre></td></tr></table></div></figure>
-
-
-<p>The <code>send</code> method takes a parameter of either a string or symbol, which is the method name. The method name will always be the first parameter, and the second  parameters is passed to the method as an argument.</p>
-
-<p>Now, this is great when you know that you want to add 3 and 4. But who is going to add 3 and 4 all of the time? No one, that&rsquo;s who. You&rsquo;re probably going to want to add 3 to 5, and 6, and on and on&hellip;</p>
-
-<p>Enter <strong>dynamic dispatching</strong> to save the day!</p>
-
-<iframe src="//giphy.com/embed/144RafbwKkBDva" width="480" height="269" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Dynamic dispatching, as the slightly odd yet adorable gif above demonstrates, involves sending various messages (read: methods) to objects, with the added caveat that our methods keep changing, depending on the situation. Dynamic dispatching also allows us to send different methods to objects in our program without any other object knowing the contents of that message. A good indicator for using dynamic dispatching is if you have call a method in a specific situation, but don&rsquo;t know what exactly that method will be.</p>
-
-<p>Confused yet? Okay, okay, let me give you an example.</p>
-
-<h2>You Can Send Whuteva You Like</h2>
-
-<p>Knowing that you can use <code>send</code> to &ldquo;send&rdquo; different methods to an object is only half the fun. The other half is figuring out when to pull out this tool from your Toolbelt of Knowledge™ &ndash; yes, I&rsquo;m trademarking this phrase &ndash; and actually use it.</p>
-
-<p>So&hellip;I guess it&rsquo;s time for me to show you a real-life example of how I used recently dynamic dispatch to invoke specific methods in my application! Hopefully to neither your surprise nor chagrin, I&rsquo;ll be using my eCommerce Bookstore example.</p>
-
-<p>In my store, I have a paginated list of different books available for purchase. Each book has only a limited amount of space it can take up in the view, so as an admin of the site, it&rsquo;ll be up to me to decide how I want different books to show up. Some of my books have awesome book covers, so I want to use thumbnail images of their cover as the main &ldquo;viewable attribute&rdquo; in my store. Since I&rsquo;m using the <code>paperclip</code> gem, this will be pretty easy.</p>
-
-<p>However, some books in my store don&rsquo;t even have book covers! My vast collection of Shakespearean plays, for example, would be much better served by making the author as the &ldquo;visible attribute&rdquo;, rather than nonexistent covers. And I think the <em>Game of Thrones</em> book series should have the book title as the &ldquo;visible attribute&rdquo;.</p>
-
-<p>So, how can we handle this? Well, let&rsquo;s first look for any patterns.</p>
-
-<h3>1. Look For Patterns</h3>
-
-<p>In our view, we want to be able to show each <code>Book</code> object using its primary viewable attribute. The problem we&rsquo;re dealing with here is that an admin will mark different attributes for a <code>Book</code> object as &ldquo;viewable&rdquo;, which means that we can&rsquo;t predict whether it&rsquo;ll be a <code>title</code>, <code>author</code>, or an image. But we do know that every <code>Book</code> object has to have <em>some</em> &ldquo;viewable attribute&rdquo;.</p>
-
-<p>Cool, so there is <em>some</em> sort of pattern emerging here: we need to render an attribute, and we don&rsquo;t know what it will be. Or&hellip;do we?</p>
-
-<h3>2. Consider The Data</h3>
-
-<p>Since we&rsquo;re building out an admin panel for this application, we know that every book needs to have a <code>title</code> and an <code>author</code>. The book cover (which we&rsquo;ll refer to as <code>media</code>) is optional, but the other two are not, which means we&rsquo;ll have a validation for our <code>Book</code> objects:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Book</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
-</span><span class='line'>  <span class="n">validates_presence_of</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">:author</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This validation makes me think about the other things that will <em>always</em> be present on a <code>Book</code> object, and the first thing that comes to mind is a <code>viewable_by</code> attribute. If we think about it, an admin always has to mark <em>something</em> as &ldquo;viewable&rdquo;, and that &ldquo;viewable&rdquo; property can change when they update an object. So this is really a property unique to each <code>Book</code>, which means that it could very well be a column saved in the database.</p>
-
-<p>So, we&rsquo;ll write a migration that adds a <code>viewable_by</code> column, which can never be <code>null</code>, and will always default to a <code>Book</code>&rsquo;s <code>title</code>:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddViewableByToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
-</span><span class='line'>    <span class="n">add_column</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:viewable_by</span><span class="p">,</span> <span class="ss">:string</span><span class="p">,</span> <span class="ss">null</span><span class="p">:</span> <span class="kp">false</span><span class="p">,</span> <span class="ss">default</span><span class="p">:</span> <span class="s2">&quot;title&quot;</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This migration might look pretty simple, but it is its very simplicity that lends itself so elegantly to some serious metaprogramming that we&rsquo;ll do next.</p>
-
-<h3>3. Encapsulate And Abstract</h3>
-
-<p>This last part can be the hardest to wrap our minds around, but it also happens to be the coolest. As it stands, our database has a column that will be populated with either a string value <code>"title"</code>, <code>"author"</code>, or <code>"media"</code>. These values will be changed and updated by an admin, and they will obviously and inevitably change. But here&rsquo;s what&rsquo;s not going to change: we&rsquo;re still going to want to render the value of whatever attribute is marked as &ldquo;visible&rdquo; &ndash; that is to say, whatever string value is saved as <code>viewable_by</code>.</p>
-
-<p>If we think back to the pattern we just identified, we realize that the attribute changes, but what we want to do with it stays the same. No matter what the <code>Book</code> is <code>viewable_by</code>, we want to render it. We want to send a message to this object and tell it, <em>Hey Book! Whatever you are viewable by is exactly what you should show yourself as!</em></p>
-
-<p>And this is where we can use <code>send</code> to encapsulate and abstract this away into a single method call. First, we&rsquo;ll want to add a method that checks whether this is an image &ndash; if it is, we&rsquo;ll hand it off to the <code>paperclip</code> gem to render the image:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">show_cover?</span>
-</span><span class='line'>  <span class="nb">self</span><span class="o">.</span><span class="n">viewable_by</span> <span class="o">==</span> <span class="s1">&#39;media&#39;</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This method will return <code>true</code> if we the <code>viewable_by</code> attribute is set to <code>media</code>, and <code>false</code> if it&rsquo;s not. We can use this <code>boolean</code> return value in a conditional statement:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">book_html</span>
-</span><span class='line'>  <span class="k">if</span> <span class="n">show_cover?</span>
-</span><span class='line'>    <span class="c1"># Code here will generate and return</span>
-</span><span class='line'>    <span class="c1"># an html image tag to render in view.</span>
-</span><span class='line'>  <span class="k">else</span>
-</span><span class='line'>    <span class="nb">send</span><span class="p">(</span><span class="nb">self</span><span class="o">.</span><span class="n">viewable_by</span><span class="p">)</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Whoaaaaa, whut is happening? The answer is: something cool! This <code>book_html</code> method will render either a thumbnail image (which we let some other code worry about generating), or it returns a <code>title</code> or an <code>author</code>. And what&rsquo;s really cool is that, we could add other attributes to our table &ndash; like <code>year</code> or <code>genre</code> and render html based on that, as long as it was saved in our <code>viewable</code> column.</p>
-
-<p>How does this work exactly? Well, whenever we create a new column in our database, we get two important methods for free: a reader and a writer. That means that we have both a <code>title=</code> and a <code>title</code> method.</p>
-
-<p>If we look back to how the <code>send</code> method works, we&rsquo;ll remember that the <code>send</code> method takes a parameter of a string or a symbol, which is the name of the method to be called. When we call <code>send</code> and pass it the value of <code>self.viewable_by</code>, we&rsquo;ll actually be calling <code>send("title")</code> on an instance of <code>Book</code>. This will then call <code>title</code> on that instance of <code>Book</code>, returning that particular book&rsquo;s title as a string.</p>
-
-<p>The cool thing about this code is that it&rsquo;s flexible, and has abstracted away a pattern into a dynamic method call, which is dispatched to the appropriate object at the appropriate time. But there&rsquo;s still one major issue with this code that I can see. Let&rsquo;s fix that.</p>
-
-<h2>To Send Or To Public Send? That Is The Question.</h2>
-
-<p>A lot of the most incriminating evidence against using the <code>send</code> method stems from the fact that <code>send</code> can even send <em>private</em> methods to an object. This can be dangerous for your application internally, and also leaves it vulnerable to external, malicious attacks.</p>
-
-<p>A quick fix for this is to instead use <code>public_send</code>, which does exactly what you think it does: send only publicly-accessible methods to the object that is its receiver. Our final code now looks something like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Book</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
-</span><span class='line'>  <span class="n">validates_presence_of</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">:author</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">show_cover?</span>
-</span><span class='line'>    <span class="nb">self</span><span class="o">.</span><span class="n">viewable_by</span> <span class="o">==</span> <span class="s1">&#39;media&#39;</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">book_html</span>
-</span><span class='line'>    <span class="k">if</span> <span class="n">show_cover?</span>
-</span><span class='line'>      <span class="c1"># Code here will generate and return</span>
-</span><span class='line'>      <span class="c1"># an html image tag to render in view.</span>
-</span><span class='line'>    <span class="k">else</span>
-</span><span class='line'>      <span class="n">public_send</span><span class="p">(</span><span class="nb">self</span><span class="o">.</span><span class="n">viewable_by</span><span class="p">)</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Nice! Not too shabby for our first attempt at metaprogramming all the things (or at least one thing).</p>
-
-<p>As hard as it is to do, you can&rsquo;t be too hard on yourself when it comes to refactoring and metaprogramming. I honestly think it just comes with time, practice, and exposure. Eventually, you&rsquo;ll start to recognize the same patterns again and again, and you&rsquo;ll start to learn which tools are the right ones for the job.</p>
-
-<p>Even though it takes a bit more effort, I think learning the different techniques of metaprogramming makes you better and both reading and writing code. By rewriting your old code and implementing some of those metaprogramming techniques, you take away some of the otherwise hard-coded lines in your application, and make it more flexible and dynamic.</p>
-
-<p>If any or all of this sounds intimidating, that&rsquo;s because it is! But it&rsquo;s also not impossible, as I&rsquo;ve recently proven to myself (and hopefully to you). Luckily, Ruby gives us a lot of tools to meta program away our boilerplate code. It&rsquo;s just a question of knowing what those tools are so that you can use them when you see the perfect opportunity. And when you finally metaprogram something, you&rsquo;ll be so impressed with yourself that you&rsquo;ll let out a little squeal of glee like this little kitty and it&rsquo;ll be the cutest thing ever:</p>
-
-<iframe src="//giphy.com/embed/117j1ldyb838Zi" width="480" height="382" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>We can use dynamic dispatching to send a method to an object without being explicit about the method&rsquo;s contents within our application. The <code>send</code> and <code>public_send</code> method are two ways of doing this, and both take a string or symbol as a parameter, and use that to call a method of the same name upon the receiving object.</li>
-<li>Learn the basics of metaprogramming over <a href="http://ruby-metaprogramming.rubylearning.com/html/ruby_metaprogramming_2.html">here</a>, and check out the docs on <a href="http://ruby-doc.org/core-2.2.2/Object.html#method-i-send">send</a> and <a href="http://apidock.com/ruby/Object/public_send">public_send</a>.</li>
-<li>Curious about the different types of dynamic method calls out there? This <a href="http://ruby.about.com/od/oo/ss/Dynamic-Method-Calls.htm">blog post</a> covers a few different kinds in depth.</li>
 </ul>
 
 ]]></content>

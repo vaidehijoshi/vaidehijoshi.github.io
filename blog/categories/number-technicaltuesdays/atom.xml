@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-09-15T09:05:29-04:00</updated>
+  <updated>2015-09-22T08:47:21-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,186 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Working Hard or Hardly Working, Part 2: Custom Jobs]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/"/>
+    <updated>2015-09-22T08:59:45-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs</id>
+    <content type="html"><![CDATA[<p><img src="http://img1.wikia.nocookie.net/__cb20131010232524/lotr/images/3/3f/One_Ring_To_Rule_Them_All.gif" style="display: block; margin-left: auto; margin-right: auto;"/></p>
+
+<p>With the advent of Rails 4.2, one thing is definitely for sure: there is now one background job to rule them all: Active Job. Last week, I learned about Active Job&rsquo;s <a href="http://vaidehijoshi.github.io/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/">easy integration</a> with ActionMailer. But, as nice as it is to have those simple <code>deliver_now</code> and <code>deliver_later</code> methods, there will inevitably be a time that we want to do something more &mdash; something that requires writing our own custom job.</p>
+
+<p>Active Job is, thankfully, very good at letting us do this. Since my ActionMailer post last week, I&rsquo;ve written a few jobs using Active Job&rsquo;s framework. And each time that I&rsquo;ve done it, it&rsquo;s gotten easier and easier. Of course, not all of my jobs have been super complex, but once I understood the basics, I could look at other people&rsquo;s code and understand how it was structure and what exactly was going on.</p>
+
+<p>The only way to get comfortable writing my own custom jobs was by &ndash; wait for it &ndash; actually <em>writing</em> one! So that&rsquo;s exactly what we&rsquo;ll do together. Let&rsquo;s turn our ActionMailer method from last week into its own job that will be able to run asychronously. Hold on to your hats, because we&rsquo;re about to leave the shire.</p>
+
+<!--more-->
+
+
+<h2>Job Generating</h2>
+
+<iframe src="//giphy.com/embed/qxWJDbOnrNOAU" width="480" height="264" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>The most important first step before even generating a job is to make sure that we have our queue adapter set up for Active Job. The default queue adapter for Active Job is to run inline (or, within the <em>same</em> request-response cycle), which means that it will not run in the background. One of the lovely things about Active Job is that we can use any queueing backend that we prefer, as long as we follow the documentation to set it up. Last week, we did this by adding <code>delayed_job</code> to our <code>Gemfile</code>, and setting our queueing configurations inside of <code>config/application.rb</code>:</p>
+
+<p><code>config.active_job.queue_adapter = :delayed_job</code></p>
+
+<p>The <code>delayed_job</code> backend also requires us to run a migration, which adds <code>Delayed::Job</code> objects to our database:</p>
+
+<pre><code class="ruby">♥ rails generate delayed_job:active_record
+♥ rake db:migrate
+</code></pre>
+
+<p>This will be important later on, because the only way for us to see any jobs that are enqueued or that have failed is by calling <code>Delayed::Job.all</code> in the console or from within the context of a controller. This migration also adds helpful columns to our <code>delayed_jobs</code> table, including <code>priority</code>, <code>attempts</code>, <code>run_at</code>, <code>failed_at</code>, and <code>last_error</code>. This data would be particularly relevant if we wanted to allow a job to be re-run, or for a job&rsquo;s errors to be displayed within an admin panel.</p>
+
+<p>Now that we have all of our queueing backend setup taken care of, we can start to <em>write</em> our job. At the moment, we have an instance method called <code>send_confirmation_email</code> on our <code>Order</code> class, which uses <code>deliver_now</code> to send an email. You&rsquo;ll remember that we&rsquo;re calling this method from within a state machine:</p>
+
+<pre><code class="ruby">class Order &lt; ActiveRecord::Base
+    include AASM
+
+    aasm column: 'state', whiny_transitions: false do
+        # state machine truncated for brevity!
+        state :complete
+
+        event :completed, after: :send_confirmation_email
+    end
+
+
+    def send_confirmation_email
+        OrderMailer.confirmation_email(self).deliver_now
+    end
+end
+</code></pre>
+
+<p>We still want to use our <code>OrderMailer</code>, but it would be nice to be able to do that within the context of a background job that exists in its own file, so that we can customize it. Let&rsquo;s generate our job and text unit for our order confirmation emailer, with a nice namespace to boot:</p>
+
+<pre><code class="ruby">♥ bin/rails generate job order/confirmation_emailer
+</code></pre>
+
+<p>Now, inside of <code>app/jobs/order/confirmation_emailer.rb</code>, we have a simple little file that looks like this:</p>
+
+<pre><code class="ruby">module Order
+    class ConfirmationEmailerJob &lt; ActiveJob::Base
+        queue_as :default
+
+        def perform()
+            # Do something later
+        end
+    end
+end
+</code></pre>
+
+<p>It doesn&rsquo;t look like much, does it? But, it&rsquo;s honestly almost all that we need. The most important thing to know about ActiveJob when it comes to writing a job is this: you must have a <code>perform</code> method. And, as you might expect, the <code>perform</code> method should be, well, responsible for actually <em>performing</em> the job. However, our job doesn&rsquo;t do anything yet. And we&rsquo;re not even calling it anywhere! You know what that means, right? It&rsquo;s time for us to set off on our custom job adventure and start writing!</p>
+
+<h2>Job Writing</h2>
+
+<iframe src="//giphy.com/embed/g7SFZQGzS4HwQ" width="480" height="235" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Since we already know that our <code>perform</code> method is going to be responsible for performing our job, we know that this is where all of our logic should go. It would be nice if we could just pass this background job an <code>order</code> instance, and then tell it what to do with that order. Our <code>OrderMailer</code> has a <code>confirmation_email</code> method that accepts an <code>order</code> object, so we can really just use the mailer inside of our job.</p>
+
+<p>Let&rsquo;s pass an <code>order</code> to our job, and then have the job be responsible for delivering the confirmation email:</p>
+
+<pre><code class="ruby">module Order
+    class ConfirmationEmailerJob &lt; ActiveJob::Base
+        def perform(order)
+          OrderMailer.confirmation_email(order).deliver
+        end
+    end
+end
+</code></pre>
+
+<p>Nice! That was easy enough, right? You&rsquo;ll notice that our <code>ConfirmationEmailerJob</code> inherits from <code>ActiveJob::Base</code>. This is very important, because without inherting from this module, our job would have no idea what to do with its <code>perform</code> method! It&rsquo;s crucial to keep this in mind particularly if we are manually creating our jobs and not using the rails generator; in that case, we need to add the <code>ActiveJob::Base</code> inheritance on our own. (I was bit by this recently, so don&rsquo;t make the same mistake that I did!)</p>
+
+<p>Honestly though, this isn&rsquo;t doing that much more than what our <code>OrderMailer</code> did initially. We&rsquo;re writing a <em>custom</em> job, so let&rsquo;s customize what this job can do. In addition to delivering our confirmation email, it would be cool if this job could also update an attribute on our <code>order</code> called <code>confirmation_sent_at</code>. This is just a datetime format attribute that will probably end up in an admin panel or dashboard. And there&rsquo;s a really elegant way that we can update this attribute from within the job:</p>
+
+<pre><code class="ruby">module Order
+    class ConfirmationEmailerJob &lt; ActiveJob::Base
+        def perform(order)
+          OrderMailer.confirmation_email(order).deliver
+
+          order.touch(:confirmation_sent_at)
+        end
+    end
+end
+</code></pre>
+
+<p>The <code>touch</code> method is part of ActiveRecord, and allows us to save an ActiveRecord object with the <code>updated_at</code> and <code>updated_on</code> attributes set to the current date and time. It&rsquo;s important to note that there are no validations that are performed by this method, and it&rsquo;s actually only the <code>after_touch</code>, <code>after_commit</code>, and <code>after_rollback</code> ActiveRecord callbacks that are ever executed.</p>
+
+<p>If we called <code>order.touch</code>, we would only update <code>order.updated_at</code>. But, since we have a specific attribute called <code>confirmation_sent_at</code> in order to specifically keep track of our confirmation emails, we can tell the <code>touch</code> method to update that attribute by passing it in as an parameter: <code>order.touch(:confirmation_sent_at)</code>. This is a pretty awesome method, but don&rsquo;t make the mistake of trying to call it on a plain old Ruby object, or on an unsaved ActiveRecord object! The object <em>must</em> be persisted, since the <code>touch</code> method is defined in the <code>ActiveRecord::Persistence</code> module. Otherwise, you&rsquo;ll get an ActiveRecordError, and we don&rsquo;t have time for that silliness!</p>
+
+<p>However, what we <em>do</em> need to do next is call our background job and have it&hellip;well, do it&rsquo;s job!</p>
+
+<h2>Job Winning</h2>
+
+<p>Now that we have our <code>Order::ConfirmationEmailerJob</code> class ready to get to work, it&rsquo;s time for us to actually get to work and start performing. Since we already have our state machine in place, let&rsquo;s just call our job from within our <code>Order</code> class:</p>
+
+<pre><code class="ruby">class Order &lt; ActiveRecord::Base
+    include AASM
+
+    aasm column: 'state', whiny_transitions: false do
+        state :complete
+
+        event :completed, after do
+            Order::ConfirmationEmailerJob.perform_later(self)
+        end
+    end
+end
+</code></pre>
+
+<p>Nice! The <code>perform_later</code> method on our <code>Order::ConfirmationEmailerJob</code> will instantiate our job and call <code>perform</code> on it. Since we&rsquo;re already in the context of the <code>Order</code> model, we can simply pass in <code>self</code>, which is just the <code>order</code> instance, into our job, which will know exactly what to do with it. We&rsquo;re also taking advantage of the <code>after</code> callback in our state machine, and invoking our job directly inside of our <code>completed</code> event. Alternatively, we could have abstracted this out into a method for a more granular separation of concerns. But since our job is pretty simple, it also makes sense to put it directly into the <code>after</code> block.</p>
+
+<p>Now, when we call <code>order.completed!</code>, our state machine will transition our <code>order</code> object to the state <code>'complete'</code>, and after the event, it will create a new instance of our <code>Order::ConfirmationEmailerJob</code>, which will call the <code>perform</code> method asychronously, and will use <code>delayed_job</code> to enqueue the job in the background. The emailer job would then send our order confirmation email using ActionMailer, and then it would update the <code>confirmation_sent_at</code> attribute on our <code>order</code> instance. And, if we wanted to see what the job looked like while it was being running asychronously, we could open up the rails console and run <code>Delayed::Job.last</code>, which would show us all the details about the most recent job that we had called.</p>
+
+<p>Wow, that&rsquo;s a <em>lot</em> of things happening in a pretty complex sequence! That tiny little <code>perform</code> method isn&rsquo;t looking so tiny after all, is it?</p>
+
+<p>Interestingly, the job that we wrote is still a lot simpler than how Rails jobs used to be written. Before Active Job was integrated into Rails 4.2, we weren&rsquo;t able to pass in an <code>order</code> instance into the <code>perform</code> method of our job. Instead, we had to pass in the <code>id</code> of an object, and then look it up inside of our job:</p>
+
+<pre><code class="ruby">module Order
+    class ConfirmationEmailerJob &lt; ActiveJob::Base
+        attr_reader :order_id
+
+        def initialize(order_id:)
+            @order_id = order_id
+        end
+
+        def perform
+          OrderMailer.confirmation_email(order).deliver
+
+          order.touch(:confirmation_sent_at)
+        end
+
+        private
+        def order
+            Order.find(order_id)
+        end
+    end
+end
+</code></pre>
+
+<p>Not as nice as clean as what we wrote initially, right? But still, despite all the extra lines of code, it&rsquo;s pretty amazing that all of these actions can be performed asynchronously, and within different request-response cycles. Rails&#8217; ActiveJob truly does rule all.</p>
+
+<iframe src="//giphy.com/embed/zGnnFpOB1OjMQ" width="480" height="215" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The most important part about setting up a job through ActiveJob is inheriting from <code>ActiveJob::Base</code>, and implementing a <code>perform</code> method. Now, we can actually pass in instances of objects to the <code>perform</code> method, rather than ids, which is all thanks to <a href="http://dev.mikamai.com/post/96343027199/rails-42-new-gems-active-job-and-global-id">global ids</a>.</li>
+<li>Curious how the <code>touch</code> method works? Check out <a href="http://apidock.com/rails/ActiveRecord/Persistence/touch">the documentation</a> on this amazing little function.</li>
+<li>Here&rsquo;s a <a href="http://railscasts.com/episodes/171-delayed-job?autoplay=true">great railscast</a> on setting up a job &ndash; keep in mind though, it&rsquo;s pre-Rails 4.2 and ActiveJob!</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Working Hard or Hardly Working, Part 1: Active Job]]></title>
@@ -581,220 +761,6 @@ end
 <li>The <code>begin end</code> block can be used to execute a block of code in a specific context. <code>Rescue</code> can be used to handle errors, while <code>ensure</code> will always run at the end of a method. The Ruby documentation has the complete list of Ruby keywords, and it&rsquo;s clearly and thoroughly written. Check it out <a href="https://github.com/ruby/ruby/blob/trunk/doc/keywords.rdoc">over here</a>!</li>
 <li>Check out this great <a href="http://blog.rubybestpractices.com/posts/rklemme/003-The_Universe_between_begin_and_end.html">blog post</a> with lots of examples on <code>begin</code> and <code>end</code>, and how to use them in the context of a method.</li>
 <li>Curious how <code>ensure</code> works in the context of an application? Here&rsquo;s a <a href="https://blog.newrelic.com/2014/12/10/weird-ruby-2-rescue-interrupt-ensure/">blog post</a> that dives into exactly that!</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Safer SQL: Using ActiveRecord Transactions]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions/"/>
-    <updated>2015-08-18T08:11:32-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/Djnfk5gnoNXqM" width="480" height="356" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>Is there anything more satisfying than writing concise, perfect line of SQL and then watching it query your database exactly as you expected? Probably not. Writing &mdash; and subsequently watching! &mdash; an efficient database query is one of my favorite parts of building an application.</p>
-
-<p>But if there&rsquo;s one thing about software development that I&rsquo;ve learned over the past few months, it&rsquo;s this: projects can get out of control, rather quickly. You start off with your basic models, but then as you add one feature after another, things can start to get out of hand. At that point, your focus as a developer shifts and spreads out to various things. You can&rsquo;t just care about how readable your code is; you also have to consider how efficient it is, and how different units of your application might be breaking other parts (hopefully not unbeknownst to you!). In other words, you have to consider how defensive and <em>safe</em> your code actually is.</p>
-
-<p>Recently, while writing some background jobs and creating some service objects for a new feature, I realized the importance of executing and enforcing safe code. The good news is that there&rsquo;s a really helpful, life-saving ActiveRecord <strong>transaction</strong> method that allows you to do exactly this. And the really great news? You get to watch your SQL queries execute safely as a result!</p>
-
-<!--more-->
-
-
-<h2>Database Handshakes</h2>
-
-<iframe src="//giphy.com/embed/gVYk3rI8YjtAI" width="480" height="422" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>As our application grows, there are inevitably going to be different models that depend upon each other. To make things more complicated, those models are going to have to change as our Users take different actions, and that means that we&rsquo;ll need to update different associated parts of our schema as a result. For example, let&rsquo;s say that we have a background job that&rsquo;s responsible for processing an <code>Order</code> on an <code>User</code>. This background job has a service class that takes care of saving an <code>Order</code> when it has been charged, billing the <code>User</code>, and adding a sale to an <code>Vendor</code> object, which will then be visible on the vendor&rsquo;s dashboard panel/admin page.</p>
-
-<pre><code class="ruby">if order.process
-    user.charge
-    vendor.add_sale
-end
-</code></pre>
-
-<p>In other words, we&rsquo;re basically transferring money from our <code>User</code> object to our <code>Vendor</code> objects. At first glance, this might not seem like a potentially &ldquo;unsafe&rdquo; set of queries, but here&rsquo;s where things can get a bit tricky: imagine that our <code>User</code>&rsquo;s credit card information is rejected, or for some reason, the charge cannot be created. In that scenario, we&rsquo;d want to handle the errors and make sure that the <code>add_sale</code> method is <em>not</em> called on our <code>Vendor</code> object. However&hellip;we aren&rsquo;t really safeguarding our code against this situation at all, are we?</p>
-
-<p>But, fear not - it&rsquo;s not a totally hopeless situation! In fact, we can take care of this problem pretty easily by using ActiveRecord&rsquo;s <code>transaction</code> blocks.</p>
-
-<p>The <code>transaction</code> method is defined in the Rails source code under the <code>ActiveRecord::Transactions</code> module. This method takes a block, and whenever it is invoked, the block that is passed to it will be executed inside of a <em>database transaction</em>. If, in the course of executing that block, an <code>exception</code> is raised, the database transaction will automatically be rolled back. No SQL will be executed, and no new data will be added to the database</p>
-
-<pre><code class="ruby">Order.transaction do
-    @order.process
-    @user.charge
-    @vendor.add_sale
-end
-</code></pre>
-
-<p>So what does this mean, exactly? Well, now that we&rsquo;ve wrapped the logic of our three methods inside of a <code>transaction</code> method, we can safely assert that in the case that <em>any</em> of these three methods raises an <code>exception</code> (in other words, fails for any reason), the entire process should fail.</p>
-
-<p>The important piece of this is that we&rsquo;ll never be adding or updating any data (or writing to our database) unless all of these methods are successful. It&rsquo;s crucial for us to ensure that this is the case because we&rsquo;d never want to call the <code>add_sale</code> method and write data to our <code>vendor</code> if the <code>order</code> didn&rsquo;t successfully <code>process</code>, or if our <code>user</code> wasn&rsquo;t successfully <code>charged</code>.</p>
-
-<p>I like to think of these blocks as a &ldquo;handshake&rdquo; between your application and your database: your application and database have an understanding that one will hand off information to the other in a &ldquo;transaction&rdquo;, and when the deal actually goes through, they shake hands and make it official&hellip;or something more poetic. If that made no sense &mdash; or if you&rsquo;re not a big fan of metaphors &mdash; here&rsquo;s how the Rails documentation explains <code>transactions</code>:</p>
-
-<blockquote><p>&ldquo;Transactions are protective blocks where SQL statements are only permanent if they can all succeed as one atomic action. Transactions enforce the integrity of the database and guard the data against program errors or database break-downs. So basically you should use transaction blocks whenever you have a number of statements that must be executed together or not at all.&rdquo;</p></blockquote>
-
-<h2>The Rules of Transacting</h2>
-
-<iframe src="//giphy.com/embed/cGDgkEeqA78Q" width="480" height="397" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>Because ActiveRecord transactions can be easily explained and simplified as a single method, it&rsquo;s easy to forget the idiosyncrasies that make this method work. There are a few things to keep in mind so that we can get the most out of these blocks.</p>
-
-<h3>1. Opening database connections</h3>
-
-<p>A transaction opens up a single database connection. This means that when we call the <code>transaction</code> method, the method can only be invoked on the <em>current</em> database connection. This is important to remember if our application writes to multiple database at once; for example, if our <code>Order</code> and our <code>Vendor</code> data lived in two different databases, we&rsquo;d need to nest our transactions:</p>
-
-<pre><code class="ruby">Order.transaction do
-    Vendor.transaction do 
-        order.process
-        user.charge
-        vendor.add_sale
-    end
-end
-</code></pre>
-
-<p>It&rsquo;s generally a good idea to avoid nested transactions, mostly because the relationship between parent and child transactions can get complicated. This is especially the case because rollbacks are contained <em>inside</em> of their transactions blocks. I think that Mark Daggett explains this pretty well in <a href="http://markdaggett.com/blog/2011/12/01/transactions-in-rails/">his blog</a>:</p>
-
-<blockquote><p>&ldquo;ActiveRecord::Rollback does not propagate outside of the containing transaction block and so the parent transaction does not receive the exception nested inside the child. I find it easier to think of nested transactions like the child who dumps its contents into the parent container, leaving the child transaction empty. To ensure a rollback is received by the parent transaction you must add the <code>requires_new: true</code>. option to the child transaction.&rdquo;</p></blockquote>
-
-<h3>2. Different classes, one transaction</h3>
-
-<p>Because transactions are bound to <em>database connections</em>, we can mix different types of models inside of a <code>transaction</code> block. In fact, that&rsquo;s exactly what we were doing when we wrote our initial transaction:</p>
-
-<pre><code class="ruby">Order.transaction do
-    @order.process
-    @user.charge
-    @vendor.add_sale
-end
-</code></pre>
-
-<h3>3. Class and instance methods</h3>
-
-<p>The great part about <code>transaction</code> is that it is available to us as both a class <em>and</em> an instance method for our ActiveRecord models. What does this mean, exactly? Well, the short answer is that we can write a transaction is lots of different ways, since we can invoke the <code>transaction</code> method on a class or an instance.</p>
-
-<p>For example, we could have written this:
-<code>ruby
-User.transaction do
-    # methods we want to call go here
-end
-</code></p>
-
-<p>Or this:
-<code>ruby
-Vendor.transaction do
-    # methods we want to call go here
-end
-</code></p>
-
-<p>Or any of these:
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="vi">@order</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
-</span><span class='line'><span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="sr">&lt;p&gt;@user.transaction do</span>
-</span><span class='line'><span class="sr">end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="vi">@vendor</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure></p>
-
-<p>And if we were writing a method <em>inside</em> of the <code>Order</code>, <code>Vendor</code>, or <code>User</code> classes, these options would have worked as well:</p>
-
-<pre><code class="ruby">self.transaction do
-end
-
-self.class.transaction do
-end
-</code></pre>
-
-<p>The key here is that the <code>transaction</code> can be called on <em>any class</em> that inherits from <code>ActiveRecord::Base</code>. Why is that the key? Well, you might remember that we initially started off wanting to write a transaction inside of our service object&hellip;right? In that case, we can&rsquo;t use something like <code>transaction do</code>, because <code>self</code> is the service object class, which <em>does <strong>not</strong> inherit</em> from <code>ActiveRecord::Base</code>!</p>
-
-<p>So, what do? Well, just call the transaction method onto <code>ActiveRecord::Base</code> directly! there&rsquo;s a quick fix for that.
-<code>ruby
-ActiveRecord::Base.transaction do
-    # methods we want to call go here
-end
-</code></p>
-
-<p>When in doubt, we can always just call the <code>transaction</code> method onto the <code>ActiveRecord::Base</code> class directly to be sure that it will run.</p>
-
-<h3>4. Exceptions are the rule</h3>
-
-<p>There&rsquo;s one golden rule of the <code>transaction</code> block: it will <strong>only rollback the transaction if an error is raised</strong>.</p>
-
-<p>Why is this important? Well, calling something like <code>save</code> or <code>destroy</code> inside of a transaction will not raise an error; if something goes wrong, these methods will simply return <code>false</code>. Which means that our <code>transaction</code> block will continue, since there was no error raised!</p>
-
-<p>Uh oh&hellip;how to fix? Just use the <code>save!</code> and <code>destroy!</code> methods instead! These are both ActiveRecord methods which raise an exception if they don&rsquo;t execute successfully:</p>
-
-<pre><code class="ruby">ActiveRecord::Base.transaction do
-    @order.destroy!
-    @user.save!
-end
-</code></pre>
-
-<p>And that&rsquo;s exactly what we need in this case, because we want the entire transaction to be closed if one or both of these methods are unsuccessful, and we want to tell the database that no data has changed. If we really, <em>really</em> wanted to use <code>save</code> instead of <code>save!</code>, we&rsquo;d have to manually <code>raise</code> an error in the block for our transaction to work as expected.</p>
-
-<h2>Transactions Under The Hood</h2>
-
-<iframe src="//giphy.com/embed/iUOzkJmvnFfqM" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>One of the interesting things about how <code>transaction</code> works under the hood has to do with how the <code>save</code> and <code>destroy</code> methods work. It turns out that Rails actually wraps the <code>save</code> and <code>destroy</code> methods in their own <code>transaction</code>s! So, we were using <code>ActiveRecord::Base.transaction</code> all along, without probably ever knowing what was really happening! Pretty crazy, right?</p>
-
-<p>There are a couple reasons that <code>save</code> and <code>destroy</code> are particularly curious. First, because they each occur in their own transactions, this means that we&rsquo;ll never need to write a <code>transaction</code> block to update a single record. In fact, that&rsquo;s exactly what Rails is  doing for us when we call something like <code>@user.save</code> &mdash; it&rsquo;s running a <code>transaction</code> block behind the scenes.</p>
-
-<p>The second reason this is interesting is because of callbacks that are associated with these two methods. A callback hook like <code>after_save</code> is actually part of the same active transaction that was opened when we called <code>@user.save</code>. So, if we wanted our code to execute <em>outside</em> of Rails&#8217; default <code>transaction</code> that wraps around <code>save</code> or <code>destroy</code>, we&rsquo;d want to use callback hooks like <code>after_commit</code> or <code>after_destroy</code>. If we want something specific to happen when the <code>save</code> <code>transaction</code> succeeds, we&rsquo;d have to use the <code>after_commit</code> callback, and if we want something specific to happen when the <code>save</code> <code>transaction</code> fails, we could use the <code>after_rollback</code> hook.</p>
-
-<p>While reading about transactions and the <code>save</code> and <code>destroy</code> methods, I discovered another really interesting method called <code>with_transaction_returning_status</code>. The <a href="https://github.com/rails/rails/blob/master/activerecord/lib/active_record/transactions.rb">transactions source code</a> is a bit of a rabbit hole, but if we spend some time reading through it, there&rsquo;s a lot to learn.</p>
-
-<p>In a nutshell, the <code>with_transaction_returning_status</code> is responsible for actually <em>raising</em> an <code>ActiveRecord::Rollback</code>. Somewhere inside of the black box of Rails magic, when we see an error caused by a <code>save</code> transaction that looks like this:</p>
-
-<pre><code>:001 &gt; user = User.find(1)
-:002 &gt; user.save
-    (0.2ms)  begin transaction
-    User Exists (0.6ms)  SELECT * FROM "users" WHERE ("users"."id" = 1)
-   (0.1ms)  rollback transaction
- =&gt; false 
-</code></pre>
-
-<p>it&rsquo;s actually a method like <code>with_transaction_returning_status</code> that&rsquo;s responsible for causing that rollback to happen! Here&rsquo;s a truncated example of the source code; we can see that this method defines a local <code>status</code> variable, sets and returns the <code>status</code> if the <code>transaction</code> is successful, and <code>raises</code> an error, if the <code>status</code> is not defined:</p>
-
-<pre><code class="ruby">def with_transaction_returning_status
-    status = nil
-    self.class.transaction do
-        # some Rails magic here that captures the
-        # return value of a save or destroy method,
-        # and then sets that to the status.
-
-        raise ActiveRecord::Rollback unless status
-    end
-    status
-end
-</code></pre>
-
-<p>The Rails documentation also briefly explains exactly what&rsquo;s happening:</p>
-
-<blockquote><p>Executes <code>method</code> within a transaction and captures its return value as a status flag. If the status is true the transaction is committed, otherwise a ROLLBACK is issued. In any case the status flag is returned.</p></blockquote>
-
-<p>Transactions are all around us, it seems, from the most everyday methods to the more complicated ones that we write ourselves. They&rsquo;re a great way of keeping our code safe while also defending against things like duplicate SQL queries.</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>ActiveRecord&rsquo;s <code>transaction</code> method takes a block, and will only execute the block and write to your database if no exceptions are raised.</li>
-<li>You can defined the <code>transaction</code> method on any class that <em>inherits from</em> <code>ActiveRecord::Base</code>, and that transaction will open up a single new database connection.</li>
-<li>Check out the Jeff Casimir helpful <a href="https://gist.github.com/jcasimir/1098368">summary of transactions</a> in his Gist. Or, if you&rsquo;re looking for a challenge, head over to the Rails <a href="http://api.rubyonrails.org/classes/ActiveRecord/Transactions/ClassMethods.html">documentation</a> on ActiveRecord transactions.</li>
 </ul>
 
 ]]></content>

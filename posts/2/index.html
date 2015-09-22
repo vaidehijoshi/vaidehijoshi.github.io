@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="Everything seems to perform a service these days. We&rsquo;ve got infrastructure as a service, platforms as a service, and even software as a &hellip;">
+  <meta name="description" content="All it takes is a single feature to make you realize how well &ndash; or perhaps not so well &ndash; you&rsquo;ve written your application. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,58 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/">Writing Smart Migrations: References, Reversible, and Indexes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-07-14T08:47:19-04:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:47 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/sql/'>sql</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/SUtPZfyDenHoY" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>All it takes is a single feature to make you realize how well &ndash; or perhaps not so well &ndash; you&rsquo;ve written your application. Depending on if you&rsquo;ve done a good job of separating concerns, abstracting and encapsulating bits of functionality into cohesive code, and just generally not repeating yourself&hellip;well, you&rsquo;ll probably be way more enthusiastic about adding a huge new feature to an already massive application. But if you haven&rsquo;t done any of those things&hellip;well, you might find yourself doing a massive rewrite of your codebase just to implement a single feature.</p>
+
+<p>Luckily, the application I started adding a feature to last week is pretty well-built, which makes it flexible enough to add new functionality relatively easily. Yet even the most well-thought-out applications need to be teased apart and glued back together during the course of their lives. Often times, a big part of building out a new feature is restructuring the architecture of your application. When you&rsquo;re working with larger code bases (legacy code in particular), that can be the most daunting task. But a lot of the intimidation of that begins to dissipate once you know how to go about restructuring a schema which already exists without breaking all the the things.</p>
+
+<p>The first step in this process is writing migrations to change how the objects in your application and database relate to one another. Of course, knowing how to write the proper migration to suit your needs is just half the battle; the other half is writing a migration that makes object lookup in your database efficient and super fast. Even though I&rsquo;ve <a href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">written about migrations</a> before, I&rsquo;m learning that there&rsquo;s always so much more to know. So, let&rsquo;s get learning!</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -519,55 +571,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/">Metaprogramming Dynamic Methods: Using Public_send</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-05-05T08:38:29-04:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:38 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/metaprogramming/'>metaprogramming</a>, <a class='category' href='/blog/categories/refactoring/'>refactoring</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><img src="http://imgs.xkcd.com/comics/hofstadter.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>A really amazing thing happened to me last week: I wrote some code that I was actually proud of! I was trying to solve an interesting problem for an application I started building at work recently, and I implemented the first solution that came into my mind. And after I took a step back from my text editor and actually looked at what I had written, I realized something. My code was actually <em>good</em>.</p>
-
-<p>The very fact that I was so surprised and thrilled at the prospect of writing good code speaks volumes to the nature of programming. Most of the time I abhor the methods I write because I know they could be written better, but I don&rsquo;t have the syntactical flow (yet!) to write them well. So last week&rsquo;s incident of &ldquo;code pride&rdquo;, however fleeting, was rather noteworthy.</p>
-
-<p>I looked back on my code over the weekend and thought about what made it seem so beautiful to me. What did I do differently that made me beam with pride knowing that I had been the one to write that particular method? The short answer to that question is: metaprogramming. <strong>Metaprogramming</strong> is nothing more than abstraction of code, which often means that your code will write more code for you! Of course, there are a lot of different techniques and approaches to this, and I&rsquo;m certainly no expert. But I did learn a little something about a meta method called <code>public_send</code>, and I&rsquo;ll show you just how I used it!</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/3">&larr; Older</a>
@@ -585,6 +588,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/">Working Hard or Hardly Working, Part 2: Custom Jobs</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/">Working Hard or Hardly Working, Part 1: Active Job</a>
       </li>
     
@@ -598,10 +605,6 @@
     
       <li class="post">
         <a href="/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/">Unlocking Ruby Keywords: Begin, End, Ensure, Rescue</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/08/18/safer-sql-using-activerecord-transactions/">Safer SQL: Using ActiveRecord Transactions</a>
       </li>
     
   </ul>

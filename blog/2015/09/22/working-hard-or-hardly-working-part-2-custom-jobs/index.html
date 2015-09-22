@@ -1,0 +1,466 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Working Hard or Hardly Working, Part 2: Custom Jobs - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="With the advent of Rails 4.2, one thing is definitely for sure: there is now one background job to rule them all: Active Job. Last week, I learned &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Working Hard or Hardly Working, Part 2: Custom Jobs</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-09-22T08:59:45-04:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>8:59 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><img src="http://img1.wikia.nocookie.net/__cb20131010232524/lotr/images/3/3f/One_Ring_To_Rule_Them_All.gif" style="display: block; margin-left: auto; margin-right: auto;"/></p>
+
+<p>With the advent of Rails 4.2, one thing is definitely for sure: there is now one background job to rule them all: Active Job. Last week, I learned about Active Job&rsquo;s <a href="http://vaidehijoshi.github.io/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/">easy integration</a> with ActionMailer. But, as nice as it is to have those simple <code>deliver_now</code> and <code>deliver_later</code> methods, there will inevitably be a time that we want to do something more &mdash; something that requires writing our own custom job.</p>
+
+<p>Active Job is, thankfully, very good at letting us do this. Since my ActionMailer post last week, I&rsquo;ve written a few jobs using Active Job&rsquo;s framework. And each time that I&rsquo;ve done it, it&rsquo;s gotten easier and easier. Of course, not all of my jobs have been super complex, but once I understood the basics, I could look at other people&rsquo;s code and understand how it was structure and what exactly was going on.</p>
+
+<p>The only way to get comfortable writing my own custom jobs was by &ndash; wait for it &ndash; actually <em>writing</em> one! So that&rsquo;s exactly what we&rsquo;ll do together. Let&rsquo;s turn our ActionMailer method from last week into its own job that will be able to run asychronously. Hold on to your hats, because we&rsquo;re about to leave the shire.</p>
+
+<!--more-->
+
+
+<h2>Job Generating</h2>
+
+<iframe src="//giphy.com/embed/qxWJDbOnrNOAU" width="480" height="264" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>The most important first step before even generating a job is to make sure that we have our queue adapter set up for Active Job. The default queue adapter for Active Job is to run inline (or, within the <em>same</em> request-response cycle), which means that it will not run in the background. One of the lovely things about Active Job is that we can use any queueing backend that we prefer, as long as we follow the documentation to set it up. Last week, we did this by adding <code>delayed_job</code> to our <code>Gemfile</code>, and setting our queueing configurations inside of <code>config/application.rb</code>:</p>
+
+<p><code>config.active_job.queue_adapter = :delayed_job</code></p>
+
+<p>The <code>delayed_job</code> backend also requires us to run a migration, which adds <code>Delayed::Job</code> objects to our database:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">♥</span> <span class="n">rails</span> <span class="n">generate</span> <span class="ss">delayed_job</span><span class="p">:</span><span class="n">active_record</span>
+</span><span class='line'><span class="err">♥</span> <span class="n">rake</span> <span class="ss">db</span><span class="p">:</span><span class="n">migrate</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This will be important later on, because the only way for us to see any jobs that are enqueued or that have failed is by calling <code>Delayed::Job.all</code> in the console or from within the context of a controller. This migration also adds helpful columns to our <code>delayed_jobs</code> table, including <code>priority</code>, <code>attempts</code>, <code>run_at</code>, <code>failed_at</code>, and <code>last_error</code>. This data would be particularly relevant if we wanted to allow a job to be re-run, or for a job&rsquo;s errors to be displayed within an admin panel.</p>
+
+<p>Now that we have all of our queueing backend setup taken care of, we can start to <em>write</em> our job. At the moment, we have an instance method called <code>send_confirmation_email</code> on our <code>Order</code> class, which uses <code>deliver_now</code> to send an email. You&rsquo;ll remember that we&rsquo;re calling this method from within a state machine:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="kp">include</span> <span class="no">AASM</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="n">aasm</span> <span class="ss">column</span><span class="p">:</span> <span class="s1">&#39;state&#39;</span><span class="p">,</span> <span class="ss">whiny_transitions</span><span class="p">:</span> <span class="kp">false</span> <span class="k">do</span>
+</span><span class='line'>      <span class="c1"># state machine truncated for brevity!</span>
+</span><span class='line'>      <span class="n">state</span> <span class="ss">:complete</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">event</span> <span class="ss">:completed</span><span class="p">,</span> <span class="ss">after</span><span class="p">:</span> <span class="ss">:send_confirmation_email</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">send_confirmation_email</span>
+</span><span class='line'>      <span class="no">OrderMailer</span><span class="o">.</span><span class="n">confirmation_email</span><span class="p">(</span><span class="nb">self</span><span class="p">)</span><span class="o">.</span><span class="n">deliver_now</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We still want to use our <code>OrderMailer</code>, but it would be nice to be able to do that within the context of a background job that exists in its own file, so that we can customize it. Let&rsquo;s generate our job and text unit for our order confirmation emailer, with a nice namespace to boot:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">♥</span> <span class="n">bin</span><span class="o">/</span><span class="n">rails</span> <span class="n">generate</span> <span class="n">job</span> <span class="n">order</span><span class="o">/</span><span class="n">confirmation_emailer</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, inside of <code>app/jobs/order/confirmation_emailer.rb</code>, we have a simple little file that looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">Order</span>
+</span><span class='line'>  <span class="k">class</span> <span class="nc">ConfirmationEmailerJob</span> <span class="o">&lt;</span> <span class="no">ActiveJob</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>          <span class="n">queue_as</span> <span class="ss">:default</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">perform</span><span class="p">()</span>
+</span><span class='line'>          <span class="c1"># Do something later</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>It doesn&rsquo;t look like much, does it? But, it&rsquo;s honestly almost all that we need. The most important thing to know about ActiveJob when it comes to writing a job is this: you must have a <code>perform</code> method. And, as you might expect, the <code>perform</code> method should be, well, responsible for actually <em>performing</em> the job. However, our job doesn&rsquo;t do anything yet. And we&rsquo;re not even calling it anywhere! You know what that means, right? It&rsquo;s time for us to set off on our custom job adventure and start writing!</p>
+
+<h2>Job Writing</h2>
+
+<iframe src="//giphy.com/embed/g7SFZQGzS4HwQ" width="480" height="235" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Since we already know that our <code>perform</code> method is going to be responsible for performing our job, we know that this is where all of our logic should go. It would be nice if we could just pass this background job an <code>order</code> instance, and then tell it what to do with that order. Our <code>OrderMailer</code> has a <code>confirmation_email</code> method that accepts an <code>order</code> object, so we can really just use the mailer inside of our job.</p>
+
+<p>Let&rsquo;s pass an <code>order</code> to our job, and then have the job be responsible for delivering the confirmation email:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">Order</span>
+</span><span class='line'>  <span class="k">class</span> <span class="nc">ConfirmationEmailerJob</span> <span class="o">&lt;</span> <span class="no">ActiveJob</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">perform</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+</span><span class='line'>        <span class="no">OrderMailer</span><span class="o">.</span><span class="n">confirmation_email</span><span class="p">(</span><span class="n">order</span><span class="p">)</span><span class="o">.</span><span class="n">deliver</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Nice! That was easy enough, right? You&rsquo;ll notice that our <code>ConfirmationEmailerJob</code> inherits from <code>ActiveJob::Base</code>. This is very important, because without inherting from this module, our job would have no idea what to do with its <code>perform</code> method! It&rsquo;s crucial to keep this in mind particularly if we are manually creating our jobs and not using the rails generator; in that case, we need to add the <code>ActiveJob::Base</code> inheritance on our own. (I was bit by this recently, so don&rsquo;t make the same mistake that I did!)</p>
+
+<p>Honestly though, this isn&rsquo;t doing that much more than what our <code>OrderMailer</code> did initially. We&rsquo;re writing a <em>custom</em> job, so let&rsquo;s customize what this job can do. In addition to delivering our confirmation email, it would be cool if this job could also update an attribute on our <code>order</code> called <code>confirmation_sent_at</code>. This is just a datetime format attribute that will probably end up in an admin panel or dashboard. And there&rsquo;s a really elegant way that we can update this attribute from within the job:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">Order</span>
+</span><span class='line'>  <span class="k">class</span> <span class="nc">ConfirmationEmailerJob</span> <span class="o">&lt;</span> <span class="no">ActiveJob</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">perform</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+</span><span class='line'>        <span class="no">OrderMailer</span><span class="o">.</span><span class="n">confirmation_email</span><span class="p">(</span><span class="n">order</span><span class="p">)</span><span class="o">.</span><span class="n">deliver</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">order</span><span class="o">.</span><span class="n">touch</span><span class="p">(</span><span class="ss">:confirmation_sent_at</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The <code>touch</code> method is part of ActiveRecord, and allows us to save an ActiveRecord object with the <code>updated_at</code> and <code>updated_on</code> attributes set to the current date and time. It&rsquo;s important to note that there are no validations that are performed by this method, and it&rsquo;s actually only the <code>after_touch</code>, <code>after_commit</code>, and <code>after_rollback</code> ActiveRecord callbacks that are ever executed.</p>
+
+<p>If we called <code>order.touch</code>, we would only update <code>order.updated_at</code>. But, since we have a specific attribute called <code>confirmation_sent_at</code> in order to specifically keep track of our confirmation emails, we can tell the <code>touch</code> method to update that attribute by passing it in as an parameter: <code>order.touch(:confirmation_sent_at)</code>. This is a pretty awesome method, but don&rsquo;t make the mistake of trying to call it on a plain old Ruby object, or on an unsaved ActiveRecord object! The object <em>must</em> be persisted, since the <code>touch</code> method is defined in the <code>ActiveRecord::Persistence</code> module. Otherwise, you&rsquo;ll get an ActiveRecordError, and we don&rsquo;t have time for that silliness!</p>
+
+<p>However, what we <em>do</em> need to do next is call our background job and have it&hellip;well, do it&rsquo;s job!</p>
+
+<h2>Job Winning</h2>
+
+<p>Now that we have our <code>Order::ConfirmationEmailerJob</code> class ready to get to work, it&rsquo;s time for us to actually get to work and start performing. Since we already have our state machine in place, let&rsquo;s just call our job from within our <code>Order</code> class:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="kp">include</span> <span class="no">AASM</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="n">aasm</span> <span class="ss">column</span><span class="p">:</span> <span class="s1">&#39;state&#39;</span><span class="p">,</span> <span class="ss">whiny_transitions</span><span class="p">:</span> <span class="kp">false</span> <span class="k">do</span>
+</span><span class='line'>      <span class="n">state</span> <span class="ss">:complete</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">event</span> <span class="ss">:completed</span><span class="p">,</span> <span class="n">after</span> <span class="k">do</span>
+</span><span class='line'>          <span class="no">Order</span><span class="o">::</span><span class="no">ConfirmationEmailerJob</span><span class="o">.</span><span class="n">perform_later</span><span class="p">(</span><span class="nb">self</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Nice! The <code>perform_later</code> method on our <code>Order::ConfirmationEmailerJob</code> will instantiate our job and call <code>perform</code> on it. Since we&rsquo;re already in the context of the <code>Order</code> model, we can simply pass in <code>self</code>, which is just the <code>order</code> instance, into our job, which will know exactly what to do with it. We&rsquo;re also taking advantage of the <code>after</code> callback in our state machine, and invoking our job directly inside of our <code>completed</code> event. Alternatively, we could have abstracted this out into a method for a more granular separation of concerns. But since our job is pretty simple, it also makes sense to put it directly into the <code>after</code> block.</p>
+
+<p>Now, when we call <code>order.completed!</code>, our state machine will transition our <code>order</code> object to the state <code>'complete'</code>, and after the event, it will create a new instance of our <code>Order::ConfirmationEmailerJob</code>, which will call the <code>perform</code> method asychronously, and will use <code>delayed_job</code> to enqueue the job in the background. The emailer job would then send our order confirmation email using ActionMailer, and then it would update the <code>confirmation_sent_at</code> attribute on our <code>order</code> instance. And, if we wanted to see what the job looked like while it was being running asychronously, we could open up the rails console and run <code>Delayed::Job.last</code>, which would show us all the details about the most recent job that we had called.</p>
+
+<p>Wow, that&rsquo;s a <em>lot</em> of things happening in a pretty complex sequence! That tiny little <code>perform</code> method isn&rsquo;t looking so tiny after all, is it?</p>
+
+<p>Interestingly, the job that we wrote is still a lot simpler than how Rails jobs used to be written. Before Active Job was integrated into Rails 4.2, we weren&rsquo;t able to pass in an <code>order</code> instance into the <code>perform</code> method of our job. Instead, we had to pass in the <code>id</code> of an object, and then look it up inside of our job:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">Order</span>
+</span><span class='line'>  <span class="k">class</span> <span class="nc">ConfirmationEmailerJob</span> <span class="o">&lt;</span> <span class="no">ActiveJob</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>      <span class="kp">attr_reader</span> <span class="ss">:order_id</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="ss">order_id</span><span class="p">:)</span>
+</span><span class='line'>          <span class="vi">@order_id</span> <span class="o">=</span> <span class="n">order_id</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">perform</span>
+</span><span class='line'>        <span class="no">OrderMailer</span><span class="o">.</span><span class="n">confirmation_email</span><span class="p">(</span><span class="n">order</span><span class="p">)</span><span class="o">.</span><span class="n">deliver</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">order</span><span class="o">.</span><span class="n">touch</span><span class="p">(</span><span class="ss">:confirmation_sent_at</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="kp">private</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">order</span>
+</span><span class='line'>          <span class="no">Order</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">order_id</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Not as nice as clean as what we wrote initially, right? But still, despite all the extra lines of code, it&rsquo;s pretty amazing that all of these actions can be performed asynchronously, and within different request-response cycles. Rails&#8217; ActiveJob truly does rule all.</p>
+
+<iframe src="//giphy.com/embed/zGnnFpOB1OjMQ" width="480" height="215" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The most important part about setting up a job through ActiveJob is inheriting from <code>ActiveJob::Base</code>, and implementing a <code>perform</code> method. Now, we can actually pass in instances of objects to the <code>perform</code> method, rather than ids, which is all thanks to <a href="http://dev.mikamai.com/post/96343027199/rails-42-new-gems-active-job-and-global-id">global ids</a>.</li>
+<li>Curious how the <code>touch</code> method works? Check out <a href="http://apidock.com/rails/ActiveRecord/Persistence/touch">the documentation</a> on this amazing little function.</li>
+<li>Here&rsquo;s a <a href="http://railscasts.com/episodes/171-delayed-job?autoplay=true">great railscast</a> on setting up a job &ndash; keep in mind though, it&rsquo;s pre-Rails 4.2 and ActiveJob!</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-09-22T08:59:45-04:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>8:59 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/" title="Previous Post: Working Hard Or Hardly Working, Part 1: Active Job">&laquo; Working Hard Or Hardly Working, Part 1: Active Job</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/">Working Hard or Hardly Working, Part 2: Custom Jobs</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/">Working Hard or Hardly Working, Part 1: Active Job</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/08/youve-got-mail-action-mailer-plus-letter-opener/">You&#8217;ve Got Mail: Action Mailer + Letter_Opener</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/">Inflections Everywhere: Using ActiveSupport Inflector</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/">Unlocking Ruby Keywords: Begin, End, Ensure, Rescue</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
