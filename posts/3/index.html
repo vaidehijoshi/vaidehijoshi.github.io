@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="A really amazing thing happened to me last week: I wrote some code that I was actually proud of! I was trying to solve an interesting problem for an &hellip;">
+  <meta name="description" content="When you&rsquo;re a relatively new developer, it&rsquo;s easy to get caught up in all of the things that you don&rsquo;t know. And boy is that a &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,58 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/">Investigating Ruby&#8217;s Global Functions + Kernel Module With Puts</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-05-12T08:09:27-04:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:09 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/10Vy7fN9fr7dD2" width="480" height="361" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>When you&rsquo;re a relatively new developer, it&rsquo;s easy to get caught up in all of the things that you don&rsquo;t know. And boy is <em>that</em> a long, long list of things. But there&rsquo;s also another list that we should probably consider and revisit from time to time: the list of all the things we thought we knew, but didn&rsquo;t <em>really</em> understand when we learned them.</p>
+
+<p>Last week, while developing some curriculum for an Intro to Programming course, my co-teacher and I had one of those moments. We were trying to draw a diagram to explain the concept of an object &ldquo;receiving&rdquo; a method. As I looked back through our code snippets, I noticed that we were using very basic methods like <code>puts</code> and <code>gets</code> quite often, as most Ruby tutorials usually do. And then I realized something: I had no clue what the receiver of the <code>puts</code> method was.</p>
+
+<p>We both just sat there, partly perplexed and partly dumbfounded. How could we not know how <code>puts</code> and <code>gets</code> really worked? We used them all the time when we were learning to code, so perhaps we didn&rsquo;t really think past the flexibility of these methods. But now that we are both more seasoned programmers, it seemed strange that we had never really thought about this before.</p>
+
+<p>So, I did exactly what any good developer would do: I asked Twitter. Well, okay, I asked Twitter&hellip;and then I put on my detective hat and did some investigating of my own.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -522,57 +574,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes/">Bundle Up &amp; Let Your Objects Do the Freezing: Frozen Hashes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-03-03T08:43:04-05:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>8:43 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><iframe src="//giphy.com/embed/b7pVN1KY8ycg0" width="480" height="213" frameBorder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Snowmageddon. Snowpocalypse. The Deep Freeze of 2015. You can call it whatever you want, but we can all agree on one thing: it&rsquo;s so damn cold outside. In fact, it&rsquo;s so cold that I recently saw this error message while debugging a Postgres issue:
-<code>RuntimeError: can't modify frozen Hash</code></p>
-
-<p>My first thought was, naturally, <em>holy shit, even my hashes are frozen</em>. I did a little digging, and it turns out that we aren&rsquo;t the only ones susceptible to these chilly temperatures. Apparently, objects can also freeze!</p>
-
-<p>So, in honor of the frozen tundra that we all seem to currently inhabit, I decided to explore the icy-cold depths of Rails frozen objects. Before you read on though, you should know: I&rsquo;m going to use only gifs from the Disney animated film, <em>Frozen</em> — don&rsquo;t say I didn&rsquo;t warn you.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/4">&larr; Older</a>
@@ -590,6 +591,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/">Using Pundit, the Cool Kid of Authorization</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/">Working Hard or Hardly Working, Part 2: Custom Jobs</a>
       </li>
     
@@ -603,10 +608,6 @@
     
       <li class="post">
         <a href="/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/">Inflections Everywhere: Using ActiveSupport Inflector</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/">Unlocking Ruby Keywords: Begin, End, Ensure, Rescue</a>
       </li>
     
   </ul>

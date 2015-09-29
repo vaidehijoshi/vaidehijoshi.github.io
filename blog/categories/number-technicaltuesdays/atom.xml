@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-09-22T17:49:04-04:00</updated>
+  <updated>2015-09-29T08:43:11-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,288 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Using Pundit, the Cool Kid of Authorization]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/"/>
+    <updated>2015-09-29T08:57:21-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/OdVug9ZRk8sqA" width="480" height="192" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Ah, authorization &ndash; or as I like to call it, authentication&rsquo;s cooler, slightly less complicated twin. It&rsquo;s easy to confuse the two, but there&rsquo;s a fundamental difference between them. I recently learned that while setting up an authorization system for an application that&rsquo;s nearing the end of development. Authentication focuses on who you are as a user &mdash; an admin, guest, or user with an account, for example &mdash; while authorization is about what actions you can take. Authorization centers around what you are actually <em>able to do</em> within the context of your role.</p>
+
+<p>It often makes sense to leave authorization as one of the later (and sometimes, last) step of development, purely because it means that you don&rsquo;t need to worry about making sure that you are authenticated in your development environment while you are still building out your application. But eventually, somewhere between development and deployment, you&rsquo;ll have to think about the abilities of your users &mdash; or, what they can and can&rsquo;t do.</p>
+
+<p>There are a few different ways to go about creating an authorization system, one of the most popular being <code>can_can</code>, a gem that has been around in the Rails community since 2010, as well as a newer gem called <code>rolify</code>. But the one that I&rsquo;ve found really easy and fun to work with is <code>pundit</code>, an <a href="https://github.com/elabs/pundit">authorization system</a> crafted by eLabs, and interestingly enough, based off of the logic and thought behind the CanCan&rsquo;s approach. The developers at eLabs actually started off using the CanCan library in their own applications, but quickly realized that it could become very complicated, very quickly. So, they built the simpler authorization system of <code>pundit</code>, which is exactly what we&rsquo;ll play around with today!</p>
+
+<!--more-->
+
+
+<h2>Policies of Pundit</h2>
+
+<iframe src="//giphy.com/embed/zCn93ehzAzZNC" width="480" height="198" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Implementing the <code>pundit</code> gem is easy once we understand how it&rsquo;s structured, what it&rsquo;s expecting, and what conventions to follow. But before we do anything else, we&rsquo;ll need to add it to our <code>Gemfile</code>:</p>
+
+<p><code>gem "pundit"</code></p>
+
+<p>and run our favorite command, <code>bundle install</code>.</p>
+
+<p>The documentation for this gem is fairly well-explained, and even allows you to generate all the basic files you need with a single command (<code>rails g pundit:install</code>). However, generators can be a little bit dangerous if you don&rsquo;t understand what&rsquo;s going on behind the scenes, since all logic has been abstracted away and things start happening automagically! So, let&rsquo;s set up our authorization system for our bookstore manually. Don&rsquo;t worry &mdash; it&rsquo;s not going to be <em>too</em> painful!</p>
+
+<p>First things first: we need to make sure that we include <code>pundit</code> in our controllers. This is a particularly important step because we&rsquo;re going to use a method inside of all of our controllers, and if we don&rsquo;t <code>include Pundit</code>, none of our controllers will have any idea what method we&rsquo;re trying to call. Since we&rsquo;re going to be authorizing multiple classes, it makes sense to add <code>pundit</code> to the file where all our other controllers will inherit from: <code>ApplicationController</code>.</p>
+
+<pre><code class="ruby">class ApplicationController &lt; ActionController::Base
+  include Pundit
+  protect_from_forgery
+end
+</code></pre>
+
+<p>Next, we need to understand how <code>pundit</code> actually works. If we take a look at <a href="https://github.com/elabs/pundit">the documentation</a>, there are a few things that immediately become clear: <code>pundit</code> is focused around something called &ldquo;policy classes&rdquo;. Similar to how <code>cancan</code> relies &ldquo;ability classes&rdquo;, <code>pundit</code> expects a policy class to house our authorization logic.</p>
+
+<p>Okay, so we need policy classes. But what kind of classes are they? Do they inherit from anything? How many do we need, exactly? And what should go inside of them? If these are the questions running through your head, fret not: there are answers to all of them!</p>
+
+<p>Here are the basics of building a <code>pundit</code> policy class:</p>
+
+<ol>
+<li>Every policy class is just a plain old ruby class. It doesn&rsquo;t need to inherit from <code>ActiveRecord::Base</code>, or anything else. The only thing that the class <em>must</em> have is the suffix <code>Policy</code>.</li>
+<li>Each policy class should contain the authorization logic for the model class that it corresponds to. A <code>User</code> model would have a <code>UserPolicy</code>, while a <code>Book</code> model would have a <code>BookPolicy</code> class.</li>
+<li>A policy class should initialize with two instance variables: a <code>user</code>, and the <code>model</code> that we want to authorize. The <code>initialize</code> method in a policy class will always expect these two parameters in a certain order: <code>user</code> as the first argument, and the <code>model</code> object that we want to authorize as the second arugment. The <code>model</code> doesn&rsquo;t have to be an <code>ActiveRecord</code> object &ndash; it can literally be anything that you want to authorize!</li>
+<li>Inside of the policy class are query methods that actually contain the code for specific authorization checks. These should correspond and map to the actions in the controller for the model we want to authorize. If our <code>UsersController</code> has <code>create</code>, <code>update</code>, and <code>destroy</code> actions, our <code>UserPolicy</code> class should (theoretically) have <code>create?</code>, <code>update?</code>, and <code>destroy?</code> query methods inside of it.</li>
+</ol>
+
+
+<p>Okay, that&rsquo;s enough on policies to start. Let&rsquo;s actually start writing some of those policy classes! We&rsquo;ll need to create a folder for all of our policies since we&rsquo;re not using the generator (<code>app/policies</code>), which will house our policy classes. The most important policy class that we should write first is our <code>ApplicationPolicy</code>, which will reside at <code>app/policies/application_policy.rb</code>. This is where we can put our <code>initialize</code> method in, since we know that every policy needs to have this method inside of it.</p>
+
+<pre><code class="ruby">class ApplicationPolicy 
+  attr_reader :user, :resource
+
+  def initialize(user, resource)
+    @user = user
+    @resource = resource
+  end
+end
+</code></pre>
+
+<p>Since the <code>initialize</code> method of our <code>ApplicationPolicy</code> is going to be used by all of our other policy classes, we can refer to the second argument (the model that we want to authorize) as <code>resource</code>. Depending on what policy class we are in, the <code>resource</code> object will change. If we had used the generator, we&rsquo;d notice that the model object is actually referred to as <code>record</code>, which also would have been an acceptable name for our second argument. Either way, this is a nice and easy way of abstracting out this method into one file, and then reusing it in our other policy classes. Speaking of which&hellip;it&rsquo;s time for us to write those, next!</p>
+
+<h2>Authorize Me</h2>
+
+<iframe src="//giphy.com/embed/4SmyjSEh4wsPm" width="480" height="202" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>We&rsquo;ll start by authorizing (one of) the most important objects in our application: our users! Since we have a <code>User</code> model, we&rsquo;ll need to abide by <code>pundit</code>&rsquo;s policies, and create a <code>user_policy.rb</code> file inside of <code>app/policies</code>. We&rsquo;ll make sure that it inherit from <code>ApplicationPolicy</code>, so that we&rsquo;ll have access to the <code>initialize</code> method:</p>
+
+<pre><code class="ruby">class UserPolicy &lt; ApplicationPolicy
+end
+</code></pre>
+
+<p>Next, let&rsquo;s take a look at our <code>UsersController</code>:</p>
+
+<pre><code class="ruby">class UsersController &lt; ApplicationController
+
+    # Some more RESTful actions would go here,
+    # probably like #create and #destroy 
+
+    def update
+      user = User.find(params[:id])
+
+      user.assign_attributes(user_params)
+
+      if user.save
+        render json: user
+      else
+        render json: {}, status: :unprocessable_entity
+      end
+    end
+
+    private
+
+    def user_params
+      params.require(:user).permit(:name, :email)
+    end
+end
+</code></pre>
+
+<p>There&rsquo;s nothing too fancy going on in here at the moment, and for now, we&rsquo;re only concerned with authorizing the <code>update</code> action in our <code>UsersController</code>. Ultimately, we don&rsquo;t want any user to be able to update their information unless they are logged in; in other words, a user shouldn&rsquo;t be able to update anyone else&rsquo;s name and email except for their own.</p>
+
+<p>So, if we want to authorize the <code>update</code> action, we&rsquo;ll need a query method in our <code>UserPolicy</code> class called &mdash; you guessed it &mdash; <code>update?</code>:</p>
+
+<pre><code class="ruby">class UserPolicy &lt; ApplicationPolicy
+
+    # Inherited from ApplicationPolicy:
+    # def initialize(user, resource)
+        # @user = user
+        # @resource = resource
+    # end
+
+    def update?
+        user == resource
+    end
+end
+</code></pre>
+
+<p>All we&rsquo;re doing here is verifying that the <code>user</code> instance that we&rsquo;re passing in to the <code>initialize</code> method (which we&rsquo;re inheriting, remember?) is the same instance as the <code>resource</code> that we&rsquo;re passing in. The <code>resource</code> is the model that corresponds to the policy; in our case, we&rsquo;re in the context of the <code>UserPolicy</code>, so our <code>resource</code> is the <code>user</code> instance.</p>
+
+<p>The last step is actually telling our <code>update</code> action in our <code>UsersController</code> to <em>use</em> the <code>UserPolicy</code> and authorize our <code>user</code> instance. To do this, we&rsquo;ll need to call the <code>authorize</code> method, and pass in our <code>resource</code> that we want to authorize:</p>
+
+<pre><code class="ruby">class UsersController &lt; ApplicationController
+    after_action :verify_authorized
+
+    def update
+      user = User.find(params[:id])
+
+      authorize user
+      user.assign_attributes(user_params)
+
+      if user.save
+        render json: user
+      else
+        render json: {}, status: :unprocessable_entity
+      end
+    end
+
+    private
+
+    def user_params
+      params.require(:user).permit(:name, :email)
+    end
+end
+</code></pre>
+
+<p>In addition to calling <code>authorize</code>, we also need to make sure that our policy is actually being used! In fact, that&rsquo;s what the <code>after_action :verify_authorized</code> line is doing. The documentation suggests adding this to our <code>ApplicationController</code>, but for the sake of clarify, we can put it here temporarily, just to see how everything is working together. Pundit adds a method called <code>verify_authorized</code> to our controllers. It&rsquo;s this method that is reponsible for raising an exception if <code>authorize</code> is not called. It&rsquo;s recommended to put this in an <code>after_action</code> so that we don&rsquo;t forget to authorize any controller actions when we invoke them. Eventually, we&rsquo;ll want to abstract this line to our <code>ApplicationController</code>:</p>
+
+<p><code>after_action :verify_authorized, except: :index</code></p>
+
+<p>Since this is an <code>after_action</code>, we can pass it <code>except</code> or <code>only</code>, if we want to skip authorization for certain controller actions.</p>
+
+<p>So, how is all of this working? Well, when we pass <code>user</code> to the <code>authorize</code> method, we are actually telling <code>pundit</code> to look for a <code>UserPolicy</code>, find the corresponding action, and invoke it. If our <code>user</code> instance is <em>not</em> authorized, <code>pundit</code> will raise a <code>Pundit::NotAuthorizedError</code>. The source code for the <a href="https://github.com/elabs/pundit/blob/145d7592c0028c26e61e8a9569ed3440323eaa40/lib/pundit/policy_finder.rb">policy finder</a> and the <a href="https://github.com/elabs/pundit/blob/8d73705ca6886b757c9d41e13c1cb32a7b97334b/lib/pundit.rb">authorize method</a> reveal exactly how this happens, and are pretty cool to look at under the hood.</p>
+
+<h2>Scopin&#8217; Out More Policies</h2>
+
+<p>The <code>pundit</code> gem is pretty powerful, but the thing that makes it the cool kid of authorization is how it handles scopes. We can use scopes when we want to have a specific subset of records that a user has access to &mdash; basically, when we want to narrow the &ldquo;scope&rdquo; of the resources that are visible to our user, based on their &ldquo;level&rdquo; of authorization (admin, guest, etc.).</p>
+
+<p>Let&rsquo;s write a quick scope for the <code>Review</code> objects of the book reviews in our bookstore. Right now, our <code>ReviewPolicy</code> looks like this:</p>
+
+<pre><code class="ruby">class ReviewPolicy &lt; ApplicationPolicy
+    def update?
+        resource.user == user
+    end
+end
+</code></pre>
+
+<p>We have a corresponding <code>update</code> action in our <code>ReviewsController</code>, and we&rsquo;re allowing a review to be updated only by the user who wrote it (in other words, the <code>user</code> object that the <code>review</code> belongs to). But we also need an <code>index</code> action, and we want to limit the <code>reviews</code> that can be viewed by a user in the index action. Ultimately, the only <code>user</code> that should be able to see <em>all</em> reviews (including drafts) should be admins; otherwise, the only reviews that should be visible are the ones that have been published.</p>
+
+<p>And that&rsquo;s where scopes come into play. There&rsquo;s a few rules to scopes:</p>
+
+<ol>
+<li>They are plain old ruby classes, nested within the policy class.</li>
+<li>They have an initialize method that takes a <code>user</code> instance, and a <code>scope</code>. The <code>scope</code> is what we&rsquo;ll perform some kind of database query on &mdash; usually an ActiveRecord class or <code>ActiveRecord::Relation</code>.</li>
+<li>The class should have a <code>resolve</code> method, which should return an array of instances that we can iterate over &mdash; again, probably an <code>ActiveRecord::Relation</code>.</li>
+</ol>
+
+
+<p>Let&rsquo;s go ahead and add a scope to our preexisting <code>ReviewPolicy</code>:</p>
+
+<pre><code class="ruby">class ReviewPolicy &lt; ApplicationPolicy
+  class Scope
+    attr_reader :user, :scope
+
+    def initialize(user, scope)
+      @user = user
+      @scope = scope
+    end
+
+    def resolve
+        if user.admin?
+            scope.all
+        else
+            scope.where(published: true)
+        end
+    end
+  end
+
+  def update?
+    resource.user.blank? || resource.user == user
+  end
+end
+</code></pre>
+
+<p>The only thing that&rsquo;s actually happening here is that we&rsquo;re limiting the number and types of book <code>reviews</code> that will be rendered by the <code>resolve</code> method. If our <code>user</code> is an admin, we&rsquo;ll run the query <code>Review.all</code>; otherwise, we&rsquo;ll execute the query, <code>Review.where(published: true)</code>.</p>
+
+<p>Again, we could abstract the initialize method of our <code>Scope</code> class into the <code>ApplicationPolicy</code> so that we could inherit <code>class Scope &lt; Scope</code>, rather that actually writing the method directly into this class. In fact, that&rsquo;s probably exactly what we would do once we realized that we needed to write more than a single scope.</p>
+
+<p>The last step is adding our scope to our <code>ReviewsController</code>. We can use a method provided by <code>pundit</code> in our controller called <code>policy_scope</code>, which takes an class instance of a model (in our case, <code>Review</code>):</p>
+
+<pre><code class="ruby">class ReviewsController &lt; BaseController
+    after_action :verify_policy_scoped, only: :index
+    skip_after_action :verify_authorized, only: :index
+
+    def index
+      if user_signed_in?
+        reviews = policy_scope(Review)
+
+        render json: reviews
+      else
+        render json: { reviews: [] }
+      end
+    end
+
+    def update
+        review = Review.find(params[:id])
+
+        authorize review
+
+        # Logic for updating our review
+    end
+end
+</code></pre>
+
+<p>Now, our <code>index</code> action uses the <code>policy_scope</code> method to find the reviews that we&rsquo;ll render. The <code>policy_scope</code> method infers that we want to use the <code>ReviewPolicy::Scope</code> class, and it will instantiate the class and then call resolve on the instance. In fact, the code that&rsquo;s actually getting executed here is this:</p>
+
+<p><code>reviews = ReviewPolicy::Scope.new(current_user, Review).resolve</code></p>
+
+<p>The other important line in our controller is the method that&rsquo;s actually mkaing sure that the policy scope is being used:</p>
+
+<p><code>after_action :verify_policy_scoped, only: :index</code></p>
+
+<p>Similar to <code>verify_authorized</code>, the <code>verify_policy_scoped</code> method is what ensures that the policy scope is actually being used. And in our case, we only have a scope on our <code>index</code> action, so we can specify that we only want to use a scope on <code>:index</code>. Not too bad, right? Just tell <code>pundit</code> what you want to scope, and what you want to authorize, and it will do the rest for us!</p>
+
+<p>But what if we had a class that never needed to be authorized or scoped? How could we tell <code>pundit</code> to just skip the authorization for that specific model? Well, it&rsquo;s pretty easy &mdash; we can just use <code>skip_after_action</code>:</p>
+
+<pre><code class="ruby">class Comments &lt; ApplicationController
+    skip_after_action :verify_authorized
+    skip_after_action :verify_policy_scoped
+
+    # RESTful controller actions go here!
+end
+</code></pre>
+
+<p>Simple! This gem is pretty fantastic to work with, and gives us great guidelines on the proper way of using it. I really liked this particular piece of advice from the library&rsquo;s developers:</p>
+
+<blockquote><p>&ldquo;Pundit strongly encourages you to model your application in such a way that the only context you need for authorization is a user object and a domain model that you want to check authorization for. If you find yourself needing more context than that, consider whether you are authorizing the right domain model, maybe another domain model (or a wrapper around multiple domain models) can provide the context you need.&rdquo;</p></blockquote>
+
+<p>It turns out that authorizing with <code>pundit</code> can be a really good time. You might say that it&rsquo;s even kind of&hellip;fun!</p>
+
+<iframe src="//giphy.com/embed/btKQIhrebJ3Og" width="480" height="200" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>pundit</code> gem is a simple way to build a powerful authorization system. It expects plain old ruby policy classes for each model that you want to authorize, and each class should contain query methods that map to controller actions for the model. The controller that corresponds to the model should call the <code>authorize</code> method for the object, and should either contain or inherit an <code>after_action :verify_authorized</code> method.</li>
+<li>The developers at eLabs put a lot of work into building <code>pundit</code>, and based it off of the <code>cancan</code> library. In fact, they even wrote a super blog post about their process, which you can read <a href="http://www.elabs.se/blog/52-simple-authorization-in-ruby-on-rails-apps">over here</a>.</li>
+<li>Still confused about when to authorize and when to authenticate? Check out this <a href="http://www.slideshare.net/BruceWhite3/pundit-37048056">awesome slidedeck</a> that clarifies all your authorization confusion!</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Working Hard or Hardly Working, Part 2: Custom Jobs]]></title>
@@ -618,150 +900,6 @@ en
 <li>The <code>ActiveSupport::Inflector</code> handles a lot of the grammar rules in Rails. The <code>inflections.rb</code> file is where we can write our own inflection rules. Check out all the preexisting inflections in the Rails <a href="https://github.com/rails/rails/blob/92f567ab30f240a1de152061a6eee76ca6c4da86/activesupport/lib/active_support/inflections.rb">source code</a>.</li>
 <li>Curious how Rails knows what grammar rules to follow? Check out <a href="http://ilanasufrin.github.io/blog/2014/07/30/a-rails-grammar-lesson/">this blog post</a>, which explains it all.</li>
 <li>If you are very brave, dig through the <a href="https://github.com/rails/rails/blob/6c75a111995a9aab09e19c2b6a8a42162f689bc6/activesupport/lib/active_support/inflector/inflections.rb">source code</a> for all of the methods available to <code>inflections</code>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Unlocking Ruby Keywords: Begin, End, Ensure, Rescue]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/"/>
-    <updated>2015-08-25T08:40:04-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/VAG0Ct1MbUCju" width="480" height="268" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>I recently went down a little bit of rabbit hole in order to do some <a href="http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions/">digging on database transactions</a>. And when I say &ldquo;a little bit&rdquo;, I mostly mean &ldquo;a lot bit&rdquo;. I opened up the Rails source code for <code>ActiveRecord::Transactions</code>, and I saw some interesting terms I hadn&rsquo;t seen in awhile.</p>
-
-<p>Back when I was first learning Ruby a year ago, I remember reading about keywords. At the time, the only thing that <em>really</em> set them apart for me was the fact that they had special syntax highlighting in my text editor! (Yes, really.) But when I saw them again in the Rails source code, I thought it would be time to get a quick refresher on a few keywords that I saw again and again.</p>
-
-<p>But first: what <em>are</em> keywords, exactly? Well, they&rsquo;re definitely not objects, but instead are reserved words, which are actually <a href="http://stackoverflow.com/a/9446185">defined in the Ruby parser</a>. In fact, there&rsquo;s a whole slew of keywords in Ruby, but the ones that I&rsquo;m the most interested in sharing with you are <code>begin</code>, <code>end</code>, <code>ensure</code>, and <code>rescue</code>. So let&rsquo;s start unlock the door to Ruby with these keywords!</p>
-
-<!--more-->
-
-
-<h2>Begin + End</h2>
-
-<iframe src="//giphy.com/embed/shVNt6dRCNMbu" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>The <code>begin</code> and <code>end</code> blocks are and interesting way of defining a bunch of code that needs to run on it&rsquo;s own, in its own context. Between the <code>begin</code> and <code>end</code> keywords, we can put all the code that we need to run on its own. Just like with normal methods, whatever is the last expression that is evaluated in the <code>begin end</code> block is the result that will be return.</p>
-
-<pre><code class="ruby">def method_name
-    begin
-        # our method logic goes here
-    end
-end
-</code></pre>
-
-<p>Interestingly, the <code>def method_name end</code> keyword syntax of defining a method is also nothing more than a <code>begin end</code> block! I think that this <a href="http://rubylearning.com/satishtalim/ruby_exceptions.html">RubyLearning tutorial</a> explains this pretty well:</p>
-
-<blockquote><p>&ldquo;It is to be noted that the body of a method definition is an implicit begin-end block; the begin is omitted, and the entire body of the method is subject to exception handling, ending with the end of the method.&rdquo;</p></blockquote>
-
-<p>So, if the <code>begin end</code> syntax is just like writing a regular Ruby method, when would we ever use it? Well, it turns out that the <code>begin end</code> block can be helpful for defining chunks of code that need to execute in a certain order. For example, if we wanted to write a method that would split a group of <code>Book</code> objects into various batches, we might have something like this:</p>
-
-<pre><code class="ruby">def create_or_update_batch
-    if @batch.nil?
-        @batch = BookBatch.create(book_batch.batch_attrs)
-    end
-
-    @batch.update
-end
-</code></pre>
-
-<p>What we&rsquo;re trying to do here is twofold: first, we want to calculate our <code>BookBatch</code> based on some attributes (<code>batch_attrs</code>) that we&rsquo;re passing in, and then <code>create</code> it. And once we&rsquo;ve done that, we want to <code>update</code> it.</p>
-
-<p>We&rsquo;re always going to want to <code>create</code> our <code>BookBatch</code> if it doesn&rsquo;t already exist, definitely before we go about updating it. We can use the <code>begin end</code> syntax to do the same thing:</p>
-
-<pre><code class="ruby">def create_or_update_batch
-  @batch ||= begin
-    BookBatch.create(book_batch.batch_attrs)
-  end
-
-  @batch.update
-end
-</code></pre>
-
-<p>In this case, if a <code>@batch</code> instance doesn&rsquo;t already exist, the code between the <code>begin end</code> will run and then the return value (a new <code>BookBatch</code> instance) will be assigned to the <code>@batch</code> instance variable. Only then will the <code>@batch.update</code> line be run.</p>
-
-<p>It turns out that this kind of <a href="http://stackoverflow.com/a/13279295">method architecture</a> takes advantage of the Ruby interpreter&rsquo;s stack. The <code>||=</code> assignment that we are using before the <code>begin end</code> block just takes the last thing from the stack (in this case, <code>BookBatch.create</code>), and assigns it to <code>@batch</code>. Because the code in the <code>begin end</code> block runs independently in its own context, we can use it to contain and encapsulate a bit of logic. This is especially helpful if we want to <code>rescue</code> from an error!</p>
-
-<h2>Rescue</h2>
-
-<iframe src="//giphy.com/embed/3o85xAwT5hvVXhyuli" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>The <code>rescue</code> keyword is pretty cool, and is used by Rubyists quite a lot. It functions to handle exceptions, and takes a single argument: the class/type of error that you want to rescue from.</p>
-
-<pre><code class="ruby">
-def create_or_update_batch
-  @batch ||= begin
-    BookBatch.create(book_batch.batch_attrs)
-  end
-
-  @batch.update
-
-rescue
-    raise_book_batch_error
-end
-</code></pre>
-
-<p>One important thing about <code>rescue</code>: it&rsquo;s always written at the same level as our method signature! In the example above, we have written our own <code>raise_book_batch_error</code> method, which will handle the exception once we&rsquo;ve recused from this method. We can pass a specific type of error, or we can allow <code>rescue</code> to default. If you don&rsquo;t pass any parameters to the <code>rescue</code> clause, it defaults to <code>StandardError</code> and will rescue any error by default.</p>
-
-<p>Another important note about <code>rescue</code> is that is occurs at the same level as our method signature. So, if we want to <code>rescue</code> from our <code>create_or_update_batch</code> method, we need to have <code>rescue</code> on the same level as <code>def create_or_update_batch</code>. We could also rescue from <em>inside</em> of a <code>begin end</code> block:</p>
-
-<pre><code class="ruby">
-def create_or_update_batch
-  @batch ||= begin
-    BookBatch.create(book_batch.batch_attrs)
-
-  rescue ActiveRecord::AttributeAssignmentError
-  end
-
-  @batch.update
-
-rescue
-    raise_book_batch_error
-end
-</code></pre>
-
-<p>In this case, the <code>rescue</code> clause inside of our <code>begin end</code> block will rescue any exceptions in its own context. It&rsquo;s also important to note that only one <code>rescue</code> clause of a group will ever be executed.</p>
-
-<h2>Ensure</h2>
-
-<iframe src="//giphy.com/embed/oToYqq3jbiRry" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>All of these blocks can start to be a little much after awhile. Sometimes, all you want to do is make sure that a specific piece of code will always run! Luckily, that&rsquo;s what the <code>ensure</code> keyword is for. This keyword starts a section of code that is always run when an exception is raised. And just like <code>rescue</code>, it&rsquo;s written at the same level as our method&rsquo;s signature.</p>
-
-<pre><code class="ruby">
-def create_or_update_batch
-  @batch ||= begin
-    BookBatch.create(book_batch.batch_attrs)
-  end
-
-  @batch.update
-
-rescue
-    raise_book_batch_error
-
-ensure
-    clean_up_orphaned_book_batches
-end
-</code></pre>
-
-<p>In the example above, we&rsquo;re ensuring that even if a <code>BookBatch</code> was created and didn&rsquo;t get associated in the correct way and was orphaned, the <code>clean_up_orphaned_book_batches</code> method would always run. A good way to think about the <code>ensure</code> keyword is that its the last thing that will run in the method, and it will run no matter what, every single time.</p>
-
-<p>The unique thing about <code>ensure</code> is that it runs <em>even if</em> there were any errors that were raised. The best practice is to usually put <code>ensure</code> at the end, so that the last part of the method will run.</p>
-
-<p>The <code>begin</code>, <code>end</code>, <code>rescue</code>, and <code>ensure</code> methods are a little tricky to understand all together. But once we break them apart and figure out how they work on their own, things start to make a little more sense. Hopefully, diving into the rabbit hole of the Rails source code will be a little easier now. At the very least, we now have the keys to the wonderful world of Ruby keywords!</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>begin end</code> block can be used to execute a block of code in a specific context. <code>Rescue</code> can be used to handle errors, while <code>ensure</code> will always run at the end of a method. The Ruby documentation has the complete list of Ruby keywords, and it&rsquo;s clearly and thoroughly written. Check it out <a href="https://github.com/ruby/ruby/blob/trunk/doc/keywords.rdoc">over here</a>!</li>
-<li>Check out this great <a href="http://blog.rubybestpractices.com/posts/rklemme/003-The_Universe_between_begin_and_end.html">blog post</a> with lots of examples on <code>begin</code> and <code>end</code>, and how to use them in the context of a method.</li>
-<li>Curious how <code>ensure</code> works in the context of an application? Here&rsquo;s a <a href="https://blog.newrelic.com/2014/12/10/weird-ruby-2-rescue-interrupt-ensure/">blog post</a> that dives into exactly that!</li>
 </ul>
 
 ]]></content>

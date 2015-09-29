@@ -1,0 +1,622 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Using Pundit, the Cool Kid of Authorization - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="Ah, authorization &ndash; or as I like to call it, authentication&rsquo;s cooler, slightly less complicated twin. It&rsquo;s easy to confuse the two &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Using Pundit, the Cool Kid of Authorization</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-09-29T08:57:21-04:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:57 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><iframe src="//giphy.com/embed/OdVug9ZRk8sqA" width="480" height="192" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Ah, authorization &ndash; or as I like to call it, authentication&rsquo;s cooler, slightly less complicated twin. It&rsquo;s easy to confuse the two, but there&rsquo;s a fundamental difference between them. I recently learned that while setting up an authorization system for an application that&rsquo;s nearing the end of development. Authentication focuses on who you are as a user &mdash; an admin, guest, or user with an account, for example &mdash; while authorization is about what actions you can take. Authorization centers around what you are actually <em>able to do</em> within the context of your role.</p>
+
+<p>It often makes sense to leave authorization as one of the later (and sometimes, last) step of development, purely because it means that you don&rsquo;t need to worry about making sure that you are authenticated in your development environment while you are still building out your application. But eventually, somewhere between development and deployment, you&rsquo;ll have to think about the abilities of your users &mdash; or, what they can and can&rsquo;t do.</p>
+
+<p>There are a few different ways to go about creating an authorization system, one of the most popular being <code>can_can</code>, a gem that has been around in the Rails community since 2010, as well as a newer gem called <code>rolify</code>. But the one that I&rsquo;ve found really easy and fun to work with is <code>pundit</code>, an <a href="https://github.com/elabs/pundit">authorization system</a> crafted by eLabs, and interestingly enough, based off of the logic and thought behind the CanCan&rsquo;s approach. The developers at eLabs actually started off using the CanCan library in their own applications, but quickly realized that it could become very complicated, very quickly. So, they built the simpler authorization system of <code>pundit</code>, which is exactly what we&rsquo;ll play around with today!</p>
+
+<!--more-->
+
+
+<h2>Policies of Pundit</h2>
+
+<iframe src="//giphy.com/embed/zCn93ehzAzZNC" width="480" height="198" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Implementing the <code>pundit</code> gem is easy once we understand how it&rsquo;s structured, what it&rsquo;s expecting, and what conventions to follow. But before we do anything else, we&rsquo;ll need to add it to our <code>Gemfile</code>:</p>
+
+<p><code>gem "pundit"</code></p>
+
+<p>and run our favorite command, <code>bundle install</code>.</p>
+
+<p>The documentation for this gem is fairly well-explained, and even allows you to generate all the basic files you need with a single command (<code>rails g pundit:install</code>). However, generators can be a little bit dangerous if you don&rsquo;t understand what&rsquo;s going on behind the scenes, since all logic has been abstracted away and things start happening automagically! So, let&rsquo;s set up our authorization system for our bookstore manually. Don&rsquo;t worry &mdash; it&rsquo;s not going to be <em>too</em> painful!</p>
+
+<p>First things first: we need to make sure that we include <code>pundit</code> in our controllers. This is a particularly important step because we&rsquo;re going to use a method inside of all of our controllers, and if we don&rsquo;t <code>include Pundit</code>, none of our controllers will have any idea what method we&rsquo;re trying to call. Since we&rsquo;re going to be authorizing multiple classes, it makes sense to add <code>pundit</code> to the file where all our other controllers will inherit from: <code>ApplicationController</code>.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ApplicationController</span> <span class="o">&lt;</span> <span class="no">ActionController</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="kp">include</span> <span class="no">Pundit</span>
+</span><span class='line'>  <span class="n">protect_from_forgery</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Next, we need to understand how <code>pundit</code> actually works. If we take a look at <a href="https://github.com/elabs/pundit">the documentation</a>, there are a few things that immediately become clear: <code>pundit</code> is focused around something called &ldquo;policy classes&rdquo;. Similar to how <code>cancan</code> relies &ldquo;ability classes&rdquo;, <code>pundit</code> expects a policy class to house our authorization logic.</p>
+
+<p>Okay, so we need policy classes. But what kind of classes are they? Do they inherit from anything? How many do we need, exactly? And what should go inside of them? If these are the questions running through your head, fret not: there are answers to all of them!</p>
+
+<p>Here are the basics of building a <code>pundit</code> policy class:</p>
+
+<ol>
+<li>Every policy class is just a plain old ruby class. It doesn&rsquo;t need to inherit from <code>ActiveRecord::Base</code>, or anything else. The only thing that the class <em>must</em> have is the suffix <code>Policy</code>.</li>
+<li>Each policy class should contain the authorization logic for the model class that it corresponds to. A <code>User</code> model would have a <code>UserPolicy</code>, while a <code>Book</code> model would have a <code>BookPolicy</code> class.</li>
+<li>A policy class should initialize with two instance variables: a <code>user</code>, and the <code>model</code> that we want to authorize. The <code>initialize</code> method in a policy class will always expect these two parameters in a certain order: <code>user</code> as the first argument, and the <code>model</code> object that we want to authorize as the second arugment. The <code>model</code> doesn&rsquo;t have to be an <code>ActiveRecord</code> object &ndash; it can literally be anything that you want to authorize!</li>
+<li>Inside of the policy class are query methods that actually contain the code for specific authorization checks. These should correspond and map to the actions in the controller for the model we want to authorize. If our <code>UsersController</code> has <code>create</code>, <code>update</code>, and <code>destroy</code> actions, our <code>UserPolicy</code> class should (theoretically) have <code>create?</code>, <code>update?</code>, and <code>destroy?</code> query methods inside of it.</li>
+</ol>
+
+
+<p>Okay, that&rsquo;s enough on policies to start. Let&rsquo;s actually start writing some of those policy classes! We&rsquo;ll need to create a folder for all of our policies since we&rsquo;re not using the generator (<code>app/policies</code>), which will house our policy classes. The most important policy class that we should write first is our <code>ApplicationPolicy</code>, which will reside at <code>app/policies/application_policy.rb</code>. This is where we can put our <code>initialize</code> method in, since we know that every policy needs to have this method inside of it.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ApplicationPolicy</span>
+</span><span class='line'>  <span class="kp">attr_reader</span> <span class="ss">:user</span><span class="p">,</span> <span class="ss">:resource</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">resource</span><span class="p">)</span>
+</span><span class='line'>    <span class="vi">@user</span> <span class="o">=</span> <span class="n">user</span>
+</span><span class='line'>    <span class="vi">@resource</span> <span class="o">=</span> <span class="n">resource</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Since the <code>initialize</code> method of our <code>ApplicationPolicy</code> is going to be used by all of our other policy classes, we can refer to the second argument (the model that we want to authorize) as <code>resource</code>. Depending on what policy class we are in, the <code>resource</code> object will change. If we had used the generator, we&rsquo;d notice that the model object is actually referred to as <code>record</code>, which also would have been an acceptable name for our second argument. Either way, this is a nice and easy way of abstracting out this method into one file, and then reusing it in our other policy classes. Speaking of which&hellip;it&rsquo;s time for us to write those, next!</p>
+
+<h2>Authorize Me</h2>
+
+<iframe src="//giphy.com/embed/4SmyjSEh4wsPm" width="480" height="202" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p>We&rsquo;ll start by authorizing (one of) the most important objects in our application: our users! Since we have a <code>User</code> model, we&rsquo;ll need to abide by <code>pundit</code>&rsquo;s policies, and create a <code>user_policy.rb</code> file inside of <code>app/policies</code>. We&rsquo;ll make sure that it inherit from <code>ApplicationPolicy</code>, so that we&rsquo;ll have access to the <code>initialize</code> method:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">UserPolicy</span> <span class="o">&lt;</span> <span class="no">ApplicationPolicy</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Next, let&rsquo;s take a look at our <code>UsersController</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">UsersController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="c1"># Some more RESTful actions would go here,</span>
+</span><span class='line'>  <span class="c1"># probably like #create and #destroy </span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">update</span>
+</span><span class='line'>    <span class="n">user</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">params</span><span class="o">[</span><span class="ss">:id</span><span class="o">]</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">user</span><span class="o">.</span><span class="n">assign_attributes</span><span class="p">(</span><span class="n">user_params</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">save</span>
+</span><span class='line'>      <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="n">user</span>
+</span><span class='line'>    <span class="k">else</span>
+</span><span class='line'>      <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="p">{},</span> <span class="ss">status</span><span class="p">:</span> <span class="ss">:unprocessable_entity</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">private</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">user_params</span>
+</span><span class='line'>      <span class="n">params</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span><span class="o">.</span><span class="n">permit</span><span class="p">(</span><span class="ss">:name</span><span class="p">,</span> <span class="ss">:email</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>There&rsquo;s nothing too fancy going on in here at the moment, and for now, we&rsquo;re only concerned with authorizing the <code>update</code> action in our <code>UsersController</code>. Ultimately, we don&rsquo;t want any user to be able to update their information unless they are logged in; in other words, a user shouldn&rsquo;t be able to update anyone else&rsquo;s name and email except for their own.</p>
+
+<p>So, if we want to authorize the <code>update</code> action, we&rsquo;ll need a query method in our <code>UserPolicy</code> class called &mdash; you guessed it &mdash; <code>update?</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">UserPolicy</span> <span class="o">&lt;</span> <span class="no">ApplicationPolicy</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="c1"># Inherited from ApplicationPolicy:</span>
+</span><span class='line'>  <span class="c1"># def initialize(user, resource)</span>
+</span><span class='line'>      <span class="c1"># @user = user</span>
+</span><span class='line'>      <span class="c1"># @resource = resource</span>
+</span><span class='line'>  <span class="c1"># end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">update?</span>
+</span><span class='line'>      <span class="n">user</span> <span class="o">==</span> <span class="n">resource</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>All we&rsquo;re doing here is verifying that the <code>user</code> instance that we&rsquo;re passing in to the <code>initialize</code> method (which we&rsquo;re inheriting, remember?) is the same instance as the <code>resource</code> that we&rsquo;re passing in. The <code>resource</code> is the model that corresponds to the policy; in our case, we&rsquo;re in the context of the <code>UserPolicy</code>, so our <code>resource</code> is the <code>user</code> instance.</p>
+
+<p>The last step is actually telling our <code>update</code> action in our <code>UsersController</code> to <em>use</em> the <code>UserPolicy</code> and authorize our <code>user</code> instance. To do this, we&rsquo;ll need to call the <code>authorize</code> method, and pass in our <code>resource</code> that we want to authorize:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">UsersController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="n">after_action</span> <span class="ss">:verify_authorized</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="k">def</span> <span class="nf">update</span>
+</span><span class='line'>    <span class="n">user</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">params</span><span class="o">[</span><span class="ss">:id</span><span class="o">]</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">authorize</span> <span class="n">user</span>
+</span><span class='line'>    <span class="n">user</span><span class="o">.</span><span class="n">assign_attributes</span><span class="p">(</span><span class="n">user_params</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">save</span>
+</span><span class='line'>      <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="n">user</span>
+</span><span class='line'>    <span class="k">else</span>
+</span><span class='line'>      <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="p">{},</span> <span class="ss">status</span><span class="p">:</span> <span class="ss">:unprocessable_entity</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">private</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">user_params</span>
+</span><span class='line'>      <span class="n">params</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span><span class="o">.</span><span class="n">permit</span><span class="p">(</span><span class="ss">:name</span><span class="p">,</span> <span class="ss">:email</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In addition to calling <code>authorize</code>, we also need to make sure that our policy is actually being used! In fact, that&rsquo;s what the <code>after_action :verify_authorized</code> line is doing. The documentation suggests adding this to our <code>ApplicationController</code>, but for the sake of clarify, we can put it here temporarily, just to see how everything is working together. Pundit adds a method called <code>verify_authorized</code> to our controllers. It&rsquo;s this method that is reponsible for raising an exception if <code>authorize</code> is not called. It&rsquo;s recommended to put this in an <code>after_action</code> so that we don&rsquo;t forget to authorize any controller actions when we invoke them. Eventually, we&rsquo;ll want to abstract this line to our <code>ApplicationController</code>:</p>
+
+<p><code>after_action :verify_authorized, except: :index</code></p>
+
+<p>Since this is an <code>after_action</code>, we can pass it <code>except</code> or <code>only</code>, if we want to skip authorization for certain controller actions.</p>
+
+<p>So, how is all of this working? Well, when we pass <code>user</code> to the <code>authorize</code> method, we are actually telling <code>pundit</code> to look for a <code>UserPolicy</code>, find the corresponding action, and invoke it. If our <code>user</code> instance is <em>not</em> authorized, <code>pundit</code> will raise a <code>Pundit::NotAuthorizedError</code>. The source code for the <a href="https://github.com/elabs/pundit/blob/145d7592c0028c26e61e8a9569ed3440323eaa40/lib/pundit/policy_finder.rb">policy finder</a> and the <a href="https://github.com/elabs/pundit/blob/8d73705ca6886b757c9d41e13c1cb32a7b97334b/lib/pundit.rb">authorize method</a> reveal exactly how this happens, and are pretty cool to look at under the hood.</p>
+
+<h2>Scopin&#8217; Out More Policies</h2>
+
+<p>The <code>pundit</code> gem is pretty powerful, but the thing that makes it the cool kid of authorization is how it handles scopes. We can use scopes when we want to have a specific subset of records that a user has access to &mdash; basically, when we want to narrow the &ldquo;scope&rdquo; of the resources that are visible to our user, based on their &ldquo;level&rdquo; of authorization (admin, guest, etc.).</p>
+
+<p>Let&rsquo;s write a quick scope for the <code>Review</code> objects of the book reviews in our bookstore. Right now, our <code>ReviewPolicy</code> looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ReviewPolicy</span> <span class="o">&lt;</span> <span class="no">ApplicationPolicy</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">update?</span>
+</span><span class='line'>      <span class="n">resource</span><span class="o">.</span><span class="n">user</span> <span class="o">==</span> <span class="n">user</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We have a corresponding <code>update</code> action in our <code>ReviewsController</code>, and we&rsquo;re allowing a review to be updated only by the user who wrote it (in other words, the <code>user</code> object that the <code>review</code> belongs to). But we also need an <code>index</code> action, and we want to limit the <code>reviews</code> that can be viewed by a user in the index action. Ultimately, the only <code>user</code> that should be able to see <em>all</em> reviews (including drafts) should be admins; otherwise, the only reviews that should be visible are the ones that have been published.</p>
+
+<p>And that&rsquo;s where scopes come into play. There&rsquo;s a few rules to scopes:</p>
+
+<ol>
+<li>They are plain old ruby classes, nested within the policy class.</li>
+<li>They have an initialize method that takes a <code>user</code> instance, and a <code>scope</code>. The <code>scope</code> is what we&rsquo;ll perform some kind of database query on &mdash; usually an ActiveRecord class or <code>ActiveRecord::Relation</code>.</li>
+<li>The class should have a <code>resolve</code> method, which should return an array of instances that we can iterate over &mdash; again, probably an <code>ActiveRecord::Relation</code>.</li>
+</ol>
+
+
+<p>Let&rsquo;s go ahead and add a scope to our preexisting <code>ReviewPolicy</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ReviewPolicy</span> <span class="o">&lt;</span> <span class="no">ApplicationPolicy</span>
+</span><span class='line'>  <span class="k">class</span> <span class="nc">Scope</span>
+</span><span class='line'>    <span class="kp">attr_reader</span> <span class="ss">:user</span><span class="p">,</span> <span class="ss">:scope</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">scope</span><span class="p">)</span>
+</span><span class='line'>      <span class="vi">@user</span> <span class="o">=</span> <span class="n">user</span>
+</span><span class='line'>      <span class="vi">@scope</span> <span class="o">=</span> <span class="n">scope</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">resolve</span>
+</span><span class='line'>      <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">admin?</span>
+</span><span class='line'>          <span class="n">scope</span><span class="o">.</span><span class="n">all</span>
+</span><span class='line'>      <span class="k">else</span>
+</span><span class='line'>              <span class="n">scope</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="ss">published</span><span class="p">:</span> <span class="kp">true</span><span class="p">)</span>
+</span><span class='line'>          <span class="k">end</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">update?</span>
+</span><span class='line'>    <span class="n">resource</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">blank?</span> <span class="o">||</span> <span class="n">resource</span><span class="o">.</span><span class="n">user</span> <span class="o">==</span> <span class="n">user</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The only thing that&rsquo;s actually happening here is that we&rsquo;re limiting the number and types of book <code>reviews</code> that will be rendered by the <code>resolve</code> method. If our <code>user</code> is an admin, we&rsquo;ll run the query <code>Review.all</code>; otherwise, we&rsquo;ll execute the query, <code>Review.where(published: true)</code>.</p>
+
+<p>Again, we could abstract the initialize method of our <code>Scope</code> class into the <code>ApplicationPolicy</code> so that we could inherit <code>class Scope &lt; Scope</code>, rather that actually writing the method directly into this class. In fact, that&rsquo;s probably exactly what we would do once we realized that we needed to write more than a single scope.</p>
+
+<p>The last step is adding our scope to our <code>ReviewsController</code>. We can use a method provided by <code>pundit</code> in our controller called <code>policy_scope</code>, which takes an class instance of a model (in our case, <code>Review</code>):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ReviewsController</span> <span class="o">&lt;</span> <span class="no">BaseController</span>
+</span><span class='line'>    <span class="n">after_action</span> <span class="ss">:verify_policy_scoped</span><span class="p">,</span> <span class="ss">only</span><span class="p">:</span> <span class="ss">:index</span>
+</span><span class='line'>    <span class="n">skip_after_action</span> <span class="ss">:verify_authorized</span><span class="p">,</span> <span class="ss">only</span><span class="p">:</span> <span class="ss">:index</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">index</span>
+</span><span class='line'>      <span class="k">if</span> <span class="n">user_signed_in?</span>
+</span><span class='line'>        <span class="n">reviews</span> <span class="o">=</span> <span class="n">policy_scope</span><span class="p">(</span><span class="no">Review</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="n">reviews</span>
+</span><span class='line'>      <span class="k">else</span>
+</span><span class='line'>        <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="p">{</span> <span class="ss">reviews</span><span class="p">:</span> <span class="o">[]</span> <span class="p">}</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">update</span>
+</span><span class='line'>      <span class="n">review</span> <span class="o">=</span> <span class="no">Review</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">params</span><span class="o">[</span><span class="ss">:id</span><span class="o">]</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">authorize</span> <span class="n">review</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="c1"># Logic for updating our review</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, our <code>index</code> action uses the <code>policy_scope</code> method to find the reviews that we&rsquo;ll render. The <code>policy_scope</code> method infers that we want to use the <code>ReviewPolicy::Scope</code> class, and it will instantiate the class and then call resolve on the instance. In fact, the code that&rsquo;s actually getting executed here is this:</p>
+
+<p><code>reviews = ReviewPolicy::Scope.new(current_user, Review).resolve</code></p>
+
+<p>The other important line in our controller is the method that&rsquo;s actually mkaing sure that the policy scope is being used:</p>
+
+<p><code>after_action :verify_policy_scoped, only: :index</code></p>
+
+<p>Similar to <code>verify_authorized</code>, the <code>verify_policy_scoped</code> method is what ensures that the policy scope is actually being used. And in our case, we only have a scope on our <code>index</code> action, so we can specify that we only want to use a scope on <code>:index</code>. Not too bad, right? Just tell <code>pundit</code> what you want to scope, and what you want to authorize, and it will do the rest for us!</p>
+
+<p>But what if we had a class that never needed to be authorized or scoped? How could we tell <code>pundit</code> to just skip the authorization for that specific model? Well, it&rsquo;s pretty easy &mdash; we can just use <code>skip_after_action</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Comments</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="n">skip_after_action</span> <span class="ss">:verify_authorized</span>
+</span><span class='line'>  <span class="n">skip_after_action</span> <span class="ss">:verify_policy_scoped</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="c1"># RESTful controller actions go here!</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Simple! This gem is pretty fantastic to work with, and gives us great guidelines on the proper way of using it. I really liked this particular piece of advice from the library&rsquo;s developers:</p>
+
+<blockquote><p>&ldquo;Pundit strongly encourages you to model your application in such a way that the only context you need for authorization is a user object and a domain model that you want to check authorization for. If you find yourself needing more context than that, consider whether you are authorizing the right domain model, maybe another domain model (or a wrapper around multiple domain models) can provide the context you need.&rdquo;</p></blockquote>
+
+<p>It turns out that authorizing with <code>pundit</code> can be a really good time. You might say that it&rsquo;s even kind of&hellip;fun!</p>
+
+<iframe src="//giphy.com/embed/btKQIhrebJ3Og" width="480" height="200" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>pundit</code> gem is a simple way to build a powerful authorization system. It expects plain old ruby policy classes for each model that you want to authorize, and each class should contain query methods that map to controller actions for the model. The controller that corresponds to the model should call the <code>authorize</code> method for the object, and should either contain or inherit an <code>after_action :verify_authorized</code> method.</li>
+<li>The developers at eLabs put a lot of work into building <code>pundit</code>, and based it off of the <code>cancan</code> library. In fact, they even wrote a super blog post about their process, which you can read <a href="http://www.elabs.se/blog/52-simple-authorization-in-ruby-on-rails-apps">over here</a>.</li>
+<li>Still confused about when to authorize and when to authenticate? Check out this <a href="http://www.slideshare.net/BruceWhite3/pundit-37048056">awesome slidedeck</a> that clarifies all your authorization confusion!</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-09-29T08:57:21-04:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:57 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/" title="Previous Post: Working Hard or Hardly Working, Part 2: Custom Jobs">&laquo; Working Hard or Hardly Working, Part 2: Custom Jobs</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/">Using Pundit, the Cool Kid of Authorization</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/">Working Hard or Hardly Working, Part 2: Custom Jobs</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/">Working Hard or Hardly Working, Part 1: Active Job</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/08/youve-got-mail-action-mailer-plus-letter-opener/">You&#8217;ve Got Mail: Action Mailer + Letter_Opener</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/">Inflections Everywhere: Using ActiveSupport Inflector</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
