@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-09-29T08:43:11-04:00</updated>
+  <updated>2015-09-29T08:44:42-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -325,7 +325,7 @@
 </span><span class='line'>  <span class="k">end</span>
 </span><span class='line'>
 </span><span class='line'>  <span class="k">def</span> <span class="nf">update?</span>
-</span><span class='line'>    <span class="n">resource</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">blank?</span> <span class="o">||</span> <span class="n">resource</span><span class="o">.</span><span class="n">user</span> <span class="o">==</span> <span class="n">user</span>
+</span><span class='line'>    <span class="n">resource</span><span class="o">.</span><span class="n">user</span> <span class="o">==</span> <span class="n">user</span>
 </span><span class='line'>  <span class="k">end</span>
 </span><span class='line'><span class="k">end</span>
 </span></code></pre></td></tr></table></div></figure>
