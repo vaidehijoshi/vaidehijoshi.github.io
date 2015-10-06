@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-10-06T08:52:32-04:00</updated>
+  <updated>2015-10-06T08:54:41-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -173,7 +173,7 @@ irb(main):001:0&gt; tempfile = Tempfile.new('cats')
   tempfile.binmode
 
   begin
-    tempfile.write("some text we could write or pass in dynamically")
+    tempfile.write("some text we could write dynamically")
 
     tempfile.rewind
   ensure
@@ -196,9 +196,8 @@ end
 
 <ul>
 <li>The fundamental difference between Ruby&rsquo;s <code>File</code> class and <code>Tempfile</code> class is that tempfiles are cleaned up (deleted by the garbage collector) once there is nothing pointing to them. Tempfile objects inherit from the <code>File</code> class, which means that we can use any file method on a <code>Tempfile</code> instance.</li>
-<li>unlink</li>
+<li>The <code>unlink</code> method is super important to use, since that&rsquo;s what actually deletes our tempfile from the filesystem.</li>
 <li>There are some great tutorials out there on dealing with creating files and directories from within a Ruby script. Check out my two favorites <a href="http://code.tutsplus.com/tutorials/ruby-for-newbies-working-with-directories-and-files--net-18810">here</a> and <a href="http://www.techotopia.com/index.php/Working_with_Files_in_Ruby">here</a>.</li>
-<li><a href="https://viget.com/extend/make-remote-files-local-with-ruby-tempfile">https://viget.com/extend/make-remote-files-local-with-ruby-tempfile</a></li>
 </ul>
 
 ]]></content>
