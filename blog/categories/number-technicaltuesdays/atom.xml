@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-09-29T08:44:42-04:00</updated>
+  <updated>2015-10-06T08:52:32-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,197 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Fleeting Filing With Ruby Tempfile]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/10/06/fleeting-filing-with-ruby-tempfile/"/>
+    <updated>2015-10-06T08:46:30-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/10/06/fleeting-filing-with-ruby-tempfile</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/3ViDyv13D9HQQ" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>There are times in a Ruby program or Rails application that one comes to a single realization: <em>Oh no, I need to deal with an external file!</em> For larger applications, this might manifest as a request to your Amazon S3 bucket for a file, which you then need to modify in some way, or perhaps just simply read and have access to. But sometimes, even a simple Ruby script or plain old Ruby class may need to read or write to an external file.</p>
+
+<p>I honestly didn&rsquo;t know a lot about Ruby&rsquo;s File class (wait, Ruby has a <em>file</em> class?! Yes, yes it does.) until recently, when I had to handle a situation that would allow me to download files from a file storage service (such as S3), and then process the file locally on my machine. The process was a bit complicated, and I still think that I have more to learn about how it actually works. But, one thing that I <em>did</em> actually start to wrap my head around is <strong>Ruby Tempfiles</strong>. Yup, that&rsquo;s right: not only does Ruby have a <code>File</code> class &mdash; it also has a <code>Tempfile</code> class.</p>
+
+<p>It turns out that these two classes intersect quite a bit, and it can be a little confusing to know how they differ. The only way to really understand Ruby&rsquo;s <code>Tempfile</code> class is to play around with it and create some tempfiles. So let&rsquo;s get filin&#8217;!</p>
+
+<!--more-->
+
+
+<h2>To File Or To Tempfile</h2>
+
+<iframe src="//giphy.com/embed/TxIwSAVQL18WI" width="480" height="430" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>The reason that the <code>Tempfile</code> class and <code>File</code> class seem so similar &mdash; and can therefore be so confusing &mdash; is because the <code>Tempfile</code> class actually inherits from its parent delegate class, which just so happens to be&hellip;<code>File</code>! So, tempfiles are actually just a type of file. So, what can you do with files in Ruby? And what makes tempfiles different from a regular old file?</p>
+
+<p>Well, the <a href="http://ruby-doc.org/core-2.2.0/File.html">documentation</a> for <code>File</code> objects is hugely informative, and if we dove into it, we&rsquo;d learn that Ruby files actually inherit from a class called <code>IO File</code>. But let&rsquo;s not get too distracted here: what can we do with files, again? Well, we can read a file&rsquo;s data, we can write more data to it, and we can even change its permissions (i.e. who can access and write to the file). Pretty straightforward, right?</p>
+
+<p>Now, onto tempfiles. As their name would suggest, they&rsquo;re files that are temporary. But even though they are named pretty well, it still might not be clear in what <em>way</em> these files are temporary. Well, we can create tempfiles in the same way that we create regular Ruby files, but what makes them unique is that tempfiles <strong>only exist as long as there is a reference to them</strong>. In other words, tempfiles get deleted automatically by the Ruby garbage collector. If no variable is pointing (read: assigned) to a tempfile, the garbage collector will &ldquo;finalize&rdquo; the tempfile object, and the file would be deleted from our system.</p>
+
+<p>So&hellip;why is this significant? Well, what would happen if we tried to access a tempfile that Ruby has deleted? Bad things, that&rsquo;s what! Well, we&rsquo;d actually just get an error, because we&rsquo;d be trying to access a file at a path that doesn&rsquo;t exist anymore. But still, things could get pretty bleak if we didn&rsquo;t know what was going on &mdash; or worse, if we didn&rsquo;t fundamentally understand how tempfiles worked!</p>
+
+<p>A good rule of thumb for deciding whether or not to use a tempfile is this: if we need access to the file outside of the context of our Ruby script, we probably shouldn&rsquo;t be using a tempfile. However, if we want to temporarily create, read, or write to a file, and then have Ruby delete it for us (for free!) when we&rsquo;re done using it, then a tempfile is our new best friend!</p>
+
+<h2>The Order of Filing Operations</h2>
+
+<iframe src="//giphy.com/embed/xTiTnjZAjQipGn9JFS" width="480" height="143" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>When it comes to creating files, there&rsquo;s a certain order of operations with method invocation. Even though the documentation for the <code>Tempfile</code> class has a list of helpful methods for us to use, there&rsquo;s a lot of less obvious functionality at our disposal, as long as we know where to look. Because the Ruby <code>Tempfile</code> essentially inherits from <code>File</code>, a tempfile behaves just like a file object. This means that we can call any <code>File</code> instance method on a <code>Tempfile</code> object. This is particularly important to note since some of the most common methods that are called on a tempfile are actually defined within the <code>File</code> class. So, if we couldn&rsquo;t find where a particular method on a tempfile was being defined, it probably means that we need to go look inside of the <code>File</code> class.</p>
+
+<p>Okay, enough talk about where to <em>find</em> these methods; let&rsquo;s figure out which methods are actually pertinent to tempfiles. Both files and tempfiles share a sequence of events: generally, we create the file, then we read or write to it, and then we close it. But with tempfiles, there&rsquo;s a little twist at the end. Let&rsquo;s take a look at the order of filing operations:</p>
+
+<h3>1. <code>new</code></h3>
+
+<p>This method is pretty self-explanatory: it&rsquo;s what we&rsquo;ll use to create a new tempfile. This comes from the <code>File</code> class, and takes a single argument: the name of our file. Let&rsquo;s create a tempfile called <code>cats</code>:</p>
+
+<pre><code>♥ irb
+irb(main):001:0&gt; tempfile = Tempfile.new('cats')
+=&gt; #&lt;Tempfile:/var/folders/v7/8rk39kc11ln54w3tl7twrhwc0000gn/T/cats20151005-24769-ac6qgw&gt;
+</code></pre>
+
+<p>This creates a unique filename in our operating slystem&rsquo;s temp directory, and it contains our filename <code>cats</code> in its basename. If we wanted to find out exactly <em>where</em> in our temp directory this file lives, we could just ask it for its path using &mdash; you guessed it &mdash; the <code>path</code> method:</p>
+
+<pre><code>irb(main):002:0&gt; tempfile.path
+=&gt; "/var/folders/v7/8rk39kc11ln54w3tl7twrhwc0000gn/T/cats20151005-24769-ac6qgw"
+</code></pre>
+
+<p>We could also specify the extension of the file that we&rsquo;re creating (i.e., <code>pdf</code>, <code>gif</code>, etc.). However, it&rsquo;s not as simple as just appending it to our filename; if we do that, this is what happens:</p>
+
+<pre><code>irb(main):003:0&gt; Tempfile.new('cats.pdf').path
+=&gt; "/var/folders/v7/8rk39kc11ln54w3tl7twrhwc0000gn/T/cats.pdf20151006-24769-xvpyh0"
+</code></pre>
+
+<p>Not great! We don&rsquo;t want our extension to be a <em>part</em> of our filename, we want it to be at the end, obviously! Luckily, the <code>new</code> method <a href="http://makandracards.com/makandra/13719-ruby-how-to-ensure-a-tempfile-s-extension">allows us</a> to pass the filename and extension as an array:</p>
+
+<pre><code>irb(main):004:0&gt; Tempfile.new([ 'cats', '.pdf' ]).path
+=&gt; "/var/folders/v7/8rk39kc11ln54w3tl7twrhwc0000gn/T/cats20151006-24769-1kzx615.pdf"
+</code></pre>
+
+<p>Much better! Now, let&rsquo;s open this file up.</p>
+
+<h3>2. <code>binmode</code></h3>
+
+<p>The next step is to put our file into binary mode by using the <code>binmode</code> method. As <a href="http://ruby-doc.org/core-2.0.0/IO.html#method-i-binmode">the documentation</a> explains, this method is what changes how we write data to the tempfile&rsquo;s binary.</p>
+
+<pre><code>irb(main):005:0&gt; tempfile.binmode
+=&gt; #&lt;File:/var/folders/v7/8rk39kc11ln54w3tl7twrhwc0000gn/T/cats20151005-24769-ac6qgw&gt;
+</code></pre>
+
+<p>This disables us from encoding and creating new lines, and it changes the way that we write content; setting a file to binary mode forces Ruby to treat the content as ASCII-8BIT. There&rsquo;s also a handy <code>binmode?</code> method that we can use to check whether our file is in binary mode or not.</p>
+
+<h3>3. <code>write</code></h3>
+
+<p>Finally, once we&rsquo;re in binary mode, we actually write to our file! And of course, the tool for the job is the <code>write</code> method. This takes a parameter of whatever it is that you want to write to the file.</p>
+
+<pre><code>irb(main):006:0&gt; file.write("meow meow meow")
+</code></pre>
+
+<p>Interestingly, this method is <a href="http://ruby-doc.org/core-2.2.3/IO.html#method-c-write">defined</a> in the <code>IO</code> class, which subclasses into <code>StringIO</code>.</p>
+
+<h3>4. <code>rewind</code></h3>
+
+<p>Now, if we wanted to read to our file, we could just read it, right?</p>
+
+<pre><code>irb(main):007:0&gt; file.read
+=&gt; ""
+</code></pre>
+
+<p>Wait, what happened to our <code>"meow meow meow"</code> string? Well, if we think about it, when we were writing to our file, we ended at the end of wherever we stopped writing. And that means that there&rsquo;s nothing to read, because we&rsquo;re at the <em>end</em> of our file. This calls for the <code>rewind</code> method, which will take us back to the beginning of our tempfile.</p>
+
+<pre><code>irb(main):008:0&gt; file.rewind
+=&gt; 0
+</code></pre>
+
+<p>We&rsquo;re now at the beginning of our file!</p>
+
+<h3>5. <code>read</code></h3>
+
+<p>After rewinding back to the beginning of our file, we can now actually read it using the <code>read</code> method:</p>
+
+<pre><code>irb(main):009:0&gt; file.read
+=&gt; "meow meow meow"
+</code></pre>
+
+<p>So far, we&rsquo;ve been working with this file as though it&rsquo;s a normal Ruby <code>File</code> class. But let&rsquo;s not forget&hellip;this is actually a <code>Tempfile</code>. And dealing with how to close and clean up a tempfile is where things can get tricky. Now all that&rsquo;s left is for us to elegantly handle these fleeting, disappearing files.</p>
+
+<h2>Disappearing Files</h2>
+
+<p>The last steps in the order of filing operations is explicitly closing our tempfile. This is probably the most complicated part to understand, especially if we&rsquo;re not familiar with the concept of garbage collection. However, I think that the Ruby docs do a pretty great job of explaining the how and why of explicitly closing tempfiles, a good practice that the core team strongly encourages:</p>
+
+<blockquote><p>&ldquo;When a Tempfile object is garbage collected, or when the Ruby interpreter exits, its associated temporary file is automatically deleted. This means that it’s unnecessary to explicitly delete a Tempfile after use, though it’s good practice to do so: not explicitly deleting unused Tempfiles can potentially leave behind large amounts of tempfiles on the filesystem until they’re garbage collected. The existance of these temp files can make it harder to determine a new Tempfile filename.&rdquo;</p></blockquote>
+
+<p>The guides suggest that the best way to go about deleting a tempfile after we&rsquo;re done using it is by calling two specific methods from within an <code>ensure</code> block (remember the <code>ensure</code> keyword? No? Don&rsquo;t worry, you can read about it <a href="http://vaidehijoshi.github.io/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/">over here</a>).</p>
+
+<p>But first, let&rsquo;s round out our order of filing operations with the two most important tempfile methods.</p>
+
+<h3>6. <code>close</code></h3>
+
+<p>This method basically tells the Ruby interpreter, <em>you can&rsquo;t read the file now!</em>. It closes the file and doesn&rsquo;t allow it to be read or written to.</p>
+
+<pre><code>irb(main):010:0&gt; file.close
+=&gt; nil
+</code></pre>
+
+<p>Some blogs have mentioned that this method isn&rsquo;t always necessary, but it can&rsquo;t hurt to use it.</p>
+
+<h3>7. <code>unlink</code></h3>
+
+<p>This method is what actualy <em>deletes</em> the file from the filesystem.</p>
+
+<pre><code>irb(main):034:0&gt; file.unlink
+=&gt; #&lt;Tempfile:&gt;
+</code></pre>
+
+<p>We could also use the <code>delete</code> method, which is just an alias for <code>unlink</code>.</p>
+
+<p>Playing with these methods in <code>irb</code> has been fun, but what would this look like in a Rails application? Well, we&rsquo;d probably want a single method to handle the creation, writing, and deletion of our tempfile (think separation of concerns!). And this is where the use of our <code>ensure</code> block would come in.</p>
+
+<p>This might look something like this:</p>
+
+<pre><code class="ruby">def file_attachment
+  tempfile = Tempfile.new(SecureRandom.uuid)
+  tempfile.binmode
+
+  begin
+    tempfile.write("some text we could write or pass in dynamically")
+
+    tempfile.rewind
+  ensure
+    tempfile.close
+    tempfile.unlink
+  end
+end
+</code></pre>
+
+<p>Here, we&rsquo;re using all of the methods in our order of tempfile operations! And, because ensure runs <em>even if</em> there were any errors raised, we&rsquo;re basically always going to handle the closing and deleting of our tempfile. In this case, we probably don&rsquo;t want to call all our tempfiles <code>cats</code>, so instead we can be a bit more fancy and use the <code>SecureRandom</code> <a href="http://ruby-doc.org/stdlib-1.9.3/libdoc/securerandom/rdoc/SecureRandom.html">module</a> to create a base64 tempfile name each time. We even go crazy and take this yet another step further, and have our <code>file_attachment</code> method take a block, which we could <code>yield</code> to inside of our <code>begin</code> block, before we <code>rewind</code> to the beginning of our tempfile.</p>
+
+<p>As you can see, the possibilies are pretty endless! Tempfiles are our oysters! Well, until Ruby&rsquo;s garbage collector deletes them, that is.</p>
+
+<iframe src="//giphy.com/embed/m77wEsvF99FyU" width="480" height="322" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The fundamental difference between Ruby&rsquo;s <code>File</code> class and <code>Tempfile</code> class is that tempfiles are cleaned up (deleted by the garbage collector) once there is nothing pointing to them. Tempfile objects inherit from the <code>File</code> class, which means that we can use any file method on a <code>Tempfile</code> instance.</li>
+<li>unlink</li>
+<li>There are some great tutorials out there on dealing with creating files and directories from within a Ruby script. Check out my two favorites <a href="http://code.tutsplus.com/tutorials/ruby-for-newbies-working-with-directories-and-files--net-18810">here</a> and <a href="http://www.techotopia.com/index.php/Working_with_Files_in_Ruby">here</a>.</li>
+<li><a href="https://viget.com/extend/make-remote-files-local-with-ruby-tempfile">https://viget.com/extend/make-remote-files-local-with-ruby-tempfile</a></li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Using Pundit, the Cool Kid of Authorization]]></title>
@@ -752,154 +943,6 @@ backend (Sidekiq, Resque, etc).&rdquo;</p></blockquote>
 <li>Rails mailers inherit from <code>ActionMailer::Base</code>, and work just like controllers, with actions and corresponding views. Check out this <a href="http://www.gotealeaf.com/blog/handling-emails-in-rails">fantastic post</a> on sending emails using Action Mailer to dive into the details.</li>
 <li>There are a lot of different header options that you can pass to <code>ActionMailer::Base</code>. Read more about them <a href="http://apidock.com/rails/ActionMailer/Base/headers">over here</a>.</li>
 <li>Curious about how to go about configuring Action Mailer to make the mailing magic happen? The <a href="http://guides.rubyonrails.org/configuring.html#configuring-action-mailer">Rails Guides</a> have a great tutorial on how to do that.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Inflections Everywhere: Using ActiveSupport Inflector]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/"/>
-    <updated>2015-09-01T08:45:22-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/JEIRAmTTfUgYE" width="480" height="264" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Words are pretty important. But do you know what&rsquo;s more important than words? <em>Grammar</em>. (Can you tell that I was an English major?) Despite how big of a book nerd I am, there&rsquo;s acually a crucial reason as to why we should keep things like grammar in consideration: convention.</p>
-
-<p>At it&rsquo;s very core &mdash; pun totally intended &mdash; the Rails framework is based in conventions. We rely on the framework to create our models, controllers, and views in a specific file structure, and for them to be named in a certain way. But what we often forget is that we also rely on Rails to be smart enough to handle strange edge cases, like knowing that a <code>mice</code> table should store the <code>Mouse</code> model objects, and that the <code>MiceController</code> should be responsible for passing those objects back and forth!</p>
-
-<p>It all seems pretty automagical. But we have to keep in mind that it was the Rails core team that created and established these conventions, which means that they&rsquo;re not magic &mdash; they&rsquo;re just code! And as much as we can rely on preexisting Rails conventions, there might be times that we need to tweak our code to abide by those conventions. And because computers are not people (and because English is a crazy language with so many strange exceptions), we&rsquo;re probably going to run into a roadblock when dealing with grammar naming conventions. Thankfully, there&rsquo;s a great tool to help with this problem: the Rails <strong>Inflector</strong>, also known as every grammar nerd&rsquo;s dream.</p>
-
-<!--more-->
-
-
-<h2>Meet The Inflector</h2>
-
-<iframe src="//giphy.com/embed/yLV9y5wb0Qb1m" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>The Rails Inflector is actually a part of the ActiveSupport module, which is truly a beast of a module, and probably warrants a few blog posts of its own. The tl;dr version of ActiveSupport is this: it provides a bunch of different patterns to transform simple Ruby strings. The inflector library in particular is responsible for handling the pluralization of different strings.</p>
-
-<p>An important thing to note about the inflections library is that it&rsquo;s pretty much set in stone. According to <a href="http://api.rubyonrails.org/classes/ActiveSupport/Inflector.html">the documentation</a>, these rules are never going to change so that Rails can remain backwards-compatible for older applications:</p>
-
-<blockquote><p>&ldquo;The Rails core team has stated patches for the inflections library will not be accepted in order to avoid breaking legacy applications which may be relying on errant inflections. If you discover an incorrect inflection and require it for your application or wish to define rules for languages other than English, please correct or add them yourself.&rdquo;</p></blockquote>
-
-<p>Basically, what this means is that Rails provides us with some basic inflections; however, if we want to create our own custom grammar rules (or if we notice something that&rsquo;s incorrect), we have to write our own inflections for our application. It&rsquo;s also worth noting that if we want to create models that are <em>not</em> English words, we&rsquo;d need to write our own pluralize rules for those as well. But before we go about writing completely new inflections, let&rsquo;s first see what inflector methods we have available to us!</p>
-
-<h2>Inflector Methods</h2>
-
-<iframe src="//giphy.com/embed/l41lS9B8KYJ9dYZck" width="480" height="283" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>The <code>ActiveSupport::Inflector</code> module has a handful of public instance methods that are available for us to use. In fact, when I was first learning Rails, I played around with these methods in irb, but didn&rsquo;t really know (much less <em>understand</em>) where they were coming from. But it turns out that the Inflector methods can be super useful! Here are some of my favorites:</p>
-
-<h3><code>humanize</code></h3>
-
-<p>This method is great for displaying an attribute name to end users. It deletes any leading underscores, replaces underscores with spaces, downcase all words (except acronyms), and capitalizes the first word. Basically, it makes your attributes human-readable, which can be helpful for displaying an error message to your user:</p>
-
-<pre><code class="ruby">♥ rails console
-Loading development environment (Rails 4.1.4)
-irb(main):001:0&gt; humanize(author.first_name) 
-=&gt; "First name"
-</code></pre>
-
-<h3><code>titleize</code></h3>
-
-<p>The <code>titleize</code> method is pretty perfect for our bookstore application. It capitalizes all the words and replaces underscores with spaces:</p>
-
-<pre><code class="ruby">irb(main):002:0&gt; 'of_mice_and_men'.titleize
-=&gt; "Of Mice And Men"
-</code></pre>
-
-<p><em>Protip: this method is also aliased as <code>titlecase</code>.</em></p>
-
-<h3><code>parameterize</code></h3>
-
-<p>This method replaces special characters in a string so that it can be used in a URL (think sluggable names with hyphens):</p>
-
-<pre><code class="ruby">irb(main):003:0&gt; 'Of Mice And Men'.parameterize
-=&gt; "of-mice-and-men"
-</code></pre>
-
-<h3><code>singularize</code></h3>
-
-<p>The <code>singularize</code> method does exactly what you think it would do: it returns the singular form of a word in a string:</p>
-
-<pre><code class="ruby">irb(main):004:0&gt; 'mice'.singularize
-=&gt; "mouse"
-irb(main):005:0&gt; 'men'.singularize
-=&gt; "man"
-</code></pre>
-
-<h3><code>pluralize</code></h3>
-
-<p>And the <code>pluralize</code> method does the opposite things: returns the plural form of a word in string format:</p>
-
-<pre><code class="ruby">irb(main):006:0&gt; "mouse".pluralize
-=&gt; "mice"
-irb(main):007:0&gt; "man".pluralize
-=&gt; "men"
-</code></pre>
-
-<p>There are tons more Inflector methods that are very <a href="http://api.rubyonrails.org/classes/ActiveSupport/Inflector.html">well-documented</a>. In fact, there are so many great methods that you might be thinking to yourself, <em>why would I ever have to write my own methods?</em></p>
-
-<p>Well, what if we wanted <code>Specimen</code> objects, which needed to be pluralized as <code>Specimens</code>. We could assume that Rails will handle that for us&hellip;or we could double-check:</p>
-
-<pre><code class="ruby">irb(main):008:0&gt; "specimen".pluralize
-=&gt; "specimen"
-</code></pre>
-
-<p>Oops! It seems like the predefined inflections are taking hold here and parsing &ldquo;men&rdquo; as the plural form of &ldquo;man&rdquo;, like we saw earlier. You know what this means&hellip;time to write our <em>own</em> inflections!</p>
-
-<h2>New Inflection Rules</h2>
-
-<p>One of the coolest public instance methods of the <code>`ActiveSupport::Inflector</code> module is the method that allows us to specify our own inflector rules. This method is appropiately named <code>inflections</code>, and it does some interesting things.</p>
-
-<p>The <code>inflections</code> method yields to a singleton instance of <code>ActiveSupport::Inflector::Inflections</code>. It can be passed an optional locale, which is how we could write inflection rules for other languages; the default locale is English (specified as the argument <code>:en</code>).</p>
-
-<p>We can write our own inflections inside of the <code>config/initializers/inflections.rb</code> file. This file actually already exists and will look like this when we first open it:</p>
-
-<pre><code class="ruby"># Be sure to restart your server when you modify this file.
-
-# Add new inflection rules using the following format. Inflections
-# are locale specific, and you may define rules for as many different
-# locales as you wish. All of these examples are active by default:
-# ActiveSupport::Inflector.inflections(:en) do |inflect|
-#   inflect.plural /^(ox)$/i, '\1en'
-#   inflect.singular /^(ox)en/i, '\1'
-#   inflect.irregular 'person', 'people'
-#   inflect.uncountable %w( fish sheep )
-# end
-
-# These inflection rules are supported but not enabled by default:
-# ActiveSupport::Inflector.inflections(:en) do |inflect|
-#   inflect.acronym 'RESTful'
-# end
-</code></pre>
-
-<p>We can already see how to go about writing our inflections with the examples in this file, including some of the methods we can use, depending on what our edge case is. There are actually a lot of <a href="http://api.rubyonrails.org/classes/ActiveSupport/Inflector/Inflections.html">methods available</a> to us inside of our inflections block, some of the most helpful being <code>plural</code>, <code>singular</code>, <code>uncountable</code>, and <code>irregular</code>. In our case, we&rsquo;re dealing with an irregular inflection wherein <code>specimen</code> needs to be pluralized as <code>specimens</code>, so we&rsquo;ll use the <code>irregular</code> method, which takes two arguments: the singular and the plural form of the word as strings.</p>
-
-<pre><code class="ruby">ActiveSupport::Inflector.inflections(:en) do |inflect|
-  inflect.irregular 'specimen', 'specimens'
-en
-</code></pre>
-
-<p>Awesome! Now our entire application will know about this inflection rule. And the really great thing about this is that our new rule that we just wrote is added at the top of this file, which means that our irregular rule for <code>specimen</code> will be the first of the singularization and pluralization rules that is run. This ensures that our rules will always run before any of the preexisting rules that come with <code>ActiveSupport::Inflector</code>.</p>
-
-<p>Whew &mdash; that was quite an inflection adventure! But now the next time we have a grammar mistake, we can fix it easily, just like this slightly strange puppet (is a gopher? A beaver? I don&rsquo;t know!) keeps telling us to do:</p>
-
-<iframe src="//giphy.com/embed/DIBVWfW8vtQli" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>ActiveSupport::Inflector</code> handles a lot of the grammar rules in Rails. The <code>inflections.rb</code> file is where we can write our own inflection rules. Check out all the preexisting inflections in the Rails <a href="https://github.com/rails/rails/blob/92f567ab30f240a1de152061a6eee76ca6c4da86/activesupport/lib/active_support/inflections.rb">source code</a>.</li>
-<li>Curious how Rails knows what grammar rules to follow? Check out <a href="http://ilanasufrin.github.io/blog/2014/07/30/a-rails-grammar-lesson/">this blog post</a>, which explains it all.</li>
-<li>If you are very brave, dig through the <a href="https://github.com/rails/rails/blob/6c75a111995a9aab09e19c2b6a8a42162f689bc6/activesupport/lib/active_support/inflector/inflections.rb">source code</a> for all of the methods available to <code>inflections</code>.</li>
 </ul>
 
 ]]></content>

@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-09-29T08:44:42-04:00</updated>
+  <updated>2015-10-06T08:52:32-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,233 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Fleeting Filing With Ruby Tempfile]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/10/06/fleeting-filing-with-ruby-tempfile/"/>
+    <updated>2015-10-06T08:46:30-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/10/06/fleeting-filing-with-ruby-tempfile</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/3ViDyv13D9HQQ" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>There are times in a Ruby program or Rails application that one comes to a single realization: <em>Oh no, I need to deal with an external file!</em> For larger applications, this might manifest as a request to your Amazon S3 bucket for a file, which you then need to modify in some way, or perhaps just simply read and have access to. But sometimes, even a simple Ruby script or plain old Ruby class may need to read or write to an external file.</p>
+
+<p>I honestly didn&rsquo;t know a lot about Ruby&rsquo;s File class (wait, Ruby has a <em>file</em> class?! Yes, yes it does.) until recently, when I had to handle a situation that would allow me to download files from a file storage service (such as S3), and then process the file locally on my machine. The process was a bit complicated, and I still think that I have more to learn about how it actually works. But, one thing that I <em>did</em> actually start to wrap my head around is <strong>Ruby Tempfiles</strong>. Yup, that&rsquo;s right: not only does Ruby have a <code>File</code> class &mdash; it also has a <code>Tempfile</code> class.</p>
+
+<p>It turns out that these two classes intersect quite a bit, and it can be a little confusing to know how they differ. The only way to really understand Ruby&rsquo;s <code>Tempfile</code> class is to play around with it and create some tempfiles. So let&rsquo;s get filin&#8217;!</p>
+
+<!--more-->
+
+
+<h2>To File Or To Tempfile</h2>
+
+<iframe src="//giphy.com/embed/TxIwSAVQL18WI" width="480" height="430" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>The reason that the <code>Tempfile</code> class and <code>File</code> class seem so similar &mdash; and can therefore be so confusing &mdash; is because the <code>Tempfile</code> class actually inherits from its parent delegate class, which just so happens to be&hellip;<code>File</code>! So, tempfiles are actually just a type of file. So, what can you do with files in Ruby? And what makes tempfiles different from a regular old file?</p>
+
+<p>Well, the <a href="http://ruby-doc.org/core-2.2.0/File.html">documentation</a> for <code>File</code> objects is hugely informative, and if we dove into it, we&rsquo;d learn that Ruby files actually inherit from a class called <code>IO File</code>. But let&rsquo;s not get too distracted here: what can we do with files, again? Well, we can read a file&rsquo;s data, we can write more data to it, and we can even change its permissions (i.e. who can access and write to the file). Pretty straightforward, right?</p>
+
+<p>Now, onto tempfiles. As their name would suggest, they&rsquo;re files that are temporary. But even though they are named pretty well, it still might not be clear in what <em>way</em> these files are temporary. Well, we can create tempfiles in the same way that we create regular Ruby files, but what makes them unique is that tempfiles <strong>only exist as long as there is a reference to them</strong>. In other words, tempfiles get deleted automatically by the Ruby garbage collector. If no variable is pointing (read: assigned) to a tempfile, the garbage collector will &ldquo;finalize&rdquo; the tempfile object, and the file would be deleted from our system.</p>
+
+<p>So&hellip;why is this significant? Well, what would happen if we tried to access a tempfile that Ruby has deleted? Bad things, that&rsquo;s what! Well, we&rsquo;d actually just get an error, because we&rsquo;d be trying to access a file at a path that doesn&rsquo;t exist anymore. But still, things could get pretty bleak if we didn&rsquo;t know what was going on &mdash; or worse, if we didn&rsquo;t fundamentally understand how tempfiles worked!</p>
+
+<p>A good rule of thumb for deciding whether or not to use a tempfile is this: if we need access to the file outside of the context of our Ruby script, we probably shouldn&rsquo;t be using a tempfile. However, if we want to temporarily create, read, or write to a file, and then have Ruby delete it for us (for free!) when we&rsquo;re done using it, then a tempfile is our new best friend!</p>
+
+<h2>The Order of Filing Operations</h2>
+
+<iframe src="//giphy.com/embed/xTiTnjZAjQipGn9JFS" width="480" height="143" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>When it comes to creating files, there&rsquo;s a certain order of operations with method invocation. Even though the documentation for the <code>Tempfile</code> class has a list of helpful methods for us to use, there&rsquo;s a lot of less obvious functionality at our disposal, as long as we know where to look. Because the Ruby <code>Tempfile</code> essentially inherits from <code>File</code>, a tempfile behaves just like a file object. This means that we can call any <code>File</code> instance method on a <code>Tempfile</code> object. This is particularly important to note since some of the most common methods that are called on a tempfile are actually defined within the <code>File</code> class. So, if we couldn&rsquo;t find where a particular method on a tempfile was being defined, it probably means that we need to go look inside of the <code>File</code> class.</p>
+
+<p>Okay, enough talk about where to <em>find</em> these methods; let&rsquo;s figure out which methods are actually pertinent to tempfiles. Both files and tempfiles share a sequence of events: generally, we create the file, then we read or write to it, and then we close it. But with tempfiles, there&rsquo;s a little twist at the end. Let&rsquo;s take a look at the order of filing operations:</p>
+
+<h3>1. <code>new</code></h3>
+
+<p>This method is pretty self-explanatory: it&rsquo;s what we&rsquo;ll use to create a new tempfile. This comes from the <code>File</code> class, and takes a single argument: the name of our file. Let&rsquo;s create a tempfile called <code>cats</code>:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>♥ irb
+</span><span class='line'>irb(main):001:0&gt; tempfile = Tempfile.new('cats')
+</span><span class='line'>=&gt; #&lt;Tempfile:/var/folders/v7/8rk39kc11ln54w3tl7twrhwc0000gn/T/cats20151005-24769-ac6qgw&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This creates a unique filename in our operating slystem&rsquo;s temp directory, and it contains our filename <code>cats</code> in its basename. If we wanted to find out exactly <em>where</em> in our temp directory this file lives, we could just ask it for its path using &mdash; you guessed it &mdash; the <code>path</code> method:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>irb(main):002:0&gt; tempfile.path
+</span><span class='line'>=&gt; "/var/folders/v7/8rk39kc11ln54w3tl7twrhwc0000gn/T/cats20151005-24769-ac6qgw"</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We could also specify the extension of the file that we&rsquo;re creating (i.e., <code>pdf</code>, <code>gif</code>, etc.). However, it&rsquo;s not as simple as just appending it to our filename; if we do that, this is what happens:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>irb(main):003:0&gt; Tempfile.new('cats.pdf').path
+</span><span class='line'>=&gt; "/var/folders/v7/8rk39kc11ln54w3tl7twrhwc0000gn/T/cats.pdf20151006-24769-xvpyh0"</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Not great! We don&rsquo;t want our extension to be a <em>part</em> of our filename, we want it to be at the end, obviously! Luckily, the <code>new</code> method <a href="http://makandracards.com/makandra/13719-ruby-how-to-ensure-a-tempfile-s-extension">allows us</a> to pass the filename and extension as an array:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>irb(main):004:0&gt; Tempfile.new([ 'cats', '.pdf' ]).path
+</span><span class='line'>=&gt; "/var/folders/v7/8rk39kc11ln54w3tl7twrhwc0000gn/T/cats20151006-24769-1kzx615.pdf"</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Much better! Now, let&rsquo;s open this file up.</p>
+
+<h3>2. <code>binmode</code></h3>
+
+<p>The next step is to put our file into binary mode by using the <code>binmode</code> method. As <a href="http://ruby-doc.org/core-2.0.0/IO.html#method-i-binmode">the documentation</a> explains, this method is what changes how we write data to the tempfile&rsquo;s binary.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>irb(main):005:0&gt; tempfile.binmode
+</span><span class='line'>=&gt; #&lt;File:/var/folders/v7/8rk39kc11ln54w3tl7twrhwc0000gn/T/cats20151005-24769-ac6qgw&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This disables us from encoding and creating new lines, and it changes the way that we write content; setting a file to binary mode forces Ruby to treat the content as ASCII-8BIT. There&rsquo;s also a handy <code>binmode?</code> method that we can use to check whether our file is in binary mode or not.</p>
+
+<h3>3. <code>write</code></h3>
+
+<p>Finally, once we&rsquo;re in binary mode, we actually write to our file! And of course, the tool for the job is the <code>write</code> method. This takes a parameter of whatever it is that you want to write to the file.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>irb(main):006:0&gt; file.write("meow meow meow")</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Interestingly, this method is <a href="http://ruby-doc.org/core-2.2.3/IO.html#method-c-write">defined</a> in the <code>IO</code> class, which subclasses into <code>StringIO</code>.</p>
+
+<h3>4. <code>rewind</code></h3>
+
+<p>Now, if we wanted to read to our file, we could just read it, right?</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>irb(main):007:0&gt; file.read
+</span><span class='line'>=&gt; ""</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Wait, what happened to our <code>"meow meow meow"</code> string? Well, if we think about it, when we were writing to our file, we ended at the end of wherever we stopped writing. And that means that there&rsquo;s nothing to read, because we&rsquo;re at the <em>end</em> of our file. This calls for the <code>rewind</code> method, which will take us back to the beginning of our tempfile.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>irb(main):008:0&gt; file.rewind
+</span><span class='line'>=&gt; 0</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We&rsquo;re now at the beginning of our file!</p>
+
+<h3>5. <code>read</code></h3>
+
+<p>After rewinding back to the beginning of our file, we can now actually read it using the <code>read</code> method:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>irb(main):009:0&gt; file.read
+</span><span class='line'>=&gt; "meow meow meow"</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So far, we&rsquo;ve been working with this file as though it&rsquo;s a normal Ruby <code>File</code> class. But let&rsquo;s not forget&hellip;this is actually a <code>Tempfile</code>. And dealing with how to close and clean up a tempfile is where things can get tricky. Now all that&rsquo;s left is for us to elegantly handle these fleeting, disappearing files.</p>
+
+<h2>Disappearing Files</h2>
+
+<p>The last steps in the order of filing operations is explicitly closing our tempfile. This is probably the most complicated part to understand, especially if we&rsquo;re not familiar with the concept of garbage collection. However, I think that the Ruby docs do a pretty great job of explaining the how and why of explicitly closing tempfiles, a good practice that the core team strongly encourages:</p>
+
+<blockquote><p>&ldquo;When a Tempfile object is garbage collected, or when the Ruby interpreter exits, its associated temporary file is automatically deleted. This means that it’s unnecessary to explicitly delete a Tempfile after use, though it’s good practice to do so: not explicitly deleting unused Tempfiles can potentially leave behind large amounts of tempfiles on the filesystem until they’re garbage collected. The existance of these temp files can make it harder to determine a new Tempfile filename.&rdquo;</p></blockquote>
+
+<p>The guides suggest that the best way to go about deleting a tempfile after we&rsquo;re done using it is by calling two specific methods from within an <code>ensure</code> block (remember the <code>ensure</code> keyword? No? Don&rsquo;t worry, you can read about it <a href="http://vaidehijoshi.github.io/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/">over here</a>).</p>
+
+<p>But first, let&rsquo;s round out our order of filing operations with the two most important tempfile methods.</p>
+
+<h3>6. <code>close</code></h3>
+
+<p>This method basically tells the Ruby interpreter, <em>you can&rsquo;t read the file now!</em>. It closes the file and doesn&rsquo;t allow it to be read or written to.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>irb(main):010:0&gt; file.close
+</span><span class='line'>=&gt; nil</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Some blogs have mentioned that this method isn&rsquo;t always necessary, but it can&rsquo;t hurt to use it.</p>
+
+<h3>7. <code>unlink</code></h3>
+
+<p>This method is what actualy <em>deletes</em> the file from the filesystem.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>irb(main):034:0&gt; file.unlink
+</span><span class='line'>=&gt; #&lt;Tempfile:&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We could also use the <code>delete</code> method, which is just an alias for <code>unlink</code>.</p>
+
+<p>Playing with these methods in <code>irb</code> has been fun, but what would this look like in a Rails application? Well, we&rsquo;d probably want a single method to handle the creation, writing, and deletion of our tempfile (think separation of concerns!). And this is where the use of our <code>ensure</code> block would come in.</p>
+
+<p>This might look something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">file_attachment</span>
+</span><span class='line'>  <span class="n">tempfile</span> <span class="o">=</span> <span class="no">Tempfile</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="no">SecureRandom</span><span class="o">.</span><span class="n">uuid</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">tempfile</span><span class="o">.</span><span class="n">binmode</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">begin</span>
+</span><span class='line'>    <span class="n">tempfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;some text we could write or pass in dynamically&quot;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">tempfile</span><span class="o">.</span><span class="n">rewind</span>
+</span><span class='line'>  <span class="k">ensure</span>
+</span><span class='line'>    <span class="n">tempfile</span><span class="o">.</span><span class="n">close</span>
+</span><span class='line'>    <span class="n">tempfile</span><span class="o">.</span><span class="n">unlink</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Here, we&rsquo;re using all of the methods in our order of tempfile operations! And, because ensure runs <em>even if</em> there were any errors raised, we&rsquo;re basically always going to handle the closing and deleting of our tempfile. In this case, we probably don&rsquo;t want to call all our tempfiles <code>cats</code>, so instead we can be a bit more fancy and use the <code>SecureRandom</code> <a href="http://ruby-doc.org/stdlib-1.9.3/libdoc/securerandom/rdoc/SecureRandom.html">module</a> to create a base64 tempfile name each time. We even go crazy and take this yet another step further, and have our <code>file_attachment</code> method take a block, which we could <code>yield</code> to inside of our <code>begin</code> block, before we <code>rewind</code> to the beginning of our tempfile.</p>
+
+<p>As you can see, the possibilies are pretty endless! Tempfiles are our oysters! Well, until Ruby&rsquo;s garbage collector deletes them, that is.</p>
+
+<iframe src="//giphy.com/embed/m77wEsvF99FyU" width="480" height="322" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The fundamental difference between Ruby&rsquo;s <code>File</code> class and <code>Tempfile</code> class is that tempfiles are cleaned up (deleted by the garbage collector) once there is nothing pointing to them. Tempfile objects inherit from the <code>File</code> class, which means that we can use any file method on a <code>Tempfile</code> instance.</li>
+<li>unlink</li>
+<li>There are some great tutorials out there on dealing with creating files and directories from within a Ruby script. Check out my two favorites <a href="http://code.tutsplus.com/tutorials/ruby-for-newbies-working-with-directories-and-files--net-18810">here</a> and <a href="http://www.techotopia.com/index.php/Working_with_Files_in_Ruby">here</a>.</li>
+<li><a href="https://viget.com/extend/make-remote-files-local-with-ruby-tempfile">https://viget.com/extend/make-remote-files-local-with-ruby-tempfile</a></li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Using Pundit, the Cool Kid of Authorization]]></title>
@@ -4542,453 +4769,6 @@ outer join to start.</p>
 <li>A left outer join will return all the values from the left database, and any values that correspond from the right database. A right outer join will return all the values from the right database, and any values that correspond form the left. Any values that don&rsquo;t have a corresponding row will be returned as <code>NULL</code>.</li>
 <li>Still curious about inner vs outer joins? Check out <a href="http://www.programmerinterview.com/index.php/database-sql/inner-vs-outer-joins/">this blog post</a>.</li>
 <li>Want to know about ALL the different join tables out there? Here&rsquo;s a dope <a href="https://raw.githubusercontent.com/equivalent/scrapbook2/master/assets/images/2014/sql-joins.png">graphic</a> that explains it well.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[The Secret Life of Your Database, Part 1: Migrations]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/"/>
-    <updated>2015-05-19T08:51:11-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations</id>
-    <content type="html"><![CDATA[<p><img src="http://31.media.tumblr.com/tumblr_mcsccsfcnn1qz9l5so1_1280.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>As young developers, we often get caught up in what we don&rsquo;t know. One of the first and hardest lessons to learn when you&rsquo;re starting out as a programmer is the sheer volume of things that you don&rsquo;t know. You have to get comfortable not knowing them, and you have to work towards learning as much about them as you can.</p>
-
-<p>However, sometimes we focus so much on learning new things, that we forget to come back to what we already know &ndash; or at least, what we <em>think</em> we already know. In fact, this is exactly what I&rsquo;ve been guilty of for the past few weeks. I&rsquo;ve been focusing so much on learning new frameworks and getting comfortable with other languages, that I forgot to question my knowledge of Rails. Since it was a known domain and language, I assumed that I didn&rsquo;t need to revisit it that often.</p>
-
-<p>But boy, was I wrong. Just because you&rsquo;re familiar with something doesn&rsquo;t mean that you understand it completely. The trick to dealing with this is to make yourself feel uncomfortable in your otherwise familiar language. And that&rsquo;s exactly what happened to me. Last week, while writing some lines of SQL (yes, really), I ran across a database migration that used an <code>up</code> and a <code>down</code> method. I saw those lines of code and realized something: I had no idea how my database really works. In fact, I&rsquo;ve written so many migrations in so many Rails applications that, at some point, I&rsquo;ve stopped thinking about what was actually going on under the hood. So, I set out to make myself uncomfortable and uncover the secret life of my database.</p>
-
-<!--more-->
-
-
-<h2>Teach Me How To Migrate</h2>
-
-<p>Most of us were introduced to Rails databases through migrations. Migrations are how we alter our database schema over time. They implement a Ruby DSL (domain-specific language), and run SQL queries in our database for us. And, they are super easy to learn to use and understand:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">rails</span> <span class="n">generate</span> <span class="n">migration</span> <span class="no">CreateBooks</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Running a command like the one above prompts Active Record to create a unique, timestamped file within our <code>/db</code> directory, with a migration class that might look something like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">CreateBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
-</span><span class='line'>    <span class="n">create_table</span> <span class="ss">:books</span> <span class="k">do</span> <span class="o">|</span><span class="n">t</span><span class="o">|</span>
-</span><span class='line'>      <span class="n">t</span><span class="o">.</span><span class="n">string</span> <span class="ss">:title</span>
-</span><span class='line'>      <span class="n">t</span><span class="o">.</span><span class="n">integer</span> <span class="ss">:year</span>
-</span><span class='line'>
-</span><span class='line'>      <span class="n">t</span><span class="o">.</span><span class="n">timestamps</span> <span class="ss">null</span><span class="p">:</span> <span class="kp">false</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Nothing <em>too</em> surprising here; we&rsquo;ve seen this kind of <code>change</code> method before. But what you may <em>not</em> have seen &ndash; or at least, understood &ndash; is something that looks like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">CreateBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">up</span>
-</span><span class='line'>    <span class="n">create_table</span> <span class="ss">:books</span> <span class="k">do</span> <span class="o">|</span><span class="n">t</span><span class="o">|</span>
-</span><span class='line'>      <span class="n">t</span><span class="o">.</span><span class="n">string</span> <span class="ss">:title</span>
-</span><span class='line'>      <span class="n">t</span><span class="o">.</span><span class="n">integer</span> <span class="ss">:year</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">down</span>
-</span><span class='line'>    <span class="n">drop_table</span> <span class="ss">:books</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>So, what does that <code>up</code> and <code>down</code> <em>actually</em> mean? What is going up, exactly&hellip;and what&rsquo;s going down? And how is this different from using the <code>change</code> method, which probably seems way simpler right about now? Well, it&rsquo;s time for us to find out.</p>
-
-<h2>All The Migrations Fit To Run</h2>
-
-<p>The first step to understanding how something works is by unpacking it, step by step. And that&rsquo;s what we&rsquo;ll do with our migrations. Let&rsquo;s first look at how many migrations we currently have.</p>
-
-<p>We&rsquo;ve already generated a few migrations using the <code>rails generate migration</code> commands for our in-progress bookstore application. We can take a look at what all those migrations look like by running the <code>rake db:migrate:status</code> command, which will show us the status of our migrations, including any pending ones we may have:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">❤</span> <span class="n">rake</span> <span class="ss">db</span><span class="p">:</span><span class="ss">migrate</span><span class="p">:</span><span class="n">status</span>
-</span><span class='line'>
-</span><span class='line'><span class="ss">database</span><span class="p">:</span> <span class="n">bookstore_development</span>
-</span><span class='line'>
-</span><span class='line'> <span class="no">Status</span>   <span class="no">Migration</span> <span class="no">ID</span>    <span class="no">Migration</span> <span class="no">Name</span>
-</span><span class='line'><span class="o">--------------------------------------------------</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20140217160517</span>  <span class="no">Create</span> <span class="n">users</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150424175043</span>  <span class="no">Create</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150429145355</span>  <span class="no">Add</span> <span class="n">media</span> <span class="n">columns</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430140850</span>  <span class="no">Add</span> <span class="n">author</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430160704</span>  <span class="no">Add</span> <span class="n">genre</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430192426</span>  <span class="no">Create</span> <span class="n">reading</span> <span class="n">lists</span>
-</span><span class='line'>   <span class="n">down</span>   <span class="mi">20150430191950</span>  <span class="no">Add</span> <span class="n">user</span> <span class="nb">id</span> <span class="n">to</span> <span class="n">reading</span> <span class="n">lists</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Whoa &ndash; look at all those migrations! And more importantly, look at the column to the left of the migrations: seem familiar? Each one of our migrations has a <code>status</code>, which is either <code>up</code> or <code>down</code>. Let&rsquo;s remember this, we&rsquo;re going to come back to it in a second.</p>
-
-<p>According to the Rails <a href="https://github.com/rails/rails/blob/f47b4236e089b07cb683ee9b7ff8b06111a0ec10/activerecord/lib/active_record/railties/databases.rake#L91">source code</a>, the <code>rake:db:migrate:status</code> rake task displays the status of all our migrations. This can be helpful in determining if we have any migrations we need to run. And it looks like we do! Let&rsquo;s run <code>rake db:migrate</code> and then check the status of our migrations again with <code>rake db:migrate:status</code>:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">❤</span> <span class="n">rake</span> <span class="ss">db</span><span class="p">:</span><span class="ss">migrate</span><span class="p">:</span><span class="n">status</span>
-</span><span class='line'>
-</span><span class='line'><span class="ss">database</span><span class="p">:</span> <span class="n">bookstore_development</span>
-</span><span class='line'>
-</span><span class='line'> <span class="no">Status</span>   <span class="no">Migration</span> <span class="no">ID</span>    <span class="no">Migration</span> <span class="no">Name</span>
-</span><span class='line'><span class="o">--------------------------------------------------</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20140217160517</span>  <span class="no">Create</span> <span class="n">users</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150424175043</span>  <span class="no">Create</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150429145355</span>  <span class="no">Add</span> <span class="n">media</span> <span class="n">columns</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430140850</span>  <span class="no">Add</span> <span class="n">author</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430160704</span>  <span class="no">Add</span> <span class="n">genre</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430192426</span>  <span class="no">Create</span> <span class="n">reading</span> <span class="n">lists</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430191950</span>  <span class="no">Add</span> <span class="n">user</span> <span class="nb">id</span> <span class="n">to</span> <span class="n">reading</span> <span class="n">lists</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Hm, interesting. That last migration, which adds a <code>user_id</code> column to our <code>reading_lists</code> table, now has a status of <code>up</code>. We&rsquo;ve basically migrated our database up, meaning that we have no pending migrations and all of our migrations are up to date.</p>
-
-<p>But what if we wanted to rollback our migration, instead? Or, better yet, what if we wanted to rollback the last two migrations? Could we go back in time? Back to when we didn&rsquo;t even have a <code>reading_lists</code> table in our database? How would we do that?</p>
-
-<p>Well, we could run a command like <code>rake db:rollback STEP=</code>, which rolls back our database however many steps we specify. For this example, we&rsquo;ll just rollback to two migrations ago (<code>rake db:rollback STEP=2</code>). What is the state of our database now? Let&rsquo;s check the <code>migrate:status</code> again:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">❤</span> <span class="n">rake</span> <span class="ss">db</span><span class="p">:</span><span class="ss">migrate</span><span class="p">:</span><span class="n">status</span>
-</span><span class='line'>
-</span><span class='line'><span class="ss">database</span><span class="p">:</span> <span class="n">bookstore_development</span>
-</span><span class='line'>
-</span><span class='line'> <span class="no">Status</span>   <span class="no">Migration</span> <span class="no">ID</span>    <span class="no">Migration</span> <span class="no">Name</span>
-</span><span class='line'><span class="o">--------------------------------------------------</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20140217160517</span>  <span class="no">Create</span> <span class="n">users</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150424175043</span>  <span class="no">Create</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150429145355</span>  <span class="no">Add</span> <span class="n">media</span> <span class="n">columns</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430140850</span>  <span class="no">Add</span> <span class="n">author</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430160704</span>  <span class="no">Add</span> <span class="n">genre</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">down</span>   <span class="mi">20150430192426</span>  <span class="no">Create</span> <span class="n">reading</span> <span class="n">lists</span>
-</span><span class='line'>   <span class="n">down</span>   <span class="mi">20150430191950</span>  <span class="no">Add</span> <span class="n">user</span> <span class="nb">id</span> <span class="n">to</span> <span class="n">reading</span> <span class="n">lists</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Nice! We&rsquo;ve migrated our database down, back to two migrations ago. There&rsquo;s some serious <em>Back To The Future</em> stuff going down right now.</p>
-
-<iframe src="//giphy.com/embed/uYfz9FKd0EGpG" width="480" height="255" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<h2>What Your Database Won&rsquo;t Tell You (Unless You Ask)</h2>
-
-<p>Okay, so we can migrate up and down a database. Cool. We can go back and forth in time, to older versions of our database and to newer &ndash; and even the newest! &ndash; version of our database. Double cool. But what about what we <em>originally</em> set out to figure out? What do the <code>up</code> and <code>down</code> methods do in our migrations? And why do we only see them <em>some</em> of the time?</p>
-
-<p>If you had an inkling that the <code>up</code> and <code>down</code> methods were somehow interlinked with the migration <code>status</code> column we saw when we ran <code>rake db:migrate:status</code>&hellip;well, your inkling was right on the money. They <em>are</em> connected, and in a really cool way.</p>
-
-<p>The <code>up</code> and <code>down</code> methods are defined on a <code>Migration</code> class, which inherits from the <code>ActiveRecord::Migration</code> class. Active Record literally puts the M (model) in MVC, since it&rsquo;s what handles all of our database records. And Active Record is pretty darn smart. Depending on which rake task we provide it, Active Record will execute either an <code>up</code> method in a migration file, or a <code>down</code> method.</p>
-
-<p>The Rails Guides <a href="http://edgeguides.rubyonrails.org/active_record_migrations.html">explain this</a> pretty well:</p>
-
-<blockquote><p>&ldquo;The up method should describe the transformation you&rsquo;d like to make to your schema, and the down method of your migration should revert the transformations done by the up method. In other words, the database schema should be unchanged if you do an up followed by a down. For example, if you create a table in the up method, you should drop it in the down method. It is wise to perform the transformations in precisely the reverse order they were made in the up method.&rdquo;&#8221;</p></blockquote>
-
-<p>As you might have guessed, these two methods are inverse of each other in both form and function. The <code>up</code> method is called when migrating &ldquo;up&rdquo; the database &ndash; <em>forward</em> in time &ndash; while the <code>down</code> method is called when migrating &ldquo;down&rdquo; the database &ndash; or, <em>back</em> in time. In other words, <strong>the <code>up</code> method is a set of directions for running a migration, while the <code>down</code> method is a set of instructions for reverting a migration</strong>. This implies that the code in these two methods should fundamentally do the opposite things of one another.</p>
-
-<p>This also means is that only <em>one</em> of these methods can ever actually run during a migration. If we run <code>rake db:migrate</code>, all of the <code>up</code> methods will execute, and every migration that is currently set to <code>down</code> will change to a status of <code>up</code>:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">❤</span> <span class="n">rake</span> <span class="ss">db</span><span class="p">:</span><span class="ss">migrate</span><span class="p">:</span><span class="n">status</span>
-</span><span class='line'>
-</span><span class='line'><span class="ss">database</span><span class="p">:</span> <span class="n">bookstore_development</span>
-</span><span class='line'>
-</span><span class='line'> <span class="no">Status</span>   <span class="no">Migration</span> <span class="no">ID</span>    <span class="no">Migration</span> <span class="no">Name</span>
-</span><span class='line'><span class="o">--------------------------------------------------</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20140217160517</span>  <span class="no">Create</span> <span class="n">users</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150424175043</span>  <span class="no">Create</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">down</span>   <span class="mi">20150429145355</span>  <span class="no">Add</span> <span class="n">media</span> <span class="n">columns</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">down</span>   <span class="mi">20150430140850</span>  <span class="no">Add</span> <span class="n">author</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">down</span>   <span class="mi">20150430160704</span>  <span class="no">Add</span> <span class="n">genre</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">down</span>   <span class="mi">20150430192426</span>  <span class="no">Create</span> <span class="n">reading</span> <span class="n">lists</span>
-</span><span class='line'>   <span class="n">down</span>   <span class="mi">20150430191950</span>  <span class="no">Add</span> <span class="n">user</span> <span class="nb">id</span> <span class="n">to</span> <span class="n">reading</span> <span class="n">lists</span>
-</span><span class='line'>
-</span><span class='line'><span class="err">❤</span> <span class="n">rake</span> <span class="ss">db</span><span class="p">:</span><span class="n">migrate</span>
-</span><span class='line'><span class="err">❤</span> <span class="n">rake</span> <span class="ss">db</span><span class="p">:</span><span class="ss">migrate</span><span class="p">:</span><span class="n">status</span>
-</span><span class='line'>
-</span><span class='line'><span class="ss">database</span><span class="p">:</span> <span class="n">bookstore_development</span>
-</span><span class='line'>
-</span><span class='line'> <span class="no">Status</span>   <span class="no">Migration</span> <span class="no">ID</span>    <span class="no">Migration</span> <span class="no">Name</span>
-</span><span class='line'><span class="o">--------------------------------------------------</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20140217160517</span>  <span class="no">Create</span> <span class="n">users</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150424175043</span>  <span class="no">Create</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150429145355</span>  <span class="no">Add</span> <span class="n">media</span> <span class="n">columns</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430140850</span>  <span class="no">Add</span> <span class="n">author</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430160704</span>  <span class="no">Add</span> <span class="n">genre</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430192426</span>  <span class="no">Create</span> <span class="n">reading</span> <span class="n">lists</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430191950</span>  <span class="no">Add</span> <span class="n">user</span> <span class="nb">id</span> <span class="n">to</span> <span class="n">reading</span> <span class="n">lists</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>And if we run <code>rake db:rollback</code>, the most <em>recent</em> migration that was run (and had its status set to <code>up</code>) will be reverted by calling the <code>down</code> method in the migration file. If we run <code>rake db:rollback STEP=</code>, the <code>down</code> method will be invoked in every migration file we specify we want to rollback (or how many steps back we want to go in the database&rsquo;s history):</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">❤</span> <span class="n">rake</span> <span class="ss">db</span><span class="p">:</span><span class="ss">migrate</span><span class="p">:</span><span class="n">status</span>
-</span><span class='line'>
-</span><span class='line'><span class="ss">database</span><span class="p">:</span> <span class="n">bookstore_development</span>
-</span><span class='line'>
-</span><span class='line'> <span class="no">Status</span>   <span class="no">Migration</span> <span class="no">ID</span>    <span class="no">Migration</span> <span class="no">Name</span>
-</span><span class='line'><span class="o">--------------------------------------------------</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20140217160517</span>  <span class="no">Create</span> <span class="n">users</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150424175043</span>  <span class="no">Create</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150429145355</span>  <span class="no">Add</span> <span class="n">media</span> <span class="n">columns</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430140850</span>  <span class="no">Add</span> <span class="n">author</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430160704</span>  <span class="no">Add</span> <span class="n">genre</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430192426</span>  <span class="no">Create</span> <span class="n">reading</span> <span class="n">lists</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430191950</span>  <span class="no">Add</span> <span class="n">user</span> <span class="nb">id</span> <span class="n">to</span> <span class="n">reading</span> <span class="n">lists</span>
-</span><span class='line'>
-</span><span class='line'><span class="err">❤</span> <span class="n">rake</span> <span class="ss">db</span><span class="p">:</span><span class="n">rollback</span> <span class="no">STEP</span><span class="o">=</span><span class="mi">3</span>
-</span><span class='line'><span class="err">❤</span> <span class="n">rake</span> <span class="ss">db</span><span class="p">:</span><span class="ss">migrate</span><span class="p">:</span><span class="n">status</span>
-</span><span class='line'>
-</span><span class='line'><span class="ss">database</span><span class="p">:</span> <span class="n">bookstore_development</span>
-</span><span class='line'>
-</span><span class='line'> <span class="no">Status</span>   <span class="no">Migration</span> <span class="no">ID</span>    <span class="no">Migration</span> <span class="no">Name</span>
-</span><span class='line'><span class="o">--------------------------------------------------</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20140217160517</span>  <span class="no">Create</span> <span class="n">users</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150424175043</span>  <span class="no">Create</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150429145355</span>  <span class="no">Add</span> <span class="n">media</span> <span class="n">columns</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430140850</span>  <span class="no">Add</span> <span class="n">author</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">down</span>   <span class="mi">20150430160704</span>  <span class="no">Add</span> <span class="n">genre</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">down</span>   <span class="mi">20150430192426</span>  <span class="no">Create</span> <span class="n">reading</span> <span class="n">lists</span>
-</span><span class='line'>   <span class="n">down</span>   <span class="mi">20150430191950</span>  <span class="no">Add</span> <span class="n">user</span> <span class="nb">id</span> <span class="n">to</span> <span class="n">reading</span> <span class="n">lists</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>And, we could <em>even</em> run or revert a specific migration by giving ActiveRecord the version number/migration id of the migration:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">❤</span> <span class="n">rake</span> <span class="ss">db</span><span class="p">:</span><span class="ss">migrate</span><span class="p">:</span><span class="n">down</span> <span class="no">VERSION</span><span class="o">=</span><span class="mi">20150429145355</span>
-</span><span class='line'><span class="err">❤</span> <span class="n">rake</span> <span class="ss">db</span><span class="p">:</span><span class="ss">migrate</span><span class="p">:</span><span class="n">status</span>
-</span><span class='line'>
-</span><span class='line'><span class="ss">database</span><span class="p">:</span> <span class="n">bookstore_development</span>
-</span><span class='line'>
-</span><span class='line'> <span class="no">Status</span>   <span class="no">Migration</span> <span class="no">ID</span>    <span class="no">Migration</span> <span class="no">Name</span>
-</span><span class='line'><span class="o">--------------------------------------------------</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20140217160517</span>  <span class="no">Create</span> <span class="n">users</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150424175043</span>  <span class="no">Create</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">down</span>   <span class="mi">20150429145355</span>  <span class="no">Add</span> <span class="n">media</span> <span class="n">columns</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430140850</span>  <span class="no">Add</span> <span class="n">author</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430160704</span>  <span class="no">Add</span> <span class="n">genre</span> <span class="n">to</span> <span class="n">books</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430192426</span>  <span class="no">Create</span> <span class="n">reading</span> <span class="n">lists</span>
-</span><span class='line'>   <span class="n">up</span>     <span class="mi">20150430191950</span>  <span class="no">Add</span> <span class="n">user</span> <span class="nb">id</span> <span class="n">to</span> <span class="n">reading</span> <span class="n">lists</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>In the example above, when we ran a <code>migrate:down</code> task, all that was happening is that only the <code>down</code> method written in the &ldquo;AddMediaColumnsToBooks&rdquo; migration file was was invoked!</p>
-
-<iframe src="//giphy.com/embed/i2gzQAinKY3hS" width="480" height="264" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Neat, right!? Or maybe just kind of mind-blowing if you&rsquo;ve never seen this before. Who knew that this is what migrations were really all about? Well, now you and I both know, so that&rsquo;s pretty rad.</p>
-
-<h2>Why Change When You Can Go Up And Down?</h2>
-
-<p>The <code>change</code> method is pretty standard when it comes to migrations partly because it&rsquo;s a newer addition to Rails. Just like <code>up</code> and <code>down</code>, the <code>change</code> method is defined on the <code>ActiveRecord::Migration</code> class. In fact, it does exactly what <code>up</code> and <code>down</code> accomplish together. The <code>change</code> method is <em>usually</em> able to automatically figure out the inverse operation you provide it; for example, if you call <code>create_table</code> inside of the <code>change</code> method, when you run <code>rake db:rollback</code>, it will <code>drop_table</code>. The same goes for <code>add_column</code> and <code>remove_column</code>.</p>
-
-<p>So, if the <code>change</code> method can do all of these things in one go (rather than in two methods), why do we sometimes see an <code>up</code> and <code>down</code> method defined together in a migration file?</p>
-
-<p>Well, there are many times when we might want Active Record to be smart and figure out when to drop a column or table. But other times, it might not be as clear.</p>
-
-<p>For example, what if we wanted a migration that just created or fixed data? We wouldn&rsquo;t want ActiveRecord to try to figure out whether to add or remove a column&hellip;or worse, drop our table! Or what if we wanted to remove columns when we migrated up, and <em>add</em> columns when we migrated down? We&rsquo;d have to specify that explicitly in our <code>up</code> and <code>down</code> methods.</p>
-
-<p>We could even get fancy with some SQL and do something a bit more granular like rename a table:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">RenameReadingListsToWishLists</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">up</span>
-</span><span class='line'>    <span class="n">execute</span> <span class="o">&lt;&lt;-</span><span class="no">SQL</span>
-</span><span class='line'><span class="sh">      ALTER TABLE reading_lists</span>
-</span><span class='line'><span class="sh">        RENAME TO wish_lists;</span>
-</span><span class='line'><span class="no">    SQL</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">down</span>
-</span><span class='line'>    <span class="n">execute</span> <span class="o">&lt;&lt;-</span><span class="no">SQL</span>
-</span><span class='line'><span class="sh">      ALTER TABLE wish_lists</span>
-</span><span class='line'><span class="sh">        RENAME TO reading_lists;</span>
-</span><span class='line'><span class="no">    SQL</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>In this example, we&rsquo;re using the <code>execute</code> method, which takes either a string value of a SQL query, or a heredoc like the one we&rsquo;ve written above.</p>
-
-<p>And we might even want to make it completely impossible for someone to ever revert a migration. We could specify that kind of behavior in our <code>down</code> method by raising an ActiveRecord error:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">down</span>
-</span><span class='line'>  <span class="k">raise</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">IrreversibleMigration</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Depending on which migration file this <code>down</code> method lived in, that migration could never be &ldquo;migrated down&rdquo;. This can sometimes be dangerous, but also useful &ndash; particularly if we had many other data models that were depending on those tables existing in the first place!</p>
-
-<p>It turns out that our database is a pretty powerful thing. Rails provides us with a lot of functionality and flexibility of moulding it to be exactly the way that we want it to be. It&rsquo;s just up to us to take advantage of it in the right situations! The more we learn about shaping our database, the better equipped we&rsquo;ll be to creating effective, concise, and streamlined databases for each and every one of our applications.</p>
-
-<p>But the truth is, we&rsquo;ve only scratched the surface of databases today. Tune in again next week, when I&rsquo;ll uncover the secret life of all your&hellip;JOIN TABLES! Try and contain your enthusiasm, my friends.</p>
-
-<iframe src="//giphy.com/embed/2yAjmbCfYcQUw" width="480" height="293" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>up</code> and <code>down</code> methods are a more granular way of defining the <code>change</code> method in a Rails migration. The <code>up</code> method is a set of instructions of what to do when you migrate, and the <code>down</code> method is a set of directions of what to do when you rollback.</li>
-<li>Want to see more examples of when you might want to use the <code>up</code> and <code>down</code> methods in place of the <code>change</code> method? Check out the Rails Guides on <a href="http://api.rubyonrails.org/classes/ActiveRecord/Migration.html">Active Record Migrations</a>.</li>
-<li>Need to read more on running migrations? <a href="http://guides.rubyonrails.org/v2.3.11/migrations.html#running-migrations">Read this</a>. Gotta brush up on migrations after reading this post? Head over <a href="http://edgeguides.rubyonrails.org/active_record_migrations.html">here</a>.</li>
 </ul>
 
 ]]></content>
