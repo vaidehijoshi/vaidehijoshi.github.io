@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-10-06T08:56:43-04:00</updated>
+  <updated>2015-10-13T13:33:06-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,173 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Stop Worrying and Start Being Concerned: ActiveSupport Concerns]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns/"/>
+    <updated>2015-10-13T09:22:16-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/iQA2hMPX88icM" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>A few weeks ago, while learning everything I never knew about <a href="http://vaidehijoshi.github.io/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/">user authorization</a>, I also stumbled upon a cool refactoring pattern that I didn&rsquo;t even know existed. This pattern is based on the simple idea of Ruby modules and mixins, but is particularly handy when it comes to dealing with class methods and callbacks.</p>
+
+<p>ActiveSupport is a pretty massive component within Rails, and it&rsquo;s responsible for a ton of different functionality, including language extensions and utilities. I last wrote about ActiveSupport back when we were exploring the <a href="http://vaidehijoshi.github.io/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/">Rails inflector</a> and the libraries it provides for handling the pluralization of different strings. This was way back in September, and at the time, my understanding of ActiveSupport was pretty limited. It turns out that yes, ActiveSupport does provide a bunch of different patterns to transform simple Ruby strings&hellip;but it also has a lot more going on inside of it. For example, the <strong>ActiveSupport Concern module</strong>, which only recently made its debut in Rails 4.</p>
+
+<p>The ActiveSupport::Concern wrapper is an interesting way of ecapsulating&hellip;well, certain functionality that you might be <em>concerned</em> with. These concerns take advantage of two directories that are automatically part of the load path within a Rails application: <code>app/models/concerns</code> and <code>app/controllers/concerns</code>. So, how do you write a concern, and what should go inside of it? Don&rsquo;t worry, that&rsquo;s exactly what we&rsquo;ll concern ourselves with next.</p>
+
+<!--more-->
+
+
+<h2>Should We Be Concerned?</h2>
+
+<iframe src="//giphy.com/embed/374pcIBVEGb6g" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Concerns are meant to make our lives less complicated. Or at the very least, we should be less concerned about the quality of our code if we use concerns, right? But what are ActiveSupport&rsquo;s Concerns really meant to be used for? And how do we know if we should be using them? Well, to answer this question, we can turn to the creator of Rails himself. In a blog post pre-Rails 4 titled <em>Put chubby models on a diet with concerns</em>, DHH explains when and why to consider using ActiveSupport&rsquo;s Concern module:</p>
+
+<blockquote><p>&ldquo;Concerns encapsulate both data access and domain logic about a certain slice of responsibility. Concerns are also a helpful way of extracting a slice of model that doesn’t seem part of its essence (what is and isn’t in the essence of a model is a fuzzy line and a longer discussion) without going full-bore Single Responsibility Principle and running the risk of ballooning your object inventory.&rdquo;</p></blockquote>
+
+<p>When we talk about concerns, what we really are honing in on is the most effective <em>separation of concerns</em>. I really like the way that David thinks of models having an &ldquo;essence&rdquo;, and I think that this is a great way of approaching when and when <em>not</em> to use a concern.</p>
+
+<p>Let&rsquo;s look at our bookstore application. We have an <code>User</code> model for anyone that signs up to use our application. Whenever a <code>User</code> signs up, we want to send them an email telling them that they&rsquo;ve been registered, and probably highlighting some of the cool things that they can do to set up their profile on our application. Now, this seems like something that only the <code>User</code> model would be concerned with, right? Well, yes, until we realize that we have another model that needs to share this same functionality!</p>
+
+<p>For example, we now have organizations that want to sign up for our application. They also need to receive the same email and be &ldquo;registered&rdquo;. As our application grows, we might even want to create a <code>Registration</code> model, which would belong to an <code>User</code> and <code>Organization</code>. Now, obviously we could accomplish what we wanted to by just adding the same lines of code to both models, but that makes for neither DRY code, nor a great separation of concerns. But wouldn&rsquo;t it be great if we could take this piece of &ldquo;registration&rdquo; functionality, wrap it up, and only pull it out when we need to use it? It turns out that is exactly what we can do with <code>ActiveSupport::Concern</code>.</p>
+
+<h2>Extending Our Concerns</h2>
+
+<iframe src="//giphy.com/embed/dnNuJUQvEnmjC" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Before we write our concern, let&rsquo;s look at what our <code>User</code> model looks like. Here&rsquo;s a truncated version that contains only the logic pertaining to registering a user:</p>
+
+<pre><code class="ruby">class User &lt; ActiveRecord::Base
+    after_commit :register_user, on: :create
+
+    def register_user
+        # Where our logic for registering a user
+        # would go. Would call on a background job
+        # to perform and send our registration email.
+    end
+end
+</code></pre>
+
+<p>We very well <em>could</em> stick this inside of our <code>organization.rb</code> model file, but there&rsquo;s a better way to do this. There are a few steps to creating a concern, the first of which is recognizing where to put it! Since we&rsquo;re creating a concern for a model, this will live inside of our <code>app/models/concerns</code> directory. We&rsquo;ll call this concern a  <code>Registerer</code> concern, since that&rsquo;s its single responsibility, and we can preemptively namespace our concern under <code>User</code>, which would make its path <code>app/models/concerns/user/registerer.rb</code>.</p>
+
+<p>Next, we&rsquo;ll want to <code>extend</code> the Rails <code>ActiveSupport::Concern</code> module itself from within our concern:</p>
+
+<pre><code class="ruby">module User
+    module Registerer
+        extend ActiveSupport::Concern
+    end
+end
+</code></pre>
+
+<p>Now, for the actual writing, there&rsquo;s one method that&rsquo;s going to be our new best friend: the <code>included</code> method, which takes a block. A little-known fact about this callback is that it&rsquo;s actually defined by Ruby&rsquo;s <code>Module</code> class, and it&rsquo;s called whenever a module is &ldquo;included&rdquo; into another class or module. This is where we&rsquo;ll put the important class methods and callbacks that we want to be shared amongst the models that will use our concern.</p>
+
+<pre><code class="ruby">module User
+    module Registerer
+        extend ActiveSupport::Concern
+
+        included do
+            has_one :registration, dependent: :destroy
+
+            after_commit :register_user, on: :create
+        end
+
+        def register_user
+            send_registration_email(self)
+
+            touch(:registered_at)
+        end
+
+        def send_registration_email(self)
+            RegistrationEmailerJob.perform_later(self)
+        end
+    end
+end
+</code></pre>
+
+<p>This is mostly straightforward. All the logic for a registration now lives in this single file, including the creating of a registration association on our target object (in this case, the <code>User</code> model), the registering of a user by passing our <code>User</code> instance (<code>self</code>) to our <code>RegistrationEmailerJob</code>, and the updating of the <code>registered_at</code> attribute on our <code>User</code> model using the <a href="http://vaidehijoshi.github.io/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/">touch method</a> &mdash; assuming, of course, that we&rsquo;ve defensively coded this attribute onto our <code>User</code> model. We&rsquo;re also able to use the <code>after_commit</code> callback hook, since the <code>included</code> method can accept callback names as parameters.</p>
+
+<p>Now that we have all this code in one place, how do we add it to our model? Well, we can do it in a single line:</p>
+
+<pre><code class="ruby">class User &lt; ActiveRecord::Base
+    include User::Registerer
+end
+</code></pre>
+
+<p>All we need to do is <code>include</code> our concern, just as we would a module. And down the road, when we find out that we need to create <code>Organization</code> model that shares this set of functionality, all we need to do is add the exact same line to our new model:</p>
+
+<pre><code class="ruby">class Organization &lt; ActiveRecord::Base
+    include User::Registerer
+end
+</code></pre>
+
+<p>And here&rsquo;s the really nice part about utilizing concerns in this way: when we realize that we need to change how this works &mdash; maybe we need to add another job or service object, or perhaps another, more specific callback &mdash; we can add it to one place and update our logic in a single file! This ties in quite nicely to DHH&rsquo;s point of a model&rsquo;s &ldquo;essence&rdquo;. In this case, being able to be &ldquo;registered&rdquo; isn&rsquo;t necessarily something that pertains to the <code>User</code> model specifically. But, it also doesn&rsquo;t need to be its own <em>object</em> perse. Instead, we really just need a set of methods that can be available to be invoked upon an object, which is exactly what <code>ActiveSupport::Concern</code> provides us with.</p>
+
+<h2>Helpful Inclusion</h2>
+
+<p>Because concerns are so simple to extend and include, there are lots of use cases for them. We learned earlier that Rails comes with two <code>concerns</code> directories preloaded: one for <code>models</code>, and another for <code>controllers</code>. Let&rsquo;s look at a practical example for using <code>ActiveSupport::Concern</code> in the context of a controller.</p>
+
+<p>We <a href="http://vaidehijoshi.github.io/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/">recently added</a> the <code>pundit</code> gem to our bookstore app for user authorization. But we only had a few controller actions that actually <em>needed</em> to be authorized; the rest of our controllers didn&rsquo;t need any authorization, because they could be accessed by anyone. Our <code>Reviews</code> controller was being authorized, for example, but our <code>Comments</code> controller didn&rsquo;t need any authorization whatsoever.</p>
+
+<p>So, for the controllers that <em>didn&rsquo;t</em> need authorization, what did we do? Well, we were adding some <code>skip_after_actions</code> lines, which were instructions that the <code>pundit</code> gem documentation had given us:</p>
+
+<pre><code class="ruby">class CommentsController &lt; ApplicationController
+  skip_after_action :verify_authorized
+  skip_after_action :verify_policy_scoped
+
+  # RESTful controller actions go here!
+end
+</code></pre>
+
+<p>Now, imagine we also have a <code>BlogsController</code> with just an <code>index</code> action API endpoint, which doesn&rsquo;t need to be authorized. And maybe we also have <code>TagsController</code>, which also doesn&rsquo;t need to be authorized by <code>pundit</code>. We <em>could</em> copy and paste these two lines into every single controller&hellip;<em>or</em>, we could use our newfound knowledge of <code>ActiveSupport::Concern</code>!</p>
+
+<p>Let&rsquo;s share some of this code, shall we? We can create a <code>skip_authorized.rb</code> file inside of <code>app/controllers/concerns</code>. And inside of it, we&rsquo;ll include <code>Pundit</code> &mdash; otherwise, our <code>skip_after_actions</code> will have no idea what actions we&rsquo;re trying to skip! Our concern might look something like this:</p>
+
+<pre><code class="ruby">module SkipAuthorized
+  extend ActiveSupport::Concern
+
+  included do
+    skip_after_action :verify_authorized
+    skip_after_action :verify_policy_scoped
+  end
+end
+</code></pre>
+
+<p>Pretty simple, right? And suddenly, our <code>CommentsController</code>, <code>BlogsController</code>, <code>TagsController</code>, and pretty much <em>every single</em> controller that we want to share these <code>skip_after_action</code> callbacks now can be refactored to have this single line:</p>
+
+<pre><code class="ruby">class CommentsController &lt; ApplicationController
+    include SkipAuthorized
+
+    # RESTful controller actions go here!
+end
+</code></pre>
+
+<p>And now, if we wanted to <code>rescue</code> from a <code>Pundit::UnauthorizedError</code>, we could add a single line, into a single file&hellip;but all of our controllers would mix that in! Similarly, we could create an <code>Authorized</code> concern for every controller that needed to actually implement <code>pundit</code> authorization. See, there&rsquo;s no need to worry for the rest of our days, because instead, we can just be concerned &mdash; ActiveSupport concerned!</p>
+
+<iframe src="//giphy.com/embed/jfw9xNEouCJO" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>ActiveSupport&rsquo;s <code>Concern</code> module allows us to mix in callbacks, class and instance methods, and create associations on target objects. This module has an <code>included</code> method, which takes a block, as well as an <code>append_features</code> method and <code>class_methods</code> block, which you can read about in <a href="http://api.rubyonrails.org/classes/ActiveSupport/Concern.html#method-i-included">the source code</a>.</li>
+<li>This <a href="http://engineering.appfolio.com/2013/06/17/ruby-mixins-activesupportconcern/">blog post</a> is pretty fantastic in its explanation of mixins, modules, and concerns.</li>
+<li>Concerns are a little controversial in Railsland. This <a href="http://www.slideshare.net/justingordon/rails-conf-2014concernsdecoratorspresentersserviceobjectshelpershelpmedecideapril222014">slide deck</a> from RailsConf 2014 shares a bit about why that&rsquo;s the case.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Fleeting Filing With Ruby Tempfile]]></title>
@@ -457,7 +624,7 @@ end
 
 <p>But what if we had a class that never needed to be authorized or scoped? How could we tell <code>pundit</code> to just skip the authorization for that specific model? Well, it&rsquo;s pretty easy &mdash; we can just use <code>skip_after_action</code>:</p>
 
-<pre><code class="ruby">class Comments &lt; ApplicationController
+<pre><code class="ruby">class CommentsController &lt; ApplicationController
     skip_after_action :verify_authorized
     skip_after_action :verify_policy_scoped
 
@@ -774,174 +941,6 @@ end
 <li>Active Job requires you to set up a queuing backend and use the <code>deliver_later</code> method in order to integrate with ActionMailer.</li>
 <li>The Rails Guides for cover all the basics for Active Job; head <a href="http://edgeguides.rubyonrails.org/active_job_basics.html">over here</a> to read more.</li>
 <li>Even though Active Job is a relatively new feature of Rails, there are a lot of great blog posts that walk through how to use it. Check out <a href="http://www.gotealeaf.com/blog/handling-emails-in-rails">this one</a>, <a href="http://ryanselk.com/2014/09/25/using-background-jobs-in-rails-42-with-active-job/">another one</a>, and <a href="http://www.jetthoughts.com/blog/tech/2015/04/17/time-for-active-job.html">one more</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[You've Got Mail: Action Mailer + Letter_Opener]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/09/08/youve-got-mail-action-mailer-plus-letter-opener/"/>
-    <updated>2015-09-08T21:45:34-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/09/08/youve-got-mail-action-mailer-plus-letter-opener</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/9xfgwmsfIaSYg" width="480" height="265" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>There&rsquo;s one thing that everyone loves: getting mail! But there&rsquo;s one thing that all developers would rather avoid: sending mail. Unfortunately, this paradox perfectly describes the joys and horrors of getting your application to send a single email.</p>
-
-<p>I recently worked on building out a password reset feature for one of our applications. In order for this feature to work, I had to figure out how to get my Rails application to send an email to our user with a password reset token in case they had forgotten their password. I thought that handling the authentication and token aspect of this would be complicated, but it turned out that learning about mailers was the more fun part. I had never actually worked with Rails mailers before, and honestly, I thought that I was in over my head (this also might be partly attributed to the fact that I had just come back from a two-week vacation and felt like I had completely forgotten how to code).</p>
-
-<p>So, I did what any developer would do: I cried and went home. Okay, okay, I&rsquo;m just kidding! What I <em>actually</em> did was read through the documentation, play around with my application and, in the process, taught myself how to use Rails Action Mailer. I never thought that I&rsquo;d say this but, getting that feature to work and seeing that email pop up was incredibly exciting. In fact, I don&rsquo;t think I&rsquo;ve ever been more excited about sending and receiving an email. But don&rsquo;t let me tell you how thrilling it was &mdash; let&rsquo;s create our own mailer and experience it together!</p>
-
-<!--more-->
-
-
-<h2>Generating Some Mail(ers)</h2>
-
-<iframe src="//giphy.com/embed/izxswKdmqmQrS" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>Rails has a wonderful built-in mailing system called Action Mailer, which allows us to send email from our application as long as we have a <strong>mailer model</strong>. Mailers are actually a lot like controllers: they have their own <code>app/mailers</code> directory, and each mailer has its own associated view as well. Each mailer also inherits from <code>ActionMailer::Base</code>, and just like controllers, can be generated really easily.</p>
-
-<p>For our bookstore app, we won&rsquo;t start off with anything <em>too</em> fancy just yet. Instead, let&rsquo;s stick with a simple mailer that will be responsible for one little thing: sending an order confirmation email whenever a user successfully places an order (did your mind immediately jump to using a <a href="http://vaidehijoshi.github.io/blog/2015/03/24/a-machine-state-of-mind-part-2-implementing-state-machines/">state machine</a>? I hope so!)</p>
-
-<p>To start, we&rsquo;ll use Rails to generate a mailer:</p>
-
-<p><code>♥ bin/rails generate mailer Order</code></p>
-
-<p>Running this command in the terminal generates a few different files for us. We now have an <code>app/mailers</code> directory, with an <code>order_mailer.rb</code> and <code>application_mailer.rb</code> file. It also generates three files inside of <code>app/views</code>: <code>order_mailer</code>, <code>layouts/mailer.text.erb</code>, and <code>layouts/mailer.html.erb</code>, as well as test units for our order mailer (<code>order_mailer_test.rb</code>).</p>
-
-<p>Depending on how many mailers this application will have, it might not makes sense to generate all of these files. If we decided to manually create our mailer rather than generating it, we&rsquo;d need to keep one thing in mind: our mailer <em>must</em> be a file inside of the <code>mailers</code> directory, and it <em>must</em> inherit from <code>ActionMailer::Base</code> (unless, of course, we wanted to use a mailer from another library, such as the <code>Devise::Mailer</code> from the <code>devise</code> gem).</p>
-
-<p>The mailer model has methods defined on it that allows us to actually specify how and where an email is sent. Right now, however, our mailer models look pretty empty! Inside of our generated <code>ApplicationMailer</code>, the only setup we have is our layout configuration and our <code>from</code> address:</p>
-
-<pre><code class="ruby">class ApplicationMailer &lt; ActionMailer::Base
-  default from: "help@vaidehisbookstore.com"
-  layout 'mailer'
-end
-</code></pre>
-
-<p>While our <code>order_mailer.rb</code> is completely empty:</p>
-
-<pre><code class="ruby">class OrderMailer &lt; ApplicationMailer
-end
-</code></pre>
-
-<p>Since mailers are so much like controllers, we can approach writing them in a similar way. The first thing we&rsquo;ll do is write some actions. Just like with controllers, we want our methods to adhere to the single-responsiblity principle, which means that they should be handling only one thing at a time. We&rsquo;ll start by writing a <code>confirmation_email</code> method, which will take an <code>Order</code> object as its parameter.</p>
-
-<pre><code class="ruby">class OrderMailer &lt; ApplicationMailer
-  def confirmation_email(order)
-    @order = order
-  end
-end
-</code></pre>
-
-<p>Just like in controllers, any instance variables that we define in our method &mdash; in this case, <code>@order</code> &mdash; become available for us to use inside of our views. This will be important when we want to render the user&rsquo;s information via our <code>@order</code> instance. But&hellip;we&rsquo;re not actually <em>mailing</em> anything right now, are we? Of course not! In order to actually create our message and render our email templates, we need to use the <code>mail</code> method.</p>
-
-<p>The <code>mail</code> method is defined on <code>ActionMailer::Base</code> (hence why every mailer should always inherit from it so that it has access to this very crucial method). If we look at <a href="http://apidock.com/rails/ActionMailer/Base/mail">the documentation</a> for this method, we can see that it accepts a headers hash, which is where we can specify the most-used headers in an email message. Some of the options we can pass in include <code>subject</code>, <code>to</code>, <code>from</code>, <code>cc</code>, and <code>date</code>, among others. For now, we&rsquo;ll just pass in a <code>to</code> option and a <code>subject</code> option:</p>
-
-<pre><code class="ruby">class OrderMailer &lt; ApplicationMailer
-  def confirmation_email(order)
-    @order = order
-
-    mail(to: order.user.email, subject: "Your Order #{@order.number}")
-  end
-end
-</code></pre>
-
-<p>If we wanted to get <em>really</em> fancy, we could specify <code>default</code> values for any of these headers (except for <code>date</code>) inside of our <code>OrderMailer</code> class. Alternatively, we could also write our <code>mail</code> method as a block, which would allow us to render specific templates &mdash; a piece of functionality that might be nice as we add more methods to this mailer over time. We could also use the block syntax in order to render plain text directly without using a template, which would look something like this:</p>
-
-<pre><code class="ruby">mail(to: order.user.email) do |format|
-    format.text { render plain: "Hi, #{order.user.email}!" }
-    format.html { render html: "&lt;h1&gt;Hi, #{order.user.email}!&lt;/h1&gt;".html_safe }
-end
-</code></pre>
-
-<p>But let&rsquo;s hold off on all these bells and whistles. Let&rsquo;s just get this method into our state machine and actually <em>send</em> this bad boy.</p>
-
-<h2>Send Me Some Mail</h2>
-
-<p>Now for the fun part: sending and receiving our mail! There are two methods we can use to send an email: <code>deliver_now</code> and <code>deliver_later</code>. The former sends our email inline (in the same request-response cycle), while the latter sends emails in the background by integrating with Active Job.</p>
-
-<p>We already wrote our <code>confirmation_email</code> method, so now we just need to invoke it. But, we defined it on our mailer class. However, we don&rsquo;t need to instantiate a new instance of our <code>OrderMailer</code> class (like we would have to do with a service object, for example). Instead, we can just call our <code>confirmation_email</code> method on our mailer class directly. Since brevity is the soul of wit, here&rsquo;s a truncated version of the state machine in our <code>order.rb</code> file, which is where we&rsquo;ll invoke this method:</p>
-
-<pre><code class="ruby">class Order &lt; ActiveRecord::Base
-    include AASM
-
-    aasm column: 'state', whiny_transitions: false do
-        state :complete
-
-        event :completed, after: :send_confirmation_email
-    end
-
-
-    def send_confirmation_email
-        OrderMailer.confirmation_email(self).deliver_now
-    end
-end
-</code></pre>
-
-<p>You&rsquo;ll remember that our <code>confirmation_email</code> method takes an <code>Order</code> as a parameter, which is why we&rsquo;re passing in <code>self</code>, the <code>Order</code> object, into the method, before chaining on <code>deliver_now</code> at the end of it. Now, after our <code>completed</code> event is called, this email will be sent. But how do we know what our email will say, exactly? Well, we can head over to our email templates to find out.</p>
-
-<iframe src="//giphy.com/embed/eRIrROHUPJvgs" width="480" height="348" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>When we generated our mailer, one of the files that was generated was <code>app/views/layouts/mailer.html.erb</code>. If we take a look inside of this file, we&rsquo;ll see that it&rsquo;s pretty simple; in fact, all it&rsquo;s going to do for now is <code>yield</code> to whatever template needs to be rendered. If we wanted to add styles or formatting that would apply to <em>all</em> of our mailers, this is where it would go:</p>
-
-<pre><code class="erb">&lt;html&gt;
-  &lt;body&gt;
-    &lt;%= yield %&gt;
-  &lt;/body&gt;
-&lt;/html&gt;
-</code></pre>
-
-<p>For things pertaining specifically to our <code>OrderMailer</code> template, we&rsquo;ll need to visit the view for that mailer, which will live inside of <code>app/views/order_mailer/confirmation_email.html.erb</code>. We can again think of how controllers work with their associated views (for example, an <code>index</code> action corresponds to an <code>index.html.erb</code> file). Similarly, our <code>OrderMailer</code> class knows about its own specific view because its name is the same as the mailer&rsquo;s method (<code>confirmation_email</code>). This is where we can put the text for our email template; for now, it won&rsquo;t be anything too special and will just use our <code>@order</code> instance from the <code>confirmation_email</code> method we wrote in the <code>OrderMailer</code> to retrieve and render the order number and user&rsquo;s email:</p>
-
-<pre><code class="erb">Hello &lt;%= @order.user.email %&gt;,
-
-This email confirms your order &lt;%= @order.number %&gt;.
-</code></pre>
-
-<p>Awesome! Now, in development, we can test this out by placing an order, triggering the <code>send_confirmation_email</code> method in our state machine, and using our <code>OrderMailer</code> to send an email in a sychronous request to our user&rsquo;s email address. That&rsquo;s a <em>lot</em> to do, but we made it happen!</p>
-
-<h2>Letter Opener + Instant Delivery</h2>
-
-<p>Before we get too email-happy, here&rsquo;s a thought: how much do you really <em>like</em> email? I don&rsquo;t know about you, but I would really rather not get an email every single time I test out my mailer in development. Thankfully, there&rsquo;s a gem that was created to solve precisely this very problem: <code>letter_opener</code>.</p>
-
-<p>This gem intercepts our mailer and allows us to preview an email from within our browser instead of actually sending the email to an email address. One of the great benefits of this &mdash; in addition to both saving space in our inbox and not having to set up email delivery in our development environment &mdash; is us not having to worry about sending test emails by accident to someone else&rsquo;s email address!</p>
-
-<p>Adding <code>letter_opener</code> to our application is pretty easy, and the documentation is <a href="https://github.com/ryanb/letter_opener">easy to follow</a>. First, we&rsquo;ll add the gem to the <code>:development</code> group in our <code>Gemfile</code>:</p>
-
-<p><code>gem "letter_opener", group: :development</code></p>
-
-<p>After we run <code>bundle install</code> in our terminal, we&rsquo;ll need to do one last step: setting up our mailer configurations. Basically, all this means is that we need to specifically set up our development environment such that it will use our <code>letter_opener</code> gem as its <em>delivery method</em>. In fact, that&rsquo;s pretty much the only line we need to add in our <code>config/environments/development.rb</code> file:</p>
-
-<p><code>config.action_mailer.delivery_method = :letter_opener</code></p>
-
-<p>The <code>delivery_method</code> acepts a delivery method object and defaults to <code>:smtp</code>. Since we want <code>letter_opener</code> to handle our mail deliveries, we&rsquo;ll just set our delivery method on Action Mailer to the gem that we want to use.</p>
-
-<p>Now that we&rsquo;ve set this up, any email that is sent by Action Mailer will be intercepted and open up in a new tab in our browser, rather than actually being sent to an email address. These files will be stored temporarily in <code>tmp/letter_opener</code>.</p>
-
-<p>But as <em>lovely</em> and helpful as it is to have all these test emails popping up in our browser, there&rsquo;s one thing that would be even nicer to have: all of these emails being triggered <em>outside</em> of the request-response cycle. In other words, what we want to do is to run these requests asychronously. Well, what does the documentation say about making this happen?</p>
-
-<blockquote><p>&ldquo;Active Job&rsquo;s default behavior is to execute jobs <code>:inline</code>. So, you can use
-<code>deliver_later</code> now to send emails, and when you later decide to start sending
-them from a background job, you&rsquo;ll only need to set up Active Job to use a queueing
-backend (Sidekiq, Resque, etc).&rdquo;</p></blockquote>
-
-<p>Okay, it sounds like we need to learn a little bit about Active Job and set up a queueing backend to send our emails in a job. But let&rsquo;s save that for another blog post. Tune in again next week, when I&rsquo;ll delve into the basics of Active Job and asychronous processes. Until then, have fun opening those emails!</p>
-
-<iframe src="//giphy.com/embed/u8IJtQ7dfZhn2" width="480" height="433" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>Rails mailers inherit from <code>ActionMailer::Base</code>, and work just like controllers, with actions and corresponding views. Check out this <a href="http://www.gotealeaf.com/blog/handling-emails-in-rails">fantastic post</a> on sending emails using Action Mailer to dive into the details.</li>
-<li>There are a lot of different header options that you can pass to <code>ActionMailer::Base</code>. Read more about them <a href="http://apidock.com/rails/ActionMailer/Base/headers">over here</a>.</li>
-<li>Curious about how to go about configuring Action Mailer to make the mailing magic happen? The <a href="http://guides.rubyonrails.org/configuring.html#configuring-action-mailer">Rails Guides</a> have a great tutorial on how to do that.</li>
 </ul>
 
 ]]></content>

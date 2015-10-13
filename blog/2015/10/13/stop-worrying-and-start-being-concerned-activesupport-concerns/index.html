@@ -1,0 +1,439 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Stop Worrying and Start Being Concerned: ActiveSupport Concerns - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="A few weeks ago, while learning everything I never knew about user authorization, I also stumbled upon a cool refactoring pattern that I didn&rsquo; &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Stop Worrying and Start Being Concerned: ActiveSupport Concerns</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-10-13T09:22:16-04:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:22 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><iframe src="//giphy.com/embed/iQA2hMPX88icM" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>A few weeks ago, while learning everything I never knew about <a href="http://vaidehijoshi.github.io/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/">user authorization</a>, I also stumbled upon a cool refactoring pattern that I didn&rsquo;t even know existed. This pattern is based on the simple idea of Ruby modules and mixins, but is particularly handy when it comes to dealing with class methods and callbacks.</p>
+
+<p>ActiveSupport is a pretty massive component within Rails, and it&rsquo;s responsible for a ton of different functionality, including language extensions and utilities. I last wrote about ActiveSupport back when we were exploring the <a href="http://vaidehijoshi.github.io/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/">Rails inflector</a> and the libraries it provides for handling the pluralization of different strings. This was way back in September, and at the time, my understanding of ActiveSupport was pretty limited. It turns out that yes, ActiveSupport does provide a bunch of different patterns to transform simple Ruby strings&hellip;but it also has a lot more going on inside of it. For example, the <strong>ActiveSupport Concern module</strong>, which only recently made its debut in Rails 4.</p>
+
+<p>The ActiveSupport::Concern wrapper is an interesting way of ecapsulating&hellip;well, certain functionality that you might be <em>concerned</em> with. These concerns take advantage of two directories that are automatically part of the load path within a Rails application: <code>app/models/concerns</code> and <code>app/controllers/concerns</code>. So, how do you write a concern, and what should go inside of it? Don&rsquo;t worry, that&rsquo;s exactly what we&rsquo;ll concern ourselves with next.</p>
+
+<!--more-->
+
+
+<h2>Should We Be Concerned?</h2>
+
+<iframe src="//giphy.com/embed/374pcIBVEGb6g" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Concerns are meant to make our lives less complicated. Or at the very least, we should be less concerned about the quality of our code if we use concerns, right? But what are ActiveSupport&rsquo;s Concerns really meant to be used for? And how do we know if we should be using them? Well, to answer this question, we can turn to the creator of Rails himself. In a blog post pre-Rails 4 titled <em>Put chubby models on a diet with concerns</em>, DHH explains when and why to consider using ActiveSupport&rsquo;s Concern module:</p>
+
+<blockquote><p>&ldquo;Concerns encapsulate both data access and domain logic about a certain slice of responsibility. Concerns are also a helpful way of extracting a slice of model that doesn’t seem part of its essence (what is and isn’t in the essence of a model is a fuzzy line and a longer discussion) without going full-bore Single Responsibility Principle and running the risk of ballooning your object inventory.&rdquo;</p></blockquote>
+
+<p>When we talk about concerns, what we really are honing in on is the most effective <em>separation of concerns</em>. I really like the way that David thinks of models having an &ldquo;essence&rdquo;, and I think that this is a great way of approaching when and when <em>not</em> to use a concern.</p>
+
+<p>Let&rsquo;s look at our bookstore application. We have an <code>User</code> model for anyone that signs up to use our application. Whenever a <code>User</code> signs up, we want to send them an email telling them that they&rsquo;ve been registered, and probably highlighting some of the cool things that they can do to set up their profile on our application. Now, this seems like something that only the <code>User</code> model would be concerned with, right? Well, yes, until we realize that we have another model that needs to share this same functionality!</p>
+
+<p>For example, we now have organizations that want to sign up for our application. They also need to receive the same email and be &ldquo;registered&rdquo;. As our application grows, we might even want to create a <code>Registration</code> model, which would belong to an <code>User</code> and <code>Organization</code>. Now, obviously we could accomplish what we wanted to by just adding the same lines of code to both models, but that makes for neither DRY code, nor a great separation of concerns. But wouldn&rsquo;t it be great if we could take this piece of &ldquo;registration&rdquo; functionality, wrap it up, and only pull it out when we need to use it? It turns out that is exactly what we can do with <code>ActiveSupport::Concern</code>.</p>
+
+<h2>Extending Our Concerns</h2>
+
+<iframe src="//giphy.com/embed/dnNuJUQvEnmjC" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Before we write our concern, let&rsquo;s look at what our <code>User</code> model looks like. Here&rsquo;s a truncated version that contains only the logic pertaining to registering a user:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">User</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">after_commit</span> <span class="ss">:register_user</span><span class="p">,</span> <span class="ss">on</span><span class="p">:</span> <span class="ss">:create</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">register_user</span>
+</span><span class='line'>      <span class="c1"># Where our logic for registering a user</span>
+</span><span class='line'>      <span class="c1"># would go. Would call on a background job</span>
+</span><span class='line'>      <span class="c1"># to perform and send our registration email.</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We very well <em>could</em> stick this inside of our <code>organization.rb</code> model file, but there&rsquo;s a better way to do this. There are a few steps to creating a concern, the first of which is recognizing where to put it! Since we&rsquo;re creating a concern for a model, this will live inside of our <code>app/models/concerns</code> directory. We&rsquo;ll call this concern a  <code>Registerer</code> concern, since that&rsquo;s its single responsibility, and we can preemptively namespace our concern under <code>User</code>, which would make its path <code>app/models/concerns/user/registerer.rb</code>.</p>
+
+<p>Next, we&rsquo;ll want to <code>extend</code> the Rails <code>ActiveSupport::Concern</code> module itself from within our concern:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">User</span>
+</span><span class='line'>  <span class="k">module</span> <span class="nn">Registerer</span>
+</span><span class='line'>      <span class="kp">extend</span> <span class="no">ActiveSupport</span><span class="o">::</span><span class="no">Concern</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, for the actual writing, there&rsquo;s one method that&rsquo;s going to be our new best friend: the <code>included</code> method, which takes a block. A little-known fact about this callback is that it&rsquo;s actually defined by Ruby&rsquo;s <code>Module</code> class, and it&rsquo;s called whenever a module is &ldquo;included&rdquo; into another class or module. This is where we&rsquo;ll put the important class methods and callbacks that we want to be shared amongst the models that will use our concern.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">User</span>
+</span><span class='line'>  <span class="k">module</span> <span class="nn">Registerer</span>
+</span><span class='line'>      <span class="kp">extend</span> <span class="no">ActiveSupport</span><span class="o">::</span><span class="no">Concern</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">included</span> <span class="k">do</span>
+</span><span class='line'>          <span class="n">has_one</span> <span class="ss">:registration</span><span class="p">,</span> <span class="ss">dependent</span><span class="p">:</span> <span class="ss">:destroy</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="n">after_commit</span> <span class="ss">:register_user</span><span class="p">,</span> <span class="ss">on</span><span class="p">:</span> <span class="ss">:create</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">register_user</span>
+</span><span class='line'>          <span class="n">send_registration_email</span><span class="p">(</span><span class="nb">self</span><span class="p">)</span>
+</span><span class='line'>          
+</span><span class='line'>          <span class="n">touch</span><span class="p">(</span><span class="ss">:registered_at</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">send_registration_email</span><span class="p">(</span><span class="nb">self</span><span class="p">)</span>
+</span><span class='line'>          <span class="no">RegistrationEmailerJob</span><span class="o">.</span><span class="n">perform_later</span><span class="p">(</span><span class="nb">self</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This is mostly straightforward. All the logic for a registration now lives in this single file, including the creating of a registration association on our target object (in this case, the <code>User</code> model), the registering of a user by passing our <code>User</code> instance (<code>self</code>) to our <code>RegistrationEmailerJob</code>, and the updating of the <code>registered_at</code> attribute on our <code>User</code> model using the <a href="http://vaidehijoshi.github.io/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/">touch method</a> &mdash; assuming, of course, that we&rsquo;ve defensively coded this attribute onto our <code>User</code> model. We&rsquo;re also able to use the <code>after_commit</code> callback hook, since the <code>included</code> method can accept callback names as parameters.</p>
+
+<p>Now that we have all this code in one place, how do we add it to our model? Well, we can do it in a single line:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">User</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="kp">include</span> <span class="no">User</span><span class="o">::</span><span class="no">Registerer</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>All we need to do is <code>include</code> our concern, just as we would a module. And down the road, when we find out that we need to create <code>Organization</code> model that shares this set of functionality, all we need to do is add the exact same line to our new model:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Organization</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="kp">include</span> <span class="no">User</span><span class="o">::</span><span class="no">Registerer</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And here&rsquo;s the really nice part about utilizing concerns in this way: when we realize that we need to change how this works &mdash; maybe we need to add another job or service object, or perhaps another, more specific callback &mdash; we can add it to one place and update our logic in a single file! This ties in quite nicely to DHH&rsquo;s point of a model&rsquo;s &ldquo;essence&rdquo;. In this case, being able to be &ldquo;registered&rdquo; isn&rsquo;t necessarily something that pertains to the <code>User</code> model specifically. But, it also doesn&rsquo;t need to be its own <em>object</em> perse. Instead, we really just need a set of methods that can be available to be invoked upon an object, which is exactly what <code>ActiveSupport::Concern</code> provides us with.</p>
+
+<h2>Helpful Inclusion</h2>
+
+<p>Because concerns are so simple to extend and include, there are lots of use cases for them. We learned earlier that Rails comes with two <code>concerns</code> directories preloaded: one for <code>models</code>, and another for <code>controllers</code>. Let&rsquo;s look at a practical example for using <code>ActiveSupport::Concern</code> in the context of a controller.</p>
+
+<p>We <a href="http://vaidehijoshi.github.io/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/">recently added</a> the <code>pundit</code> gem to our bookstore app for user authorization. But we only had a few controller actions that actually <em>needed</em> to be authorized; the rest of our controllers didn&rsquo;t need any authorization, because they could be accessed by anyone. Our <code>Reviews</code> controller was being authorized, for example, but our <code>Comments</code> controller didn&rsquo;t need any authorization whatsoever.</p>
+
+<p>So, for the controllers that <em>didn&rsquo;t</em> need authorization, what did we do? Well, we were adding some <code>skip_after_actions</code> lines, which were instructions that the <code>pundit</code> gem documentation had given us:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">CommentsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="n">skip_after_action</span> <span class="ss">:verify_authorized</span>
+</span><span class='line'>  <span class="n">skip_after_action</span> <span class="ss">:verify_policy_scoped</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="c1"># RESTful controller actions go here!</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, imagine we also have a <code>BlogsController</code> with just an <code>index</code> action API endpoint, which doesn&rsquo;t need to be authorized. And maybe we also have <code>TagsController</code>, which also doesn&rsquo;t need to be authorized by <code>pundit</code>. We <em>could</em> copy and paste these two lines into every single controller&hellip;<em>or</em>, we could use our newfound knowledge of <code>ActiveSupport::Concern</code>!</p>
+
+<p>Let&rsquo;s share some of this code, shall we? We can create a <code>skip_authorized.rb</code> file inside of <code>app/controllers/concerns</code>. And inside of it, we&rsquo;ll include <code>Pundit</code> &mdash; otherwise, our <code>skip_after_actions</code> will have no idea what actions we&rsquo;re trying to skip! Our concern might look something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">SkipAuthorized</span>
+</span><span class='line'>  <span class="kp">extend</span> <span class="no">ActiveSupport</span><span class="o">::</span><span class="no">Concern</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">included</span> <span class="k">do</span>
+</span><span class='line'>    <span class="n">skip_after_action</span> <span class="ss">:verify_authorized</span>
+</span><span class='line'>    <span class="n">skip_after_action</span> <span class="ss">:verify_policy_scoped</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pretty simple, right? And suddenly, our <code>CommentsController</code>, <code>BlogsController</code>, <code>TagsController</code>, and pretty much <em>every single</em> controller that we want to share these <code>skip_after_action</code> callbacks now can be refactored to have this single line:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">CommentsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="kp">include</span> <span class="no">SkipAuthorized</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="c1"># RESTful controller actions go here!</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And now, if we wanted to <code>rescue</code> from a <code>Pundit::UnauthorizedError</code>, we could add a single line, into a single file&hellip;but all of our controllers would mix that in! Similarly, we could create an <code>Authorized</code> concern for every controller that needed to actually implement <code>pundit</code> authorization. See, there&rsquo;s no need to worry for the rest of our days, because instead, we can just be concerned &mdash; ActiveSupport concerned!</p>
+
+<iframe src="//giphy.com/embed/jfw9xNEouCJO" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>ActiveSupport&rsquo;s <code>Concern</code> module allows us to mix in callbacks, class and instance methods, and create associations on target objects. This module has an <code>included</code> method, which takes a block, as well as an <code>append_features</code> method and <code>class_methods</code> block, which you can read about in <a href="http://api.rubyonrails.org/classes/ActiveSupport/Concern.html#method-i-included">the source code</a>.</li>
+<li>This <a href="http://engineering.appfolio.com/2013/06/17/ruby-mixins-activesupportconcern/">blog post</a> is pretty fantastic in its explanation of mixins, modules, and concerns.</li>
+<li>Concerns are a little controversial in Railsland. This <a href="http://www.slideshare.net/justingordon/rails-conf-2014concernsdecoratorspresentersserviceobjectshelpershelpmedecideapril222014">slide deck</a> from RailsConf 2014 shares a bit about why that&rsquo;s the case.</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-10-13T09:22:16-04:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:22 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/10/06/fleeting-filing-with-ruby-tempfile/" title="Previous Post: Fleeting Filing With Ruby Tempfile">&laquo; Fleeting Filing With Ruby Tempfile</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns/">Stop Worrying and Start Being Concerned: ActiveSupport Concerns</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/06/fleeting-filing-with-ruby-tempfile/">Fleeting Filing With Ruby Tempfile</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/">Using Pundit, the Cool Kid of Authorization</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/">Working Hard or Hardly Working, Part 2: Custom Jobs</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/">Working Hard or Hardly Working, Part 1: Active Job</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
