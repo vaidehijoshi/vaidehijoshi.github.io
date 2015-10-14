@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-10-13T22:37:19-04:00</updated>
+  <updated>2015-10-13T22:39:51-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -27,7 +27,7 @@
 
 <p>ActiveSupport is a pretty massive component within Rails, and it&rsquo;s responsible for a ton of different functionality, including language extensions and utilities. I last wrote about ActiveSupport back when we were exploring the <a href="http://vaidehijoshi.github.io/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/">Rails inflector</a> and the libraries it provides for handling the pluralization of different strings. This was way back in September, and at the time, my understanding of ActiveSupport was pretty limited. It turns out that yes, ActiveSupport does provide a bunch of different patterns to transform simple Ruby strings&hellip;but it also has a lot more going on inside of it. For example, the <strong>ActiveSupport Concern module</strong>, which only recently made its debut in Rails 4.</p>
 
-<p>The ActiveSupport::Concern wrapper is an interesting way of ecapsulating&hellip;well, certain functionality that you might be <em>concerned</em> with. These concerns take advantage of two directories that are automatically part of the load path within a Rails application: <code>app/models/concerns</code> and <code>app/controllers/concerns</code>. So, how do you write a concern, and what should go inside of it? Don&rsquo;t worry, that&rsquo;s exactly what we&rsquo;ll concern ourselves with next.</p>
+<p>The ActiveSupport::Concern wrapper is an interesting way of encapsulating&hellip;well, certain functionality that you might be <em>concerned</em> with. These concerns take advantage of two directories that are automatically part of the load path within a Rails application: <code>app/models/concerns</code> and <code>app/controllers/concerns</code>. So, how do you write a concern, and what should go inside of it? Don&rsquo;t worry, that&rsquo;s exactly what we&rsquo;ll concern ourselves with next.</p>
 
 <!--more-->
 
@@ -167,7 +167,7 @@
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>And here&rsquo;s the really nice part about utilizing concerns in this way: when we realize that we need to change how this works &mdash; maybe we need to add another job or service object, or perhaps another, more specific callback &mdash; we can add it to one place and update our logic in a single file! This ties in quite nicely to DHH&rsquo;s point of a model&rsquo;s &ldquo;essence&rdquo;. In this case, being able to be &ldquo;registered&rdquo; isn&rsquo;t necessarily something that pertains to the <code>User</code> model specifically. But, it also doesn&rsquo;t need to be its own <em>object</em> perse. Instead, we really just need a set of methods that can be available to be invoked upon an object, which is exactly what <code>ActiveSupport::Concern</code> provides us with.</p>
+<p>And here&rsquo;s the really nice part about utilizing concerns in this way: when we realize that we need to change how this works &mdash; maybe we need to add another job or service object, or perhaps another, more specific callback &mdash; we can add it to one place and update our logic in a single file! This ties in quite nicely to DHH&rsquo;s point of a model&rsquo;s &ldquo;essence&rdquo;. In this case, being able to be &ldquo;registered&rdquo; isn&rsquo;t necessarily something that pertains to the <code>User</code> model specifically. But, it also doesn&rsquo;t need to be its own <em>object</em> per se. Instead, we really just need a set of methods that can be available to be invoked upon an object, which is exactly what <code>ActiveSupport::Concern</code> provides us with.</p>
 
 <h2>Helpful Inclusion</h2>
 
