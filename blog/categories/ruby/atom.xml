@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Ruby | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-10-13T22:39:51-04:00</updated>
+  <updated>2015-10-14T09:49:20-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -69,7 +69,7 @@
 end
 </code></pre>
 
-<p>We very well <em>could</em> stick this inside of our <code>organization.rb</code> model file, but there&rsquo;s a better way to do this. There are a few steps to creating a concern, the first of which is recognizing where to put it! Since we&rsquo;re creating a concern for a model, this will live inside of our <code>app/models/concerns</code> directory. We&rsquo;ll call this concern a  <code>Registerer</code> concern, since that&rsquo;s its single responsibility, and we can preemptively namespace our concern under <code>User</code>, which would make its path <code>app/models/concerns/user/registerer.rb</code>.</p>
+<p>We very well <em>could</em> stick this inside of our <code>organization.rb</code> model file, but there&rsquo;s a better way to do this. There are a few steps to creating a concern, the first of which is recognizing where to put it! Since we&rsquo;re creating a concern for a model, this will live inside of our <code>app/models/concerns</code> directory. We&rsquo;ll call this concern a  <code>Registerer</code> concern, since that&rsquo;s its single responsibility, and we can preemptively namespace our concern under <code>Users</code>, which would make its path <code>app/models/concerns/users/registerer.rb</code>.</p>
 
 <p>Next, we&rsquo;ll want to <code>extend</code> the Rails <code>ActiveSupport::Concern</code> module itself from within our concern:</p>
 
