@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rails | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-10-13T13:33:06-04:00</updated>
+  <updated>2015-10-13T22:37:19-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -73,7 +73,7 @@ end
 
 <p>Next, we&rsquo;ll want to <code>extend</code> the Rails <code>ActiveSupport::Concern</code> module itself from within our concern:</p>
 
-<pre><code class="ruby">module User
+<pre><code class="ruby">module Users
     module Registerer
         extend ActiveSupport::Concern
     end
@@ -82,7 +82,7 @@ end
 
 <p>Now, for the actual writing, there&rsquo;s one method that&rsquo;s going to be our new best friend: the <code>included</code> method, which takes a block. A little-known fact about this callback is that it&rsquo;s actually defined by Ruby&rsquo;s <code>Module</code> class, and it&rsquo;s called whenever a module is &ldquo;included&rdquo; into another class or module. This is where we&rsquo;ll put the important class methods and callbacks that we want to be shared amongst the models that will use our concern.</p>
 
-<pre><code class="ruby">module User
+<pre><code class="ruby">module Users
     module Registerer
         extend ActiveSupport::Concern
 
@@ -110,14 +110,14 @@ end
 <p>Now that we have all this code in one place, how do we add it to our model? Well, we can do it in a single line:</p>
 
 <pre><code class="ruby">class User &lt; ActiveRecord::Base
-    include User::Registerer
+    include Users::Registerer
 end
 </code></pre>
 
 <p>All we need to do is <code>include</code> our concern, just as we would a module. And down the road, when we find out that we need to create <code>Organization</code> model that shares this set of functionality, all we need to do is add the exact same line to our new model:</p>
 
 <pre><code class="ruby">class Organization &lt; ActiveRecord::Base
-    include User::Registerer
+    include Users::Registerer
 end
 </code></pre>
 
