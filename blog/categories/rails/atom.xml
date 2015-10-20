@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rails | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-10-20T08:53:46-04:00</updated>
+  <updated>2015-10-20T18:09:05-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -161,7 +161,7 @@ end
 
 <ul>
 <li>The <code>acts_as_url</code> library expects an <code>url</code> attribute on a model, and uses that to generate the path for an object. You need to override Rails&#8217; <code>to_param</code> method that, by default, will use the <code>id</code> of an object to generate its path.</li>
-<li>This <a href="https://gist.github.com/jcasimir/1209730>awesome gist</a> by Jeff Casimir is the best write-up on slugs and Rails&#8217; url generation out there. Give it a read!</li>
+<li>This <a href="https://gist.github.com/jcasimir/1209730">awesome gist</a> by Jeff Casimir is the best write-up on slugs and Rails&#8217; url generation out there. Give it a read!</li>
 <li>The original <code>to_param</code> method used to be defined inside of <code>ActiveRecord::Base</code>, but has since moved to the <code>ActiveModel::Conversion</code> module, which handles default conversions, including <code>to_model</code>, <code>to_key</code>, and <code>to_partial_path</code>. Read more about how these methods work in the Conversion <a href="http://apidock.com/rails/ActiveModel/Conversion">module documentation</a>.</li>
 </ul>
 
