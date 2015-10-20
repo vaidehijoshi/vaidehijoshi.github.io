@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rails | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-10-14T09:49:20-04:00</updated>
+  <updated>2015-10-20T08:53:46-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,161 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Solutions for Slugs of All Sizes: Acts_as_url + To_param]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/"/>
+    <updated>2015-10-20T08:17:21-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/g5FB33d3GVUkg" width="480" height="288" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Last week was my first week of working from home, which meant two things: spending a lot of time with my computer and limited time with other human beings and, more importantly, debugging things on my own without having anyone nearby to ask for help. The latter of the two actually ended up reaffirming the fact that I actually <em>can</em> debug a decent amount of things on my own if I just power through and am stubborn enough to not give up.</p>
+
+<p>I also learned something interesting about the debugging process: while we&rsquo;re learning, we often solve the same problem again and again. At least, this was the case for one of the features I was working on which involved using an object&rsquo;s slug to generate a url. As I started thinking through how to approach solving this, I immediately had the feeling that I had done something similar in another project. Digging through another repository&rsquo;s source code confirmed my suspicions, and I rediscovered the <code>stringex</code> gem and its multiple libraries, including <code>acts_as_url</code>!</p>
+
+<p>All of this begs the question: why didn&rsquo;t I remember that this gem existed &mdash; or that I had already used it? My guess is that it&rsquo;s because I neither wrote about it nor understood how it worked until a few days ago. This week, it&rsquo;s time to rectify that situation and dive into the <code>acts_as_url</code> library and find a solution for all slug problems, once and for all!</p>
+
+<!--more-->
+
+
+<h2>The Other Kind of Slug</h2>
+
+<iframe src="//giphy.com/embed/C1aCu8kUyF6p2" width="480" height="350" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>We all are familiar with the Rails mantra of <em>convention over configuration</em>, aka making the lives of developers easier by eliminating the need for them to make decisions about how to structure their code. Now, this design paradigm is pretty fantastic, particularly when we&rsquo;re first learning a new framework. But eventually, there comes a time when we need to tweak our code&rsquo;s conventions just a tiny little bit.</p>
+
+<p>What&rsquo;s an example of this? Well, take Rails convention of finding an object by it&rsquo;s <code>id</code>. This standardization pops up all over the place, but the one that we&rsquo;re particularly concerned with is the generation of a url. By default, Rails applications will build a URL path for the <code>show</code> action of any given controller based on the primary key (aka the <code>id</code> column in our database) of the object that we&rsquo;re trying to &ldquo;show&rdquo;.</p>
+
+<p>Let&rsquo;s put this in context of our bookstore application. We have a bunch of <code>Book</code> objects, and we want to iterate through their titles and then link to their individual &ldquo;show&rdquo; pages. A very basic, not-at-all-fancy template might look something like this:</p>
+
+<pre><code class="slim">h2 Books!
+- @books.each do |book|
+    p = link_to book.title, book_path(book)
+</code></pre>
+
+<p>It&rsquo;s important to note that we&rsquo;re actually passing in the <code>book</code> instance here &mdash; an <code>ActiveRecord</code> object, and <em>not</em> the <code>book</code>&rsquo;s <code>id</code>. Why is this important? Because there&rsquo;s a method that Rails is using to convert the <code>Book</code> object into a URL in order to generate the correct address for our <code>book_path</code>. That&rsquo;s why we need to pass it an <code>ActiveRecord</code> object, because the method that&rsquo;s being called expects an object and returns the <code>id</code> as parameters in the url. What does this look like, exactly? Well, right now our <code>book_path</code> takes a <code>Book</code> instance and creates a path that looks like this: <code>localhost:3000/books/25</code>.</p>
+
+<p>Which is fine! Actually, it&rsquo;s more than fine: it&rsquo;s the expected behavior given our Rails mantra of convention over configuration. But, what if we actually <em>want</em> to configure this a little bit more. What if, instead of using the primary key of our <code>Book</code> instances, we wanted to use the title of the book? It would be lovely if we could link someone to a particular book&rsquo;s page with a more human-readable url (for example, something like <code>awesomebookstore.com/books/the-bell-jar</code> in production).</p>
+
+<p>There&rsquo;s a solution for this problem, and it&rsquo;s called slugs. Slugs are a solution for semantic URL generation, which is also sometimes referred to as &ldquo;RESTful&rdquo; or &ldquo;SEO-friendly&rdquo; URL generation. As our application grows, not only would we want our URLs to be user-friendly, but we probably also will want them to be optimized for search engine results. So, we need to change our application&rsquo;s configuration to use a slug.</p>
+
+<p><em>Protip:</em> if anyone ever pop quizzes you about where the term &ldquo;slug&rdquo; comes from, you can totally school them with the following interesting fact: a &ldquo;slug&rdquo; used to be <a href="https://en.wikipedia.org/wiki/Slug_(publishing)">a shorter name</a> given to a newspaper article while it was in production; during the editing process, the article would be labeled by its slug, which would more specifically indicate the content of the story to the editors and reporters. The more you know, amirite?</p>
+
+<p>There are obviously a lot of ways to approach this, but why reinvent the wheel by writing a bunch of methods that someone else has already written? Let&rsquo;s make use of someone&rsquo;s open source work and use the <code>acts_as_url</code> library to get the job done for us!</p>
+
+<h2>Don&rsquo;t Let Slugs Slow You Down</h2>
+
+<iframe src="//giphy.com/embed/11zeCgKZ1MaNuE" width="480" height="342" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>The <code>acts_as_url</code> library is actually part of the <code>stringex</code> gem, which adds some useful extensions to Ruby&rsquo;s <code>String</code> class. After we add this gem to our <code>Gemfile</code> (<code>gem "stringex"</code>) and run <code>bundle install</code>, we can get started doing a quick setup.</p>
+
+<p>The documentation for this library is fairly straightforward, and a quick read-through gives us a good idea of what we need to do in order to make it work properly. The basic implementation of this library is four-fold:</p>
+
+<ol>
+<li>We need a column in our database that will map to the attribute used in generating our url.</li>
+<li>We need to call the <code>acts_as_url</code> method in our model using the attribute name that we want to use for generating our url.</li>
+<li>We need to override Rails&#8217; <code>to_param</code> method (Confused? Hang tight, we&rsquo;ll get there in a second!)</li>
+<li>We need to <code>find_by</code> our new url attribute inside of our controllers.</li>
+</ol>
+
+
+<p>Let&rsquo;s take it step by step. First, we&rsquo;ll write a migration that will add a <code>slug</code> column to our <code>books</code> database. This is going to be the column that will map to a <code>slug</code> attribute on our <code>Book</code> objects:</p>
+
+<pre><code class="ruby">class AddSlugColumnToBooks &lt; ActiveRecord::Migration
+  def change
+    add_column :books, :slug, :string
+  end
+end
+</code></pre>
+
+<p>Once we run <code>rake db:migrate</code> and add this attribute, we will want to add the <code>acts_as_url</code> class method to our <code>Book</code> model.</p>
+
+<pre><code class="ruby">class Book &lt; ActiveRecord::Base
+  acts_as_url :title, url_attribute: :slug
+end
+</code></pre>
+
+<p>The default behavior of this method expects that we have a column and attribute called <code>url</code> on our object. Since we aren&rsquo;t using the default attribute name, we need to specify the name of the attribute that we&rsquo;re using to store the generated url string. Thankfully, <code>acts_as_url</code> takes a bunch of options, including <code>url_attribute</code>, which is what we&rsquo;re using here. There are some other useful options <a href="https://github.com/rsl/stringex">worth checking out</a> in the documentation, including <code>scope</code>, <code>limit</code>, <code>truncate_words</code>, and <code>blacklist</code>.</p>
+
+<p>Next, we&rsquo;ll need to override Rail&rsquo;s <code>to_param</code> method in order to actually <em>use</em> our generated url attribute. Basically, we&rsquo;ll just want to write our own <code>to_param</code> method and return our <code>slug</code> attribute from inside of it.</p>
+
+<pre><code class="ruby">class Book &lt; ActiveRecord::Base
+  acts_as_url :title, url_attribute: :slug
+
+  def to_param
+    slug
+  end
+end
+</code></pre>
+
+<p>And finally, we need to make sure that we&rsquo;re finding our object using the appropriate attribute from within the context of our controller. The documentation suggests we use
+the <code>find_by_url</code> method, but we could also use the <code>find_by</code> method in our controller as well.</p>
+
+<pre><code class="ruby">class BooksController &lt; ApplicationController
+  def show
+    @book = Book.find_by(slug: params[:id]).decorate
+  end
+end
+</code></pre>
+
+<p>Nothing changes about how our controller works and we can still do all the fancy things we were doing before, like use a decorator (<a href="http://vaidehijoshi.github.io/blog/2015/01/13/tidying-up-those-views-using-decorators-in-rails/">Remember those?</a>). The only thing that happens now is that our original <code>book_path</code> helper will now use the <code>book</code> instance we passed it to generate a url with a slug instead of the primary key!</p>
+
+<p>Success! We&rsquo;ve done it! Actually, we&rsquo;ve <em>almost</em> done it. One tiny little thing that I always forget is all of the books that already exist in our database. What about them? They all have a <code>slug</code> attribute, sure, and a <code>slug</code> column &ndash; but there&rsquo;s a slight problem: the column is empty! So we can&rsquo;t <code>find_by</code> the <code>slug</code> attribute for those books, can we? In fact, if we try to call <code>to_param</code> on any of our preexisting <code>Book</code> instances right now, all we&rsquo;ll get is <code>nil</code>!</p>
+
+<p>No worries, we just need to call a method inside of our console:</p>
+
+<pre><code class="ruby">♥ rails c
+Loading development environment (Rails 4.1.4)
+irb(main):001:0&gt; Book.initialize_urls
+</code></pre>
+
+<p>Now all of the <code>Book</code> instances that had empty <code>slug</code> attributes have ben initialized, and we&rsquo;re good to go! Right? Wrong. Because I haven&rsquo;t explained the whole <code>to_param</code> situation yet, and I promised that I would get to it. Now&rsquo;s the time to figure out the magic behind that!</p>
+
+<h2>Rails Non-Sluggish Solution: <code>to_param</code></h2>
+
+<p>The Rails solution to generating params for an object&rsquo;s url path comes from its elegant <code>to_param</code> method. By default, this method just calls <code>to_s</code> on a Plain Old Ruby Object, and converts it to an instance of Ruby&rsquo;s <code>String</code> class. However, there are plenty of places where Rails itself <em>overrides</em> this method (which explains why we also have to do it in the context of our own controller)!</p>
+
+<p>In fact, the Rails documentation even explains when and how to go about redefining the implementation of this method:</p>
+
+<blockquote><p>&ldquo;Notably, the Rails routing system calls <code>to_param</code> on models to get a value for the <code>:id</code> placeholder. <code>ActiveRecord::Base#to_param</code> returns the <code>id</code> of a model, but you can redefine that method in your models.&rdquo;</p></blockquote>
+
+<pre><code class="ruby">class User
+  def to_param
+    "#{id}-#{name.parameterize}"
+  end
+end
+</code></pre>
+
+<p>Of course, we could have easily redefined this in the context of each of our models, but using the <code>acts_as_url</code> library reduces the amount of duplicated code that we need in each of our models, and is pretty sophisticated in that it allows us to use <em>different</em> attributes across different models to generate our url path.</p>
+
+<p>Interestingly, <a href="https://github.com/rails/rails/blob/7f18ea14c893cb5c9f04d4fda9661126758332b5/activemodel/lib/active_model/conversion.rb#L71">the source code</a> for Rails&#8217; <code>to_param</code> method reveals some elegant checks as well. This method first checks whether the object as been persisted to the database, and then returns a string representing the object&rsquo;s key. We can actually see how the <code>to_key</code> method is being called from <em>inside</em> of <code>to_param</code>, and how the default return value of an unpersisted object&rsquo;s param will be <code>nil</code>. This is the magic that goes on under the hood when we were trying to find the <code>slug</code> attributes for all of those <code>Book</code> instances before we called <code>initialize_urls</code> on them!</p>
+
+<p>So, even though slugs have a <em>reputation</em> of being slow, now we know how to speed through this problem with an elegant and quick solution! I can&rsquo;t say the same for this poor guy, though:</p>
+
+<iframe src="//giphy.com/embed/1KJPg114jm68U" width="480" height="169" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>acts_as_url</code> library expects an <code>url</code> attribute on a model, and uses that to generate the path for an object. You need to override Rails&#8217; <code>to_param</code> method that, by default, will use the <code>id</code> of an object to generate its path.</li>
+<li>This <a href="https://gist.github.com/jcasimir/1209730>awesome gist</a> by Jeff Casimir is the best write-up on slugs and Rails&#8217; url generation out there. Give it a read!</li>
+<li>The original <code>to_param</code> method used to be defined inside of <code>ActiveRecord::Base</code>, but has since moved to the <code>ActiveModel::Conversion</code> module, which handles default conversions, including <code>to_model</code>, <code>to_key</code>, and <code>to_partial_path</code>. Read more about how these methods work in the Conversion <a href="http://apidock.com/rails/ActiveModel/Conversion">module documentation</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Stop Worrying and Start Being Concerned: ActiveSupport Concerns]]></title>
@@ -751,174 +906,6 @@ end
 <li>Active Job requires you to set up a queuing backend and use the <code>deliver_later</code> method in order to integrate with ActionMailer.</li>
 <li>The Rails Guides for cover all the basics for Active Job; head <a href="http://edgeguides.rubyonrails.org/active_job_basics.html">over here</a> to read more.</li>
 <li>Even though Active Job is a relatively new feature of Rails, there are a lot of great blog posts that walk through how to use it. Check out <a href="http://www.gotealeaf.com/blog/handling-emails-in-rails">this one</a>, <a href="http://ryanselk.com/2014/09/25/using-background-jobs-in-rails-42-with-active-job/">another one</a>, and <a href="http://www.jetthoughts.com/blog/tech/2015/04/17/time-for-active-job.html">one more</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[You've Got Mail: Action Mailer + Letter_Opener]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/09/08/youve-got-mail-action-mailer-plus-letter-opener/"/>
-    <updated>2015-09-08T21:45:34-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/09/08/youve-got-mail-action-mailer-plus-letter-opener</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/9xfgwmsfIaSYg" width="480" height="265" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>There&rsquo;s one thing that everyone loves: getting mail! But there&rsquo;s one thing that all developers would rather avoid: sending mail. Unfortunately, this paradox perfectly describes the joys and horrors of getting your application to send a single email.</p>
-
-<p>I recently worked on building out a password reset feature for one of our applications. In order for this feature to work, I had to figure out how to get my Rails application to send an email to our user with a password reset token in case they had forgotten their password. I thought that handling the authentication and token aspect of this would be complicated, but it turned out that learning about mailers was the more fun part. I had never actually worked with Rails mailers before, and honestly, I thought that I was in over my head (this also might be partly attributed to the fact that I had just come back from a two-week vacation and felt like I had completely forgotten how to code).</p>
-
-<p>So, I did what any developer would do: I cried and went home. Okay, okay, I&rsquo;m just kidding! What I <em>actually</em> did was read through the documentation, play around with my application and, in the process, taught myself how to use Rails Action Mailer. I never thought that I&rsquo;d say this but, getting that feature to work and seeing that email pop up was incredibly exciting. In fact, I don&rsquo;t think I&rsquo;ve ever been more excited about sending and receiving an email. But don&rsquo;t let me tell you how thrilling it was &mdash; let&rsquo;s create our own mailer and experience it together!</p>
-
-<!--more-->
-
-
-<h2>Generating Some Mail(ers)</h2>
-
-<iframe src="//giphy.com/embed/izxswKdmqmQrS" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>Rails has a wonderful built-in mailing system called Action Mailer, which allows us to send email from our application as long as we have a <strong>mailer model</strong>. Mailers are actually a lot like controllers: they have their own <code>app/mailers</code> directory, and each mailer has its own associated view as well. Each mailer also inherits from <code>ActionMailer::Base</code>, and just like controllers, can be generated really easily.</p>
-
-<p>For our bookstore app, we won&rsquo;t start off with anything <em>too</em> fancy just yet. Instead, let&rsquo;s stick with a simple mailer that will be responsible for one little thing: sending an order confirmation email whenever a user successfully places an order (did your mind immediately jump to using a <a href="http://vaidehijoshi.github.io/blog/2015/03/24/a-machine-state-of-mind-part-2-implementing-state-machines/">state machine</a>? I hope so!)</p>
-
-<p>To start, we&rsquo;ll use Rails to generate a mailer:</p>
-
-<p><code>♥ bin/rails generate mailer Order</code></p>
-
-<p>Running this command in the terminal generates a few different files for us. We now have an <code>app/mailers</code> directory, with an <code>order_mailer.rb</code> and <code>application_mailer.rb</code> file. It also generates three files inside of <code>app/views</code>: <code>order_mailer</code>, <code>layouts/mailer.text.erb</code>, and <code>layouts/mailer.html.erb</code>, as well as test units for our order mailer (<code>order_mailer_test.rb</code>).</p>
-
-<p>Depending on how many mailers this application will have, it might not makes sense to generate all of these files. If we decided to manually create our mailer rather than generating it, we&rsquo;d need to keep one thing in mind: our mailer <em>must</em> be a file inside of the <code>mailers</code> directory, and it <em>must</em> inherit from <code>ActionMailer::Base</code> (unless, of course, we wanted to use a mailer from another library, such as the <code>Devise::Mailer</code> from the <code>devise</code> gem).</p>
-
-<p>The mailer model has methods defined on it that allows us to actually specify how and where an email is sent. Right now, however, our mailer models look pretty empty! Inside of our generated <code>ApplicationMailer</code>, the only setup we have is our layout configuration and our <code>from</code> address:</p>
-
-<pre><code class="ruby">class ApplicationMailer &lt; ActionMailer::Base
-  default from: "help@vaidehisbookstore.com"
-  layout 'mailer'
-end
-</code></pre>
-
-<p>While our <code>order_mailer.rb</code> is completely empty:</p>
-
-<pre><code class="ruby">class OrderMailer &lt; ApplicationMailer
-end
-</code></pre>
-
-<p>Since mailers are so much like controllers, we can approach writing them in a similar way. The first thing we&rsquo;ll do is write some actions. Just like with controllers, we want our methods to adhere to the single-responsiblity principle, which means that they should be handling only one thing at a time. We&rsquo;ll start by writing a <code>confirmation_email</code> method, which will take an <code>Order</code> object as its parameter.</p>
-
-<pre><code class="ruby">class OrderMailer &lt; ApplicationMailer
-  def confirmation_email(order)
-    @order = order
-  end
-end
-</code></pre>
-
-<p>Just like in controllers, any instance variables that we define in our method &mdash; in this case, <code>@order</code> &mdash; become available for us to use inside of our views. This will be important when we want to render the user&rsquo;s information via our <code>@order</code> instance. But&hellip;we&rsquo;re not actually <em>mailing</em> anything right now, are we? Of course not! In order to actually create our message and render our email templates, we need to use the <code>mail</code> method.</p>
-
-<p>The <code>mail</code> method is defined on <code>ActionMailer::Base</code> (hence why every mailer should always inherit from it so that it has access to this very crucial method). If we look at <a href="http://apidock.com/rails/ActionMailer/Base/mail">the documentation</a> for this method, we can see that it accepts a headers hash, which is where we can specify the most-used headers in an email message. Some of the options we can pass in include <code>subject</code>, <code>to</code>, <code>from</code>, <code>cc</code>, and <code>date</code>, among others. For now, we&rsquo;ll just pass in a <code>to</code> option and a <code>subject</code> option:</p>
-
-<pre><code class="ruby">class OrderMailer &lt; ApplicationMailer
-  def confirmation_email(order)
-    @order = order
-
-    mail(to: order.user.email, subject: "Your Order #{@order.number}")
-  end
-end
-</code></pre>
-
-<p>If we wanted to get <em>really</em> fancy, we could specify <code>default</code> values for any of these headers (except for <code>date</code>) inside of our <code>OrderMailer</code> class. Alternatively, we could also write our <code>mail</code> method as a block, which would allow us to render specific templates &mdash; a piece of functionality that might be nice as we add more methods to this mailer over time. We could also use the block syntax in order to render plain text directly without using a template, which would look something like this:</p>
-
-<pre><code class="ruby">mail(to: order.user.email) do |format|
-    format.text { render plain: "Hi, #{order.user.email}!" }
-    format.html { render html: "&lt;h1&gt;Hi, #{order.user.email}!&lt;/h1&gt;".html_safe }
-end
-</code></pre>
-
-<p>But let&rsquo;s hold off on all these bells and whistles. Let&rsquo;s just get this method into our state machine and actually <em>send</em> this bad boy.</p>
-
-<h2>Send Me Some Mail</h2>
-
-<p>Now for the fun part: sending and receiving our mail! There are two methods we can use to send an email: <code>deliver_now</code> and <code>deliver_later</code>. The former sends our email inline (in the same request-response cycle), while the latter sends emails in the background by integrating with Active Job.</p>
-
-<p>We already wrote our <code>confirmation_email</code> method, so now we just need to invoke it. But, we defined it on our mailer class. However, we don&rsquo;t need to instantiate a new instance of our <code>OrderMailer</code> class (like we would have to do with a service object, for example). Instead, we can just call our <code>confirmation_email</code> method on our mailer class directly. Since brevity is the soul of wit, here&rsquo;s a truncated version of the state machine in our <code>order.rb</code> file, which is where we&rsquo;ll invoke this method:</p>
-
-<pre><code class="ruby">class Order &lt; ActiveRecord::Base
-    include AASM
-
-    aasm column: 'state', whiny_transitions: false do
-        state :complete
-
-        event :completed, after: :send_confirmation_email
-    end
-
-
-    def send_confirmation_email
-        OrderMailer.confirmation_email(self).deliver_now
-    end
-end
-</code></pre>
-
-<p>You&rsquo;ll remember that our <code>confirmation_email</code> method takes an <code>Order</code> as a parameter, which is why we&rsquo;re passing in <code>self</code>, the <code>Order</code> object, into the method, before chaining on <code>deliver_now</code> at the end of it. Now, after our <code>completed</code> event is called, this email will be sent. But how do we know what our email will say, exactly? Well, we can head over to our email templates to find out.</p>
-
-<iframe src="//giphy.com/embed/eRIrROHUPJvgs" width="480" height="348" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>When we generated our mailer, one of the files that was generated was <code>app/views/layouts/mailer.html.erb</code>. If we take a look inside of this file, we&rsquo;ll see that it&rsquo;s pretty simple; in fact, all it&rsquo;s going to do for now is <code>yield</code> to whatever template needs to be rendered. If we wanted to add styles or formatting that would apply to <em>all</em> of our mailers, this is where it would go:</p>
-
-<pre><code class="erb">&lt;html&gt;
-  &lt;body&gt;
-    &lt;%= yield %&gt;
-  &lt;/body&gt;
-&lt;/html&gt;
-</code></pre>
-
-<p>For things pertaining specifically to our <code>OrderMailer</code> template, we&rsquo;ll need to visit the view for that mailer, which will live inside of <code>app/views/order_mailer/confirmation_email.html.erb</code>. We can again think of how controllers work with their associated views (for example, an <code>index</code> action corresponds to an <code>index.html.erb</code> file). Similarly, our <code>OrderMailer</code> class knows about its own specific view because its name is the same as the mailer&rsquo;s method (<code>confirmation_email</code>). This is where we can put the text for our email template; for now, it won&rsquo;t be anything too special and will just use our <code>@order</code> instance from the <code>confirmation_email</code> method we wrote in the <code>OrderMailer</code> to retrieve and render the order number and user&rsquo;s email:</p>
-
-<pre><code class="erb">Hello &lt;%= @order.user.email %&gt;,
-
-This email confirms your order &lt;%= @order.number %&gt;.
-</code></pre>
-
-<p>Awesome! Now, in development, we can test this out by placing an order, triggering the <code>send_confirmation_email</code> method in our state machine, and using our <code>OrderMailer</code> to send an email in a sychronous request to our user&rsquo;s email address. That&rsquo;s a <em>lot</em> to do, but we made it happen!</p>
-
-<h2>Letter Opener + Instant Delivery</h2>
-
-<p>Before we get too email-happy, here&rsquo;s a thought: how much do you really <em>like</em> email? I don&rsquo;t know about you, but I would really rather not get an email every single time I test out my mailer in development. Thankfully, there&rsquo;s a gem that was created to solve precisely this very problem: <code>letter_opener</code>.</p>
-
-<p>This gem intercepts our mailer and allows us to preview an email from within our browser instead of actually sending the email to an email address. One of the great benefits of this &mdash; in addition to both saving space in our inbox and not having to set up email delivery in our development environment &mdash; is us not having to worry about sending test emails by accident to someone else&rsquo;s email address!</p>
-
-<p>Adding <code>letter_opener</code> to our application is pretty easy, and the documentation is <a href="https://github.com/ryanb/letter_opener">easy to follow</a>. First, we&rsquo;ll add the gem to the <code>:development</code> group in our <code>Gemfile</code>:</p>
-
-<p><code>gem "letter_opener", group: :development</code></p>
-
-<p>After we run <code>bundle install</code> in our terminal, we&rsquo;ll need to do one last step: setting up our mailer configurations. Basically, all this means is that we need to specifically set up our development environment such that it will use our <code>letter_opener</code> gem as its <em>delivery method</em>. In fact, that&rsquo;s pretty much the only line we need to add in our <code>config/environments/development.rb</code> file:</p>
-
-<p><code>config.action_mailer.delivery_method = :letter_opener</code></p>
-
-<p>The <code>delivery_method</code> acepts a delivery method object and defaults to <code>:smtp</code>. Since we want <code>letter_opener</code> to handle our mail deliveries, we&rsquo;ll just set our delivery method on Action Mailer to the gem that we want to use.</p>
-
-<p>Now that we&rsquo;ve set this up, any email that is sent by Action Mailer will be intercepted and open up in a new tab in our browser, rather than actually being sent to an email address. These files will be stored temporarily in <code>tmp/letter_opener</code>.</p>
-
-<p>But as <em>lovely</em> and helpful as it is to have all these test emails popping up in our browser, there&rsquo;s one thing that would be even nicer to have: all of these emails being triggered <em>outside</em> of the request-response cycle. In other words, what we want to do is to run these requests asychronously. Well, what does the documentation say about making this happen?</p>
-
-<blockquote><p>&ldquo;Active Job&rsquo;s default behavior is to execute jobs <code>:inline</code>. So, you can use
-<code>deliver_later</code> now to send emails, and when you later decide to start sending
-them from a background job, you&rsquo;ll only need to set up Active Job to use a queueing
-backend (Sidekiq, Resque, etc).&rdquo;</p></blockquote>
-
-<p>Okay, it sounds like we need to learn a little bit about Active Job and set up a queueing backend to send our emails in a job. But let&rsquo;s save that for another blog post. Tune in again next week, when I&rsquo;ll delve into the basics of Active Job and asychronous processes. Until then, have fun opening those emails!</p>
-
-<iframe src="//giphy.com/embed/u8IJtQ7dfZhn2" width="480" height="433" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>Rails mailers inherit from <code>ActionMailer::Base</code>, and work just like controllers, with actions and corresponding views. Check out this <a href="http://www.gotealeaf.com/blog/handling-emails-in-rails">fantastic post</a> on sending emails using Action Mailer to dive into the details.</li>
-<li>There are a lot of different header options that you can pass to <code>ActionMailer::Base</code>. Read more about them <a href="http://apidock.com/rails/ActionMailer/Base/headers">over here</a>.</li>
-<li>Curious about how to go about configuring Action Mailer to make the mailing magic happen? The <a href="http://guides.rubyonrails.org/configuring.html#configuring-action-mailer">Rails Guides</a> have a great tutorial on how to do that.</li>
 </ul>
 
 ]]></content>

@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="A few weeks ago, while learning everything I never knew about user authorization, I also stumbled upon a cool refactoring pattern that I didn&rsquo; &hellip;">
+  <meta name="description" content="Last week was my first week of working from home, which meant two things: spending a lot of time with my computer and limited time with other human &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,58 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/">Solutions for Slugs of All Sizes: Acts_as_url + To_param</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-10-20T08:17:21-04:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:17 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/g5FB33d3GVUkg" width="480" height="288" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Last week was my first week of working from home, which meant two things: spending a lot of time with my computer and limited time with other human beings and, more importantly, debugging things on my own without having anyone nearby to ask for help. The latter of the two actually ended up reaffirming the fact that I actually <em>can</em> debug a decent amount of things on my own if I just power through and am stubborn enough to not give up.</p>
+
+<p>I also learned something interesting about the debugging process: while we&rsquo;re learning, we often solve the same problem again and again. At least, this was the case for one of the features I was working on which involved using an object&rsquo;s slug to generate a url. As I started thinking through how to approach solving this, I immediately had the feeling that I had done something similar in another project. Digging through another repository&rsquo;s source code confirmed my suspicions, and I rediscovered the <code>stringex</code> gem and its multiple libraries, including <code>acts_as_url</code>!</p>
+
+<p>All of this begs the question: why didn&rsquo;t I remember that this gem existed &mdash; or that I had already used it? My guess is that it&rsquo;s because I neither wrote about it nor understood how it worked until a few days ago. This week, it&rsquo;s time to rectify that situation and dive into the <code>acts_as_url</code> library and find a solution for all slug problems, once and for all!</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -526,55 +578,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/08/11/rolling-out-the-redcarpet-for-rendering-markdown/">Rolling Out the Redcarpet for Rendering Markdown</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-08-11T08:47:54-04:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:47 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/markdown/'>markdown</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><img src="http://cdn.lolbrary.com/2013/12/6/lolbrary.com_45273_1386359887.jpg" style="display: block; margin-left: auto; margin-right: auto; max-width: 400px; max-height: 500px;"/></p>
-
-<p>Sometimes, it&rsquo;s the little things that matter the most. As cool and complex as your giant application might be, small details like a toggleable button, or beautiful-formatted and styled dropdown select can have the biggest impact on the look and feel of the rest of your application.</p>
-
-<p>Once you&rsquo;ve built out the skeleton of your application and filled in the backend functionality, the next step is to connect the all the logic with your frontend framework. And once you&rsquo;ve done that, you start to see all the gaping holes that you need to fix next. One of the applications that I have been working on recently got to that state. Once I ensured that the user-facing page corresponded to the admin panel, it was time to fix all the little things that I had been putting off until we got the application working!</p>
-
-<p>One of those minute details was rendering markdown. While building out the application, we were just using Ruby string primitives in our database to render text. But no one wants to see a long five-paragraph article rendered as a single, huge block of text, right? So, we had to make our text easily editable on the admin panel and renderable &mdash; that&rsquo;s word, right? &mdash; on the user-facing side. At first, I had no idea how to go about doing this. But it turns out that (no surprise here!) this problem has been solved before! All we had to do next was figure out how to implement someone else&rsquo;s solution on our own application. Luckily, the answer to our prayers is as simple as rolling out the <code>redcarpet</code> gem.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/08/11/rolling-out-the-redcarpet-for-rendering-markdown/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -590,6 +593,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/">Solutions for Slugs of All Sizes: Acts_as_url + To_param</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns/">Stop Worrying and Start Being Concerned: ActiveSupport Concerns</a>
       </li>
     
@@ -603,10 +610,6 @@
     
       <li class="post">
         <a href="/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/">Working Hard or Hardly Working, Part 2: Custom Jobs</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/">Working Hard or Hardly Working, Part 1: Active Job</a>
       </li>
     
   </ul>

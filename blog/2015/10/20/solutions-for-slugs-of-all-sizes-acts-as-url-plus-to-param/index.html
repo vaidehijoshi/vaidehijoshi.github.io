@@ -1,0 +1,397 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Solutions for Slugs of All Sizes: Acts_as_url + To_param - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="Last week was my first week of working from home, which meant two things: spending a lot of time with my computer and limited time with other human &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Solutions for Slugs of All Sizes: Acts_as_url + To_param</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-10-20T08:17:21-04:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:17 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><iframe src="//giphy.com/embed/g5FB33d3GVUkg" width="480" height="288" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Last week was my first week of working from home, which meant two things: spending a lot of time with my computer and limited time with other human beings and, more importantly, debugging things on my own without having anyone nearby to ask for help. The latter of the two actually ended up reaffirming the fact that I actually <em>can</em> debug a decent amount of things on my own if I just power through and am stubborn enough to not give up.</p>
+
+<p>I also learned something interesting about the debugging process: while we&rsquo;re learning, we often solve the same problem again and again. At least, this was the case for one of the features I was working on which involved using an object&rsquo;s slug to generate a url. As I started thinking through how to approach solving this, I immediately had the feeling that I had done something similar in another project. Digging through another repository&rsquo;s source code confirmed my suspicions, and I rediscovered the <code>stringex</code> gem and its multiple libraries, including <code>acts_as_url</code>!</p>
+
+<p>All of this begs the question: why didn&rsquo;t I remember that this gem existed &mdash; or that I had already used it? My guess is that it&rsquo;s because I neither wrote about it nor understood how it worked until a few days ago. This week, it&rsquo;s time to rectify that situation and dive into the <code>acts_as_url</code> library and find a solution for all slug problems, once and for all!</p>
+
+<!--more-->
+
+
+<h2>The Other Kind of Slug</h2>
+
+<iframe src="//giphy.com/embed/C1aCu8kUyF6p2" width="480" height="350" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>We all are familiar with the Rails mantra of <em>convention over configuration</em>, aka making the lives of developers easier by eliminating the need for them to make decisions about how to structure their code. Now, this design paradigm is pretty fantastic, particularly when we&rsquo;re first learning a new framework. But eventually, there comes a time when we need to tweak our code&rsquo;s conventions just a tiny little bit.</p>
+
+<p>What&rsquo;s an example of this? Well, take Rails convention of finding an object by it&rsquo;s <code>id</code>. This standardization pops up all over the place, but the one that we&rsquo;re particularly concerned with is the generation of a url. By default, Rails applications will build a URL path for the <code>show</code> action of any given controller based on the primary key (aka the <code>id</code> column in our database) of the object that we&rsquo;re trying to &ldquo;show&rdquo;.</p>
+
+<p>Let&rsquo;s put this in context of our bookstore application. We have a bunch of <code>Book</code> objects, and we want to iterate through their titles and then link to their individual &ldquo;show&rdquo; pages. A very basic, not-at-all-fancy template might look something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='slim'><span class='line'><span class="nt">h2</span> Books!
+</span><span class='line'><span class="p">-</span> <span class="vi">@books</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">book</span><span class="o">|</span>
+</span><span class='line'>  <span class="nt">p</span><span class="p"> =</span> <span class="n">link_to</span> <span class="n">book</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="n">book_path</span><span class="p">(</span><span class="n">book</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>It&rsquo;s important to note that we&rsquo;re actually passing in the <code>book</code> instance here &mdash; an <code>ActiveRecord</code> object, and <em>not</em> the <code>book</code>&rsquo;s <code>id</code>. Why is this important? Because there&rsquo;s a method that Rails is using to convert the <code>Book</code> object into a URL in order to generate the correct address for our <code>book_path</code>. That&rsquo;s why we need to pass it an <code>ActiveRecord</code> object, because the method that&rsquo;s being called expects an object and returns the <code>id</code> as parameters in the url. What does this look like, exactly? Well, right now our <code>book_path</code> takes a <code>Book</code> instance and creates a path that looks like this: <code>localhost:3000/books/25</code>.</p>
+
+<p>Which is fine! Actually, it&rsquo;s more than fine: it&rsquo;s the expected behavior given our Rails mantra of convention over configuration. But, what if we actually <em>want</em> to configure this a little bit more. What if, instead of using the primary key of our <code>Book</code> instances, we wanted to use the title of the book? It would be lovely if we could link someone to a particular book&rsquo;s page with a more human-readable url (for example, something like <code>awesomebookstore.com/books/the-bell-jar</code> in production).</p>
+
+<p>There&rsquo;s a solution for this problem, and it&rsquo;s called slugs. Slugs are a solution for semantic URL generation, which is also sometimes referred to as &ldquo;RESTful&rdquo; or &ldquo;SEO-friendly&rdquo; URL generation. As our application grows, not only would we want our URLs to be user-friendly, but we probably also will want them to be optimized for search engine results. So, we need to change our application&rsquo;s configuration to use a slug.</p>
+
+<p><em>Protip:</em> if anyone ever pop quizzes you about where the term &ldquo;slug&rdquo; comes from, you can totally school them with the following interesting fact: a &ldquo;slug&rdquo; used to be <a href="https://en.wikipedia.org/wiki/Slug_(publishing)">a shorter name</a> given to a newspaper article while it was in production; during the editing process, the article would be labeled by its slug, which would more specifically indicate the content of the story to the editors and reporters. The more you know, amirite?</p>
+
+<p>There are obviously a lot of ways to approach this, but why reinvent the wheel by writing a bunch of methods that someone else has already written? Let&rsquo;s make use of someone&rsquo;s open source work and use the <code>acts_as_url</code> library to get the job done for us!</p>
+
+<h2>Don&rsquo;t Let Slugs Slow You Down</h2>
+
+<iframe src="//giphy.com/embed/11zeCgKZ1MaNuE" width="480" height="342" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>The <code>acts_as_url</code> library is actually part of the <code>stringex</code> gem, which adds some useful extensions to Ruby&rsquo;s <code>String</code> class. After we add this gem to our <code>Gemfile</code> (<code>gem "stringex"</code>) and run <code>bundle install</code>, we can get started doing a quick setup.</p>
+
+<p>The documentation for this library is fairly straightforward, and a quick read-through gives us a good idea of what we need to do in order to make it work properly. The basic implementation of this library is four-fold:</p>
+
+<ol>
+<li>We need a column in our database that will map to the attribute used in generating our url.</li>
+<li>We need to call the <code>acts_as_url</code> method in our model using the attribute name that we want to use for generating our url.</li>
+<li>We need to override Rails&#8217; <code>to_param</code> method (Confused? Hang tight, we&rsquo;ll get there in a second!)</li>
+<li>We need to <code>find_by</code> our new url attribute inside of our controllers.</li>
+</ol>
+
+
+<p>Let&rsquo;s take it step by step. First, we&rsquo;ll write a migration that will add a <code>slug</code> column to our <code>books</code> database. This is going to be the column that will map to a <code>slug</code> attribute on our <code>Book</code> objects:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddSlugColumnToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>    <span class="n">add_column</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:slug</span><span class="p">,</span> <span class="ss">:string</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Once we run <code>rake db:migrate</code> and add this attribute, we will want to add the <code>acts_as_url</code> class method to our <code>Book</code> model.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Book</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">acts_as_url</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">url_attribute</span><span class="p">:</span> <span class="ss">:slug</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The default behavior of this method expects that we have a column and attribute called <code>url</code> on our object. Since we aren&rsquo;t using the default attribute name, we need to specify the name of the attribute that we&rsquo;re using to store the generated url string. Thankfully, <code>acts_as_url</code> takes a bunch of options, including <code>url_attribute</code>, which is what we&rsquo;re using here. There are some other useful options <a href="https://github.com/rsl/stringex">worth checking out</a> in the documentation, including <code>scope</code>, <code>limit</code>, <code>truncate_words</code>, and <code>blacklist</code>.</p>
+
+<p>Next, we&rsquo;ll need to override Rail&rsquo;s <code>to_param</code> method in order to actually <em>use</em> our generated url attribute. Basically, we&rsquo;ll just want to write our own <code>to_param</code> method and return our <code>slug</code> attribute from inside of it.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Book</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">acts_as_url</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">url_attribute</span><span class="p">:</span> <span class="ss">:slug</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">to_param</span>
+</span><span class='line'>    <span class="n">slug</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And finally, we need to make sure that we&rsquo;re finding our object using the appropriate attribute from within the context of our controller. The documentation suggests we use
+the <code>find_by_url</code> method, but we could also use the <code>find_by</code> method in our controller as well.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">BooksController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">show</span>
+</span><span class='line'>    <span class="vi">@book</span> <span class="o">=</span> <span class="no">Book</span><span class="o">.</span><span class="n">find_by</span><span class="p">(</span><span class="ss">slug</span><span class="p">:</span> <span class="n">params</span><span class="o">[</span><span class="ss">:id</span><span class="o">]</span><span class="p">)</span><span class="o">.</span><span class="n">decorate</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Nothing changes about how our controller works and we can still do all the fancy things we were doing before, like use a decorator (<a href="http://vaidehijoshi.github.io/blog/2015/01/13/tidying-up-those-views-using-decorators-in-rails/">Remember those?</a>). The only thing that happens now is that our original <code>book_path</code> helper will now use the <code>book</code> instance we passed it to generate a url with a slug instead of the primary key!</p>
+
+<p>Success! We&rsquo;ve done it! Actually, we&rsquo;ve <em>almost</em> done it. One tiny little thing that I always forget is all of the books that already exist in our database. What about them? They all have a <code>slug</code> attribute, sure, and a <code>slug</code> column &ndash; but there&rsquo;s a slight problem: the column is empty! So we can&rsquo;t <code>find_by</code> the <code>slug</code> attribute for those books, can we? In fact, if we try to call <code>to_param</code> on any of our preexisting <code>Book</code> instances right now, all we&rsquo;ll get is <code>nil</code>!</p>
+
+<p>No worries, we just need to call a method inside of our console:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">♥</span> <span class="n">rails</span> <span class="n">c</span>
+</span><span class='line'><span class="no">Loading</span> <span class="n">development</span> <span class="n">environment</span> <span class="p">(</span><span class="no">Rails</span> <span class="mi">4</span><span class="o">.</span><span class="mi">1</span><span class="o">.</span><span class="mi">4</span><span class="p">)</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">001</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="no">Book</span><span class="o">.</span><span class="n">initialize_urls</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now all of the <code>Book</code> instances that had empty <code>slug</code> attributes have ben initialized, and we&rsquo;re good to go! Right? Wrong. Because I haven&rsquo;t explained the whole <code>to_param</code> situation yet, and I promised that I would get to it. Now&rsquo;s the time to figure out the magic behind that!</p>
+
+<h2>Rails Non-Sluggish Solution: <code>to_param</code></h2>
+
+<p>The Rails solution to generating params for an object&rsquo;s url path comes from its elegant <code>to_param</code> method. By default, this method just calls <code>to_s</code> on a Plain Old Ruby Object, and converts it to an instance of Ruby&rsquo;s <code>String</code> class. However, there are plenty of places where Rails itself <em>overrides</em> this method (which explains why we also have to do it in the context of our own controller)!</p>
+
+<p>In fact, the Rails documentation even explains when and how to go about redefining the implementation of this method:</p>
+
+<blockquote><p>&ldquo;Notably, the Rails routing system calls <code>to_param</code> on models to get a value for the <code>:id</code> placeholder. <code>ActiveRecord::Base#to_param</code> returns the <code>id</code> of a model, but you can redefine that method in your models.&rdquo;</p></blockquote>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">User</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">to_param</span>
+</span><span class='line'>    <span class="s2">&quot;</span><span class="si">#{</span><span class="nb">id</span><span class="si">}</span><span class="s2">-</span><span class="si">#{</span><span class="nb">name</span><span class="o">.</span><span class="n">parameterize</span><span class="si">}</span><span class="s2">&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Of course, we could have easily redefined this in the context of each of our models, but using the <code>acts_as_url</code> library reduces the amount of duplicated code that we need in each of our models, and is pretty sophisticated in that it allows us to use <em>different</em> attributes across different models to generate our url path.</p>
+
+<p>Interestingly, <a href="https://github.com/rails/rails/blob/7f18ea14c893cb5c9f04d4fda9661126758332b5/activemodel/lib/active_model/conversion.rb#L71">the source code</a> for Rails&#8217; <code>to_param</code> method reveals some elegant checks as well. This method first checks whether the object as been persisted to the database, and then returns a string representing the object&rsquo;s key. We can actually see how the <code>to_key</code> method is being called from <em>inside</em> of <code>to_param</code>, and how the default return value of an unpersisted object&rsquo;s param will be <code>nil</code>. This is the magic that goes on under the hood when we were trying to find the <code>slug</code> attributes for all of those <code>Book</code> instances before we called <code>initialize_urls</code> on them!</p>
+
+<p>So, even though slugs have a <em>reputation</em> of being slow, now we know how to speed through this problem with an elegant and quick solution! I can&rsquo;t say the same for this poor guy, though:</p>
+
+<iframe src="//giphy.com/embed/1KJPg114jm68U" width="480" height="169" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>acts_as_url</code> library expects an <code>url</code> attribute on a model, and uses that to generate the path for an object. You need to override Rails&#8217; <code>to_param</code> method that, by default, will use the <code>id</code> of an object to generate its path.</li>
+<li>This <a href="https://gist.github.com/jcasimir/1209730>awesome gist</a> by Jeff Casimir is the best write-up on slugs and Rails&#8217; url generation out there. Give it a read!</li>
+<li>The original <code>to_param</code> method used to be defined inside of <code>ActiveRecord::Base</code>, but has since moved to the <code>ActiveModel::Conversion</code> module, which handles default conversions, including <code>to_model</code>, <code>to_key</code>, and <code>to_partial_path</code>. Read more about how these methods work in the Conversion <a href="http://apidock.com/rails/ActiveModel/Conversion">module documentation</a>.</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-10-20T08:17:21-04:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:17 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns/" title="Previous Post: Stop Worrying And Start Being Concerned: ActiveSupport Concerns">&laquo; Stop Worrying And Start Being Concerned: ActiveSupport Concerns</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/">Solutions for Slugs of All Sizes: Acts_as_url + To_param</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns/">Stop Worrying and Start Being Concerned: ActiveSupport Concerns</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/06/fleeting-filing-with-ruby-tempfile/">Fleeting Filing With Ruby Tempfile</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/">Using Pundit, the Cool Kid of Authorization</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/">Working Hard or Hardly Working, Part 2: Custom Jobs</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-10-14T09:49:20-04:00</updated>
+  <updated>2015-10-20T08:53:46-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,199 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Solutions for Slugs of All Sizes: Acts_as_url + To_param]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/"/>
+    <updated>2015-10-20T08:17:21-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/g5FB33d3GVUkg" width="480" height="288" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Last week was my first week of working from home, which meant two things: spending a lot of time with my computer and limited time with other human beings and, more importantly, debugging things on my own without having anyone nearby to ask for help. The latter of the two actually ended up reaffirming the fact that I actually <em>can</em> debug a decent amount of things on my own if I just power through and am stubborn enough to not give up.</p>
+
+<p>I also learned something interesting about the debugging process: while we&rsquo;re learning, we often solve the same problem again and again. At least, this was the case for one of the features I was working on which involved using an object&rsquo;s slug to generate a url. As I started thinking through how to approach solving this, I immediately had the feeling that I had done something similar in another project. Digging through another repository&rsquo;s source code confirmed my suspicions, and I rediscovered the <code>stringex</code> gem and its multiple libraries, including <code>acts_as_url</code>!</p>
+
+<p>All of this begs the question: why didn&rsquo;t I remember that this gem existed &mdash; or that I had already used it? My guess is that it&rsquo;s because I neither wrote about it nor understood how it worked until a few days ago. This week, it&rsquo;s time to rectify that situation and dive into the <code>acts_as_url</code> library and find a solution for all slug problems, once and for all!</p>
+
+<!--more-->
+
+
+<h2>The Other Kind of Slug</h2>
+
+<iframe src="//giphy.com/embed/C1aCu8kUyF6p2" width="480" height="350" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>We all are familiar with the Rails mantra of <em>convention over configuration</em>, aka making the lives of developers easier by eliminating the need for them to make decisions about how to structure their code. Now, this design paradigm is pretty fantastic, particularly when we&rsquo;re first learning a new framework. But eventually, there comes a time when we need to tweak our code&rsquo;s conventions just a tiny little bit.</p>
+
+<p>What&rsquo;s an example of this? Well, take Rails convention of finding an object by it&rsquo;s <code>id</code>. This standardization pops up all over the place, but the one that we&rsquo;re particularly concerned with is the generation of a url. By default, Rails applications will build a URL path for the <code>show</code> action of any given controller based on the primary key (aka the <code>id</code> column in our database) of the object that we&rsquo;re trying to &ldquo;show&rdquo;.</p>
+
+<p>Let&rsquo;s put this in context of our bookstore application. We have a bunch of <code>Book</code> objects, and we want to iterate through their titles and then link to their individual &ldquo;show&rdquo; pages. A very basic, not-at-all-fancy template might look something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='slim'><span class='line'><span class="nt">h2</span> Books!
+</span><span class='line'><span class="p">-</span> <span class="vi">@books</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">book</span><span class="o">|</span>
+</span><span class='line'>  <span class="nt">p</span><span class="p"> =</span> <span class="n">link_to</span> <span class="n">book</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="n">book_path</span><span class="p">(</span><span class="n">book</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>It&rsquo;s important to note that we&rsquo;re actually passing in the <code>book</code> instance here &mdash; an <code>ActiveRecord</code> object, and <em>not</em> the <code>book</code>&rsquo;s <code>id</code>. Why is this important? Because there&rsquo;s a method that Rails is using to convert the <code>Book</code> object into a URL in order to generate the correct address for our <code>book_path</code>. That&rsquo;s why we need to pass it an <code>ActiveRecord</code> object, because the method that&rsquo;s being called expects an object and returns the <code>id</code> as parameters in the url. What does this look like, exactly? Well, right now our <code>book_path</code> takes a <code>Book</code> instance and creates a path that looks like this: <code>localhost:3000/books/25</code>.</p>
+
+<p>Which is fine! Actually, it&rsquo;s more than fine: it&rsquo;s the expected behavior given our Rails mantra of convention over configuration. But, what if we actually <em>want</em> to configure this a little bit more. What if, instead of using the primary key of our <code>Book</code> instances, we wanted to use the title of the book? It would be lovely if we could link someone to a particular book&rsquo;s page with a more human-readable url (for example, something like <code>awesomebookstore.com/books/the-bell-jar</code> in production).</p>
+
+<p>There&rsquo;s a solution for this problem, and it&rsquo;s called slugs. Slugs are a solution for semantic URL generation, which is also sometimes referred to as &ldquo;RESTful&rdquo; or &ldquo;SEO-friendly&rdquo; URL generation. As our application grows, not only would we want our URLs to be user-friendly, but we probably also will want them to be optimized for search engine results. So, we need to change our application&rsquo;s configuration to use a slug.</p>
+
+<p><em>Protip:</em> if anyone ever pop quizzes you about where the term &ldquo;slug&rdquo; comes from, you can totally school them with the following interesting fact: a &ldquo;slug&rdquo; used to be <a href="https://en.wikipedia.org/wiki/Slug_(publishing)">a shorter name</a> given to a newspaper article while it was in production; during the editing process, the article would be labeled by its slug, which would more specifically indicate the content of the story to the editors and reporters. The more you know, amirite?</p>
+
+<p>There are obviously a lot of ways to approach this, but why reinvent the wheel by writing a bunch of methods that someone else has already written? Let&rsquo;s make use of someone&rsquo;s open source work and use the <code>acts_as_url</code> library to get the job done for us!</p>
+
+<h2>Don&rsquo;t Let Slugs Slow You Down</h2>
+
+<iframe src="//giphy.com/embed/11zeCgKZ1MaNuE" width="480" height="342" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>The <code>acts_as_url</code> library is actually part of the <code>stringex</code> gem, which adds some useful extensions to Ruby&rsquo;s <code>String</code> class. After we add this gem to our <code>Gemfile</code> (<code>gem "stringex"</code>) and run <code>bundle install</code>, we can get started doing a quick setup.</p>
+
+<p>The documentation for this library is fairly straightforward, and a quick read-through gives us a good idea of what we need to do in order to make it work properly. The basic implementation of this library is four-fold:</p>
+
+<ol>
+<li>We need a column in our database that will map to the attribute used in generating our url.</li>
+<li>We need to call the <code>acts_as_url</code> method in our model using the attribute name that we want to use for generating our url.</li>
+<li>We need to override Rails&#8217; <code>to_param</code> method (Confused? Hang tight, we&rsquo;ll get there in a second!)</li>
+<li>We need to <code>find_by</code> our new url attribute inside of our controllers.</li>
+</ol>
+
+
+<p>Let&rsquo;s take it step by step. First, we&rsquo;ll write a migration that will add a <code>slug</code> column to our <code>books</code> database. This is going to be the column that will map to a <code>slug</code> attribute on our <code>Book</code> objects:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddSlugColumnToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>    <span class="n">add_column</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:slug</span><span class="p">,</span> <span class="ss">:string</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Once we run <code>rake db:migrate</code> and add this attribute, we will want to add the <code>acts_as_url</code> class method to our <code>Book</code> model.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Book</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">acts_as_url</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">url_attribute</span><span class="p">:</span> <span class="ss">:slug</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The default behavior of this method expects that we have a column and attribute called <code>url</code> on our object. Since we aren&rsquo;t using the default attribute name, we need to specify the name of the attribute that we&rsquo;re using to store the generated url string. Thankfully, <code>acts_as_url</code> takes a bunch of options, including <code>url_attribute</code>, which is what we&rsquo;re using here. There are some other useful options <a href="https://github.com/rsl/stringex">worth checking out</a> in the documentation, including <code>scope</code>, <code>limit</code>, <code>truncate_words</code>, and <code>blacklist</code>.</p>
+
+<p>Next, we&rsquo;ll need to override Rail&rsquo;s <code>to_param</code> method in order to actually <em>use</em> our generated url attribute. Basically, we&rsquo;ll just want to write our own <code>to_param</code> method and return our <code>slug</code> attribute from inside of it.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Book</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">acts_as_url</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">url_attribute</span><span class="p">:</span> <span class="ss">:slug</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">to_param</span>
+</span><span class='line'>    <span class="n">slug</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And finally, we need to make sure that we&rsquo;re finding our object using the appropriate attribute from within the context of our controller. The documentation suggests we use
+the <code>find_by_url</code> method, but we could also use the <code>find_by</code> method in our controller as well.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">BooksController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">show</span>
+</span><span class='line'>    <span class="vi">@book</span> <span class="o">=</span> <span class="no">Book</span><span class="o">.</span><span class="n">find_by</span><span class="p">(</span><span class="ss">slug</span><span class="p">:</span> <span class="n">params</span><span class="o">[</span><span class="ss">:id</span><span class="o">]</span><span class="p">)</span><span class="o">.</span><span class="n">decorate</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Nothing changes about how our controller works and we can still do all the fancy things we were doing before, like use a decorator (<a href="http://vaidehijoshi.github.io/blog/2015/01/13/tidying-up-those-views-using-decorators-in-rails/">Remember those?</a>). The only thing that happens now is that our original <code>book_path</code> helper will now use the <code>book</code> instance we passed it to generate a url with a slug instead of the primary key!</p>
+
+<p>Success! We&rsquo;ve done it! Actually, we&rsquo;ve <em>almost</em> done it. One tiny little thing that I always forget is all of the books that already exist in our database. What about them? They all have a <code>slug</code> attribute, sure, and a <code>slug</code> column &ndash; but there&rsquo;s a slight problem: the column is empty! So we can&rsquo;t <code>find_by</code> the <code>slug</code> attribute for those books, can we? In fact, if we try to call <code>to_param</code> on any of our preexisting <code>Book</code> instances right now, all we&rsquo;ll get is <code>nil</code>!</p>
+
+<p>No worries, we just need to call a method inside of our console:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">♥</span> <span class="n">rails</span> <span class="n">c</span>
+</span><span class='line'><span class="no">Loading</span> <span class="n">development</span> <span class="n">environment</span> <span class="p">(</span><span class="no">Rails</span> <span class="mi">4</span><span class="o">.</span><span class="mi">1</span><span class="o">.</span><span class="mi">4</span><span class="p">)</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">001</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="no">Book</span><span class="o">.</span><span class="n">initialize_urls</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now all of the <code>Book</code> instances that had empty <code>slug</code> attributes have ben initialized, and we&rsquo;re good to go! Right? Wrong. Because I haven&rsquo;t explained the whole <code>to_param</code> situation yet, and I promised that I would get to it. Now&rsquo;s the time to figure out the magic behind that!</p>
+
+<h2>Rails Non-Sluggish Solution: <code>to_param</code></h2>
+
+<p>The Rails solution to generating params for an object&rsquo;s url path comes from its elegant <code>to_param</code> method. By default, this method just calls <code>to_s</code> on a Plain Old Ruby Object, and converts it to an instance of Ruby&rsquo;s <code>String</code> class. However, there are plenty of places where Rails itself <em>overrides</em> this method (which explains why we also have to do it in the context of our own controller)!</p>
+
+<p>In fact, the Rails documentation even explains when and how to go about redefining the implementation of this method:</p>
+
+<blockquote><p>&ldquo;Notably, the Rails routing system calls <code>to_param</code> on models to get a value for the <code>:id</code> placeholder. <code>ActiveRecord::Base#to_param</code> returns the <code>id</code> of a model, but you can redefine that method in your models.&rdquo;</p></blockquote>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">User</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">to_param</span>
+</span><span class='line'>    <span class="s2">&quot;</span><span class="si">#{</span><span class="nb">id</span><span class="si">}</span><span class="s2">-</span><span class="si">#{</span><span class="nb">name</span><span class="o">.</span><span class="n">parameterize</span><span class="si">}</span><span class="s2">&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Of course, we could have easily redefined this in the context of each of our models, but using the <code>acts_as_url</code> library reduces the amount of duplicated code that we need in each of our models, and is pretty sophisticated in that it allows us to use <em>different</em> attributes across different models to generate our url path.</p>
+
+<p>Interestingly, <a href="https://github.com/rails/rails/blob/7f18ea14c893cb5c9f04d4fda9661126758332b5/activemodel/lib/active_model/conversion.rb#L71">the source code</a> for Rails&#8217; <code>to_param</code> method reveals some elegant checks as well. This method first checks whether the object as been persisted to the database, and then returns a string representing the object&rsquo;s key. We can actually see how the <code>to_key</code> method is being called from <em>inside</em> of <code>to_param</code>, and how the default return value of an unpersisted object&rsquo;s param will be <code>nil</code>. This is the magic that goes on under the hood when we were trying to find the <code>slug</code> attributes for all of those <code>Book</code> instances before we called <code>initialize_urls</code> on them!</p>
+
+<p>So, even though slugs have a <em>reputation</em> of being slow, now we know how to speed through this problem with an elegant and quick solution! I can&rsquo;t say the same for this poor guy, though:</p>
+
+<iframe src="//giphy.com/embed/1KJPg114jm68U" width="480" height="169" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>acts_as_url</code> library expects an <code>url</code> attribute on a model, and uses that to generate the path for an object. You need to override Rails&#8217; <code>to_param</code> method that, by default, will use the <code>id</code> of an object to generate its path.</li>
+<li>This <a href="https://gist.github.com/jcasimir/1209730>awesome gist</a> by Jeff Casimir is the best write-up on slugs and Rails&#8217; url generation out there. Give it a read!</li>
+<li>The original <code>to_param</code> method used to be defined inside of <code>ActiveRecord::Base</code>, but has since moved to the <code>ActiveModel::Conversion</code> module, which handles default conversions, including <code>to_model</code>, <code>to_key</code>, and <code>to_partial_path</code>. Read more about how these methods work in the Conversion <a href="http://apidock.com/rails/ActiveModel/Conversion">module documentation</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Stop Worrying and Start Being Concerned: ActiveSupport Concerns]]></title>
@@ -4657,201 +4850,6 @@ https://github.com/SamSaffron/memory_profiler">over here</a>.</p>
 <li>Read more on the <code>group_by</code> method in the <a href="http://apidock.com/rails/Enumerable/group_by">Rails docs</a>, which also has a great example!</li>
 <li>Looking for another example of how to implement Rails&#8217; <code>group_by</code> in a view? Check out <a href="https://ariejan.net/2007/01/12/rails-group-results-by-week-using-group_by/">this blog post</a>.</li>
 <li>Did you know that Ruby also has a similar <code>group_by</code> method? It&rsquo;s great when you want to <a href="http://ruby-doc.org/core-2.2.2/Enumerable.html#method-i-group_by">return a hash</a> where the keys are evaluated by a block!</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/"/>
-    <updated>2015-06-02T08:45:24-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/918rCUjV2XWhi" width="480" height="360" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>There aren&rsquo;t too many things that bring me down when I&rsquo;m deep into programming. But there&rsquo;s always one thing that&rsquo;ll stop me dead in my tracks: a code smell. In the context of programming, a code smell is something that tells you that your code is&hellip;well, a bit <em>off</em>.</p>
-
-<p>Whether you&rsquo;ve been programming for months or for decades, you&rsquo;ll run into &ldquo;code that smells&rdquo; again and again. Except the better that you get, you&rsquo;ll anticipate your code smelling, or before you even write it, you&rsquo;ll know that it&rsquo;s going to stink. For me, a lot of my code that tends to smell are sections where I&rsquo;ve duplicated what I&rsquo;ve written, which is to say that I&rsquo;ve written something that&rsquo;s identical or at least very, very similar to another piece of code in my application. I&rsquo;ve noticed that I&rsquo;ve started catching myself as I write duplicated code, which is a sign that I&rsquo;m getting better as a developer &ndash; hooray!</p>
-
-<p>But, there are a lot of <a href="http://en.wikipedia.org/wiki/Code_smell#Common_code_smells">common code smells</a>, and I definitely still can&rsquo;t catch all of them in my own code. Generally, if any part of your program has a common code smell, it&rsquo;s a sign that you need to rethink how your system is structured on a deeper level, and that it&rsquo;s probably time to start refactoring.</p>
-
-<p>Recently, I&rsquo;ve noticed that I&rsquo;ve been sniffing out the same issue in my code: long methods. So I did a bit of investigating and found that there are some cool ways to shorten up your longer methods. Thanks to Ruby magic, we have easy access to methods like <code>to_proc</code> in the form of &ldquo;ampersand and object&rdquo;, or the <strong>&amp;:</strong> syntax. If you have no clue what those are, don&rsquo;t worry. I didn&rsquo;t either! Until I wrote this post, obvs.</p>
-
-<!--more-->
-
-
-<h2>A Slim Method Is A Beautiful Method</h2>
-
-<p>In our eCommerce bookstore app, we&rsquo;re storing our <code>Order</code> <code>amount</code> totals as BigDecimals. You might remember why BigDecimals <a href="http://vaidehijoshi.github.io/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/">are better than floats</a> when it comes to performing accurate monetary calculations. But even though we&rsquo;re using BigDecimal on the backend, there may be times when we want to convert our decimals back into floats. Like what if we want to start integrating a JavaScript frontend? (yes, I went there). The point is, we should be able to do something like that pretty easily, especially if we wanted to serialize and return a JSON object that has the correct object type.</p>
-
-<p>We&rsquo;d probably start by iterating through all of our order amounts and turn them into floats, like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span>
-</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
-</span><span class='line'>      <span class="k">def</span> <span class="nf">amounts_to_floats</span>
-</span><span class='line'>          <span class="no">Order</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">order</span><span class="o">|</span>
-</span><span class='line'>              <span class="n">order</span><span class="o">.</span><span class="n">amount</span><span class="o">.</span><span class="n">to_f</span>
-</span><span class='line'>          <span class="k">end</span>
-</span><span class='line'>      <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Well, it does the job. But&hellip;it doesn&rsquo;t look so great, does it? Let&rsquo;s cut it down:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span>
-</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
-</span><span class='line'>      <span class="k">def</span> <span class="nf">amounts_to_floats</span>
-</span><span class='line'>          <span class="no">Order</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">map</span> <span class="p">{</span><span class="o">|</span><span class="n">order</span><span class="o">|</span> <span class="n">order</span><span class="o">.</span><span class="n">amount</span><span class="o">.</span><span class="n">to_f</span> <span class="p">}</span>
-</span><span class='line'>      <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Okay, let&rsquo;s make it a little fancier and throw in the <code>pluck</code> method, which will query for only the to grab <em>only</em> an <code>Order</code>&rsquo;s <code>amount</code>?</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span>
-</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
-</span><span class='line'>      <span class="k">def</span> <span class="nf">amounts_to_floats</span>
-</span><span class='line'>          <span class="no">Order</span><span class="o">.</span><span class="n">pluck</span><span class="p">(</span><span class="ss">:amount</span><span class="p">)</span><span class="o">.</span><span class="n">map</span> <span class="p">{</span><span class="o">|</span><span class="n">amount</span><span class="o">|</span> <span class="n">amount</span><span class="o">.</span><span class="n">to_f</span> <span class="p">}</span>
-</span><span class='line'>      <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>I guess it&rsquo;s better, but still not as good as it could be. Are you thinking what I&rsquo;m thinking? There&rsquo;s <em>gotta</em> be a better way!</p>
-
-<p><img src="http://provensal.com/lbb/wp-content/uploads/2013/03/better_way.jpg" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<h2>A Proc And An Object Walk Into A Bar&hellip;</h2>
-
-<p>As is the case with most things in programming, if we wish for a better way to do something, we can generally assume that there is! And in our case, the better way to do it is by using something called <strong>ampersand and object</strong>.</p>
-
-<p>And we can implement it on our <code>amounts_to_floats</code> method like so:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span>
-</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
-</span><span class='line'>      <span class="k">def</span> <span class="nf">amounts_to_floats</span>
-</span><span class='line'>          <span class="no">Order</span><span class="o">.</span><span class="n">pluck</span><span class="p">(</span><span class="ss">:amount</span><span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:to_f</span><span class="p">)</span>
-</span><span class='line'>      <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>The result of this will be the exact same thing as the <code>map</code> we wrote above:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">&gt;</span> <span class="no">Order</span><span class="o">.</span><span class="n">amounts_to_floats</span>
-</span><span class='line'><span class="o">=&gt;</span> <span class="o">[</span><span class="mi">210</span><span class="o">.</span><span class="mi">99</span><span class="p">,</span> <span class="mi">150</span><span class="o">.</span><span class="mi">5</span><span class="p">,</span> <span class="mi">24</span><span class="o">.</span><span class="mi">99</span><span class="p">,</span> <span class="mi">391</span><span class="o">.</span><span class="mi">99</span><span class="p">,</span> <span class="mi">120</span><span class="o">.</span><span class="mi">25</span><span class="o">]</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>So, what happened here? Well, let&rsquo;s just start with what we know for sure.</p>
-
-<ol>
-<li><p>We took all the <code>Order</code> objects and queried for just their <code>amounts</code>, which are in <code>BigDecimal</code> format.</p></li>
-<li><p>The <code>pluck</code> method returns an array of the attributes that you query for, so, which would mean that our array would look something like this:
-<code>[#&lt;BigDecimal:7f87ed12b2f0,'0.21099E3',18(18)&gt;, #&lt;BigDecimal:7f87ed121700,'0.1505E3',18(18)&gt;, #&lt;BigDecimal:7f87ed119348,'0.2499E2',18(18)&gt;...]</code></p></li>
-<li><p>Okay, so then we mapped over all of these amounts, right? And somehow we called <code>.to_f</code> on all of them. Which returned the array that we were hoping for:
-<code>[210.99, 150.5, 24.99, 391.99, 120.25]</code></p></li>
-</ol>
-
-
-<p>All of this begs one question: how on earth did the <code>&amp;</code> (ampersand) know to call <code>to_f</code> on each of our objects? And how did <code>map</code> know what to do with the ampersand that we passed it?</p>
-
-<p>Time to find out.</p>
-
-<h2>Procs on Procs</h2>
-
-<iframe src="//giphy.com/embed/umwRSMxcXW31m" width="480" height="244" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Whenever something seems super daunting, I go back to the basics. Which is exactly what I think we should do here, too. We can all agree that in Ruby is an object, right? And methods are how we send messages to objects. With that in mind, let&rsquo;s look back at that confusing line of code:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Order</span><span class="o">.</span><span class="n">pluck</span><span class="p">(</span><span class="ss">:amount</span><span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:to_f</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>We know <code>Order.pluck(:amount)</code> to be an array &ndash; it&rsquo;s an object, which means it&rsquo;s the <em>receiver</em> of our method. That means that <code>.map</code> is our method. And <code>map</code> has been passed <code>&amp;:to_f</code>, which seems to have replaced the usual <code>do end</code> or <code>{}</code> blocks that generally accompany the <code>map</code> iterator.</p>
-
-<p>At this point, if you&rsquo;re thinking that the <code>&amp;</code> ampersand is responsible for executing that <code>to_f</code> method on each of the elements of the array, you&rsquo;re definitely onto something.</p>
-
-<p>In fact, the <code>&amp;</code> calls <em>another</em> method on the object: <code>to_proc</code>. The ampersand calls <code>to_proc</code> on whatever comes after it. In our case, it&rsquo;s the <code>to_f</code>. But it&rsquo;s not just the plain old method <code>to_f</code> &ndash; it&rsquo;s actually the <em>symbol</em>, <code>:to_f</code>.</p>
-
-<p>And we can double check this by looking at <a href="http://ruby-doc.org/core-1.9.3/Symbol.html#method-i-to_proc">the Ruby docs</a>! The <code>to_proc</code> method is defined on the <code>Symbol</code> class:</p>
-
-<blockquote><p><code>to_proc</code> Returns a Proc object which responds to the given method by sym.</p></blockquote>
-
-<p>So all the <code>&amp;</code> is doing is: <code>:to_f.to_proc</code>. It turns the symbol into a proc, and whatever object you pass to it, it&rsquo;ll call that method on that object. You&rsquo;re basically telling the <code>map</code> function, <em>Hey, I already have this method I want to call on every single item you&rsquo;re iterating over. So when you invoke yourself on the receiving object, run this code that I&rsquo;m passing you.</em></p>
-
-<p>Because <code>:to_f</code> isn&rsquo;t actually a block, the ampersand tries to make it a block by calling <code>to_proc</code> on it. This means that you can pass any method to <code>&amp;</code> in symbol form, and it will convert it to and invoke that proc.</p>
-
-<p>But what if you didn&rsquo;t want to pass it a defined method in Ruby as a symbol? What if, instead, you wanted to write your own block and pass it to <code>&amp;</code> explicitly? That would look something like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">half_off_sale</span> <span class="o">=</span> <span class="no">Proc</span><span class="o">.</span><span class="n">new</span> <span class="p">{</span> <span class="o">|</span><span class="n">amount</span><span class="o">|</span> <span class="n">amount</span><span class="o">/</span><span class="mi">2</span> <span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="no">Order</span><span class="o">.</span><span class="n">pluck</span><span class="p">(</span><span class="ss">:amount</span><span class="p">)</span><span class="o">.</span><span class="n">map</span> <span class="o">&amp;</span><span class="n">half_off_sale</span>
-</span><span class='line'><span class="o">=&gt;</span> <span class="o">[</span><span class="c1">#&lt;BigDecimal:7f87ec20e4c0,&#39;0.105495E3&#39;,18(45)&gt;, #&lt;BigDecimal:7f87ec20e3d0,&#39;0.7525E2&#39;,18(45)&gt;, #&lt;BigDecimal:7f87ec20e2e0,&#39;0.12495E2&#39;,18(45)&gt;...]</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Pretty cool, right? In this case, we created a <code>half_off_sale</code> proc, that we passed directly to the ampersand. The <code>&amp;</code> didn&rsquo;t have to make it a proc (meaning that it didn&rsquo;t have to invoke <code>to_proc</code>) since we already passed it one. So when <code>map</code> iterated through all the amounts, it yielded to our <code>half_off_sale</code> proc, and ran that code on every single element in our array of amounts.</p>
-
-<p>As you can see, the ampersand and object and <code>to_proc</code> methods can be pretty powerful &ndash; particularly when they&rsquo;re combined into this handy little shortcut! That doesn&rsquo;t mean you have to use them all the time, but if you understand the fundamentals of how they work, they can really help clean up your code, especially when it&rsquo;s pretty smelly.</p>
-
-<p>This is just a primary introduction to the concepts of ampersand and object and <code>to_proc</code>. There&rsquo;s definitely a lot more to them, and they can get quite complicated. I&rsquo;m still learning about them myself! But, I&rsquo;m going to keep reading about how procs work and, hopefully, there&rsquo;ll be a forthcoming Technical Tuesdays post about how to pass methods to procs! Until then, keep sniffin&#8217; out those code smells, my friends!</p>
-
-<iframe src="//giphy.com/embed/LeaMGoMmMGrf2" width="480" height="360" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>&amp;</code> (ampersand) can be used with an iterator like <code>map</code>, and will call <code>to_proc</code> on whatever symbol you pass it, unless you pass it a block explicitly.</li>
-<li>More examples and explanations on <a href="http://stackoverflow.com/questions/9429819/what-is-the-functionality-of-operator-in-ruby">these</a> <a href="http://stackoverflow.com/questions/2259775/what-do-you-call-the-operator-in-ruby">two</a> StackOverflow posts.</li>
-<li>Here&rsquo;s a <a href="http://www.dan-manges.com/blog/29">great blog post</a> on all the ways you can use <code>&amp;</code> to manipulate ActiveRecord models.</li>
-<li>If you&rsquo;re still curious about different ways to pass around procs, check out <a href="http://ablogaboutcode.com/2012/01/04/the-ampersand-operator-in-ruby/">this post</a>, which is what I used when I was learning about them!</li>
 </ul>
 
 ]]></content>
