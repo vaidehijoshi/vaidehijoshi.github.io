@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-10-27T09:07:55-04:00</updated>
+  <updated>2015-10-27T09:09:39-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -68,8 +68,8 @@
 </pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ShipmentsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
 </span><span class='line'>  <span class="k">def</span> <span class="nf">index</span>
 </span><span class='line'>    <span class="vi">@shipments</span> <span class="o">=</span> <span class="no">Shipment</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="ss">state</span><span class="p">:</span> <span class="ss">:ready</span><span class="p">)</span>
-</span><span class='line'>              <span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="s1">&#39;created_at &lt;= ?&#39;</span><span class="p">,</span> <span class="no">Time</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">now</span> <span class="o">+</span> <span class="mi">7</span><span class="o">.</span><span class="n">days</span><span class="p">)</span>
-</span><span class='line'>                <span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="ss">created_at</span><span class="p">:</span> <span class="ss">:desc</span><span class="p">)</span>
+</span><span class='line'>          <span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="s1">&#39;created_at &lt;= ?&#39;</span><span class="p">,</span> <span class="no">Time</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">now</span> <span class="o">+</span> <span class="mi">7</span><span class="o">.</span><span class="n">days</span><span class="p">)</span>
+</span><span class='line'>               <span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="ss">created_at</span><span class="p">:</span> <span class="ss">:desc</span><span class="p">)</span>
 </span><span class='line'>  <span class="k">end</span>
 </span><span class='line'><span class="k">end</span>
 </span></code></pre></td></tr></table></div></figure>
