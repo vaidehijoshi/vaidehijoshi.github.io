@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>http://vaidehijoshi.github.io/blog/2015/10/27/digging-into-the-finder-object-pattern/</loc>
+    <lastmod>2015-10-27T08:58:31-04:00</lastmod>
+  </url>
+  <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/</loc>
     <lastmod>2015-10-20T08:17:21-04:00</lastmod>
   </url>
@@ -258,17 +262,5 @@
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/categories/markdown/</loc>
-  </url>
-  <url>
-    <loc>http://vaidehijoshi.github.io/posts/2/</loc>
-  </url>
-  <url>
-    <loc>http://vaidehijoshi.github.io/posts/3/</loc>
-  </url>
-  <url>
-    <loc>http://vaidehijoshi.github.io/posts/4/</loc>
-  </url>
-  <url>
-    <loc>http://vaidehijoshi.github.io/posts/5/</loc>
   </url>
 </urlset>

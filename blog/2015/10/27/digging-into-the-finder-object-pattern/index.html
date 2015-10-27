@@ -1,0 +1,533 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Digging Into the Finder Object Pattern - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="Most developers aren&rsquo;t ever completely happy with their code. I&rsquo;m no exception to this stereotype &mdash; I almost always know that I &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/10/27/digging-into-the-finder-object-pattern">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Digging Into the Finder Object Pattern</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-10-27T08:58:31-04:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:58 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><iframe src="//giphy.com/embed/y5A0PlFbGIk4o" width="480" height="280" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Most developers aren&rsquo;t ever <em>completely</em> happy with their code. I&rsquo;m no exception to this stereotype &mdash; I almost always know that I could probably write a cleaner, more concise method, controller, or class. Usually, it&rsquo;s a matter of not know the best tool to reach for to refactor my code; eventually, I learn a new pattern or form of encapuslating logic that I later use to make my old code a lot better.</p>
+
+<p>But a few weeks ago, I wrote 100 lines of beautiful code. I&rsquo;m talking about a goregous, straightforward, no-nonsense class that did a lot in a relatively few lines of Ruby. I still feel pretty proud of it (can you tell?), and part of the reason for this is because I also learned a new pattern while writing this class. I was actually pairing with another developer, and we wanted to try using a rather common Rails pattern to solve a problem we were running into again and again: messy queries in our controllers and models.</p>
+
+<p>We both were familiar with the concept of &ldquo;skinny controllers&rdquo; and &ldquo;fat models&rdquo;, or the idea that your controllers shouldn&rsquo;t be responsible for containing the logic specific to a model. However, we also didn&rsquo;t want our models to get out of control in size, which is exactly what was starting to happen. So, we searched for a workaround, and found our answer in one of the most elegant patterns I&rsquo;ve seen in awhile: <strong>finder objects</strong>. Finder objects are simple Ruby classes that encapuslate the logic behind querying the database, and they are hands down, my new favorite kind of Ruby object.</p>
+
+<!--more-->
+
+
+<h2>Scopin&#8217; Down The Problem of Scopes</h2>
+
+<iframe src="//giphy.com/embed/Y6eQqv3jdV4RO" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>In our bookstore application, we have <code>Order</code> objects, which represent the orders that a user places in our system. However, these are books that we&rsquo;re dealing with, and eventually we need to address the whole fulfillment process, which will need to be represented by a whole other set of models. For now, we&rsquo;ll try to keep it as simple as possible. Let&rsquo;s say that an <code>Order</code> has many <code>Shipments</code>, and each shipment represents a batch of <code>Book</code> objects (read: products) that need to be shipped out together.</p>
+
+<p>Right off the bat, we know that our <code>Shipment</code> model will have some kind of state machine that will need to track the different stages of the shipment phase. Again, to keep it simple, let&rsquo;s say that there are five different stages or <code>state</code>s of a shipment:</p>
+
+<ol>
+<li>A shipment starts off as <code>processing</code> once an order has been placed.</li>
+<li>Once it has been processed, it needs a label with the shipping address information, so it transitions to the <code>needs_label</code> state.</li>
+<li>After it has a label generated, it&rsquo;ll need a tracking number, so transitions to the <code>needs_tracking</code> state.</li>
+<li>Once it has a tracking number, it transitions to being <code>ready</code> for shipment.</li>
+<li>Finally, when the shipment is actually sent out of the warehouse and to our shipping service, it should be marked as <code>shipped</code>.</li>
+</ol>
+
+
+<p>To be clear, this is a <em>super</em> simplified version of what would happen in a real-life application! Now, in our admin panel, let&rsquo;s say that we have a page that will render all of our shipments, which should always ordered by when they were created, so that our admins know which shipments to process, and in which order.</p>
+
+<p>We can take it a step further and say that our main admin panel page &mdash; which will correspond to the <code>index</code> action in our controller, should show our admins the most urgent shipments that need their attention as soon as they log in; in other words, these would be the shipments that were created more than a week ago, but still haven&rsquo;t been processed.</p>
+
+<p>I think we can all agree that basic Rails best practices should steer us away from doing something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ShipmentsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">index</span>
+</span><span class='line'>    <span class="vi">@shipments</span> <span class="o">=</span> <span class="no">Shipment</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="ss">state</span><span class="p">:</span> <span class="ss">:ready</span><span class="p">)</span>
+</span><span class='line'>              <span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="s1">&#39;created_at &lt;= ?&#39;</span><span class="p">,</span> <span class="no">Time</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">now</span> <span class="o">+</span> <span class="mi">7</span><span class="o">.</span><span class="n">days</span><span class="p">)</span>
+</span><span class='line'>                <span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="ss">created_at</span><span class="p">:</span> <span class="ss">:desc</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We <em>definitely</em> know that the controller really shouldn&rsquo;t be responsible for querying for the correct <code>Shipment</code> objects. All our controller should have to do is just render the correct ones, and not go digging for them in the database!</p>
+
+<p>Okay, so we&rsquo;ll create some scopes for these queries instead. These scopes should live in our model, not in the controller, right? Let&rsquo;s see what our model might look like if we take that approach:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Shipment</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">belongs_to</span> <span class="ss">:order</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">default_scope</span> <span class="o">-&gt;</span> <span class="p">{</span> <span class="n">order</span><span class="p">(</span><span class="ss">created_at</span><span class="p">:</span> <span class="ss">:desc</span><span class="p">)</span> <span class="p">}</span>
+</span><span class='line'>  <span class="n">scope</span> <span class="ss">:shipped</span><span class="p">,</span> <span class="o">-&gt;</span> <span class="p">{</span> <span class="n">where</span><span class="p">(</span><span class="ss">state</span><span class="p">:</span> <span class="s1">&#39;shipped&#39;</span><span class="p">)</span> <span class="p">}</span>
+</span><span class='line'>  <span class="n">scope</span> <span class="ss">:urgent</span><span class="p">,</span> <span class="o">-&gt;</span> <span class="p">{</span>
+</span><span class='line'>      <span class="n">where</span><span class="p">(</span><span class="s1">&#39;created_at &lt;= ?&#39;</span><span class="p">,</span> <span class="no">Time</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">now</span> <span class="o">+</span> <span class="mi">7</span><span class="o">.</span><span class="n">days</span><span class="p">)</span>
+</span><span class='line'>      <span class="p">}</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This cleans things up a decent bit! Scopes are actually part of the Active Record Query Interface, and they allow us to specify commonly-used queries which we can then actually reference and use in the form of method calls on our models themselves. They are really nothing more than defining class methods on a model:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Shipment</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">shipped</span>
+</span><span class='line'>      <span class="n">where</span><span class="p">(</span><span class="ss">state</span><span class="p">:</span> <span class="s1">&#39;shipped&#39;</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>However, they&rsquo;re pretty wonderful because you can just chain them as method calls (<code>Shipment.urgent.shipped</code>), but all they do is execute the correct query for you:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Shipment</span><span class="o">.</span><span class="n">shipped</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="no">SELECT</span> <span class="s2">&quot;shipments&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;shipments&quot;</span> <span class="no">WHERE</span> <span class="s2">&quot;shipments&quot;</span><span class="o">.</span><span class="s2">&quot;state&quot;</span> <span class="o">=</span> <span class="s2">&quot;shipped&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>But the good news about scopes is also the bad <a href="news:">news:</a> you can just keep adding them and adding them, and chaining them onto everything. Our <code>Shipment</code> class has only three scopes at the moment, one of them being the <code>default</code> scope. But, we&rsquo;ll probably have a page that should only render only the shipments that are in the <code>needs_label</code> state, or a page that maps to a controller action which should only return shipments that are in the <code>needs_tracking</code> state. We <em>could</em> keep adding scopes and then have our controller actions call the scopes on the class to return the appropriate shipments from our database.</p>
+
+<p>Or, we could try something a little different.</p>
+
+<h2>Finder Objects</h2>
+
+<iframe src="//giphy.com/embed/12bpEjD05ac2IM" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Our scopes don&rsquo;t actually add any new behavior to our model. As we saw earlier, they are nothing more than macros for querying for the correct rows from our <code>shipments</code> table in our database. So, it really doesn&rsquo;t make sense for our model to contain all this logic that doesn&rsquo;t <em>add</em> any new behavior to it.</p>
+
+<p>It would be nice, however, if we could apply the rule of &ldquo;separation of concerns&rdquo; here, and have an entire class whose sole responsibility would be to dig up the correct objects based on the parameters we were querying by. Really, this class should do nothing more than <em>find the right objects</em>. You might even say that instances of this class are just&hellip;<em>finder objects</em>! (Get it? Man, I really hope you got it.)</p>
+
+<p>Anyways, how might this class look? Well, we don&rsquo;t need any of the functionality from ActiveRecord, so we can create it as just a Plain Old Ruby Class:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ShipmentFinder</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Next, we&rsquo;ll want to tell our finder object which models to query for, so it will know how to construct our queries, and which table to query. Since we never really want to have this method accessible elsewhere, we can make it a private class method that will only be called from the context of another <code>ShipmentFinder</code> class method:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ShipmentFinder</span>
+</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+</span><span class='line'>      <span class="kp">private</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">resource_class</span>
+</span><span class='line'>          <span class="o">::</span><span class="no">Shipment</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, we can use Rails&#8217; <a href="https://github.com/rails/arel">arel DSL</a> to construct a basic query. To do this, we&rsquo;ll need a method that returns the table, which can also be a private method since we&rsquo;ll never want to call it explicitly:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ShipmentFinder</span>
+</span><span class='line'>    <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+</span><span class='line'>      <span class="kp">private</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">table</span>
+</span><span class='line'>        <span class="n">resource_class</span><span class="o">.</span><span class="n">arel_table</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">resource_class</span>
+</span><span class='line'>        <span class="o">::</span><span class="no">Shipment</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, we can write as many specific queries as we want. For example, we could write a <code>urgent_needs_tracking</code> class method that could constructs a query using two private methods, <code>needs_tracking</code> and <code>is_ready</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ShipmentFinder</span>
+</span><span class='line'>    <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">urgent_needs_tracking</span>
+</span><span class='line'>        <span class="n">query</span> <span class="o">=</span> <span class="n">needs_tracking</span><span class="o">.</span><span class="n">and</span><span class="p">(</span><span class="n">is_ready</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">resource_class</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">shipped</span>
+</span><span class='line'>        <span class="n">resource_class</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="ss">state</span><span class="p">:</span> <span class="s1">&#39;shipped&#39;</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="kp">private</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">urgent</span>
+</span><span class='line'>          <span class="n">resource_class</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="s1">&#39;created_at &lt;= ?&#39;</span><span class="p">,</span> <span class="no">Time</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">now</span> <span class="o">+</span> <span class="mi">7</span><span class="o">.</span><span class="n">days</span><span class="p">))</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">is_ready</span>
+</span><span class='line'>        <span class="n">table</span><span class="o">[</span><span class="ss">:state</span><span class="o">].</span><span class="n">eq</span><span class="p">(</span><span class="s1">&#39;ready&#39;</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">needs_tracking</span>
+</span><span class='line'>        <span class="n">table</span><span class="o">[</span><span class="ss">:state</span><span class="o">].</span><span class="n">eq</span><span class="p">(</span><span class="s1">&#39;needs_tracking&#39;</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">needs_label</span>
+</span><span class='line'>        <span class="n">table</span><span class="o">[</span><span class="ss">:state</span><span class="o">].</span><span class="n">eq</span><span class="p">(</span><span class="s1">&#39;needs_label&#39;</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">table</span>
+</span><span class='line'>        <span class="n">resource_class</span><span class="o">.</span><span class="n">arel_table</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">resource_class</span>
+</span><span class='line'>        <span class="o">::</span><span class="no">Shipment</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now we can rely on our <code>ShipmentFinder</code> class to find our shipments that have been created more than 7 days ago, and still don&rsquo;t have a tracking number. We also can add more functionality that can be used in specific instances, which is exactly what we&rsquo;ve done with our <code>needs_label</code> and <code>is_ready</code> private methods. We can use arel to construct queries using those methods to scope down what objects are actually returned. We don&rsquo;t have to do anything fancy, if we don&rsquo;t want to. Take a look at that <code>shipped</code> method &mdash; this is just using a simple <code>where</code> arel method to construct a query that reads like this: <code>SELECT "shipments".* FROM "shipments" WHERE "shipments"."state" = "shipped"</code>.</p>
+
+<p>Finally, the last step: it&rsquo;s time for us to actually call on our finder object to do its job!</p>
+
+<h2>Cleaner Querying, Cleaner Controllers</h2>
+
+<p>Let&rsquo;s bring it all together by going back to our <code>ShipmentsController</code> and add our new finder object into it. Our <code>index</code> action should now be able to account for different types of shipments that our admins might want to query for. For now, we&rsquo;ll construct our controller to accept a query parameter in our params hash that will be that <code>status</code> of the types of shipments we want to return. Depending on the frontend framework we&rsquo;re using, this might be a dropdown or checkbox option that will set a value on the <code>status</code> key in our params hash.</p>
+
+<p>Our controller action could now be rewritten to look something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ShipmentsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">index</span>
+</span><span class='line'>      <span class="n">status</span> <span class="o">=</span> <span class="n">params</span><span class="o">[</span><span class="ss">:status</span><span class="o">]</span>
+</span><span class='line'>      <span class="n">status_method</span> <span class="o">=</span> <span class="n">status</span><span class="o">.</span><span class="n">to_sym</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">if</span> <span class="no">ShipmentFinder</span><span class="o">.</span><span class="n">respond_to?</span><span class="p">(</span><span class="n">status_method</span><span class="p">)</span>
+</span><span class='line'>          <span class="vi">@shipments</span> <span class="o">=</span> <span class="no">ShipmentFinder</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">status_method</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">else</span>
+</span><span class='line'>          <span class="vi">@shipments</span> <span class="o">=</span> <span class="no">Shipment</span><span class="o">.</span><span class="n">all</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Here, we&rsquo;re accessing the query param from <code>params[:status]</code>, and turning it into a symbol (<code>status_method</code>). Next, we&rsquo;re using Ruby&rsquo;s super handy <code>respond_to?</code> method, and sending our <code>status_method</code> symbol to our <code>ShipmentFinder</code>. So, if our admin selects an option that sends the query param <code>urgent_needs_tracking</code>, we are telling our finder object to call that method, and execute that query. The return value of the query executed by our <code>ShipmentFinder</code>&rsquo;s <code>urgent_needs_tracking</code> method is what will be set as the instance variable <code>@shipments</code> for the duration of this action on the controller.</p>
+
+<p>If no query param is set, or if our <code>ShipmentFinder</code> doesn&rsquo;t have a method that maps to a query param, we&rsquo;re just returning all of our <code>Shipment</code> objects by default.</p>
+
+<p>This is quite an improvement from our earlier code, which had our controller digging for rows in a database that it really didn&rsquo;t have anything to do with. Now, we&rsquo;ve separated our concerns into a new finder object, which exists as its own query interface on its own. It&rsquo;s also worth noting that sometimes, creating a finder object can be overkill, and sometimes, if we have a lot of finder objects, we&rsquo;d probably want to abstract a lot of this functionality out into a <code>BaseFinder</code> class, which our finder objects could inherit from. But this is definitely a great start. No more digging for us!</p>
+
+<iframe src="//giphy.com/embed/FqEDV3gjMhqRG" width="480" height="267" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The finder object pattern helps keep your model logic strictly related to a class&#8217; behavior, while also keeping your controller&rsquo;s skinny. Since they are nothing more than plain old Ruby classes, finder objects don&rsquo;t need to inherit from <code>ActiveRecord::Base</code>, and should be responsible for nothing more than executing queries. Read more about them on this <a href="http://twin.github.io/finder-objects/">fantastic blog post</a>.</li>
+<li>Scopes are a great tool to use if a finder object seems like more work than it&rsquo;s really worth, given the size and context of your application. Read more about scopes in the Rails <a href="http://guides.rubyonrails.org/active_record_querying.html#scopes">documentation</a>.</li>
+<li>Want to see more examples of implementing finder objects? Check out this <a href="https://speakerdeck.com/weppos/maintaining-a-5yo-ruby-project-shark-edition?slide=103">slidedeck</a> series.</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-10-27T08:58:31-04:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:58 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/10/27/digging-into-the-finder-object-pattern/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/10/27/digging-into-the-finder-object-pattern/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/" title="Previous Post: Solutions For Slugs Of All Sizes: acts_as_url + to_param">&laquo; Solutions For Slugs Of All Sizes: acts_as_url + to_param</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/10/27/digging-into-the-finder-object-pattern/">Digging Into the Finder Object Pattern</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/">Solutions for Slugs of All Sizes: Acts_as_url + To_param</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns/">Stop Worrying and Start Being Concerned: ActiveSupport Concerns</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/06/fleeting-filing-with-ruby-tempfile/">Fleeting Filing With Ruby Tempfile</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/">Using Pundit, the Cool Kid of Authorization</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

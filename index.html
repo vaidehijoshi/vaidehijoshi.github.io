@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="Last week was my first week of working from home, which meant two things: spending a lot of time with my computer and limited time with other human &hellip;">
+  <meta name="description" content="Most developers aren&rsquo;t ever completely happy with their code. I&rsquo;m no exception to this stereotype &mdash; I almost always know that I &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,58 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/10/27/digging-into-the-finder-object-pattern/">Digging Into the Finder Object Pattern</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-10-27T08:58:31-04:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:58 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/y5A0PlFbGIk4o" width="480" height="280" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Most developers aren&rsquo;t ever <em>completely</em> happy with their code. I&rsquo;m no exception to this stereotype &mdash; I almost always know that I could probably write a cleaner, more concise method, controller, or class. Usually, it&rsquo;s a matter of not know the best tool to reach for to refactor my code; eventually, I learn a new pattern or form of encapuslating logic that I later use to make my old code a lot better.</p>
+
+<p>But a few weeks ago, I wrote 100 lines of beautiful code. I&rsquo;m talking about a goregous, straightforward, no-nonsense class that did a lot in a relatively few lines of Ruby. I still feel pretty proud of it (can you tell?), and part of the reason for this is because I also learned a new pattern while writing this class. I was actually pairing with another developer, and we wanted to try using a rather common Rails pattern to solve a problem we were running into again and again: messy queries in our controllers and models.</p>
+
+<p>We both were familiar with the concept of &ldquo;skinny controllers&rdquo; and &ldquo;fat models&rdquo;, or the idea that your controllers shouldn&rsquo;t be responsible for containing the logic specific to a model. However, we also didn&rsquo;t want our models to get out of control in size, which is exactly what was starting to happen. So, we searched for a workaround, and found our answer in one of the most elegant patterns I&rsquo;ve seen in awhile: <strong>finder objects</strong>. Finder objects are simple Ruby classes that encapuslate the logic behind querying the database, and they are hands down, my new favorite kind of Ruby object.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/10/27/digging-into-the-finder-object-pattern/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -528,56 +580,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/08/18/safer-sql-using-activerecord-transactions/">Safer SQL: Using ActiveRecord Transactions</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-08-18T08:11:32-04:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:11 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>, <a class='category' href='/blog/categories/sql/'>sql</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><iframe src="//giphy.com/embed/Djnfk5gnoNXqM" width="480" height="356" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>Is there anything more satisfying than writing concise, perfect line of SQL and then watching it query your database exactly as you expected? Probably not. Writing &mdash; and subsequently watching! &mdash; an efficient database query is one of my favorite parts of building an application.</p>
-
-<p>But if there&rsquo;s one thing about software development that I&rsquo;ve learned over the past few months, it&rsquo;s this: projects can get out of control, rather quickly. You start off with your basic models, but then as you add one feature after another, things can start to get out of hand. At that point, your focus as a developer shifts and spreads out to various things. You can&rsquo;t just care about how readable your code is; you also have to consider how efficient it is, and how different units of your application might be breaking other parts (hopefully not unbeknownst to you!). In other words, you have to consider how defensive and <em>safe</em> your code actually is.</p>
-
-<p>Recently, while writing some background jobs and creating some service objects for a new feature, I realized the importance of executing and enforcing safe code. The good news is that there&rsquo;s a really helpful, life-saving ActiveRecord <strong>transaction</strong> method that allows you to do exactly this. And the really great news? You get to watch your SQL queries execute safely as a result!</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/08/18/safer-sql-using-activerecord-transactions/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -593,6 +595,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/10/27/digging-into-the-finder-object-pattern/">Digging Into the Finder Object Pattern</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/">Solutions for Slugs of All Sizes: Acts_as_url + To_param</a>
       </li>
     
@@ -606,10 +612,6 @@
     
       <li class="post">
         <a href="/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/">Using Pundit, the Cool Kid of Authorization</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/">Working Hard or Hardly Working, Part 2: Custom Jobs</a>
       </li>
     
   </ul>

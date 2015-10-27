@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="There aren&rsquo;t too many things that bring me down when I&rsquo;m deep into programming. But there&rsquo;s always one thing that&rsquo;ll stop me &hellip;">
+  <meta name="description" content="There are a lot of opportunities in programming to feel pretty silly about yourself. I&rsquo;m sure that the more coding experience you have, the &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,55 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/06/09/refactoring-to-reveal-rails-group-by/">Refactoring to Reveal Rails Group_by</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-06-09T08:43:24-04:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:43 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/refactoring/'>refactoring</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><img src="http://img.pandawhale.com/post-10513-Code-Refactoring-Cat-in-Bathtu-U295.gif" style="display: block; margin-left: auto; margin-right: auto;"/></p>
+
+<p>There are a lot of opportunities in programming to feel pretty silly about yourself. I&rsquo;m sure that the more coding experience you have, the less often these moments actually occur. But early on in your career, they seem to happen quite often &ndash; or they do to <em>me</em>, at least.</p>
+
+<p>I had one of those moments a couple weeks ago, when I wrote a super long method and then asked a senior developer to take a look at it. While I was writing it, something seemed inherently wrong. I was sure there was a better way to do it, but I guess my Googling skills aren&rsquo;t quite superb yet, because I couldn&rsquo;t find quite the right answer anywhere. It was then that I decided to ask someone who would know exactly which tool to reach for.</p>
+
+<p>What happened next was pretty awesome, albeit slightly depressing. I watched my code be refactored from ten lines down to a single line. It blew my mind &ndash; and not just because I didn&rsquo;t know that this method even <em>existed</em>, but because I wanted to know how it worked! So, I did some digging and learned a bit about the method that I wrote which, as it turns out, already existed: the Rails <code>group_by</code> method on Enumerables.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/06/09/refactoring-to-reveal-rails-group-by/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -520,55 +569,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable/">Delegating All of the Things With Ruby Forwardable</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-03-31T08:35:27-04:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>8:35 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/refactoring/'>refactoring</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><img src="http://assets.amuniversal.com/77c6dce06d5c01301d80001dd8b71c47" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>It was the best of times. It was the worst of times. It was&hellip;refactoring time! Well it was for me yesterday, at least.</p>
-
-<p>Refactoring your own code has a great payoff at the end, but boy, does it take some work to get there. Something I&rsquo;ve noticed about my own code recently is that I&rsquo;m now able to know that something needs to be refactored pretty easily. I&rsquo;ve been having a lot of gut feelings about parts of my code that just <em>feel</em> wrong, inefficient, and repetitive. The problem is, even though I know where my code is weak, I don&rsquo;t usually know <em>how</em> to go about making my code better.</p>
-
-<p>And this is where making effective use of resources (read: The Art Of Effective Googling) comes quite in handy. Yesterday, however, I used even better resource &ndash; a more experienced developer! We took a look at my code and came up with some ways I could refactor it. I learned about a pretty interesting module that could save me lines of code and keep my application <a href="http://en.wikipedia.org/wiki/Don%27t_repeat_yourself">DRY</a>. And now I get to share it with you! This module is called <a href="http://ruby-doc.org/stdlib-2.0/libdoc/forwardable/rdoc/Forwardable.html">Forwardable</a>, and trust me when I say that it&rsquo;s going to make you want to delegate all the things.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/4">&larr; Older</a>
@@ -586,6 +586,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/10/27/digging-into-the-finder-object-pattern/">Digging Into the Finder Object Pattern</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/">Solutions for Slugs of All Sizes: Acts_as_url + To_param</a>
       </li>
     
@@ -599,10 +603,6 @@
     
       <li class="post">
         <a href="/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/">Using Pundit, the Cool Kid of Authorization</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/">Working Hard or Hardly Working, Part 2: Custom Jobs</a>
       </li>
     
   </ul>

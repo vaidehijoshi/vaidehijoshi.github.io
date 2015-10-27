@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-10-20T18:09:05-04:00</updated>
+  <updated>2015-10-27T09:07:55-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,335 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Digging Into the Finder Object Pattern]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/10/27/digging-into-the-finder-object-pattern/"/>
+    <updated>2015-10-27T08:58:31-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/10/27/digging-into-the-finder-object-pattern</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/y5A0PlFbGIk4o" width="480" height="280" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Most developers aren&rsquo;t ever <em>completely</em> happy with their code. I&rsquo;m no exception to this stereotype &mdash; I almost always know that I could probably write a cleaner, more concise method, controller, or class. Usually, it&rsquo;s a matter of not know the best tool to reach for to refactor my code; eventually, I learn a new pattern or form of encapuslating logic that I later use to make my old code a lot better.</p>
+
+<p>But a few weeks ago, I wrote 100 lines of beautiful code. I&rsquo;m talking about a goregous, straightforward, no-nonsense class that did a lot in a relatively few lines of Ruby. I still feel pretty proud of it (can you tell?), and part of the reason for this is because I also learned a new pattern while writing this class. I was actually pairing with another developer, and we wanted to try using a rather common Rails pattern to solve a problem we were running into again and again: messy queries in our controllers and models.</p>
+
+<p>We both were familiar with the concept of &ldquo;skinny controllers&rdquo; and &ldquo;fat models&rdquo;, or the idea that your controllers shouldn&rsquo;t be responsible for containing the logic specific to a model. However, we also didn&rsquo;t want our models to get out of control in size, which is exactly what was starting to happen. So, we searched for a workaround, and found our answer in one of the most elegant patterns I&rsquo;ve seen in awhile: <strong>finder objects</strong>. Finder objects are simple Ruby classes that encapuslate the logic behind querying the database, and they are hands down, my new favorite kind of Ruby object.</p>
+
+<!--more-->
+
+
+<h2>Scopin&#8217; Down The Problem of Scopes</h2>
+
+<iframe src="//giphy.com/embed/Y6eQqv3jdV4RO" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>In our bookstore application, we have <code>Order</code> objects, which represent the orders that a user places in our system. However, these are books that we&rsquo;re dealing with, and eventually we need to address the whole fulfillment process, which will need to be represented by a whole other set of models. For now, we&rsquo;ll try to keep it as simple as possible. Let&rsquo;s say that an <code>Order</code> has many <code>Shipments</code>, and each shipment represents a batch of <code>Book</code> objects (read: products) that need to be shipped out together.</p>
+
+<p>Right off the bat, we know that our <code>Shipment</code> model will have some kind of state machine that will need to track the different stages of the shipment phase. Again, to keep it simple, let&rsquo;s say that there are five different stages or <code>state</code>s of a shipment:</p>
+
+<ol>
+<li>A shipment starts off as <code>processing</code> once an order has been placed.</li>
+<li>Once it has been processed, it needs a label with the shipping address information, so it transitions to the <code>needs_label</code> state.</li>
+<li>After it has a label generated, it&rsquo;ll need a tracking number, so transitions to the <code>needs_tracking</code> state.</li>
+<li>Once it has a tracking number, it transitions to being <code>ready</code> for shipment.</li>
+<li>Finally, when the shipment is actually sent out of the warehouse and to our shipping service, it should be marked as <code>shipped</code>.</li>
+</ol>
+
+
+<p>To be clear, this is a <em>super</em> simplified version of what would happen in a real-life application! Now, in our admin panel, let&rsquo;s say that we have a page that will render all of our shipments, which should always ordered by when they were created, so that our admins know which shipments to process, and in which order.</p>
+
+<p>We can take it a step further and say that our main admin panel page &mdash; which will correspond to the <code>index</code> action in our controller, should show our admins the most urgent shipments that need their attention as soon as they log in; in other words, these would be the shipments that were created more than a week ago, but still haven&rsquo;t been processed.</p>
+
+<p>I think we can all agree that basic Rails best practices should steer us away from doing something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ShipmentsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">index</span>
+</span><span class='line'>    <span class="vi">@shipments</span> <span class="o">=</span> <span class="no">Shipment</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="ss">state</span><span class="p">:</span> <span class="ss">:ready</span><span class="p">)</span>
+</span><span class='line'>              <span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="s1">&#39;created_at &lt;= ?&#39;</span><span class="p">,</span> <span class="no">Time</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">now</span> <span class="o">+</span> <span class="mi">7</span><span class="o">.</span><span class="n">days</span><span class="p">)</span>
+</span><span class='line'>                <span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="ss">created_at</span><span class="p">:</span> <span class="ss">:desc</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We <em>definitely</em> know that the controller really shouldn&rsquo;t be responsible for querying for the correct <code>Shipment</code> objects. All our controller should have to do is just render the correct ones, and not go digging for them in the database!</p>
+
+<p>Okay, so we&rsquo;ll create some scopes for these queries instead. These scopes should live in our model, not in the controller, right? Let&rsquo;s see what our model might look like if we take that approach:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Shipment</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">belongs_to</span> <span class="ss">:order</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">default_scope</span> <span class="o">-&gt;</span> <span class="p">{</span> <span class="n">order</span><span class="p">(</span><span class="ss">created_at</span><span class="p">:</span> <span class="ss">:desc</span><span class="p">)</span> <span class="p">}</span>
+</span><span class='line'>  <span class="n">scope</span> <span class="ss">:shipped</span><span class="p">,</span> <span class="o">-&gt;</span> <span class="p">{</span> <span class="n">where</span><span class="p">(</span><span class="ss">state</span><span class="p">:</span> <span class="s1">&#39;shipped&#39;</span><span class="p">)</span> <span class="p">}</span>
+</span><span class='line'>  <span class="n">scope</span> <span class="ss">:urgent</span><span class="p">,</span> <span class="o">-&gt;</span> <span class="p">{</span>
+</span><span class='line'>      <span class="n">where</span><span class="p">(</span><span class="s1">&#39;created_at &lt;= ?&#39;</span><span class="p">,</span> <span class="no">Time</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">now</span> <span class="o">+</span> <span class="mi">7</span><span class="o">.</span><span class="n">days</span><span class="p">)</span>
+</span><span class='line'>      <span class="p">}</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This cleans things up a decent bit! Scopes are actually part of the Active Record Query Interface, and they allow us to specify commonly-used queries which we can then actually reference and use in the form of method calls on our models themselves. They are really nothing more than defining class methods on a model:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Shipment</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">shipped</span>
+</span><span class='line'>      <span class="n">where</span><span class="p">(</span><span class="ss">state</span><span class="p">:</span> <span class="s1">&#39;shipped&#39;</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>However, they&rsquo;re pretty wonderful because you can just chain them as method calls (<code>Shipment.urgent.shipped</code>), but all they do is execute the correct query for you:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Shipment</span><span class="o">.</span><span class="n">shipped</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="no">SELECT</span> <span class="s2">&quot;shipments&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;shipments&quot;</span> <span class="no">WHERE</span> <span class="s2">&quot;shipments&quot;</span><span class="o">.</span><span class="s2">&quot;state&quot;</span> <span class="o">=</span> <span class="s2">&quot;shipped&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>But the good news about scopes is also the bad <a href="news:">news:</a> you can just keep adding them and adding them, and chaining them onto everything. Our <code>Shipment</code> class has only three scopes at the moment, one of them being the <code>default</code> scope. But, we&rsquo;ll probably have a page that should only render only the shipments that are in the <code>needs_label</code> state, or a page that maps to a controller action which should only return shipments that are in the <code>needs_tracking</code> state. We <em>could</em> keep adding scopes and then have our controller actions call the scopes on the class to return the appropriate shipments from our database.</p>
+
+<p>Or, we could try something a little different.</p>
+
+<h2>Finder Objects</h2>
+
+<iframe src="//giphy.com/embed/12bpEjD05ac2IM" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Our scopes don&rsquo;t actually add any new behavior to our model. As we saw earlier, they are nothing more than macros for querying for the correct rows from our <code>shipments</code> table in our database. So, it really doesn&rsquo;t make sense for our model to contain all this logic that doesn&rsquo;t <em>add</em> any new behavior to it.</p>
+
+<p>It would be nice, however, if we could apply the rule of &ldquo;separation of concerns&rdquo; here, and have an entire class whose sole responsibility would be to dig up the correct objects based on the parameters we were querying by. Really, this class should do nothing more than <em>find the right objects</em>. You might even say that instances of this class are just&hellip;<em>finder objects</em>! (Get it? Man, I really hope you got it.)</p>
+
+<p>Anyways, how might this class look? Well, we don&rsquo;t need any of the functionality from ActiveRecord, so we can create it as just a Plain Old Ruby Class:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ShipmentFinder</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Next, we&rsquo;ll want to tell our finder object which models to query for, so it will know how to construct our queries, and which table to query. Since we never really want to have this method accessible elsewhere, we can make it a private class method that will only be called from the context of another <code>ShipmentFinder</code> class method:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ShipmentFinder</span>
+</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+</span><span class='line'>      <span class="kp">private</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">resource_class</span>
+</span><span class='line'>          <span class="o">::</span><span class="no">Shipment</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, we can use Rails&#8217; <a href="https://github.com/rails/arel">arel DSL</a> to construct a basic query. To do this, we&rsquo;ll need a method that returns the table, which can also be a private method since we&rsquo;ll never want to call it explicitly:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ShipmentFinder</span>
+</span><span class='line'>    <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+</span><span class='line'>      <span class="kp">private</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">table</span>
+</span><span class='line'>        <span class="n">resource_class</span><span class="o">.</span><span class="n">arel_table</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">resource_class</span>
+</span><span class='line'>        <span class="o">::</span><span class="no">Shipment</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, we can write as many specific queries as we want. For example, we could write a <code>urgent_needs_tracking</code> class method that could constructs a query using two private methods, <code>needs_tracking</code> and <code>is_ready</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ShipmentFinder</span>
+</span><span class='line'>    <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">urgent_needs_tracking</span>
+</span><span class='line'>        <span class="n">query</span> <span class="o">=</span> <span class="n">needs_tracking</span><span class="o">.</span><span class="n">and</span><span class="p">(</span><span class="n">is_ready</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">resource_class</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">shipped</span>
+</span><span class='line'>        <span class="n">resource_class</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="ss">state</span><span class="p">:</span> <span class="s1">&#39;shipped&#39;</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="kp">private</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">urgent</span>
+</span><span class='line'>          <span class="n">resource_class</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="s1">&#39;created_at &lt;= ?&#39;</span><span class="p">,</span> <span class="no">Time</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">now</span> <span class="o">+</span> <span class="mi">7</span><span class="o">.</span><span class="n">days</span><span class="p">))</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">is_ready</span>
+</span><span class='line'>        <span class="n">table</span><span class="o">[</span><span class="ss">:state</span><span class="o">].</span><span class="n">eq</span><span class="p">(</span><span class="s1">&#39;ready&#39;</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">needs_tracking</span>
+</span><span class='line'>        <span class="n">table</span><span class="o">[</span><span class="ss">:state</span><span class="o">].</span><span class="n">eq</span><span class="p">(</span><span class="s1">&#39;needs_tracking&#39;</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">needs_label</span>
+</span><span class='line'>        <span class="n">table</span><span class="o">[</span><span class="ss">:state</span><span class="o">].</span><span class="n">eq</span><span class="p">(</span><span class="s1">&#39;needs_label&#39;</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">table</span>
+</span><span class='line'>        <span class="n">resource_class</span><span class="o">.</span><span class="n">arel_table</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">resource_class</span>
+</span><span class='line'>        <span class="o">::</span><span class="no">Shipment</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now we can rely on our <code>ShipmentFinder</code> class to find our shipments that have been created more than 7 days ago, and still don&rsquo;t have a tracking number. We also can add more functionality that can be used in specific instances, which is exactly what we&rsquo;ve done with our <code>needs_label</code> and <code>is_ready</code> private methods. We can use arel to construct queries using those methods to scope down what objects are actually returned. We don&rsquo;t have to do anything fancy, if we don&rsquo;t want to. Take a look at that <code>shipped</code> method &mdash; this is just using a simple <code>where</code> arel method to construct a query that reads like this: <code>SELECT "shipments".* FROM "shipments" WHERE "shipments"."state" = "shipped"</code>.</p>
+
+<p>Finally, the last step: it&rsquo;s time for us to actually call on our finder object to do its job!</p>
+
+<h2>Cleaner Querying, Cleaner Controllers</h2>
+
+<p>Let&rsquo;s bring it all together by going back to our <code>ShipmentsController</code> and add our new finder object into it. Our <code>index</code> action should now be able to account for different types of shipments that our admins might want to query for. For now, we&rsquo;ll construct our controller to accept a query parameter in our params hash that will be that <code>status</code> of the types of shipments we want to return. Depending on the frontend framework we&rsquo;re using, this might be a dropdown or checkbox option that will set a value on the <code>status</code> key in our params hash.</p>
+
+<p>Our controller action could now be rewritten to look something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ShipmentsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">index</span>
+</span><span class='line'>      <span class="n">status</span> <span class="o">=</span> <span class="n">params</span><span class="o">[</span><span class="ss">:status</span><span class="o">]</span>
+</span><span class='line'>      <span class="n">status_method</span> <span class="o">=</span> <span class="n">status</span><span class="o">.</span><span class="n">to_sym</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">if</span> <span class="no">ShipmentFinder</span><span class="o">.</span><span class="n">respond_to?</span><span class="p">(</span><span class="n">status_method</span><span class="p">)</span>
+</span><span class='line'>          <span class="vi">@shipments</span> <span class="o">=</span> <span class="no">ShipmentFinder</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">status_method</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">else</span>
+</span><span class='line'>          <span class="vi">@shipments</span> <span class="o">=</span> <span class="no">Shipment</span><span class="o">.</span><span class="n">all</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Here, we&rsquo;re accessing the query param from <code>params[:status]</code>, and turning it into a symbol (<code>status_method</code>). Next, we&rsquo;re using Ruby&rsquo;s super handy <code>respond_to?</code> method, and sending our <code>status_method</code> symbol to our <code>ShipmentFinder</code>. So, if our admin selects an option that sends the query param <code>urgent_needs_tracking</code>, we are telling our finder object to call that method, and execute that query. The return value of the query executed by our <code>ShipmentFinder</code>&rsquo;s <code>urgent_needs_tracking</code> method is what will be set as the instance variable <code>@shipments</code> for the duration of this action on the controller.</p>
+
+<p>If no query param is set, or if our <code>ShipmentFinder</code> doesn&rsquo;t have a method that maps to a query param, we&rsquo;re just returning all of our <code>Shipment</code> objects by default.</p>
+
+<p>This is quite an improvement from our earlier code, which had our controller digging for rows in a database that it really didn&rsquo;t have anything to do with. Now, we&rsquo;ve separated our concerns into a new finder object, which exists as its own query interface on its own. It&rsquo;s also worth noting that sometimes, creating a finder object can be overkill, and sometimes, if we have a lot of finder objects, we&rsquo;d probably want to abstract a lot of this functionality out into a <code>BaseFinder</code> class, which our finder objects could inherit from. But this is definitely a great start. No more digging for us!</p>
+
+<iframe src="//giphy.com/embed/FqEDV3gjMhqRG" width="480" height="267" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The finder object pattern helps keep your model logic strictly related to a class&#8217; behavior, while also keeping your controller&rsquo;s skinny. Since they are nothing more than plain old Ruby classes, finder objects don&rsquo;t need to inherit from <code>ActiveRecord::Base</code>, and should be responsible for nothing more than executing queries. Read more about them on this <a href="http://twin.github.io/finder-objects/">fantastic blog post</a>.</li>
+<li>Scopes are a great tool to use if a finder object seems like more work than it&rsquo;s really worth, given the size and context of your application. Read more about scopes in the Rails <a href="http://guides.rubyonrails.org/active_record_querying.html#scopes">documentation</a>.</li>
+<li>Want to see more examples of implementing finder objects? Check out this <a href="https://speakerdeck.com/weppos/maintaining-a-5yo-ruby-project-shark-edition?slide=103">slidedeck</a> series.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Solutions for Slugs of All Sizes: Acts_as_url + To_param]]></title>
@@ -4591,265 +4920,6 @@ https://github.com/SamSaffron/memory_profiler">over here</a>.</p>
 <li>Think about the two types of people who use your code: the users, who should have a seamless experience, which will make you optimize your code, and the abusers (or a better term that I can&rsquo;t think of), or those people who will be looking for security vulnerabilities in <em>your</em> code.</li>
 <li>Language design is hard. Refinements are a pretty good example of how a programming language can blow your mind with a single feature</li>
 <li>I also met Matz! It was <a href="https://twitter.com/vaidehijoshi/status/606684141506076673">incredibly awesome</a>. And he really is as nice as they say.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Refactoring to Reveal Rails Group_by]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/06/09/refactoring-to-reveal-rails-group-by/"/>
-    <updated>2015-06-09T08:43:24-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/06/09/refactoring-to-reveal-rails-group-by</id>
-    <content type="html"><![CDATA[<p><img src="http://img.pandawhale.com/post-10513-Code-Refactoring-Cat-in-Bathtu-U295.gif" style="display: block; margin-left: auto; margin-right: auto;"/></p>
-
-<p>There are a lot of opportunities in programming to feel pretty silly about yourself. I&rsquo;m sure that the more coding experience you have, the less often these moments actually occur. But early on in your career, they seem to happen quite often &ndash; or they do to <em>me</em>, at least.</p>
-
-<p>I had one of those moments a couple weeks ago, when I wrote a super long method and then asked a senior developer to take a look at it. While I was writing it, something seemed inherently wrong. I was sure there was a better way to do it, but I guess my Googling skills aren&rsquo;t quite superb yet, because I couldn&rsquo;t find quite the right answer anywhere. It was then that I decided to ask someone who would know exactly which tool to reach for.</p>
-
-<p>What happened next was pretty awesome, albeit slightly depressing. I watched my code be refactored from ten lines down to a single line. It blew my mind &ndash; and not just because I didn&rsquo;t know that this method even <em>existed</em>, but because I wanted to know how it worked! So, I did some digging and learned a bit about the method that I wrote which, as it turns out, already existed: the Rails <code>group_by</code> method on Enumerables.</p>
-
-<!--more-->
-
-
-<h2>Data Is For Manipulating</h2>
-
-<p>I started off writing my super long method because I wanted to structure my data in a very specific way. In fact, we&rsquo;ll probably want to structure the data in our Bookstore eCommerce app in a very similar way, too, so let&rsquo;s use that as our working example.</p>
-
-<p>For our admin panel, we want a list of <code>Author</code> objects, categorized by <code>genre</code>. Because our collection of <code>Books</code> is going to grow extensively, it would be helpful for an admin to know which authors are included in a <code>genre</code> or time period. Eventually, this could be used by admins to add new authors by a genre, to filter or sort by a genre, or to calculate an author count per genre, and figure out which authors to add to our collection of books.</p>
-
-<p>Right now, our collection of <code>Author</code> objects isn&rsquo;t very big, but has just enough information for us to start implementing this functionality:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">&gt;</span> <span class="no">Author</span><span class="o">.</span><span class="n">all</span>
-</span><span class='line'><span class="o">=&gt;</span> <span class="o">[</span><span class="p">{</span><span class="c1">#&lt;Author:0x192ajk21a6d0b0 last_name: &quot;Shakespeare&quot;, genre: &quot;Renaissance&quot;&gt;}, </span>
-</span><span class='line'><span class="p">{</span><span class="c1">#&lt;Author:0w917qwl38f6s8v6 last_name: &quot;Homer&quot;, genre: &quot;Classics&quot;&gt;}, </span>
-</span><span class='line'><span class="p">{</span><span class="c1">#&lt;Author:0x390akd23a5d9m4 last_name: &quot;Faulkner&quot;, genre: &quot;Southern Gothic&quot;&gt;}, </span>
-</span><span class='line'><span class="p">{</span><span class="c1">#&lt;Author:1r103aur58b7c4r2 last_name: &quot;Marlowe&quot;, genre: &quot;Renaissance&quot;&gt;}]</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Even though our data is easy to read now, we can be sure that it isn&rsquo;t going to stay that way. But we know that if we structure each of our objects correctly, we could have something simple, like this, in our view:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">div</span>
-</span><span class='line'>  <span class="o">-</span> <span class="no">Author</span><span class="o">.</span><span class="n">sort_by_genre</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">genre</span><span class="p">,</span> <span class="n">author</span><span class="o">|</span>
-</span><span class='line'>    <span class="n">h2</span> <span class="o">=</span> <span class="n">genre</span>
-</span><span class='line'>    <span class="o">-</span> <span class="n">author</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">a</span><span class="o">|</span>
-</span><span class='line'>      <span class="nb">p</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">last_name</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>I&rsquo;m a big fan of slim, which is what I&rsquo;ve used above, but this view would still be pretty minimal when using another templating language such as erb.</p>
-
-<p>Given that this is the view we want to render, we can use this information to structure our data. I&rsquo;m thinking a hash is the tool for the job, with each key being a <code>genre</code> name, and the value being an array of <code>Author</code> objects that we can iterate through for each specific <code>genre</code>.</p>
-
-<p>It would be nice if we could call something like <code>Author.sort_by_genre</code> and have it return a structure like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">=&gt;</span> <span class="p">{</span><span class="s2">&quot;Renaissance&quot;</span><span class="p">:</span> <span class="o">[</span><span class="no">Shakespeare</span><span class="p">,</span> <span class="no">Marlowe</span><span class="o">]</span><span class="p">,</span>
-</span><span class='line'><span class="s2">&quot;Southern Gothic&quot;</span><span class="p">:</span> <span class="o">[</span><span class="no">Faulkner</span><span class="o">]</span><span class="p">,</span>
-</span><span class='line'><span class="s2">&quot;Classics&quot;</span><span class="p">:</span> <span class="o">[</span><span class="no">Homer</span><span class="o">]</span><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>So now that we know what we <em>want</em> our data to look like, let&rsquo;s write it the ugly way, just like I did!</p>
-
-<h2>The First Iteration</h2>
-
-<p>To start with, we know that we want to return a hash. So we can start by instantiating a hash, which will be our <code>authors_by_genre</code>. We also know that we&rsquo;ll need all the <code>Author</code> objects in an array; since we&rsquo;re specifically looking for an author&rsquo;s <code>last_name</code> and <code>genre</code>, we can query for those directly. And we can return our empty hash, since that will eventually be filled up:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">sort_by_genre</span>
-</span><span class='line'>  <span class="n">authors_by_genre</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span class='line'>  <span class="n">authors</span> <span class="o">=</span> <span class="no">Author</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">collect</span> <span class="p">{</span> <span class="o">|</span><span class="n">author</span><span class="o">|</span> <span class="o">[</span><span class="n">author</span><span class="o">.</span><span class="n">last_name</span><span class="p">,</span> <span class="n">author</span><span class="o">.</span><span class="n">genre</span><span class="o">]</span> <span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">authors_by_genre</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Okay, so now we need to fill up our hash. We have our <code>authors</code> variable, which is set to the collection of all <code>Author</code> objects. We will need to iterate through all of them, and put that <code>Author</code> in the correct array for the right <code>genre</code> key. If the right <code>genre</code> key doesn&rsquo;t exist, we&rsquo;ll need to create a key for that author&rsquo;s <code>genre</code>. We can accomplish this with another iteration. Now our method looks like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span>
-</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
-</span><span class='line'>    <span class="k">def</span> <span class="nf">sort_by_genre</span>
-</span><span class='line'>      <span class="n">authors_by_genre</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span class='line'>      <span class="n">authors</span> <span class="o">=</span> <span class="no">Author</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">collect</span> <span class="p">{</span> <span class="o">|</span><span class="n">author</span><span class="o">|</span> <span class="o">[</span><span class="n">author</span><span class="o">.</span><span class="n">last_name</span><span class="p">,</span> <span class="n">author</span><span class="o">.</span><span class="n">genre</span><span class="o">]</span> <span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'>      <span class="n">authors</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">genre</span><span class="p">,</span> <span class="n">author</span><span class="o">|</span>
-</span><span class='line'>        <span class="k">if</span> <span class="n">authors_by_genre</span><span class="o">[</span><span class="n">genre</span><span class="o">]</span>
-</span><span class='line'>          <span class="n">authors_by_genre</span><span class="o">[</span><span class="n">genre</span><span class="o">]</span> <span class="o">&lt;&lt;</span> <span class="n">author</span>
-</span><span class='line'>        <span class="k">else</span>
-</span><span class='line'>          <span class="n">authors_by_genre</span><span class="o">[</span><span class="n">genre</span><span class="o">]</span> <span class="o">=</span> <span class="o">[</span><span class="n">author</span><span class="o">]</span>
-</span><span class='line'>        <span class="k">end</span>
-</span><span class='line'>      <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>      <span class="n">authors_by_genre</span>
-</span><span class='line'>      <span class="k">end</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Okay&hellip;so hopefully, by this point, you should be thinking to yourself: <em>This isn&rsquo;t just ugly, it&rsquo;s also <strong>super</strong> inefficient</em>. And you&rsquo;d be right. It&rsquo;s pretty bad.</p>
-
-<iframe src="//giphy.com/embed/asIa0FVaBSQNO" width="480" height="307" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>If you weren&rsquo;t sure how bad it really is, think about all the queries we&rsquo;re making! And how many times we&rsquo;re iterating! As soon as I finished writing this and got it working, I knew it was <em>definitely</em> not the right approach. But the first step is to get it working. Now, we need to seriously consider how we can make it right and make it fast.</p>
-
-<p>You know what what this means, right? Refactoring time.</p>
-
-<h2>Group All The Things</h2>
-
-<p>A quick way to refactor some of the messiness from our first iteration is by first changing how we initialize our hash object, and also modifying how we go about deciding whether to create a new key or add to a key that already exists.</p>
-
-<p>Enter the <code>each_with_object</code> method! This is a pretty rad method I learned about while refactoring my first iteration of this <code>sort_by_genre</code> method. The <code>each_with_object</code> method requires a single argument: the object that you want to pass to it in each iteration. In our case, we&rsquo;ll pass it a hash. And since the items we want to actually &ldquo;categorize&rdquo; are our <code>Author</code> objects, we&rsquo;ll call <code>each_with_object</code> on our collection of <code>Authors</code>:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span>
-</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
-</span><span class='line'>    <span class="k">def</span> <span class="nf">sort_by_genre</span>
-</span><span class='line'>      <span class="no">Author</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">each_with_object</span><span class="p">({})</span> <span class="p">{</span>  <span class="p">}</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Now, what about that block &ndash; what goes inside? Well, we can think about what we want to do with each of our <code>Author</code> objects that we&rsquo;re iterating over. Inside of our hash, which we&rsquo;re passing explicitly as an argument to <code>each_with_object</code>, we want to either find the correct key and put the correct <code>Author</code> into that array, or create a new key based on the current <code>Author</code> object&rsquo;s genre. We can write that quite nicely by using the <code>||=</code> <strong>or equals</strong> operator, which will assign a new object, or whatever is to the right of the operator, equal to the left side of the pipes, or whatever is to the left of the operator:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span>
-</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
-</span><span class='line'>    <span class="k">def</span> <span class="nf">sort_by_genre</span>
-</span><span class='line'>      <span class="no">Author</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">each_with_object</span><span class="p">({})</span> <span class="p">{</span>
-</span><span class='line'>      <span class="o">|</span><span class="n">author</span><span class="p">,</span> <span class="nb">hash</span><span class="o">|</span> <span class="p">(</span><span class="nb">hash</span><span class="o">[</span><span class="n">author</span><span class="o">.</span><span class="n">genre</span><span class="o">]</span>
-</span><span class='line'>      <span class="o">||=</span> <span class="o">[]</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="n">author</span> <span class="p">}</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Much better, right? In this second iteration, we&rsquo;re passing a hash directly to the <code>each_with_object</code> method, and basically telling it, <em>Find the key in the hash I just passed you that is equal to this author&rsquo;s genre. And if no such key exists, make one, set it equal to an empty array, and then put this current author into that array</em>.</p>
-
-<p>The order of our or equals operator is particularly important, because if it were switched, it would never run what is on the right side of the pipes. The <code>||=</code> operator is exactly like the <code>||</code> operator in that it will run what is to its right <em>only</em> if what is to its left evaluates to <code>false</code>. This is what keeps our method from trying to create multiple keys again and again, and instead forces it to find an existing key first. The super cool thing about the <code>||=</code> operator is that it is actually assigning a new key value to an empty array, which cuts out a lot of extra lines we had in our first iteration!</p>
-
-<p>Okay, so this second iteration has been a vast improvement. But I think it&rsquo;s time for some serious refactoring magic. Are you ready? Okay. This <em>entire</em> method can be rewritten into a single, simple line:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span>
-</span><span class='line'>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
-</span><span class='line'>    <span class="k">def</span> <span class="nf">sort_by_genre</span>
-</span><span class='line'>      <span class="no">Author</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:genre</span><span class="p">)</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Yup. I kid you not.</p>
-
-<iframe src="//giphy.com/embed/sHytgXD2vlNVC" width="480" height="376" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>This is the magic of the Rails <code>group_by</code> method, which collects an enumerable into sets, grouping it by the result of a block. This method takes a proc using the ampersand shortcut as an argument (which we started using last week!). The <code>group_by</code> method is passed the symbol <code>:genre</code>, which is an attribute on each <code>Author</code> object, and corresponds to a <code>genre</code> column in the <code>authors</code> table. So, we are effectively grouping all of our <code>Author</code> objects by the result of calling <code>.genre</code> on each object. In other words, we&rsquo;re grouping by the <code>genre</code> attribute since the attribute corresponds to an <code>attr_accessor</code> method in the class.</p>
-
-<p>And now, if we call our <code>sort_by_genre</code> class method, we get the exact data structure we were hoping for:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">&gt;</span> <span class="no">Author</span><span class="o">.</span><span class="n">sort_by_genre</span>
-</span><span class='line'><span class="o">=&gt;</span> <span class="p">{</span><span class="s2">&quot;Renaissance&quot;</span><span class="p">:</span> <span class="o">[</span><span class="p">{</span><span class="c1">#&lt;Author:0x192ajk21a6d0b0 last_name: &quot;Shakespeare&quot;, genre: &quot;Renaissance&quot;&gt;}, </span>
-</span><span class='line'><span class="p">{</span><span class="c1">#&lt;Author:1r103aur58b7c4r2 last_name: &quot;Marlowe&quot;, genre: &quot;Renaissance&quot;&gt;}], </span>
-</span><span class='line'><span class="s2">&quot;Southern Gothic&quot;</span><span class="p">:</span> <span class="o">[</span><span class="p">{</span><span class="c1">#&lt;Author:0x390akd23a5d9m4 last_name: &quot;Faulkner&quot;, genre: &quot;Southern Gothic&quot;&gt;}], </span>
-</span><span class='line'><span class="s2">&quot;Classics&quot;</span><span class="p">:</span> <span class="o">[</span><span class="p">{</span><span class="c1">#&lt;Author:0w917qwl38f6s8v6 last_name: &quot;Homer&quot;, genre: &quot;Classics&quot;&gt;}]}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Hooray! Or maybe not hooray. Maybe instead of hooray, you feel like I did when I realized that you could refactor all of this into one line:</p>
-
-<blockquote class="twitter-tweet tw-align-center" lang="en"><p lang="en" dir="ltr">PROGRAMMING:&#10;Write a 10-line method.&#10;Feel proud when it works.&#10;Find out you can write the same thing in a single line.&#10;Cry in the corner.</p>&mdash; Vaidehi Joshi (@vaidehijoshi) <a href="https://twitter.com/vaidehijoshi/status/601156228723642369">May 20, 2015</a></blockquote>
-
-
-<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
-
-
-<p><br></p>
-
-<p>Although it made me feel pretty silly, the actual process of writing the <code>group_by</code> method from scratch was a really great learning experience. I ended up using the examples above in a talk I gave on refactoring at <a href="http://www.twitter.com/reddotrubyconf">Red Dot Ruby Conference</a> in Singapore last week. And I actually recreated the <em>exact same</em> functionality when I had to write my <em>own</em> <code>groupBy</code> function in JavaScript for a React component I had to build! I guess that however deep of a rabbit hole refactoring can be, sometimes it&rsquo;s exactly the right kind of deep dive you need to learn how something works under the hood. I still totally feel like that cat in the bathtub whenever I do it &ndash; but I&rsquo;m kind of okay with that.</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>group_by</code> method takes a block, which it uses to group a collection of objects. The <code>each_with_object</code> method takes an object as an argument, and a block which tells it how to sort the collection you call the method upon.</li>
-<li>Read more on the <code>group_by</code> method in the <a href="http://apidock.com/rails/Enumerable/group_by">Rails docs</a>, which also has a great example!</li>
-<li>Looking for another example of how to implement Rails&#8217; <code>group_by</code> in a view? Check out <a href="https://ariejan.net/2007/01/12/rails-group-results-by-week-using-group_by/">this blog post</a>.</li>
-<li>Did you know that Ruby also has a similar <code>group_by</code> method? It&rsquo;s great when you want to <a href="http://ruby-doc.org/core-2.2.2/Enumerable.html#method-i-group_by">return a hash</a> where the keys are evaluated by a block!</li>
 </ul>
 
 ]]></content>

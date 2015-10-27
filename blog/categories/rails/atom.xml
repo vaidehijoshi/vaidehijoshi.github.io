@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rails | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-10-20T18:09:05-04:00</updated>
+  <updated>2015-10-27T09:07:55-04:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,229 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Digging Into the Finder Object Pattern]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/10/27/digging-into-the-finder-object-pattern/"/>
+    <updated>2015-10-27T08:58:31-04:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/10/27/digging-into-the-finder-object-pattern</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/y5A0PlFbGIk4o" width="480" height="280" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Most developers aren&rsquo;t ever <em>completely</em> happy with their code. I&rsquo;m no exception to this stereotype &mdash; I almost always know that I could probably write a cleaner, more concise method, controller, or class. Usually, it&rsquo;s a matter of not know the best tool to reach for to refactor my code; eventually, I learn a new pattern or form of encapuslating logic that I later use to make my old code a lot better.</p>
+
+<p>But a few weeks ago, I wrote 100 lines of beautiful code. I&rsquo;m talking about a goregous, straightforward, no-nonsense class that did a lot in a relatively few lines of Ruby. I still feel pretty proud of it (can you tell?), and part of the reason for this is because I also learned a new pattern while writing this class. I was actually pairing with another developer, and we wanted to try using a rather common Rails pattern to solve a problem we were running into again and again: messy queries in our controllers and models.</p>
+
+<p>We both were familiar with the concept of &ldquo;skinny controllers&rdquo; and &ldquo;fat models&rdquo;, or the idea that your controllers shouldn&rsquo;t be responsible for containing the logic specific to a model. However, we also didn&rsquo;t want our models to get out of control in size, which is exactly what was starting to happen. So, we searched for a workaround, and found our answer in one of the most elegant patterns I&rsquo;ve seen in awhile: <strong>finder objects</strong>. Finder objects are simple Ruby classes that encapuslate the logic behind querying the database, and they are hands down, my new favorite kind of Ruby object.</p>
+
+<!--more-->
+
+
+<h2>Scopin&#8217; Down The Problem of Scopes</h2>
+
+<iframe src="//giphy.com/embed/Y6eQqv3jdV4RO" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>In our bookstore application, we have <code>Order</code> objects, which represent the orders that a user places in our system. However, these are books that we&rsquo;re dealing with, and eventually we need to address the whole fulfillment process, which will need to be represented by a whole other set of models. For now, we&rsquo;ll try to keep it as simple as possible. Let&rsquo;s say that an <code>Order</code> has many <code>Shipments</code>, and each shipment represents a batch of <code>Book</code> objects (read: products) that need to be shipped out together.</p>
+
+<p>Right off the bat, we know that our <code>Shipment</code> model will have some kind of state machine that will need to track the different stages of the shipment phase. Again, to keep it simple, let&rsquo;s say that there are five different stages or <code>state</code>s of a shipment:</p>
+
+<ol>
+<li>A shipment starts off as <code>processing</code> once an order has been placed.</li>
+<li>Once it has been processed, it needs a label with the shipping address information, so it transitions to the <code>needs_label</code> state.</li>
+<li>After it has a label generated, it&rsquo;ll need a tracking number, so transitions to the <code>needs_tracking</code> state.</li>
+<li>Once it has a tracking number, it transitions to being <code>ready</code> for shipment.</li>
+<li>Finally, when the shipment is actually sent out of the warehouse and to our shipping service, it should be marked as <code>shipped</code>.</li>
+</ol>
+
+
+<p>To be clear, this is a <em>super</em> simplified version of what would happen in a real-life application! Now, in our admin panel, let&rsquo;s say that we have a page that will render all of our shipments, which should always ordered by when they were created, so that our admins know which shipments to process, and in which order.</p>
+
+<p>We can take it a step further and say that our main admin panel page &mdash; which will correspond to the <code>index</code> action in our controller, should show our admins the most urgent shipments that need their attention as soon as they log in; in other words, these would be the shipments that were created more than a week ago, but still haven&rsquo;t been processed.</p>
+
+<p>I think we can all agree that basic Rails best practices should steer us away from doing something like this:</p>
+
+<pre><code class="ruby">class ShipmentsController &lt; ApplicationController
+  def index
+    @shipments = Shipment.where(state: :ready)
+                .where('created_at &lt;= ?', Time.zone.now + 7.days)
+                .order(created_at: :desc)
+  end
+end
+</code></pre>
+
+<p>We <em>definitely</em> know that the controller really shouldn&rsquo;t be responsible for querying for the correct <code>Shipment</code> objects. All our controller should have to do is just render the correct ones, and not go digging for them in the database!</p>
+
+<p>Okay, so we&rsquo;ll create some scopes for these queries instead. These scopes should live in our model, not in the controller, right? Let&rsquo;s see what our model might look like if we take that approach:</p>
+
+<pre><code class="ruby">class Shipment &lt; ActiveRecord::Base
+    belongs_to :order
+
+    default_scope -&gt; { order(created_at: :desc) }
+    scope :shipped, -&gt; { where(state: 'shipped') }
+    scope :urgent, -&gt; {
+        where('created_at &lt;= ?', Time.zone.now + 7.days)
+    }
+end
+</code></pre>
+
+<p>This cleans things up a decent bit! Scopes are actually part of the Active Record Query Interface, and they allow us to specify commonly-used queries which we can then actually reference and use in the form of method calls on our models themselves. They are really nothing more than defining class methods on a model:</p>
+
+<pre><code class="ruby">class Shipment &lt; ActiveRecord::Base
+    def self.shipped
+        where(state: 'shipped')
+    end
+end
+</code></pre>
+
+<p>However, they&rsquo;re pretty wonderful because you can just chain them as method calls (<code>Shipment.urgent.shipped</code>), but all they do is execute the correct query for you:</p>
+
+<pre><code class="ruby">Shipment.shipped
+=&gt; SELECT "shipments".* FROM "shipments" WHERE "shipments"."state" = "shipped"
+</code></pre>
+
+<p>But the good news about scopes is also the bad <a href="news:">news:</a> you can just keep adding them and adding them, and chaining them onto everything. Our <code>Shipment</code> class has only three scopes at the moment, one of them being the <code>default</code> scope. But, we&rsquo;ll probably have a page that should only render only the shipments that are in the <code>needs_label</code> state, or a page that maps to a controller action which should only return shipments that are in the <code>needs_tracking</code> state. We <em>could</em> keep adding scopes and then have our controller actions call the scopes on the class to return the appropriate shipments from our database.</p>
+
+<p>Or, we could try something a little different.</p>
+
+<h2>Finder Objects</h2>
+
+<iframe src="//giphy.com/embed/12bpEjD05ac2IM" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Our scopes don&rsquo;t actually add any new behavior to our model. As we saw earlier, they are nothing more than macros for querying for the correct rows from our <code>shipments</code> table in our database. So, it really doesn&rsquo;t make sense for our model to contain all this logic that doesn&rsquo;t <em>add</em> any new behavior to it.</p>
+
+<p>It would be nice, however, if we could apply the rule of &ldquo;separation of concerns&rdquo; here, and have an entire class whose sole responsibility would be to dig up the correct objects based on the parameters we were querying by. Really, this class should do nothing more than <em>find the right objects</em>. You might even say that instances of this class are just&hellip;<em>finder objects</em>! (Get it? Man, I really hope you got it.)</p>
+
+<p>Anyways, how might this class look? Well, we don&rsquo;t need any of the functionality from ActiveRecord, so we can create it as just a Plain Old Ruby Class:</p>
+
+<pre><code class="ruby">class ShipmentFinder
+end
+</code></pre>
+
+<p>Next, we&rsquo;ll want to tell our finder object which models to query for, so it will know how to construct our queries, and which table to query. Since we never really want to have this method accessible elsewhere, we can make it a private class method that will only be called from the context of another <code>ShipmentFinder</code> class method:</p>
+
+<pre><code class="ruby">class ShipmentFinder
+    class &lt;&lt; self
+        private
+        def resource_class
+            ::Shipment
+        end
+    end
+end
+</code></pre>
+
+<p>Now, we can use Rails&#8217; <a href="https://github.com/rails/arel">arel DSL</a> to construct a basic query. To do this, we&rsquo;ll need a method that returns the table, which can also be a private method since we&rsquo;ll never want to call it explicitly:</p>
+
+<pre><code class="ruby">class ShipmentFinder
+    class &lt;&lt; self
+      private
+
+      def table
+        resource_class.arel_table
+      end
+
+      def resource_class
+        ::Shipment
+      end
+    end
+end
+</code></pre>
+
+<p>Now, we can write as many specific queries as we want. For example, we could write a <code>urgent_needs_tracking</code> class method that could constructs a query using two private methods, <code>needs_tracking</code> and <code>is_ready</code>:</p>
+
+<pre><code class="ruby">class ShipmentFinder
+    class &lt;&lt; self
+      def urgent_needs_tracking
+        query = needs_tracking.and(is_ready)
+
+        resource_class.where(query)
+      end
+
+      def shipped
+        resource_class.where(state: 'shipped')
+      end
+
+      private
+
+      def urgent
+        resource_class.where('created_at &lt;= ?', Time.zone.now + 7.days))
+      end
+
+      def is_ready
+        table[:state].eq('ready')
+      end
+
+      def needs_tracking
+        table[:state].eq('needs_tracking')
+      end
+
+      def needs_label
+        table[:state].eq('needs_label')
+      end
+
+      def table
+        resource_class.arel_table
+      end
+
+      def resource_class
+        ::Shipment
+      end
+    end
+end
+</code></pre>
+
+<p>Now we can rely on our <code>ShipmentFinder</code> class to find our shipments that have been created more than 7 days ago, and still don&rsquo;t have a tracking number. We also can add more functionality that can be used in specific instances, which is exactly what we&rsquo;ve done with our <code>needs_label</code> and <code>is_ready</code> private methods. We can use arel to construct queries using those methods to scope down what objects are actually returned. We don&rsquo;t have to do anything fancy, if we don&rsquo;t want to. Take a look at that <code>shipped</code> method &mdash; this is just using a simple <code>where</code> arel method to construct a query that reads like this: <code>SELECT "shipments".* FROM "shipments" WHERE "shipments"."state" = "shipped"</code>.</p>
+
+<p>Finally, the last step: it&rsquo;s time for us to actually call on our finder object to do its job!</p>
+
+<h2>Cleaner Querying, Cleaner Controllers</h2>
+
+<p>Let&rsquo;s bring it all together by going back to our <code>ShipmentsController</code> and add our new finder object into it. Our <code>index</code> action should now be able to account for different types of shipments that our admins might want to query for. For now, we&rsquo;ll construct our controller to accept a query parameter in our params hash that will be that <code>status</code> of the types of shipments we want to return. Depending on the frontend framework we&rsquo;re using, this might be a dropdown or checkbox option that will set a value on the <code>status</code> key in our params hash.</p>
+
+<p>Our controller action could now be rewritten to look something like this:</p>
+
+<pre><code class="ruby">class ShipmentsController &lt; ApplicationController
+  def index
+    status = params[:status]
+    status_method = status.to_sym
+
+    if ShipmentFinder.respond_to?(status_method)
+            @shipments = ShipmentFinder.send(status_method)
+        else
+            @shipments = Shipment.all
+        end
+  end
+end
+</code></pre>
+
+<p>Here, we&rsquo;re accessing the query param from <code>params[:status]</code>, and turning it into a symbol (<code>status_method</code>). Next, we&rsquo;re using Ruby&rsquo;s super handy <code>respond_to?</code> method, and sending our <code>status_method</code> symbol to our <code>ShipmentFinder</code>. So, if our admin selects an option that sends the query param <code>urgent_needs_tracking</code>, we are telling our finder object to call that method, and execute that query. The return value of the query executed by our <code>ShipmentFinder</code>&rsquo;s <code>urgent_needs_tracking</code> method is what will be set as the instance variable <code>@shipments</code> for the duration of this action on the controller.</p>
+
+<p>If no query param is set, or if our <code>ShipmentFinder</code> doesn&rsquo;t have a method that maps to a query param, we&rsquo;re just returning all of our <code>Shipment</code> objects by default.</p>
+
+<p>This is quite an improvement from our earlier code, which had our controller digging for rows in a database that it really didn&rsquo;t have anything to do with. Now, we&rsquo;ve separated our concerns into a new finder object, which exists as its own query interface on its own. It&rsquo;s also worth noting that sometimes, creating a finder object can be overkill, and sometimes, if we have a lot of finder objects, we&rsquo;d probably want to abstract a lot of this functionality out into a <code>BaseFinder</code> class, which our finder objects could inherit from. But this is definitely a great start. No more digging for us!</p>
+
+<iframe src="//giphy.com/embed/FqEDV3gjMhqRG" width="480" height="267" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The finder object pattern helps keep your model logic strictly related to a class&#8217; behavior, while also keeping your controller&rsquo;s skinny. Since they are nothing more than plain old Ruby classes, finder objects don&rsquo;t need to inherit from <code>ActiveRecord::Base</code>, and should be responsible for nothing more than executing queries. Read more about them on this <a href="http://twin.github.io/finder-objects/">fantastic blog post</a>.</li>
+<li>Scopes are a great tool to use if a finder object seems like more work than it&rsquo;s really worth, given the size and context of your application. Read more about scopes in the Rails <a href="http://guides.rubyonrails.org/active_record_querying.html#scopes">documentation</a>.</li>
+<li>Want to see more examples of implementing finder objects? Check out this <a href="https://speakerdeck.com/weppos/maintaining-a-5yo-ruby-project-shark-edition?slide=103">slidedeck</a> series.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Solutions for Slugs of All Sizes: Acts_as_url + To_param]]></title>
@@ -793,119 +1016,6 @@ end
 <li>The most important part about setting up a job through ActiveJob is inheriting from <code>ActiveJob::Base</code>, and implementing a <code>perform</code> method. Now, we can actually pass in instances of objects to the <code>perform</code> method, rather than ids, which is all thanks to <a href="http://dev.mikamai.com/post/96343027199/rails-42-new-gems-active-job-and-global-id">global ids</a>.</li>
 <li>Curious how the <code>touch</code> method works? Check out <a href="http://apidock.com/rails/ActiveRecord/Persistence/touch">the documentation</a> on this amazing little function.</li>
 <li>Here&rsquo;s a <a href="http://railscasts.com/episodes/171-delayed-job?autoplay=true">great railscast</a> on setting up a job &ndash; keep in mind though, it&rsquo;s pre-Rails 4.2 and ActiveJob!</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Working Hard or Hardly Working, Part 1: Active Job]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/"/>
-    <updated>2015-09-15T08:53:51-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/79JlUHyiSzYBi" width="480" height="249" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>Last week, I sent a lot of emails &mdash; after all, I was working on creating my <a href="http://vaidehijoshi.github.io/blog/2015/09/08/youve-got-mail-action-mailer-plus-letter-opener/">very first mailer</a>. But in the process, I also realized something else: waiting for an email to send is <em>not</em> fun. Especially if you can&rsquo;t do anything else while you&rsquo;re waiting.</p>
-
-<p>This problem pretty much encapsculates the reason for the existence and invention of background jobs. I&rsquo;ve actually been playing around with creating and running jobs in different applications for the past few months now, yet I never really felt comfortable with them. I knew that having jobs run certain processes was clearly very important since they kept popping up all over the place. However, I was having trouble wrapping my head around what exactly a background job <em>was</em>, and when and why I would ever need to use one.</p>
-
-<p>Working with ActionMailer turned out to be the perfect stepping-stone to Active Job, which helped me to better understand inline processes, asychronous requests, and how all of these things fit into running a job. Since we already know how to create mailers, that will be the perfect introduction to running our very first job! Integrating ActionMailer and Active Job is a piece of cake, so we&rsquo;ll start with that first. Baby steps, my friends!</p>
-
-<!--more-->
-
-
-<h2>Jobs: Inline Or Background?</h2>
-
-<iframe src="//giphy.com/embed/jfiHMHRyARhf2" width="480" height="285" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>Background jobs existed far before ActiveJob came into being in December of 2014. In fact, if we take a look at one of our more complex, pre-Rails 4.2 projects, it&rsquo;s likely that we&rsquo;ll see a some classes that are suffixed with <code>Worker</code>. These classes are a little bit like service objects in that they are responsible for taking in an object as a parameter and performing a certain action with or <em>on</em> that object, sometimes implementing a service class in the process of doing so. The &ldquo;worker&rdquo; term really just refers to classes that we use in the background of our application.</p>
-
-<p>But, why would we ever need to run a class in the background of our application? And honestly, what does that even <em>mean</em>? Well, we can start by defining what exactly makes a background job, beginning by peeking inside of our <code>config/application.rb</code> file. There are a lot of things happening inside of here, all of which are setting different configurations inside of our application. But there&rsquo;s one line in particular that we should pay more attention to:</p>
-
-<p><code>Rails.application.config.active_job.queue_adapter = :inline</code></p>
-
-<p>Without even worrying about what <code>queue_adapter</code> is doing for now, we know one thing for sure: our current <code>active_job</code> configuration is set to run <code>inline</code>. Okay, let&rsquo;s try to deduce what <code>inline</code> means, exactly. A quick search in the Rails guides leads us to <a href="http://api.rubyonrails.org/classes/ActiveJob/QueueAdapters/InlineAdapter.html">the documentation</a> for something called the <code>InlineAdapter</code>, which explains:</p>
-
-<blockquote><p>&ldquo;When enqueueing jobs with the Inline adapter, the job will be executed immediately. To use the Inline set the queue_adapter config to <code>:inline</code>.&rdquo;</p></blockquote>
-
-<p>Interesting! So, if running a job <code>inline</code> means that it happens right away, running a job that is <em>not</em> inline means that it will be delayed in its execution &ndash; that is to say, it won&rsquo;t happen immediately, but it&rsquo;ll happen later on. So the next logical question, then, is <em>why</em>?</p>
-
-<p>After doing some digging, the best explanation I&rsquo;ve found for why we&rsquo;d want to run a process <em>not</em> inline but rather in the background, at a later point, comes from <a href="http://ryanselk.com/2014/09/25/using-background-jobs-in-rails-42-with-active-job/">Ryan Selk</a>. I really like the way that he explains the thought-processes behind choosing when to use a background job:</p>
-
-<blockquote><p>&ldquo;One common situation for needing background jobs is consuming external APIs. It is unrealistic to think that all of your external APIs will have 100% uptime. By allowing API interaction to happen in a background job we can manage failures more effectively. Instead of having the user wait for a task to end, we send that task to the background queue. The User can then continue interacting with the app. Background jobs also give us the opportunity to prioritize jobs which are waiting in out background job queue. In many cases using background jobs can significantly reduce the required resources of the app.&rdquo;</p></blockquote>
-
-<p>Ultimately, <strong>it all comes down to waiting</strong>. If there is ever a situation where your application would have to wait for a process &ndash; an email to send, a request to complete, or a response to be received &ndash; that&rsquo;s a sign that you probably should be using a background job, rather than an inline process. In his blog post, Ryan talks about using 3rd party APIs, or performing some form of &ldquo;computation intensive work, such as solving equations or image processing&rdquo;; basically, anything that would require enough time or effort to make our application lag or to keep our user waiting would be a prime candidate for a background job.</p>
-
-<p>So, let&rsquo;s implement a job using Active Job&hellip;that&rsquo;ll be easy, right?</p>
-
-<h2>A Round of Applause for Active Job</h2>
-
-<iframe src="//giphy.com/embed/QOfrQpuGMa9Pi" width="480" height="278" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>When Active Job was <a href="http://weblog.rubyonrails.org/2014/12/19/Rails-4-2-final/">first introduced</a>, one of its most impressive aspects was the fact that you could easily create a job and then later specify the job runner that you wanted to use. Active Job was essentially built to be its own mini-framework, which made it incredibly useful for declaring a job, and then making it run on any backend that you wanted (for example, <code>delayed_job</code> or <code>resque</code>). This also meant that it became super easy (think changing a single line in our application) to switch between different queuing backends. An important thing to remember is that Rails itself doesn&rsquo;t have a job runner; by default, it comes with an &ldquo;immediate runner&rdquo; queuing implementation, which means that each job that is enqueued will run immediately (in other words, it will run <code>inline</code>).</p>
-
-<p>Setting up Active Job is incredibly easy, which is another thing that makes it so beautiful. It comes with a generator, which means that we can run a simple command like this to create a job that would send a newsletter to new users of our application:</p>
-
-<p><code>♥ bin/rails g job new_user_newsletter</code></p>
-
-<p>Of course, we could also just create our own file inside of <code>app/jobs</code>, as long as it inherited from <code>ActiveJob::Base</code>. But let&rsquo;s hold off on writing a complex job for now. Let&rsquo;s try to first get Active Job to work with ActionMailer and send our order confirmation email via our <code>OrderMailer</code> for today.</p>
-
-<p>The first thing we need to do is to choose a queuing backend. I&rsquo;ve found <code>delayed_job_active_record</code> to be a pretty good starting point, so we can add that to our <code>Gemfile</code> and run <code>bundle install</code>. This backend also requires two additional forms of setup: first, a migration that sets up <code>Job</code> objects in Active Record. We can run these commands easily in our terminal:</p>
-
-<pre><code class="ruby">♥ rails generate delayed_job:active_record
-♥ rake db:migrate
-</code></pre>
-
-<p>And secondly, inside of our <code>config/application.rb</code>, we&rsquo;ll need to set our <code>queue_adapter</code> configuration to use <code>delayed_job</code> rather than be set to <code>inline</code> processes:</p>
-
-<p><code>config.active_job.queue_adapter = :delayed_job</code></p>
-
-<p>This last part is very important, as the documentation explains that Rails doesn&rsquo;t have it&rsquo;s own queuing adapter:</p>
-
-<blockquote><p>&ldquo;Rails itself does not provide a sophisticated queuing system and just executes the job immediately if no adapter is set.&rdquo;</p></blockquote>
-
-<p>Without setting up our queuing backend, Active Job won&rsquo;t know what to use to send our email. And speaking of emails, it&rsquo;s finally time to integrate Active Job with ActionMailer!</p>
-
-<h2>BFFS 4EVA: Active Job + ActionMailer</h2>
-
-<p>Active Job is neatly integrated with ActionMailer so that we can easily send emails outside of a single request-response cycle (in other words, asynchronously). There are two methods that exist on the ActionMailer module that we can use. In fact, we already started using one last week: <code>deliver_now</code>.</p>
-
-<p>Inside of our <code>Order</code> class, we were using <code>deliver_now</code> to send a confirmation email that was written inside of our <code>OrderMailer</code>. We probably both need a refresher, so here&rsquo;s the code that uses our favorite thing ever: a state machine!</p>
-
-<pre><code class="ruby">class Order &lt; ActiveRecord::Base
-    include AASM
-
-    aasm column: 'state', whiny_transitions: false do
-        state :complete
-
-        event :completed, after: :send_confirmation_email
-    end
-
-
-    def send_confirmation_email
-        OrderMailer.confirmation_email(self).deliver_now
-    end
-end
-</code></pre>
-
-<p>If we instead change our <code>send_confirmation_email</code> to use <code>deliver_later</code>, we can send our order confirmation email through Active Job, rather than sending it inline, within the same request-response cycle. All of this magic is built into the <code>deliver_later</code> method. In fact, if we take a look at <a href="http://api.rubyonrails.org/classes/ActionMailer/MessageDelivery.html#method-i-deliver_later">the source code</a> for Action Mailer, we&rsquo;ll learn that there are actually two different types of <code>deliver_later</code> methods: <code>deliver_later</code> and <code>deliver_later!</code>. They&rsquo;re both similar in that they both enqueue our email to be delievered through Active Job.</p>
-
-<p>However, when <code>deliver_later!</code> is invoked, it relies on <code>deliver_now!</code>, which delivers an email without checking <code>perform_deliveries</code> and <code>raise_delivery_errors</code>. But, because <code>deliever_later!</code> depends on <code>deliver_now!</code>, which in turn bypasses these two important methods, <code>deliver_later!</code> it will never, ever raise any errors. The documentation suggests that we use this particular method with caution, so if you&rsquo;re unsure, it&rsquo;s probably best to stick with plain old <code>deliver_later</code>.</p>
-
-<p>Integrating ActionMailer with Active Job is probably the easiest way to start using background jobs. But there are a <em>lot</em> of other ways to implement Active Job in our applications! Now we know enough to start writing our own custom jobs that will run asynchronously! In fact, that&rsquo;s exactly what we&rsquo;ll do next week, in part 2 of this series. Get ready to become an Active Job boss and walk around like this:</p>
-
-<iframe src="//giphy.com/embed/a93sBAElVcuNq" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>Active Job requires you to set up a queuing backend and use the <code>deliver_later</code> method in order to integrate with ActionMailer.</li>
-<li>The Rails Guides for cover all the basics for Active Job; head <a href="http://edgeguides.rubyonrails.org/active_job_basics.html">over here</a> to read more.</li>
-<li>Even though Active Job is a relatively new feature of Rails, there are a lot of great blog posts that walk through how to use it. Check out <a href="http://www.gotealeaf.com/blog/handling-emails-in-rails">this one</a>, <a href="http://ryanselk.com/2014/09/25/using-background-jobs-in-rails-42-with-active-job/">another one</a>, and <a href="http://www.jetthoughts.com/blog/tech/2015/04/17/time-for-active-job.html">one more</a>.</li>
 </ul>
 
 ]]></content>
