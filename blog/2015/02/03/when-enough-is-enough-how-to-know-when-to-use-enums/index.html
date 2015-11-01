@@ -257,8 +257,12 @@
 
 <h2>Tips and Tricks</h2>
 
-<p>Enums give you a lot of flexibility. For example, I played around with the <code>in_stock</code> scope of my <code>Book</code> object to create a specific class method that would order the top three newest books added to my inventory:
-<code>scope :newest_stock, -&gt; (limit: 3) { in_stock.order('date DESC').limit(limit) }</code></p>
+<p>Enums give you a lot of flexibility. For example, I played around with the <code>in_stock</code> scope of my <code>Book</code> object to create a specific class method that would order the top three newest books added to my inventory:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">scope</span> <span class="ss">:newest_stock</span><span class="p">,</span> <span class="o">-&gt;</span> <span class="p">(</span><span class="ss">limit</span><span class="p">:</span> <span class="mi">3</span><span class="p">)</span> <span class="p">{</span> <span class="n">in_stock</span><span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="s1">&#39;date DESC&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="n">limit</span><span class="p">)</span> <span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
 
 <p>Another thing to remember is that you <em>cannot</em> use the same names for different enums of the same class:</p>
 
