@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-11-02T21:22:40-05:00</updated>
+  <updated>2015-11-03T17:46:08-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -23,7 +23,7 @@
 
 <p><br></p>
 
-<p>Over the past forty or so Tuesdays &mdash; has it really been that many?! &mdash; I&rsquo;ve written about on a spread of topics. There&rsquo;s a slight problem with this: sometimes I forget what I have and haven&rsquo;t written about. Here&rsquo;s a case in point for you: last week, I wrote about <a href="http://vaidehijoshi.github.io/blog/2015/10/27/digging-into-the-finder-object-pattern/">finder objects</a>, and casually tossed in some scopes into my models. It turns out, I&rsquo;ve never actually written about how scopes work, or what they really do!</p>
+<p>Over the past forty or so Tuesdays &mdash; has it really been that many?! &mdash; I&rsquo;ve written on a spread of topics. There&rsquo;s a slight problem with this: sometimes I forget what I have and haven&rsquo;t written about. Here&rsquo;s a case in point for you: last week, I wrote about <a href="http://vaidehijoshi.github.io/blog/2015/10/27/digging-into-the-finder-object-pattern/">finder objects</a>, and casually tossed in some scopes into my models. It turns out, I&rsquo;ve never actually written about how scopes work, or what they really do!</p>
 
 <p>I know, I know, that&rsquo;s pretty terrible of me. I actually learned about scopes awhile ago, and now I use them fairly often in my applications. However, I got so used to writing them, that I never really thought that much about how they work behind the scenes. In fact, when I sat down to write <em>this</em> post, I had to go on a hunt into the Rails source code and Ruby blogosphere to figure out what was going on under the hood every single time I implemented a scope in my code.</p>
 
