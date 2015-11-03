@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-11-02T21:16:19-05:00</updated>
+  <updated>2015-11-02T21:22:40-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -60,7 +60,8 @@ end
     belongs_to :user
 
     def self.published
-        where('published_at IS NOT NULL AND published_at &lt;= ?', Time.zone.now)
+        where('published_at IS NOT NULL AND 
+        published_at &lt;= ?', Time.zone.now)
     end
 end
 </code></pre>
@@ -81,7 +82,8 @@ at" &lt;= 2015-10-27 08:07:36 -0400
     belongs_to :user
 
     scope :published, -&gt; {
-        where('published_at IS NOT NULL AND published_at &lt;= ?', Time.zone.now)
+        where('published_at IS NOT NULL AND 
+        published_at &lt;= ?', Time.zone.now)
     }
 end
 </code></pre>
@@ -89,7 +91,8 @@ end
 <p>which allows us to invoke a method in the console that pretty much looks like the method we had before:</p>
 
 <pre><code class="ruby">irb(main):002:0&gt; Review.published
-  Review Load (2.6ms)  SELECT "reviews".* FROM "reviews" WHERE "reviews".
+  Review Load (2.6ms)  SELECT "reviews".* FROM 
+  "reviews" WHERE "reviews".
 "published_at" IS NOT NULL AND "reviews"."published_
 at" &lt;= 2015-10-27 08:07:36 -0400
 =&gt; #&lt;ActiveRecord::Relation []&gt;
@@ -121,16 +124,24 @@ at" &lt;= 2015-10-27 08:07:36 -0400
     belongs_to :user
 
     def self.published(on)
-        where('published_at IS NOT NULL AND published_at &lt;= ?', on)
+        where('published_at IS NOT NULL AND 
+        published_at &lt;= ?', on)
     end
 end
 </code></pre>
 
 <p>The <code>on</code> parameter would ideally be a <code>Date</code> or a <code>Datetime</code> object that would dynamically change the rows that we&rsquo;ll query for in our database. This will behave exactly like we want it to, until&hellip;it breaks. How can we break this? Well, let&rsquo;s say that we now want to order our published reviews by their <code>position</code> attribute, which for the time being, is just an integer. No problem, we can do that, right?</p>
 
-<pre><code class="ruby">irb(main):003:0&gt; Review.published(Time.zone.now).order(position: asc)
-    Review Load (0.2ms)  SELECT "review".* FROM "review"  WHERE (published_at IS NOT NULL AND published_at &lt;= 2015-11-02 08:07:36 -0400)  ORDER BY "review"."position" ASC
-=&gt; #&lt;ActiveRecord::Relation [#&lt;Review id: 1, published_at: "2015-08-02 00:04:22", position: 5&gt;, #&lt;Review id: 2, published_at: nil, position: 10, published_at: "2015-10-02 00:02:00"&gt;]&gt;
+<pre><code class="ruby">irb(main):003:0&gt; Review.published(Time.zone.now)
+    .order(position: asc)
+    Review Load (0.2ms)  SELECT "review".* FROM 
+    "review"  WHERE (published_at IS NOT NULL AND 
+    published_at &lt;= 2015-11-02 08:07:36 -0400) 
+    ORDER BY "review"."position" ASC
+=&gt; #&lt;ActiveRecord::Relation [#&lt;Review id: 1, published_at: 
+"2015-08-02 00:04:22", position: 5&gt;, #&lt;Review id: 2, 
+published_at: nil, position: 10, published_at: 
+"2015-10-02 00:02:00"&gt;]&gt;
 </code></pre>
 
 <p>Sure, no problem! This returns exactly what we&rsquo;d expect. But what if we&rsquo;re relying on this method elsewhere and somehow don&rsquo;t pass in a parameter to our <code>published</code> method. What happens then?</p>
@@ -147,29 +158,44 @@ end
     belongs_to :user
 
     scope :published, -&gt; (on) {
-        where('published_at IS NOT NULL AND published_at &lt;= ?', on)
+        where('published_at IS NOT NULL AND 
+        published_at &lt;= ?', on)
     }
 end
 </code></pre>
 
 <p>We&rsquo;ve changed our callable object to accept a parameter, which is how we&rsquo;re going to determine our <code>published_at</code> date. We can be pretty certain that this will execute the same query if we pass an actual <em>date</em> to this scope. But what if we pass <code>nil</code> again?</p>
 
-<pre><code class="ruby">irb(main):005:0&gt; Review.published(nil).order(position: asc)
-   Review Load (0.2ms)  SELECT "review".* FROM "review"  WHERE (published_at IS NOT NULL AND published_at &lt;= 2015-11-02 08:07:36 -0400) ORDER BY "review"."position" ASC
-=&gt; #&lt;ActiveRecord::Relation [#&lt;Review id: 1, published_at: nil, position: 1, created_at: "2015-11-02 00:45:22", updated_at: "2015-11-02 00:45:22"&gt;, #&lt;Review id: 2, published_at: nil, position: 2, created_at: "2015-11-02 00:46:22", updated_at: "2015-11-02 00:46:22"&gt;]&gt;
+<pre><code class="ruby">irb(main):005:0&gt; Review.published(nil)
+    .order(position: asc)
+   Review Load (0.2ms)  SELECT "review".* 
+   FROM "review"  WHERE (published_at IS NOT 
+   NULL AND published_at &lt;= 2015-11-02 08:07:36 -0400) 
+   ORDER BY "review"."position" ASC
+=&gt; #&lt;ActiveRecord::Relation [#&lt;Review id: 1, published_at: 
+nil, position: 1, created_at: "2015-11-02 00:45:22", 
+updated_at: "2015-11-02 00:45:22"&gt;, #&lt;Review id: 2, 
+published_at: nil, position: 2, created_at: 
+"2015-11-02 00:46:22", updated_at: "2015-11-02 00:46:22"&gt;]&gt;
 </code></pre>
 
 <p>Well, would you look at that! It didn&rsquo;t break! It ran our expected query, but because scopes return <code>ActiveRecord::Relation</code> objects, it didn&rsquo;t call <code>order</code> on <code>nil</code>, it just kept chaining on to our query. The first part of our query (responsible for finding any reviews that were published on a date) didn&rsquo;t return anything, but the second part of our query (responsible for just ordering whatever got returned by our first query) did work! How, exactly? Well, <a href="http://aspiringwebdev.com/use-activerecord-scopes-not-class-methods-in-rails-to-avoid-errors/">it just so happens</a> that calling a method on a blank <code>ActiveRecord::Relation</code> object returns that same relation. An important thing to note: if we had a query that was scoping down our reviews to ones that were published on a date and ordering <em>those</em> objects by their position, we would have gotten an empty relation:</p>
 
-<pre><code class="sql">SELECT "review".* FROM "review"  WHERE (published_at IS NOT NULL AND published_at &lt;= 2015-11-02 08:07:36 -0400 AND (ORDER BY "review"."position" ASC))
+<pre><code class="sql">SELECT "review".* FROM "review"  WHERE 
+(published_at IS NOT NULL AND published_at 
+&lt;= 2015-11-02 08:07:36 -0400 AND 
+(ORDER BY "review"."position" ASC))
 </code></pre>
 
 <p>The above query narrows down our scope quite a bit, which we could do if we wanted to specify that to SQL. But in our case, our <code>ORDER BY</code> clause isn&rsquo;t grouped inside of the <code>AND</code>, but instead exists outside of it, which is why we&rsquo;re not getting an empty relation returned to us.</p>
 
 <p>While we&rsquo;re on the topic of relations, it&rsquo;s also important to note that the method we have right now <em>does not</em> return an object to us! Relations are not objects! We&rsquo;d need to explicitly query for a record if we wanted to return it:</p>
 
-<pre><code class="ruby">irb(main):006:0&gt; Review.published(nil).order(position: asc).first
-=&gt; #&lt;Review id: 1, published_at: nil, position: 1, created_at: "2015-11-02 00:45:22", updated_at: "2015-11-02 00:45:22"&gt;
+<pre><code class="ruby">irb(main):006:0&gt; Review.published(nil)
+    .order(position: asc).first
+=&gt; #&lt;Review id: 1, published_at: nil, position: 1, 
+created_at: "2015-11-02 00:45:22", 
+updated_at: "2015-11-02 00:45:22"&gt;
 </code></pre>
 
 <p>Hopefully we should now be able to easily see that the <code>order</code> method that we&rsquo;re chaining on right there at the end could really be abstracted into its own scope! Let&rsquo;s fix that, shall we?</p>
@@ -178,7 +204,8 @@ end
     belongs_to :user
 
     scope :published, -&gt; (on) {
-        where('published_at IS NOT NULL AND published_at &lt;= ?', on)
+        where('published_at IS NOT NULL AND 
+        published_at &lt;= ?', on)
     }
 
     scope :ordered, -&gt; { order(position: :asc) } 
@@ -193,7 +220,8 @@ end
 
 <pre><code class="ruby">class Review &lt; ActiveRecord::Base
     scope :published, -&gt; (limit: 20) {
-        where('published_at IS NOT NULL AND published_at &lt;= ?', Time.zone.now)
+        where('published_at IS NOT NULL AND 
+        published_at &lt;= ?', Time.zone.now)
     }
 end
 </code></pre>
@@ -236,8 +264,12 @@ end
 end
 </code></pre>
 
+<p>which we can then merge into a single SQL query by chaining our scopes together:</p>
+
 <pre><code class="ruby">irb(main):007:0&gt; Shipment.shipped.received
-=&gt; SELECT "shipments".* FROM "shipments" WHERE "shipments"."state" = 'shipped' AND "shipments"."condition" = 'damaged'
+=&gt; SELECT "shipments".* FROM "shipments" WHERE 
+"shipments"."state" = 'shipped' AND "shipments".
+"condition" = 'damaged'
 </code></pre>
 
 <p>We&rsquo;ll notice that in this situation, our <code>WHERE</code> clauses are grouped together with an <code>AND</code>, which can help us when it comes to writing super specific queries.</p>

@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-11-02T21:16:19-05:00</updated>
+  <updated>2015-11-02T21:22:40-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -71,11 +71,13 @@
 <span class='line-number'>5</span>
 <span class='line-number'>6</span>
 <span class='line-number'>7</span>
+<span class='line-number'>8</span>
 </pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Review</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
 </span><span class='line'>  <span class="n">belongs_to</span> <span class="ss">:user</span>
 </span><span class='line'>
 </span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">published</span>
-</span><span class='line'>      <span class="n">where</span><span class="p">(</span><span class="s1">&#39;published_at IS NOT NULL AND published_at &lt;= ?&#39;</span><span class="p">,</span> <span class="no">Time</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">now</span><span class="p">)</span>
+</span><span class='line'>      <span class="n">where</span><span class="p">(</span><span class="s1">&#39;published_at IS NOT NULL AND </span>
+</span><span class='line'><span class="s1">     published_at &lt;= ?&#39;</span><span class="p">,</span> <span class="no">Time</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">now</span><span class="p">)</span>
 </span><span class='line'>  <span class="k">end</span>
 </span><span class='line'><span class="k">end</span>
 </span></code></pre></td></tr></table></div></figure>
@@ -107,11 +109,13 @@
 <span class='line-number'>5</span>
 <span class='line-number'>6</span>
 <span class='line-number'>7</span>
+<span class='line-number'>8</span>
 </pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Review</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
 </span><span class='line'>  <span class="n">belongs_to</span> <span class="ss">:user</span>
 </span><span class='line'>
 </span><span class='line'>  <span class="n">scope</span> <span class="ss">:published</span><span class="p">,</span> <span class="o">-&gt;</span> <span class="p">{</span>
-</span><span class='line'>      <span class="n">where</span><span class="p">(</span><span class="s1">&#39;published_at IS NOT NULL AND published_at &lt;= ?&#39;</span><span class="p">,</span> <span class="no">Time</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">now</span><span class="p">)</span>
+</span><span class='line'>      <span class="n">where</span><span class="p">(</span><span class="s1">&#39;published_at IS NOT NULL AND </span>
+</span><span class='line'><span class="s1">     published_at &lt;= ?&#39;</span><span class="p">,</span> <span class="no">Time</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">now</span><span class="p">)</span>
 </span><span class='line'>  <span class="p">}</span>
 </span><span class='line'><span class="k">end</span>
 </span></code></pre></td></tr></table></div></figure>
@@ -124,8 +128,10 @@
 <span class='line-number'>3</span>
 <span class='line-number'>4</span>
 <span class='line-number'>5</span>
+<span class='line-number'>6</span>
 </pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">002</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="no">Review</span><span class="o">.</span><span class="n">published</span>
-</span><span class='line'>  <span class="no">Review</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">2</span><span class="o">.</span><span class="mi">6</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;reviews&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;reviews&quot;</span> <span class="no">WHERE</span> <span class="s2">&quot;reviews&quot;</span><span class="o">.</span>
+</span><span class='line'>  <span class="no">Review</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">2</span><span class="o">.</span><span class="mi">6</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;reviews&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span>
+</span><span class='line'>  <span class="s2">&quot;reviews&quot;</span> <span class="no">WHERE</span> <span class="s2">&quot;reviews&quot;</span><span class="o">.</span>
 </span><span class='line'><span class="s2">&quot;published_at&quot;</span> <span class="no">IS</span> <span class="no">NOT</span> <span class="no">NULL</span> <span class="no">AND</span> <span class="s2">&quot;reviews&quot;</span><span class="o">.</span><span class="s2">&quot;published_</span>
 </span><span class='line'><span class="s2">at&quot;</span> <span class="o">&lt;=</span> <span class="mi">2015</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">27</span> <span class="mi">08</span><span class="p">:</span><span class="mo">07</span><span class="p">:</span><span class="mi">36</span> <span class="o">-</span><span class="mo">0400</span>
 </span><span class='line'><span class="o">=&gt;</span> <span class="c1">#&lt;ActiveRecord::Relation []&gt;</span>
@@ -161,11 +167,13 @@
 <span class='line-number'>5</span>
 <span class='line-number'>6</span>
 <span class='line-number'>7</span>
+<span class='line-number'>8</span>
 </pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Review</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
 </span><span class='line'>  <span class="n">belongs_to</span> <span class="ss">:user</span>
 </span><span class='line'>
 </span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">published</span><span class="p">(</span><span class="n">on</span><span class="p">)</span>
-</span><span class='line'>      <span class="n">where</span><span class="p">(</span><span class="s1">&#39;published_at IS NOT NULL AND published_at &lt;= ?&#39;</span><span class="p">,</span> <span class="n">on</span><span class="p">)</span>
+</span><span class='line'>      <span class="n">where</span><span class="p">(</span><span class="s1">&#39;published_at IS NOT NULL AND </span>
+</span><span class='line'><span class="s1">     published_at &lt;= ?&#39;</span><span class="p">,</span> <span class="n">on</span><span class="p">)</span>
 </span><span class='line'>  <span class="k">end</span>
 </span><span class='line'><span class="k">end</span>
 </span></code></pre></td></tr></table></div></figure>
@@ -176,9 +184,23 @@
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
 <span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">003</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="no">Review</span><span class="o">.</span><span class="n">published</span><span class="p">(</span><span class="no">Time</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">now</span><span class="p">)</span><span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="ss">position</span><span class="p">:</span> <span class="n">asc</span><span class="p">)</span>
-</span><span class='line'>  <span class="no">Review</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">2</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;review&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;review&quot;</span>  <span class="no">WHERE</span> <span class="p">(</span><span class="n">published_at</span> <span class="no">IS</span> <span class="no">NOT</span> <span class="no">NULL</span> <span class="no">AND</span> <span class="n">published_at</span> <span class="o">&lt;=</span> <span class="mi">2015</span><span class="o">-</span><span class="mi">11</span><span class="o">-</span><span class="mo">02</span> <span class="mi">08</span><span class="p">:</span><span class="mo">07</span><span class="p">:</span><span class="mi">36</span> <span class="o">-</span><span class="mo">0400</span><span class="p">)</span>  <span class="no">ORDER</span> <span class="no">BY</span> <span class="s2">&quot;review&quot;</span><span class="o">.</span><span class="s2">&quot;position&quot;</span> <span class="no">ASC</span>
-</span><span class='line'><span class="o">=&gt;</span> <span class="c1">#&lt;ActiveRecord::Relation [#&lt;Review id: 1, published_at: &quot;2015-08-02 00:04:22&quot;, position: 5&gt;, #&lt;Review id: 2, published_at: nil, position: 10, published_at: &quot;2015-10-02 00:02:00&quot;&gt;]&gt;</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">003</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="no">Review</span><span class="o">.</span><span class="n">published</span><span class="p">(</span><span class="no">Time</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">now</span><span class="p">)</span>
+</span><span class='line'>  <span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="ss">position</span><span class="p">:</span> <span class="n">asc</span><span class="p">)</span>
+</span><span class='line'>  <span class="no">Review</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">2</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;review&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span>
+</span><span class='line'>  <span class="s2">&quot;review&quot;</span>  <span class="no">WHERE</span> <span class="p">(</span><span class="n">published_at</span> <span class="no">IS</span> <span class="no">NOT</span> <span class="no">NULL</span> <span class="no">AND</span>
+</span><span class='line'>  <span class="n">published_at</span> <span class="o">&lt;=</span> <span class="mi">2015</span><span class="o">-</span><span class="mi">11</span><span class="o">-</span><span class="mo">02</span> <span class="mi">08</span><span class="p">:</span><span class="mo">07</span><span class="p">:</span><span class="mi">36</span> <span class="o">-</span><span class="mo">0400</span><span class="p">)</span>
+</span><span class='line'>  <span class="no">ORDER</span> <span class="no">BY</span> <span class="s2">&quot;review&quot;</span><span class="o">.</span><span class="s2">&quot;position&quot;</span> <span class="no">ASC</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="c1">#&lt;ActiveRecord::Relation [#&lt;Review id: 1, published_at: </span>
+</span><span class='line'><span class="s2">&quot;2015-08-02 00:04:22&quot;</span><span class="p">,</span> <span class="ss">position</span><span class="p">:</span> <span class="mi">5</span><span class="o">&gt;</span><span class="p">,</span> <span class="c1">#&lt;Review id: 2, </span>
+</span><span class='line'><span class="ss">published_at</span><span class="p">:</span> <span class="kp">nil</span><span class="p">,</span> <span class="ss">position</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="ss">published_at</span><span class="p">:</span>
+</span><span class='line'><span class="s2">&quot;2015-10-02 00:02:00&quot;</span><span class="o">&gt;]&gt;</span>
 </span></code></pre></td></tr></table></div></figure>
 
 
@@ -202,11 +224,13 @@
 <span class='line-number'>5</span>
 <span class='line-number'>6</span>
 <span class='line-number'>7</span>
+<span class='line-number'>8</span>
 </pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Review</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
 </span><span class='line'>  <span class="n">belongs_to</span> <span class="ss">:user</span>
 </span><span class='line'>
 </span><span class='line'>  <span class="n">scope</span> <span class="ss">:published</span><span class="p">,</span> <span class="o">-&gt;</span> <span class="p">(</span><span class="n">on</span><span class="p">)</span> <span class="p">{</span>
-</span><span class='line'>      <span class="n">where</span><span class="p">(</span><span class="s1">&#39;published_at IS NOT NULL AND published_at &lt;= ?&#39;</span><span class="p">,</span> <span class="n">on</span><span class="p">)</span>
+</span><span class='line'>      <span class="n">where</span><span class="p">(</span><span class="s1">&#39;published_at IS NOT NULL AND </span>
+</span><span class='line'><span class="s1">     published_at &lt;= ?&#39;</span><span class="p">,</span> <span class="n">on</span><span class="p">)</span>
 </span><span class='line'>  <span class="p">}</span>
 </span><span class='line'><span class="k">end</span>
 </span></code></pre></td></tr></table></div></figure>
@@ -217,16 +241,38 @@
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
 <span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">005</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="no">Review</span><span class="o">.</span><span class="n">published</span><span class="p">(</span><span class="kp">nil</span><span class="p">)</span><span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="ss">position</span><span class="p">:</span> <span class="n">asc</span><span class="p">)</span>
-</span><span class='line'>   <span class="no">Review</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">2</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;review&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;review&quot;</span>  <span class="no">WHERE</span> <span class="p">(</span><span class="n">published_at</span> <span class="no">IS</span> <span class="no">NOT</span> <span class="no">NULL</span> <span class="no">AND</span> <span class="n">published_at</span> <span class="o">&lt;=</span> <span class="mi">2015</span><span class="o">-</span><span class="mi">11</span><span class="o">-</span><span class="mo">02</span> <span class="mi">08</span><span class="p">:</span><span class="mo">07</span><span class="p">:</span><span class="mi">36</span> <span class="o">-</span><span class="mo">0400</span><span class="p">)</span> <span class="no">ORDER</span> <span class="no">BY</span> <span class="s2">&quot;review&quot;</span><span class="o">.</span><span class="s2">&quot;position&quot;</span> <span class="no">ASC</span>
-</span><span class='line'><span class="o">=&gt;</span> <span class="c1">#&lt;ActiveRecord::Relation [#&lt;Review id: 1, published_at: nil, position: 1, created_at: &quot;2015-11-02 00:45:22&quot;, updated_at: &quot;2015-11-02 00:45:22&quot;&gt;, #&lt;Review id: 2, published_at: nil, position: 2, created_at: &quot;2015-11-02 00:46:22&quot;, updated_at: &quot;2015-11-02 00:46:22&quot;&gt;]&gt;</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">005</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="no">Review</span><span class="o">.</span><span class="n">published</span><span class="p">(</span><span class="kp">nil</span><span class="p">)</span>
+</span><span class='line'>  <span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="ss">position</span><span class="p">:</span> <span class="n">asc</span><span class="p">)</span>
+</span><span class='line'>   <span class="no">Review</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">2</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">&quot;review&quot;</span><span class="o">.</span><span class="n">*</span>
+</span><span class='line'>   <span class="no">FROM</span> <span class="s2">&quot;review&quot;</span>  <span class="no">WHERE</span> <span class="p">(</span><span class="n">published_at</span> <span class="no">IS</span> <span class="no">NOT</span>
+</span><span class='line'>   <span class="no">NULL</span> <span class="no">AND</span> <span class="n">published_at</span> <span class="o">&lt;=</span> <span class="mi">2015</span><span class="o">-</span><span class="mi">11</span><span class="o">-</span><span class="mo">02</span> <span class="mi">08</span><span class="p">:</span><span class="mo">07</span><span class="p">:</span><span class="mi">36</span> <span class="o">-</span><span class="mo">0400</span><span class="p">)</span>
+</span><span class='line'>   <span class="no">ORDER</span> <span class="no">BY</span> <span class="s2">&quot;review&quot;</span><span class="o">.</span><span class="s2">&quot;position&quot;</span> <span class="no">ASC</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="c1">#&lt;ActiveRecord::Relation [#&lt;Review id: 1, published_at: </span>
+</span><span class='line'><span class="kp">nil</span><span class="p">,</span> <span class="ss">position</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="ss">created_at</span><span class="p">:</span> <span class="s2">&quot;2015-11-02 00:45:22&quot;</span><span class="p">,</span>
+</span><span class='line'><span class="ss">updated_at</span><span class="p">:</span> <span class="s2">&quot;2015-11-02 00:45:22&quot;</span><span class="o">&gt;</span><span class="p">,</span> <span class="c1">#&lt;Review id: 2, </span>
+</span><span class='line'><span class="ss">published_at</span><span class="p">:</span> <span class="kp">nil</span><span class="p">,</span> <span class="ss">position</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="ss">created_at</span><span class="p">:</span>
+</span><span class='line'><span class="s2">&quot;2015-11-02 00:46:22&quot;</span><span class="p">,</span> <span class="ss">updated_at</span><span class="p">:</span> <span class="s2">&quot;2015-11-02 00:46:22&quot;</span><span class="o">&gt;]&gt;</span>
 </span></code></pre></td></tr></table></div></figure>
 
 
 <p>Well, would you look at that! It didn&rsquo;t break! It ran our expected query, but because scopes return <code>ActiveRecord::Relation</code> objects, it didn&rsquo;t call <code>order</code> on <code>nil</code>, it just kept chaining on to our query. The first part of our query (responsible for finding any reviews that were published on a date) didn&rsquo;t return anything, but the second part of our query (responsible for just ordering whatever got returned by our first query) did work! How, exactly? Well, <a href="http://aspiringwebdev.com/use-activerecord-scopes-not-class-methods-in-rails-to-avoid-errors/">it just so happens</a> that calling a method on a blank <code>ActiveRecord::Relation</code> object returns that same relation. An important thing to note: if we had a query that was scoping down our reviews to ones that were published on a date and ordering <em>those</em> objects by their position, we would have gotten an empty relation:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">SELECT</span> <span class="ss">&quot;review&quot;</span><span class="p">.</span><span class="o">*</span> <span class="k">FROM</span> <span class="ss">&quot;review&quot;</span>  <span class="k">WHERE</span> <span class="p">(</span><span class="n">published_at</span> <span class="k">IS</span> <span class="k">NOT</span> <span class="k">NULL</span> <span class="k">AND</span> <span class="n">published_at</span> <span class="o">&lt;=</span> <span class="mi">2015</span><span class="o">-</span><span class="mi">11</span><span class="o">-</span><span class="mi">02</span> <span class="mi">08</span><span class="p">:</span><span class="mi">07</span><span class="p">:</span><span class="mi">36</span> <span class="o">-</span><span class="mi">0400</span> <span class="k">AND</span> <span class="p">(</span><span class="k">ORDER</span> <span class="k">BY</span> <span class="ss">&quot;review&quot;</span><span class="p">.</span><span class="ss">&quot;position&quot;</span> <span class="k">ASC</span><span class="p">))</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">SELECT</span> <span class="ss">&quot;review&quot;</span><span class="p">.</span><span class="o">*</span> <span class="k">FROM</span> <span class="ss">&quot;review&quot;</span>  <span class="k">WHERE</span>
+</span><span class='line'><span class="p">(</span><span class="n">published_at</span> <span class="k">IS</span> <span class="k">NOT</span> <span class="k">NULL</span> <span class="k">AND</span> <span class="n">published_at</span>
+</span><span class='line'><span class="o">&lt;=</span> <span class="mi">2015</span><span class="o">-</span><span class="mi">11</span><span class="o">-</span><span class="mi">02</span> <span class="mi">08</span><span class="p">:</span><span class="mi">07</span><span class="p">:</span><span class="mi">36</span> <span class="o">-</span><span class="mi">0400</span> <span class="k">AND</span>
+</span><span class='line'><span class="p">(</span><span class="k">ORDER</span> <span class="k">BY</span> <span class="ss">&quot;review&quot;</span><span class="p">.</span><span class="ss">&quot;position&quot;</span> <span class="k">ASC</span><span class="p">))</span>
 </span></code></pre></td></tr></table></div></figure>
 
 
@@ -236,8 +282,14 @@
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">006</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="no">Review</span><span class="o">.</span><span class="n">published</span><span class="p">(</span><span class="kp">nil</span><span class="p">)</span><span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="ss">position</span><span class="p">:</span> <span class="n">asc</span><span class="p">)</span><span class="o">.</span><span class="n">first</span>
-</span><span class='line'><span class="o">=&gt;</span> <span class="c1">#&lt;Review id: 1, published_at: nil, position: 1, created_at: &quot;2015-11-02 00:45:22&quot;, updated_at: &quot;2015-11-02 00:45:22&quot;&gt;</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">006</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="no">Review</span><span class="o">.</span><span class="n">published</span><span class="p">(</span><span class="kp">nil</span><span class="p">)</span>
+</span><span class='line'>  <span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="ss">position</span><span class="p">:</span> <span class="n">asc</span><span class="p">)</span><span class="o">.</span><span class="n">first</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="c1">#&lt;Review id: 1, published_at: nil, position: 1, </span>
+</span><span class='line'><span class="ss">created_at</span><span class="p">:</span> <span class="s2">&quot;2015-11-02 00:45:22&quot;</span><span class="p">,</span>
+</span><span class='line'><span class="ss">updated_at</span><span class="p">:</span> <span class="s2">&quot;2015-11-02 00:45:22&quot;</span><span class="o">&gt;</span>
 </span></code></pre></td></tr></table></div></figure>
 
 
@@ -252,11 +304,13 @@
 <span class='line-number'>7</span>
 <span class='line-number'>8</span>
 <span class='line-number'>9</span>
+<span class='line-number'>10</span>
 </pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Review</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
 </span><span class='line'>  <span class="n">belongs_to</span> <span class="ss">:user</span>
 </span><span class='line'>
 </span><span class='line'>  <span class="n">scope</span> <span class="ss">:published</span><span class="p">,</span> <span class="o">-&gt;</span> <span class="p">(</span><span class="n">on</span><span class="p">)</span> <span class="p">{</span>
-</span><span class='line'>      <span class="n">where</span><span class="p">(</span><span class="s1">&#39;published_at IS NOT NULL AND published_at &lt;= ?&#39;</span><span class="p">,</span> <span class="n">on</span><span class="p">)</span>
+</span><span class='line'>      <span class="n">where</span><span class="p">(</span><span class="s1">&#39;published_at IS NOT NULL AND </span>
+</span><span class='line'><span class="s1">     published_at &lt;= ?&#39;</span><span class="p">,</span> <span class="n">on</span><span class="p">)</span>
 </span><span class='line'>  <span class="p">}</span>
 </span><span class='line'>
 </span><span class='line'>  <span class="n">scope</span> <span class="ss">:ordered</span><span class="p">,</span> <span class="o">-&gt;</span> <span class="p">{</span> <span class="n">order</span><span class="p">(</span><span class="ss">position</span><span class="p">:</span> <span class="ss">:asc</span><span class="p">)</span> <span class="p">}</span>
@@ -275,9 +329,11 @@
 <span class='line-number'>3</span>
 <span class='line-number'>4</span>
 <span class='line-number'>5</span>
+<span class='line-number'>6</span>
 </pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Review</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
 </span><span class='line'>  <span class="n">scope</span> <span class="ss">:published</span><span class="p">,</span> <span class="o">-&gt;</span> <span class="p">(</span><span class="ss">limit</span><span class="p">:</span> <span class="mi">20</span><span class="p">)</span> <span class="p">{</span>
-</span><span class='line'>      <span class="n">where</span><span class="p">(</span><span class="s1">&#39;published_at IS NOT NULL AND published_at &lt;= ?&#39;</span><span class="p">,</span> <span class="no">Time</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">now</span><span class="p">)</span>
+</span><span class='line'>      <span class="n">where</span><span class="p">(</span><span class="s1">&#39;published_at IS NOT NULL AND </span>
+</span><span class='line'><span class="s1">     published_at &lt;= ?&#39;</span><span class="p">,</span> <span class="no">Time</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">now</span><span class="p">)</span>
 </span><span class='line'>  <span class="p">}</span>
 </span><span class='line'><span class="k">end</span>
 </span></code></pre></td></tr></table></div></figure>
@@ -343,12 +399,16 @@
 </span></code></pre></td></tr></table></div></figure>
 
 
-
+<p>which we can then merge into a single SQL query by chaining our scopes together:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
 </pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">007</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="no">Shipment</span><span class="o">.</span><span class="n">shipped</span><span class="o">.</span><span class="n">received</span>
-</span><span class='line'><span class="o">=&gt;</span> <span class="no">SELECT</span> <span class="s2">&quot;shipments&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;shipments&quot;</span> <span class="no">WHERE</span> <span class="s2">&quot;shipments&quot;</span><span class="o">.</span><span class="s2">&quot;state&quot;</span> <span class="o">=</span> <span class="s1">&#39;shipped&#39;</span> <span class="no">AND</span> <span class="s2">&quot;shipments&quot;</span><span class="o">.</span><span class="s2">&quot;condition&quot;</span> <span class="o">=</span> <span class="s1">&#39;damaged&#39;</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="no">SELECT</span> <span class="s2">&quot;shipments&quot;</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">&quot;shipments&quot;</span> <span class="no">WHERE</span>
+</span><span class='line'><span class="s2">&quot;shipments&quot;</span><span class="o">.</span><span class="s2">&quot;state&quot;</span> <span class="o">=</span> <span class="s1">&#39;shipped&#39;</span> <span class="no">AND</span> <span class="s2">&quot;shipments&quot;</span><span class="o">.</span>
+</span><span class='line'><span class="s2">&quot;condition&quot;</span> <span class="o">=</span> <span class="s1">&#39;damaged&#39;</span>
 </span></code></pre></td></tr></table></div></figure>
 
 
