@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Ruby | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-11-01T10:15:53-05:00</updated>
+  <updated>2015-11-02T21:16:19-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,251 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Hunting Down the Scoop on ActiveRecord Scopes]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/11/03/hunting-down-the-scoop-on-activerecord-scopes/"/>
+    <updated>2015-11-03T08:43:46-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/11/03/hunting-down-the-scoop-on-activerecord-scopes</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/PzrPi0UVzgYHm" width="480" height="254" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Over the past forty or so Tuesdays &mdash; has it really been that many?! &mdash; I&rsquo;ve written about on a spread of topics. There&rsquo;s a slight problem with this: sometimes I forget what I have and haven&rsquo;t written about. Here&rsquo;s a case in point for you: last week, I wrote about <a href="http://vaidehijoshi.github.io/blog/2015/10/27/digging-into-the-finder-object-pattern/">finder objects</a>, and casually tossed in some scopes into my models. It turns out, I&rsquo;ve never actually written about how scopes work, or what they really do!</p>
+
+<p>I know, I know, that&rsquo;s pretty terrible of me. I actually learned about scopes awhile ago, and now I use them fairly often in my applications. However, I got so used to writing them, that I never really thought that much about how they work behind the scenes. In fact, when I sat down to write <em>this</em> post, I had to go on a hunt into the Rails source code and Ruby blogosphere to figure out what was going on under the hood every single time I implemented a scope in my code.</p>
+
+<p>The main reason that I like to use <strong>ActiveRecord scopes</strong> is because they allow us to specify commonly-used queries, but encapsulate these queries into methods, which we can then call on our models or association objects. However, my hunt lead me to find out that scopes have been around for awhile in Railsland, so they&rsquo;re not exactly that new. But, what&rsquo;s interesting about them is how their implementation has changed and grown with different releases of Rails. There&rsquo;s also a lot of debate over how and when scopes are different from their counterparts, or simpler class methods. But what makes a scope exactly? Well, it&rsquo;s finally time for us to hunt down the answer to that question.</p>
+
+<!--more-->
+
+
+<h2>The simplest of scopes</h2>
+
+<iframe src="//giphy.com/embed/uH37VANhgHDaM" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>While developing applications, we often run into a situation where we want to select a particular group of objects (read: rows from our database) based on the characteristics that they share. The basic implementation of scopes can be summed up as this simple idea: being able to narrow down the objects that we want into a specific subset, based on some given parameters. We can tell <code>ActiveRecord</code> (an Object Relational Mapper, or ORM) to select a certain group of objects by implementing a scope that is specific to a model. Luckily, scopes aren&rsquo;t too difficult to define, and mostly adhere to a simple structure.</p>
+
+<p>In our bookstore app for example, we have a <code>Review</code> object, that we allow our users to write about the <code>Book</code>s that they purchase through our store. For now, our <code>Review</code>s belong to a <code>User</code>, and they have some basic attributes which map to columns in our database, including a <code>published_at</code> datetime attribute, that we set when our User clicks the submit button, which saves their &ldquo;drafted&rdquo; review and turns it into a &ldquo;published&rdquo; review.</p>
+
+<p>However, one side effect of having this attribute (and effectively, two different states or &ldquo;types&rdquo; of reviews) is that we now have no obvious form of selecting only our &ldquo;published&rdquo; reviews &mdash; that is to say, reviews that have a <code>published_at</code> date attribute set on them. How can we fix this? Well, we can write a class method that, when invoked, will run a query on our <code>ActiveRecord</code> object and only return the reviews that have this attribute. If we did that, our model might look something like this:</p>
+
+<pre><code class="ruby">class Review &lt; ActiveRecord::Base
+    belongs_to :user
+
+    def self.published
+        where('published_at IS NOT NULL')
+    end
+end
+</code></pre>
+
+<p>Okay, that&rsquo;s a good start. Remember that the implicit <code>self</code> in the body of this class method is our <code>Review</code> class, so we&rsquo;re basically running <code>Review.where('published_at IS NOT NULL')</code>. But now we run into another problem: this query isn&rsquo;t all that specific, is it? What makes a <code>published</code> review, exactly? Well, it&rsquo;s not just the fact that the <code>published_at</code> date should be set; we also need to account for the fact that some reviews could be set to be published in the <em>future</em>, at a later date. What we <em>really</em> want to select are our reviews that have a <code>published_at</code> date that has already happened; in other words, a date which occurred in the past. We can modify our class method to account for this:</p>
+
+<pre><code class="ruby">class Review &lt; ActiveRecord::Base
+    belongs_to :user
+
+    def self.published
+        where('published_at IS NOT NULL AND published_at &lt;= ?', Time.zone.now)
+    end
+end
+</code></pre>
+
+<p>If we try out this class method, we can see the exact SQL that gets executed:</p>
+
+<pre><code class="ruby">♥ rails c
+Loading development environment (Rails 4.1.4)
+irb(main):001:0&gt; Review.published
+# SELECT "reviews".* FROM "reviews" WHERE "reviews".
+"published_at" IS NOT NULL AND "reviews"."published_
+at" &lt;= 2015-10-27 08:07:36 -0400
+</code></pre>
+
+<p>However, instead of writing this functionality into the body of a class method, we could accomplish the exact same thing by using a scope:</p>
+
+<pre><code class="ruby">class Review &lt; ActiveRecord::Base
+    belongs_to :user
+
+    scope :published, -&gt; {
+        where('published_at IS NOT NULL AND published_at &lt;= ?', Time.zone.now)
+    }
+end
+</code></pre>
+
+<p>which allows us to invoke a method in the console that pretty much looks like the method we had before:</p>
+
+<pre><code class="ruby">irb(main):002:0&gt; Review.published
+  Review Load (2.6ms)  SELECT "reviews".* FROM "reviews" WHERE "reviews".
+"published_at" IS NOT NULL AND "reviews"."published_
+at" &lt;= 2015-10-27 08:07:36 -0400
+=&gt; #&lt;ActiveRecord::Relation []&gt;
+</code></pre>
+
+<p>Okay, wait &mdash; what&rsquo;s going on here?! How did that even happen? Well, let&rsquo;s break it down:</p>
+
+<ol>
+<li>First, we&rsquo;re using something called the <code>scope</code> method. This class method is defined within the <code>ActiveRecord::Scoping::Named</code> module.</li>
+<li>Second, the <code>scope</code> class method requires two important arguments: a <strong>name</strong> for the scope, and a <strong>callable object</strong> that includes a query criteria. That last part about passing a callable object is pretty important, because only procs and lambdas are callable objects. In fact, that <code>-&gt; {}</code> syntax that we&rsquo;re using is just another way of writing a lambda in Ruby.</li>
+<li>Third, and most interestingly, the return value of our scope was an <code>ActiveRecord::Relation</code> object. This is significant because <code>ActiveRecord::Relation</code> objects are <em>not</em> eagerly-loaded &mdash; they&rsquo;re <em>lazily-loaded</em>. Lazy-loading basically means that we&rsquo;re never going to query to the database until we actually <em>need</em> to. What makes this really awesome is that lazy-loading allows us to call more methods (read: scopes galore!) on our returned <code>ActiveRecord::Relation</code> object.</li>
+</ol>
+
+
+<p>It looks like perhaps there&rsquo;s some funky stuff going on here. But, all of these things still don&rsquo;t really answer our burning question: why use a scope when we could just write a class method?!</p>
+
+<h2>Class methods by any other name</h2>
+
+<iframe src="//giphy.com/embed/fwok0XCSAIivm" width="480" height="729" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>What&rsquo;s in a scope? A class method by any other name would smell just as sweet! Oops, I got carried away there. Enough poetry, let&rsquo;s talk prose. Or scopes, rather, and why we might want to use them.</p>
+
+<p>We want to change the implementation of our <code>published</code> class method such that it accepts an argument that makes our query more flexible. Let&rsquo;s say that we want to be able to filter our <code>Review</code>s by a specific publication date. We might now have a class method that looks like this:</p>
+
+<pre><code class="ruby">class Review &lt; ActiveRecord::Base
+    belongs_to :user
+
+    def self.published(on)
+        where('published_at IS NOT NULL AND published_at &lt;= ?', on)
+    end
+end
+</code></pre>
+
+<p>The <code>on</code> parameter would ideally be a <code>Date</code> or a <code>Datetime</code> object that would dynamically change the rows that we&rsquo;ll query for in our database. This will behave exactly like we want it to, until&hellip;it breaks. How can we break this? Well, let&rsquo;s say that we now want to order our published reviews by their <code>position</code> attribute, which for the time being, is just an integer. No problem, we can do that, right?</p>
+
+<pre><code class="ruby">irb(main):003:0&gt; Review.published(Time.zone.now).order(position: asc)
+    Review Load (0.2ms)  SELECT "review".* FROM "review"  WHERE (published_at IS NOT NULL AND published_at &lt;= 2015-11-02 08:07:36 -0400)  ORDER BY "review"."position" ASC
+=&gt; #&lt;ActiveRecord::Relation [#&lt;Review id: 1, published_at: "2015-08-02 00:04:22", position: 5&gt;, #&lt;Review id: 2, published_at: nil, position: 10, published_at: "2015-10-02 00:02:00"&gt;]&gt;
+</code></pre>
+
+<p>Sure, no problem! This returns exactly what we&rsquo;d expect. But what if we&rsquo;re relying on this method elsewhere and somehow don&rsquo;t pass in a parameter to our <code>published</code> method. What happens then?</p>
+
+<pre><code class="ruby">irb(main):004:0&gt; Review.published(nil).order(position: asc)
+=&gt; NoMethodError: undefined method `order' for nil:NilClass
+</code></pre>
+
+<p>BOOM! Everything broke. Oops. What happened here? We tried to call the <code>order</code> method on a falsy object (aka <code>nil</code>). Obviously Ruby is unhappy, because it looks like <code>Review.published(nil)</code> returns <code>nil</code>, which doesn&rsquo;t respond to a method called <code>order</code>!</p>
+
+<p>Now, let&rsquo;s go fast forward to our new scope implementation in the Review class:</p>
+
+<pre><code class="ruby">class Review &lt; ActiveRecord::Base
+    belongs_to :user
+
+    scope :published, -&gt; (on) {
+        where('published_at IS NOT NULL AND published_at &lt;= ?', on)
+    }
+end
+</code></pre>
+
+<p>We&rsquo;ve changed our callable object to accept a parameter, which is how we&rsquo;re going to determine our <code>published_at</code> date. We can be pretty certain that this will execute the same query if we pass an actual <em>date</em> to this scope. But what if we pass <code>nil</code> again?</p>
+
+<pre><code class="ruby">irb(main):005:0&gt; Review.published(nil).order(position: asc)
+   Review Load (0.2ms)  SELECT "review".* FROM "review"  WHERE (published_at IS NOT NULL AND published_at &lt;= 2015-11-02 08:07:36 -0400) ORDER BY "review"."position" ASC
+=&gt; #&lt;ActiveRecord::Relation [#&lt;Review id: 1, published_at: nil, position: 1, created_at: "2015-11-02 00:45:22", updated_at: "2015-11-02 00:45:22"&gt;, #&lt;Review id: 2, published_at: nil, position: 2, created_at: "2015-11-02 00:46:22", updated_at: "2015-11-02 00:46:22"&gt;]&gt;
+</code></pre>
+
+<p>Well, would you look at that! It didn&rsquo;t break! It ran our expected query, but because scopes return <code>ActiveRecord::Relation</code> objects, it didn&rsquo;t call <code>order</code> on <code>nil</code>, it just kept chaining on to our query. The first part of our query (responsible for finding any reviews that were published on a date) didn&rsquo;t return anything, but the second part of our query (responsible for just ordering whatever got returned by our first query) did work! How, exactly? Well, <a href="http://aspiringwebdev.com/use-activerecord-scopes-not-class-methods-in-rails-to-avoid-errors/">it just so happens</a> that calling a method on a blank <code>ActiveRecord::Relation</code> object returns that same relation. An important thing to note: if we had a query that was scoping down our reviews to ones that were published on a date and ordering <em>those</em> objects by their position, we would have gotten an empty relation:</p>
+
+<pre><code class="sql">SELECT "review".* FROM "review"  WHERE (published_at IS NOT NULL AND published_at &lt;= 2015-11-02 08:07:36 -0400 AND (ORDER BY "review"."position" ASC))
+</code></pre>
+
+<p>The above query narrows down our scope quite a bit, which we could do if we wanted to specify that to SQL. But in our case, our <code>ORDER BY</code> clause isn&rsquo;t grouped inside of the <code>AND</code>, but instead exists outside of it, which is why we&rsquo;re not getting an empty relation returned to us.</p>
+
+<p>While we&rsquo;re on the topic of relations, it&rsquo;s also important to note that the method we have right now <em>does not</em> return an object to us! Relations are not objects! We&rsquo;d need to explicitly query for a record if we wanted to return it:</p>
+
+<pre><code class="ruby">irb(main):006:0&gt; Review.published(nil).order(position: asc).first
+=&gt; #&lt;Review id: 1, published_at: nil, position: 1, created_at: "2015-11-02 00:45:22", updated_at: "2015-11-02 00:45:22"&gt;
+</code></pre>
+
+<p>Hopefully we should now be able to easily see that the <code>order</code> method that we&rsquo;re chaining on right there at the end could really be abstracted into its own scope! Let&rsquo;s fix that, shall we?</p>
+
+<pre><code class="ruby">class Review &lt; ActiveRecord::Base
+    belongs_to :user
+
+    scope :published, -&gt; (on) {
+        where('published_at IS NOT NULL AND published_at &lt;= ?', on)
+    }
+
+    scope :ordered, -&gt; { order(position: :asc) } 
+end
+</code></pre>
+
+<p>Much better. Now we can just chain on our <code>order</code> scope to our <code>published</code> scope without ever having to worry that our scopes will break. But wait, there&rsquo;s even more we can do with scopes!</p>
+
+<h2>Special scope tricks</h2>
+
+<p>Because scopes accept lambdas and procs, we can pass in different arguments. We did that before when we passed in a datetime parameter. But this kind of flexibility can be especially powerful, because we can do things like pass in limits:</p>
+
+<pre><code class="ruby">class Review &lt; ActiveRecord::Base
+    scope :published, -&gt; (limit: 20) {
+        where('published_at IS NOT NULL AND published_at &lt;= ?', Time.zone.now)
+    }
+end
+</code></pre>
+
+<p>This will run our same SQL query, but will add <code>LIMIT 10</code> to the end of it. We can customize this scope further, or we can add more if we need to. We also might want to just perpetually apply a scope to all queries on a specific model. When we run into this situation, we can use the <code>default_scope</code> method.</p>
+
+<pre><code class="ruby">class Review &lt; ActiveRecord::Base
+    default_scope -&gt; { order(published_at: :desc) }
+end
+</code></pre>
+
+<p>This will automatically append all of our SQL queries on this model with <code>ORDER BY "review"."position" DESC</code>. What&rsquo;s really nice about having a default scope is that we don&rsquo;t need to write and perpetually call a method named something like <code>by_published_date</code> on this model; it will be applied and invoked by default on all instances of this class.</p>
+
+<p>According to <a href="http://guides.rubyonrails.org/active_record_querying.html#scopes">the documentation</a>, if we want to get <em>super</em> fancy with our default scope and have so much logic that it&rsquo;s bursting from our callable object&rsquo;s so-called seams, we can also define it in an alternate way as a class method:</p>
+
+<pre><code class="ruby">class Review &lt; ActiveRecord::Base
+  def self.default_scope
+    # Get fancy in here, but just make sure 
+    # to return an ActiveRecord::Relation.
+    # Otherwise, any scopes we chain onto 
+    # this will automatically break!
+  end
+end
+</code></pre>
+
+<p>We&rsquo;re also not limited to just using the <code>where</code> method! We can use plenty of other <code>ActiveRecord::Relation</code> methods, such as <code>joins</code> or <code>includes</code>, which will eager load other relations when we want to. Here&rsquo;s a handy scope we could add to our <code>Shipment</code> model that <a href="http://vaidehijoshi.github.io/blog/2015/10/27/digging-into-the-finder-object-pattern/">we built out</a> last week:</p>
+
+<pre><code class="ruby">class Shipment &lt; ActiveRecord::Base
+    default_scope -&gt; { includes(:order, :line_items) }
+end
+</code></pre>
+
+<p>This is pretty cool because we&rsquo;re using our <code>default_scope</code> method to automatically eager-load our associated <code>order</code> and <code>line_items</code> on our <code>shipment</code> without having to make two additional queries just to load them! As is the case with <code>includes</code>, it might not always be a good idea to do this, since we could be loading more records than we want, or could get stuck with a n+1 situation on our hands. But if we know what we&rsquo;re doing and are sure that this scope is necessary, it can be pretty powerful.</p>
+
+<p>We can also merge two scopes together, which effectively allows us to mix and match different <code>WHERE</code> conditions and group them together in SQL with an <code>AND</code>:</p>
+
+<pre><code class="ruby">class Shipment &lt; ActiveRecord::Base
+    scope :shipped -&gt; { where(state: 'shipped') }
+    scope :damaged -&gt; { where(condition: 'damaged') }
+end
+</code></pre>
+
+<pre><code class="ruby">irb(main):007:0&gt; Shipment.shipped.received
+=&gt; SELECT "shipments".* FROM "shipments" WHERE "shipments"."state" = 'shipped' AND "shipments"."condition" = 'damaged'
+</code></pre>
+
+<p>We&rsquo;ll notice that in this situation, our <code>WHERE</code> clauses are grouped together with an <code>AND</code>, which can help us when it comes to writing super specific queries.</p>
+
+<iframe src="//giphy.com/embed/OIIB1hkbwFs76" width="480" height="339" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>ActiveRecord scopes give us a lot of flexibility, even though they are effectively defining a class method on a model. The fundamental difference between them however, is that scopes should always return an <code>ActiveRecord::Relation</code> object, which makes them forever chainable!</li>
+<li>How does the <code>scope</code> method actually work? I&rsquo;m not sure that I understand all of it, but perhaps you will! Check it out in the <a href="https://github.com/rails/rails/blob/428d47adfed8d6aa7b21aec2bf5ad890961c9de3/activerecord/lib/active_record/scoping/named.rb#L143">Rails source code</a>!</li>
+<li>There are a few great primers on writing effective scopes, like <a href="http://www.informit.com/articles/article.aspx?p=2220311">this one</a>, and this <a href="http://blog.plataformatec.com.br/2013/02/active-record-scopes-vs-class-methods/">other one</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Digging Into the Finder Object Pattern]]></title>
@@ -743,288 +988,6 @@ end
 <li>The fundamental difference between Ruby&rsquo;s <code>File</code> class and <code>Tempfile</code> class is that tempfiles are cleaned up (deleted by the garbage collector) once there is nothing pointing to them. Tempfile objects inherit from the <code>File</code> class, which means that we can use any file method on a <code>Tempfile</code> instance.</li>
 <li>The <code>unlink</code> method is super important to use, since that&rsquo;s what actually deletes our tempfile from the filesystem.</li>
 <li>There are some great tutorials out there on dealing with creating files and directories from within a Ruby script. Check out my two favorites <a href="http://code.tutsplus.com/tutorials/ruby-for-newbies-working-with-directories-and-files--net-18810">here</a> and <a href="http://www.techotopia.com/index.php/Working_with_Files_in_Ruby">here</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Using Pundit, the Cool Kid of Authorization]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/"/>
-    <updated>2015-09-29T08:57:21-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/OdVug9ZRk8sqA" width="480" height="192" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Ah, authorization &ndash; or as I like to call it, authentication&rsquo;s cooler, slightly less complicated twin. It&rsquo;s easy to confuse the two, but there&rsquo;s a fundamental difference between them. I recently learned that while setting up an authorization system for an application that&rsquo;s nearing the end of development. Authentication focuses on who you are as a user &mdash; an admin, guest, or user with an account, for example &mdash; while authorization is about what actions you can take. Authorization centers around what you are actually <em>able to do</em> within the context of your role.</p>
-
-<p>It often makes sense to leave authorization as one of the later (and sometimes, last) step of development, purely because it means that you don&rsquo;t need to worry about making sure that you are authenticated in your development environment while you are still building out your application. But eventually, somewhere between development and deployment, you&rsquo;ll have to think about the abilities of your users &mdash; or, what they can and can&rsquo;t do.</p>
-
-<p>There are a few different ways to go about creating an authorization system, one of the most popular being <code>can_can</code>, a gem that has been around in the Rails community since 2010, as well as a newer gem called <code>rolify</code>. But the one that I&rsquo;ve found really easy and fun to work with is <code>pundit</code>, an <a href="https://github.com/elabs/pundit">authorization system</a> crafted by eLabs, and interestingly enough, based off of the logic and thought behind the CanCan&rsquo;s approach. The developers at eLabs actually started off using the CanCan library in their own applications, but quickly realized that it could become very complicated, very quickly. So, they built the simpler authorization system of <code>pundit</code>, which is exactly what we&rsquo;ll play around with today!</p>
-
-<!--more-->
-
-
-<h2>Policies of Pundit</h2>
-
-<iframe src="//giphy.com/embed/zCn93ehzAzZNC" width="480" height="198" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Implementing the <code>pundit</code> gem is easy once we understand how it&rsquo;s structured, what it&rsquo;s expecting, and what conventions to follow. But before we do anything else, we&rsquo;ll need to add it to our <code>Gemfile</code>:</p>
-
-<p><code>gem "pundit"</code></p>
-
-<p>and run our favorite command, <code>bundle install</code>.</p>
-
-<p>The documentation for this gem is fairly well-explained, and even allows you to generate all the basic files you need with a single command (<code>rails g pundit:install</code>). However, generators can be a little bit dangerous if you don&rsquo;t understand what&rsquo;s going on behind the scenes, since all logic has been abstracted away and things start happening automagically! So, let&rsquo;s set up our authorization system for our bookstore manually. Don&rsquo;t worry &mdash; it&rsquo;s not going to be <em>too</em> painful!</p>
-
-<p>First things first: we need to make sure that we include <code>pundit</code> in our controllers. This is a particularly important step because we&rsquo;re going to use a method inside of all of our controllers, and if we don&rsquo;t <code>include Pundit</code>, none of our controllers will have any idea what method we&rsquo;re trying to call. Since we&rsquo;re going to be authorizing multiple classes, it makes sense to add <code>pundit</code> to the file where all our other controllers will inherit from: <code>ApplicationController</code>.</p>
-
-<pre><code class="ruby">class ApplicationController &lt; ActionController::Base
-  include Pundit
-  protect_from_forgery
-end
-</code></pre>
-
-<p>Next, we need to understand how <code>pundit</code> actually works. If we take a look at <a href="https://github.com/elabs/pundit">the documentation</a>, there are a few things that immediately become clear: <code>pundit</code> is focused around something called &ldquo;policy classes&rdquo;. Similar to how <code>cancan</code> relies &ldquo;ability classes&rdquo;, <code>pundit</code> expects a policy class to house our authorization logic.</p>
-
-<p>Okay, so we need policy classes. But what kind of classes are they? Do they inherit from anything? How many do we need, exactly? And what should go inside of them? If these are the questions running through your head, fret not: there are answers to all of them!</p>
-
-<p>Here are the basics of building a <code>pundit</code> policy class:</p>
-
-<ol>
-<li>Every policy class is just a plain old ruby class. It doesn&rsquo;t need to inherit from <code>ActiveRecord::Base</code>, or anything else. The only thing that the class <em>must</em> have is the suffix <code>Policy</code>.</li>
-<li>Each policy class should contain the authorization logic for the model class that it corresponds to. A <code>User</code> model would have a <code>UserPolicy</code>, while a <code>Book</code> model would have a <code>BookPolicy</code> class.</li>
-<li>A policy class should initialize with two instance variables: a <code>user</code>, and the <code>model</code> that we want to authorize. The <code>initialize</code> method in a policy class will always expect these two parameters in a certain order: <code>user</code> as the first argument, and the <code>model</code> object that we want to authorize as the second arugment. The <code>model</code> doesn&rsquo;t have to be an <code>ActiveRecord</code> object &ndash; it can literally be anything that you want to authorize!</li>
-<li>Inside of the policy class are query methods that actually contain the code for specific authorization checks. These should correspond and map to the actions in the controller for the model we want to authorize. If our <code>UsersController</code> has <code>create</code>, <code>update</code>, and <code>destroy</code> actions, our <code>UserPolicy</code> class should (theoretically) have <code>create?</code>, <code>update?</code>, and <code>destroy?</code> query methods inside of it.</li>
-</ol>
-
-
-<p>Okay, that&rsquo;s enough on policies to start. Let&rsquo;s actually start writing some of those policy classes! We&rsquo;ll need to create a folder for all of our policies since we&rsquo;re not using the generator (<code>app/policies</code>), which will house our policy classes. The most important policy class that we should write first is our <code>ApplicationPolicy</code>, which will reside at <code>app/policies/application_policy.rb</code>. This is where we can put our <code>initialize</code> method in, since we know that every policy needs to have this method inside of it.</p>
-
-<pre><code class="ruby">class ApplicationPolicy 
-  attr_reader :user, :resource
-
-  def initialize(user, resource)
-    @user = user
-    @resource = resource
-  end
-end
-</code></pre>
-
-<p>Since the <code>initialize</code> method of our <code>ApplicationPolicy</code> is going to be used by all of our other policy classes, we can refer to the second argument (the model that we want to authorize) as <code>resource</code>. Depending on what policy class we are in, the <code>resource</code> object will change. If we had used the generator, we&rsquo;d notice that the model object is actually referred to as <code>record</code>, which also would have been an acceptable name for our second argument. Either way, this is a nice and easy way of abstracting out this method into one file, and then reusing it in our other policy classes. Speaking of which&hellip;it&rsquo;s time for us to write those, next!</p>
-
-<h2>Authorize Me</h2>
-
-<iframe src="//giphy.com/embed/4SmyjSEh4wsPm" width="480" height="202" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>We&rsquo;ll start by authorizing (one of) the most important objects in our application: our users! Since we have a <code>User</code> model, we&rsquo;ll need to abide by <code>pundit</code>&rsquo;s policies, and create a <code>user_policy.rb</code> file inside of <code>app/policies</code>. We&rsquo;ll make sure that it inherit from <code>ApplicationPolicy</code>, so that we&rsquo;ll have access to the <code>initialize</code> method:</p>
-
-<pre><code class="ruby">class UserPolicy &lt; ApplicationPolicy
-end
-</code></pre>
-
-<p>Next, let&rsquo;s take a look at our <code>UsersController</code>:</p>
-
-<pre><code class="ruby">class UsersController &lt; ApplicationController
-
-    # Some more RESTful actions would go here,
-    # probably like #create and #destroy 
-
-    def update
-      user = User.find(params[:id])
-
-      user.assign_attributes(user_params)
-
-      if user.save
-        render json: user
-      else
-        render json: {}, status: :unprocessable_entity
-      end
-    end
-
-    private
-
-    def user_params
-      params.require(:user).permit(:name, :email)
-    end
-end
-</code></pre>
-
-<p>There&rsquo;s nothing too fancy going on in here at the moment, and for now, we&rsquo;re only concerned with authorizing the <code>update</code> action in our <code>UsersController</code>. Ultimately, we don&rsquo;t want any user to be able to update their information unless they are logged in; in other words, a user shouldn&rsquo;t be able to update anyone else&rsquo;s name and email except for their own.</p>
-
-<p>So, if we want to authorize the <code>update</code> action, we&rsquo;ll need a query method in our <code>UserPolicy</code> class called &mdash; you guessed it &mdash; <code>update?</code>:</p>
-
-<pre><code class="ruby">class UserPolicy &lt; ApplicationPolicy
-
-    # Inherited from ApplicationPolicy:
-    # def initialize(user, resource)
-        # @user = user
-        # @resource = resource
-    # end
-
-    def update?
-        user == resource
-    end
-end
-</code></pre>
-
-<p>All we&rsquo;re doing here is verifying that the <code>user</code> instance that we&rsquo;re passing in to the <code>initialize</code> method (which we&rsquo;re inheriting, remember?) is the same instance as the <code>resource</code> that we&rsquo;re passing in. The <code>resource</code> is the model that corresponds to the policy; in our case, we&rsquo;re in the context of the <code>UserPolicy</code>, so our <code>resource</code> is the <code>user</code> instance.</p>
-
-<p>The last step is actually telling our <code>update</code> action in our <code>UsersController</code> to <em>use</em> the <code>UserPolicy</code> and authorize our <code>user</code> instance. To do this, we&rsquo;ll need to call the <code>authorize</code> method, and pass in our <code>resource</code> that we want to authorize:</p>
-
-<pre><code class="ruby">class UsersController &lt; ApplicationController
-    after_action :verify_authorized
-
-    def update
-      user = User.find(params[:id])
-
-      authorize user
-      user.assign_attributes(user_params)
-
-      if user.save
-        render json: user
-      else
-        render json: {}, status: :unprocessable_entity
-      end
-    end
-
-    private
-
-    def user_params
-      params.require(:user).permit(:name, :email)
-    end
-end
-</code></pre>
-
-<p>In addition to calling <code>authorize</code>, we also need to make sure that our policy is actually being used! In fact, that&rsquo;s what the <code>after_action :verify_authorized</code> line is doing. The documentation suggests adding this to our <code>ApplicationController</code>, but for the sake of clarify, we can put it here temporarily, just to see how everything is working together. Pundit adds a method called <code>verify_authorized</code> to our controllers. It&rsquo;s this method that is reponsible for raising an exception if <code>authorize</code> is not called. It&rsquo;s recommended to put this in an <code>after_action</code> so that we don&rsquo;t forget to authorize any controller actions when we invoke them. Eventually, we&rsquo;ll want to abstract this line to our <code>ApplicationController</code>:</p>
-
-<p><code>after_action :verify_authorized, except: :index</code></p>
-
-<p>Since this is an <code>after_action</code>, we can pass it <code>except</code> or <code>only</code>, if we want to skip authorization for certain controller actions.</p>
-
-<p>So, how is all of this working? Well, when we pass <code>user</code> to the <code>authorize</code> method, we are actually telling <code>pundit</code> to look for a <code>UserPolicy</code>, find the corresponding action, and invoke it. If our <code>user</code> instance is <em>not</em> authorized, <code>pundit</code> will raise a <code>Pundit::NotAuthorizedError</code>. The source code for the <a href="https://github.com/elabs/pundit/blob/145d7592c0028c26e61e8a9569ed3440323eaa40/lib/pundit/policy_finder.rb">policy finder</a> and the <a href="https://github.com/elabs/pundit/blob/8d73705ca6886b757c9d41e13c1cb32a7b97334b/lib/pundit.rb">authorize method</a> reveal exactly how this happens, and are pretty cool to look at under the hood.</p>
-
-<h2>Scopin&#8217; Out More Policies</h2>
-
-<p>The <code>pundit</code> gem is pretty powerful, but the thing that makes it the cool kid of authorization is how it handles scopes. We can use scopes when we want to have a specific subset of records that a user has access to &mdash; basically, when we want to narrow the &ldquo;scope&rdquo; of the resources that are visible to our user, based on their &ldquo;level&rdquo; of authorization (admin, guest, etc.).</p>
-
-<p>Let&rsquo;s write a quick scope for the <code>Review</code> objects of the book reviews in our bookstore. Right now, our <code>ReviewPolicy</code> looks like this:</p>
-
-<pre><code class="ruby">class ReviewPolicy &lt; ApplicationPolicy
-    def update?
-        resource.user == user
-    end
-end
-</code></pre>
-
-<p>We have a corresponding <code>update</code> action in our <code>ReviewsController</code>, and we&rsquo;re allowing a review to be updated only by the user who wrote it (in other words, the <code>user</code> object that the <code>review</code> belongs to). But we also need an <code>index</code> action, and we want to limit the <code>reviews</code> that can be viewed by a user in the index action. Ultimately, the only <code>user</code> that should be able to see <em>all</em> reviews (including drafts) should be admins; otherwise, the only reviews that should be visible are the ones that have been published.</p>
-
-<p>And that&rsquo;s where scopes come into play. There&rsquo;s a few rules to scopes:</p>
-
-<ol>
-<li>They are plain old ruby classes, nested within the policy class.</li>
-<li>They have an initialize method that takes a <code>user</code> instance, and a <code>scope</code>. The <code>scope</code> is what we&rsquo;ll perform some kind of database query on &mdash; usually an ActiveRecord class or <code>ActiveRecord::Relation</code>.</li>
-<li>The class should have a <code>resolve</code> method, which should return an array of instances that we can iterate over &mdash; again, probably an <code>ActiveRecord::Relation</code>.</li>
-</ol>
-
-
-<p>Let&rsquo;s go ahead and add a scope to our preexisting <code>ReviewPolicy</code>:</p>
-
-<pre><code class="ruby">class ReviewPolicy &lt; ApplicationPolicy
-  class Scope
-    attr_reader :user, :scope
-
-    def initialize(user, scope)
-      @user = user
-      @scope = scope
-    end
-
-    def resolve
-        if user.admin?
-            scope.all
-        else
-            scope.where(published: true)
-        end
-    end
-  end
-
-  def update?
-    resource.user == user
-  end
-end
-</code></pre>
-
-<p>The only thing that&rsquo;s actually happening here is that we&rsquo;re limiting the number and types of book <code>reviews</code> that will be rendered by the <code>resolve</code> method. If our <code>user</code> is an admin, we&rsquo;ll run the query <code>Review.all</code>; otherwise, we&rsquo;ll execute the query, <code>Review.where(published: true)</code>.</p>
-
-<p>Again, we could abstract the initialize method of our <code>Scope</code> class into the <code>ApplicationPolicy</code> so that we could inherit <code>class Scope &lt; Scope</code>, rather that actually writing the method directly into this class. In fact, that&rsquo;s probably exactly what we would do once we realized that we needed to write more than a single scope.</p>
-
-<p>The last step is adding our scope to our <code>ReviewsController</code>. We can use a method provided by <code>pundit</code> in our controller called <code>policy_scope</code>, which takes an class instance of a model (in our case, <code>Review</code>):</p>
-
-<pre><code class="ruby">class ReviewsController &lt; BaseController
-    after_action :verify_policy_scoped, only: :index
-    skip_after_action :verify_authorized, only: :index
-
-    def index
-      if user_signed_in?
-        reviews = policy_scope(Review)
-
-        render json: reviews
-      else
-        render json: { reviews: [] }
-      end
-    end
-
-    def update
-        review = Review.find(params[:id])
-
-        authorize review
-
-        # Logic for updating our review
-    end
-end
-</code></pre>
-
-<p>Now, our <code>index</code> action uses the <code>policy_scope</code> method to find the reviews that we&rsquo;ll render. The <code>policy_scope</code> method infers that we want to use the <code>ReviewPolicy::Scope</code> class, and it will instantiate the class and then call resolve on the instance. In fact, the code that&rsquo;s actually getting executed here is this:</p>
-
-<p><code>reviews = ReviewPolicy::Scope.new(current_user, Review).resolve</code></p>
-
-<p>The other important line in our controller is the method that&rsquo;s actually mkaing sure that the policy scope is being used:</p>
-
-<p><code>after_action :verify_policy_scoped, only: :index</code></p>
-
-<p>Similar to <code>verify_authorized</code>, the <code>verify_policy_scoped</code> method is what ensures that the policy scope is actually being used. And in our case, we only have a scope on our <code>index</code> action, so we can specify that we only want to use a scope on <code>:index</code>. Not too bad, right? Just tell <code>pundit</code> what you want to scope, and what you want to authorize, and it will do the rest for us!</p>
-
-<p>But what if we had a class that never needed to be authorized or scoped? How could we tell <code>pundit</code> to just skip the authorization for that specific model? Well, it&rsquo;s pretty easy &mdash; we can just use <code>skip_after_action</code>:</p>
-
-<pre><code class="ruby">class CommentsController &lt; ApplicationController
-    skip_after_action :verify_authorized
-    skip_after_action :verify_policy_scoped
-
-    # RESTful controller actions go here!
-end
-</code></pre>
-
-<p>Simple! This gem is pretty fantastic to work with, and gives us great guidelines on the proper way of using it. I really liked this particular piece of advice from the library&rsquo;s developers:</p>
-
-<blockquote><p>&ldquo;Pundit strongly encourages you to model your application in such a way that the only context you need for authorization is a user object and a domain model that you want to check authorization for. If you find yourself needing more context than that, consider whether you are authorizing the right domain model, maybe another domain model (or a wrapper around multiple domain models) can provide the context you need.&rdquo;</p></blockquote>
-
-<p>It turns out that authorizing with <code>pundit</code> can be a really good time. You might say that it&rsquo;s even kind of&hellip;fun!</p>
-
-<iframe src="//giphy.com/embed/btKQIhrebJ3Og" width="480" height="200" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>pundit</code> gem is a simple way to build a powerful authorization system. It expects plain old ruby policy classes for each model that you want to authorize, and each class should contain query methods that map to controller actions for the model. The controller that corresponds to the model should call the <code>authorize</code> method for the object, and should either contain or inherit an <code>after_action :verify_authorized</code> method.</li>
-<li>The developers at eLabs put a lot of work into building <code>pundit</code>, and based it off of the <code>cancan</code> library. In fact, they even wrote a super blog post about their process, which you can read <a href="http://www.elabs.se/blog/52-simple-authorization-in-ruby-on-rails-apps">over here</a>.</li>
-<li>Still confused about when to authorize and when to authenticate? Check out this <a href="http://www.slideshare.net/BruceWhite3/pundit-37048056">awesome slidedeck</a> that clarifies all your authorization confusion!</li>
 </ul>
 
 ]]></content>

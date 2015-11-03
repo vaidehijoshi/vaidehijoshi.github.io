@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="Most developers aren&rsquo;t ever completely happy with their code. I&rsquo;m no exception to this stereotype &mdash; I almost always know that I &hellip;">
+  <meta name="description" content="Over the past forty or so Tuesdays &mdash; has it really been that many?! &mdash; I&rsquo;ve written about on a spread of topics. There&rsquo;s a &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,58 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/11/03/hunting-down-the-scoop-on-activerecord-scopes/">Hunting Down the Scoop on ActiveRecord Scopes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-11-03T08:43:46-05:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>8:43 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/PzrPi0UVzgYHm" width="480" height="254" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Over the past forty or so Tuesdays &mdash; has it really been that many?! &mdash; I&rsquo;ve written about on a spread of topics. There&rsquo;s a slight problem with this: sometimes I forget what I have and haven&rsquo;t written about. Here&rsquo;s a case in point for you: last week, I wrote about <a href="http://vaidehijoshi.github.io/blog/2015/10/27/digging-into-the-finder-object-pattern/">finder objects</a>, and casually tossed in some scopes into my models. It turns out, I&rsquo;ve never actually written about how scopes work, or what they really do!</p>
+
+<p>I know, I know, that&rsquo;s pretty terrible of me. I actually learned about scopes awhile ago, and now I use them fairly often in my applications. However, I got so used to writing them, that I never really thought that much about how they work behind the scenes. In fact, when I sat down to write <em>this</em> post, I had to go on a hunt into the Rails source code and Ruby blogosphere to figure out what was going on under the hood every single time I implemented a scope in my code.</p>
+
+<p>The main reason that I like to use <strong>ActiveRecord scopes</strong> is because they allow us to specify commonly-used queries, but encapsulate these queries into methods, which we can then call on our models or association objects. However, my hunt lead me to find out that scopes have been around for awhile in Railsland, so they&rsquo;re not exactly that new. But, what&rsquo;s interesting about them is how their implementation has changed and grown with different releases of Rails. There&rsquo;s also a lot of debate over how and when scopes are different from their counterparts, or simpler class methods. But what makes a scope exactly? Well, it&rsquo;s finally time for us to hunt down the answer to that question.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/11/03/hunting-down-the-scoop-on-activerecord-scopes/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -530,56 +582,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/">Unlocking Ruby Keywords: Begin, End, Ensure, Rescue</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-08-25T08:40:04-04:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:40 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><iframe src="//giphy.com/embed/VAG0Ct1MbUCju" width="480" height="268" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>I recently went down a little bit of rabbit hole in order to do some <a href="http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions/">digging on database transactions</a>. And when I say &ldquo;a little bit&rdquo;, I mostly mean &ldquo;a lot bit&rdquo;. I opened up the Rails source code for <code>ActiveRecord::Transactions</code>, and I saw some interesting terms I hadn&rsquo;t seen in awhile.</p>
-
-<p>Back when I was first learning Ruby a year ago, I remember reading about keywords. At the time, the only thing that <em>really</em> set them apart for me was the fact that they had special syntax highlighting in my text editor! (Yes, really.) But when I saw them again in the Rails source code, I thought it would be time to get a quick refresher on a few keywords that I saw again and again.</p>
-
-<p>But first: what <em>are</em> keywords, exactly? Well, they&rsquo;re definitely not objects, but instead are reserved words, which are actually <a href="http://stackoverflow.com/a/9446185">defined in the Ruby parser</a>. In fact, there&rsquo;s a whole slew of keywords in Ruby, but the ones that I&rsquo;m the most interested in sharing with you are <code>begin</code>, <code>end</code>, <code>ensure</code>, and <code>rescue</code>. So let&rsquo;s start unlock the door to Ruby with these keywords!</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -595,6 +597,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/11/03/hunting-down-the-scoop-on-activerecord-scopes/">Hunting Down the Scoop on ActiveRecord Scopes</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/10/27/digging-into-the-finder-object-pattern/">Digging Into the Finder Object Pattern</a>
       </li>
     
@@ -608,10 +614,6 @@
     
       <li class="post">
         <a href="/blog/2015/10/06/fleeting-filing-with-ruby-tempfile/">Fleeting Filing With Ruby Tempfile</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/">Using Pundit, the Cool Kid of Authorization</a>
       </li>
     
   </ul>
