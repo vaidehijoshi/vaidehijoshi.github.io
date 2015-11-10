@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="Yesterday, I started my very first job as a software engineer! It&rsquo;s been super exciting, slightly terrifying, and sometimes overwhelming. I &hellip;">
+  <meta name="description" content="NERD ALERT: I love databases. God, they&rsquo;re just fantastic. Few things give me as much joy as an empty whiteboard and a couple of intricate join &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,53 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/02/03/when-enough-is-enough-how-to-know-when-to-use-enums/">When Enough Is Enough: How to Know When to Use Enums</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-02-03T08:32:19-05:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>8:32 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>NERD ALERT: I love databases. God, they&rsquo;re just <em>fantastic</em>. Few things give me as much joy as an empty whiteboard and a couple of intricate join tables that need to be sketched out. But there&rsquo;s also an art to understanding how to handle data &ndash; particularly when you have a shit ton of it.</p>
+
+<p>The main issue people run into with data is first, how to go about storing it, and second, how to go about getting it when you actually need it! This doesn&rsquo;t sound super complicated though, right? <em>Wrong</em>. Databases grow vertically, not horizontally, and they grow hella fast. At a certain point, the way that you go about storing your data ends up <em>directly impacting</em> how you go about retrieving it!</p>
+
+<p>Many Rubyists write different helper methods to do their querying for them. But this is Rails Land, which means that we have <del>black</del> Rails magic at our disposal. And with the advent of Rails 4.1, that magic now has a name: <strong>enum</strong>.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/02/03/when-enough-is-enough-how-to-know-when-to-use-enums/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -491,51 +538,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/30/have-you-met-your-controller-yet/">Have You Met Your Controller Yet?</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-30T23:28:43-04:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:28 pm</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/flatiron/'>flatiron</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Controllers: we all have &lsquo;em. Sure, they put the C in MVC, but how much do we really <em>know</em> about these mysterious creatures? Probably not a lot. Don&rsquo;t you wish you could just look your Controller in the eye and be all, &ldquo;Hey dude, what <em>are</em> you?&rdquo; Well, you can. All you have to do is just poke around a bit in your code.</p>
-
-<p>Let&rsquo;s start with what we <em>do</em> know. Given the MVC orientation of Rails, we already know that the Controller acts as a kind of mediator, intercepting messages between the client and the server, and passing information between the model and view. But ultimately, Controllers are nothing more than Ruby classes (that inherit from ActionController::Base) with class methods called &ldquo; actions&rdquo;, which are simply meant to render a template for the user to see. But don&rsquo;t mistake them as simple chunks of code; there are also some pretty amazing things that Controllers can do.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2014/10/30/have-you-met-your-controller-yet/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/6">&larr; Older</a>
@@ -553,6 +555,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/">Methods to Remember Things by: Ruby Memoization</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/11/03/hunting-down-the-scoop-on-activerecord-scopes/">Hunting Down the Scoop on ActiveRecord Scopes</a>
       </li>
     
@@ -566,10 +572,6 @@
     
       <li class="post">
         <a href="/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns/">Stop Worrying and Start Being Concerned: ActiveSupport Concerns</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/06/fleeting-filing-with-ruby-tempfile/">Fleeting Filing With Ruby Tempfile</a>
       </li>
     
   </ul>

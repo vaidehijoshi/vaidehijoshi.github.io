@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="Over the past forty or so Tuesdays &mdash; has it really been that many?! &mdash; I&rsquo;ve written on a spread of topics. There&rsquo;s a slight &hellip;">
+  <meta name="description" content="A couple of months ago, I wrote a blog post on some basic Ruby keywords including begin, end, rescue, and ensure. A few days after publishing said &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,58 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/">Methods to Remember Things by: Ruby Memoization</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-11-10T09:03:09-05:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:03 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/computer-science/'>computer science</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/xUrmE6PJBEbni" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>A couple of months ago, I wrote <a href="http://vaidehijoshi.github.io/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/">a blog post</a> on some basic Ruby keywords including <code>begin</code>, <code>end</code>, <code>rescue</code>, and <code>ensure</code>. A few days after publishing said post, another Rubyist friend of mine sent me a message telling me to read about memoization. &ldquo;You basically describe memoization in your post without ever explicitly explaining it,&rdquo; she had said. At the time, I had added it to my ever-growing list of &ldquo;things to learn more about&rdquo;, but promptly forgot to make the time to learn about the concept.</p>
+
+<p>Cut to last week, when I was trying to write a controller action that had to do something a bit more complex than simply render a JSON-formatted response of a given resource. So, I started off by implementing a <code>begin</code> <code>end</code> block to execute a bunch of code that needed to run on it&rsquo;s own. I remembered writing about how to use these two keywords, so I pulled up my post and was suddenly reminded of&hellip;<strong>memoization</strong>. It turned out that I actually needed to use memoization in this controller action, and had already been using it elsewhere in the very same project! But, I still didn&rsquo;t understand what it was, or in what way I had been using it so far.</p>
+
+<p>After putting it off for months, it was finally time to learn about this memoization business. For those of us (myself included!) who haven&rsquo;t quite gotten the memo on memoization, here&rsquo;s the brief lowdown: the term dates back to the year 1968, when it was <a href="https://en.wikipedia.org/wiki/Memoization">coined by</a> Donald Michie, a British artificial intelligence researcher who worked alongside Alan Turing at the Code and Cypher School at Bletchley Park during WWII. The basic idea of a memoization function is that it can &ldquo;remember&rdquo; the result that corresponds to a set of given inputs. In other words, it can store the results of an expensive function call by &ldquo;saving&rdquo; the result such that when you call the same function again with the same parameters, you don&rsquo;t need to rerun the function. In the context of computer science specifically, this is a kind of optimization technique that is used to make programs more efficient and much faster. There are a few different ways that memoization pops up in Ruby and Rails, which is exactly what we&rsquo;ll need to learn about next!</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -530,58 +582,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/">Inflections Everywhere: Using ActiveSupport Inflector</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-09-01T08:45:22-04:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>8:45 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><iframe src="//giphy.com/embed/JEIRAmTTfUgYE" width="480" height="264" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Words are pretty important. But do you know what&rsquo;s more important than words? <em>Grammar</em>. (Can you tell that I was an English major?) Despite how big of a book nerd I am, there&rsquo;s acually a crucial reason as to why we should keep things like grammar in consideration: convention.</p>
-
-<p>At it&rsquo;s very core &mdash; pun totally intended &mdash; the Rails framework is based in conventions. We rely on the framework to create our models, controllers, and views in a specific file structure, and for them to be named in a certain way. But what we often forget is that we also rely on Rails to be smart enough to handle strange edge cases, like knowing that a <code>mice</code> table should store the <code>Mouse</code> model objects, and that the <code>MiceController</code> should be responsible for passing those objects back and forth!</p>
-
-<p>It all seems pretty automagical. But we have to keep in mind that it was the Rails core team that created and established these conventions, which means that they&rsquo;re not magic &mdash; they&rsquo;re just code! And as much as we can rely on preexisting Rails conventions, there might be times that we need to tweak our code to abide by those conventions. And because computers are not people (and because English is a crazy language with so many strange exceptions), we&rsquo;re probably going to run into a roadblock when dealing with grammar naming conventions. Thankfully, there&rsquo;s a great tool to help with this problem: the Rails <strong>Inflector</strong>, also known as every grammar nerd&rsquo;s dream.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -597,6 +597,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/">Methods to Remember Things by: Ruby Memoization</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/11/03/hunting-down-the-scoop-on-activerecord-scopes/">Hunting Down the Scoop on ActiveRecord Scopes</a>
       </li>
     
@@ -610,10 +614,6 @@
     
       <li class="post">
         <a href="/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns/">Stop Worrying and Start Being Concerned: ActiveSupport Concerns</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/06/fleeting-filing-with-ruby-tempfile/">Fleeting Filing With Ruby Tempfile</a>
       </li>
     
   </ul>

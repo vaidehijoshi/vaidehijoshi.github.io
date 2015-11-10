@@ -1,0 +1,502 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Methods to Remember Things by: Ruby Memoization - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="A couple of months ago, I wrote a blog post on some basic Ruby keywords including begin, end, rescue, and ensure. A few days after publishing said &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Methods to Remember Things by: Ruby Memoization</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-11-10T09:03:09-05:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:03 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/computer-science/'>computer science</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><iframe src="//giphy.com/embed/xUrmE6PJBEbni" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>A couple of months ago, I wrote <a href="http://vaidehijoshi.github.io/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/">a blog post</a> on some basic Ruby keywords including <code>begin</code>, <code>end</code>, <code>rescue</code>, and <code>ensure</code>. A few days after publishing said post, another Rubyist friend of mine sent me a message telling me to read about memoization. &ldquo;You basically describe memoization in your post without ever explicitly explaining it,&rdquo; she had said. At the time, I had added it to my ever-growing list of &ldquo;things to learn more about&rdquo;, but promptly forgot to make the time to learn about the concept.</p>
+
+<p>Cut to last week, when I was trying to write a controller action that had to do something a bit more complex than simply render a JSON-formatted response of a given resource. So, I started off by implementing a <code>begin</code> <code>end</code> block to execute a bunch of code that needed to run on it&rsquo;s own. I remembered writing about how to use these two keywords, so I pulled up my post and was suddenly reminded of&hellip;<strong>memoization</strong>. It turned out that I actually needed to use memoization in this controller action, and had already been using it elsewhere in the very same project! But, I still didn&rsquo;t understand what it was, or in what way I had been using it so far.</p>
+
+<p>After putting it off for months, it was finally time to learn about this memoization business. For those of us (myself included!) who haven&rsquo;t quite gotten the memo on memoization, here&rsquo;s the brief lowdown: the term dates back to the year 1968, when it was <a href="https://en.wikipedia.org/wiki/Memoization">coined by</a> Donald Michie, a British artificial intelligence researcher who worked alongside Alan Turing at the Code and Cypher School at Bletchley Park during WWII. The basic idea of a memoization function is that it can &ldquo;remember&rdquo; the result that corresponds to a set of given inputs. In other words, it can store the results of an expensive function call by &ldquo;saving&rdquo; the result such that when you call the same function again with the same parameters, you don&rsquo;t need to rerun the function. In the context of computer science specifically, this is a kind of optimization technique that is used to make programs more efficient and much faster. There are a few different ways that memoization pops up in Ruby and Rails, which is exactly what we&rsquo;ll need to learn about next!</p>
+
+<!--more-->
+
+
+<h2>Multiple Memoization</h2>
+
+<iframe src="//giphy.com/embed/yg4IHVMEvUxby" width="480" height="240" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>There are effectively two types of memoization when it comes to Rails applications: simple, single-line memoization, and the more complex form found in multiple-line memoization. They still are the same concept and we can implement them using the same conditional operator; the fundamental difference between the two types hinges upon how much logic needs to be run for the object that we&rsquo;re trying to &ldquo;remember&rdquo;, or in other words, <em>memoize</em>.</p>
+
+<p>Let&rsquo;s start with a simple memoization example. In our bookstore application, we have a piece of functionality that allows users to write reviews for books that they have purchased. Currently however, our <code>ReviewsController</code> doesn&rsquo;t account for that functionality. It only has a simple <code>index</code> action that is currently rendering all the <code>Reviews</code> that have been <code>published</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ReviewsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">index</span>
+</span><span class='line'>      <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="no">Review</span><span class="o">.</span><span class="n">published</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The <code>published</code> method that we&rsquo;re chaining on here is just a simple scope that we <a href="http://vaidehijoshi.github.io/blog/2015/11/03/hunting-down-the-scoop-on-activerecord-scopes/">learned about last week</a>, and added on to our <code>Review</code> model:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Review</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">scope</span> <span class="ss">:published</span><span class="p">,</span> <span class="o">-&gt;</span> <span class="p">{</span>
+</span><span class='line'>      <span class="n">where</span><span class="p">(</span><span class="s1">&#39;published_at IS NOT NULL AND </span>
+</span><span class='line'><span class="s1">     published_at &lt;= ?&#39;</span><span class="p">,</span> <span class="no">Time</span><span class="o">.</span><span class="n">zone</span><span class="o">.</span><span class="n">now</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We can implement some simple memoization by abstracting out what&rsquo;s currently happening in the <code>index</code> action of our <code>ReviewsController</code>. Since memoization roughly translates to the concept of &ldquo;remembering&rdquo; the return value of a function without having to call it again, we could use Ruby&rsquo;s instance variable to store the return value of an expensive function call. In our case, the function that we&rsquo;re calling and saving to our instance variable is the <code>published</code> scope on our <code>Review</code> class:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ReviewsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">index</span>
+</span><span class='line'>      <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="n">reviews</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">private</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">reviews</span>
+</span><span class='line'>      <span class="vi">@reviews</span> <span class="o">||=</span> <span class="no">Review</span><span class="o">.</span><span class="n">published</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now our <code>index</code> action is calling the private <code>reviews</code> method, which is &ldquo;remembering&rdquo;, or essentially assigning and saving the return value of <code>Review.published</code> to the instance variable <code>@reviews</code>. Right now it doesn&rsquo;t look like much, but this could help keep our code clean as we continue to build out this controller.</p>
+
+<p>The tricky thing to keep in mind with controllers is that they are nothing more than Ruby classes. This is important to remember because this instance variable will exist for the lifespan of a single request; if we make a network call (probably a <code>GET</code> request) when we query the <code>index</code> endpoint of our <code>ReviewsController</code>, the <code>@reviews</code> instance variable will be assigned and exist for the duration of that request. Once that request has completed, that instance of the controller is no longer needed and a new one would be created. Right now, we&rsquo;re not doing very much in our existing codebase with this piece of functionality. But why might that be important? Let&rsquo;s find out.</p>
+
+<p>Imagine that the <code>index</code> action of our <code>ReviewsController</code> needs to be rewritten to account for a new piece of functionality. Instead of merely loading all of our <code>published</code> book reviews, we now want to be able to account for some query params. For example, if a user navigated to a route such as <code>/the-sound-and-fury/reviews</code>, they should be able to see all the published books reviews for that specific book, based on the book slug that is used in the URL. We immediately know that we need to change our <code>reviews</code> method. But it&rsquo;s not going to be as simple as just chaining on another method; we have a bit more complicated logic going on here.</p>
+
+<p>First, we&rsquo;ll need to check whether there&rsquo;s a <code>book_slug</code> parameter being passed in. If there is, we&rsquo;ll need to query for the correct book reviews based on that query param. If there is no parameter being passed in, we&rsquo;ll just want to return our <code>published</code> Reviews. To account for this new feature, our method may now look something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ReviewsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">index</span>
+</span><span class='line'>      <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="n">reviews</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">private</span>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">reviews</span>
+</span><span class='line'>      <span class="vi">@reviews</span> <span class="o">||=</span> <span class="k">begin</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">_reviews</span> <span class="o">=</span> <span class="no">Review</span><span class="o">.</span><span class="n">published</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">if</span> <span class="n">params</span><span class="o">[</span><span class="ss">:book_slug</span><span class="o">].</span><span class="n">present?</span>
+</span><span class='line'>          <span class="n">_reviews</span> <span class="o">=</span> <span class="n">_reviews</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="ss">book_slug</span><span class="p">:</span> <span class="n">params</span><span class="o">[</span><span class="ss">:book_slug</span><span class="o">]</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">_reviews</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Here, we&rsquo;re implementing the multiple-line form of memoization, which calls for the use of our favorite Ruby keywords, <code>begin</code> and <code>end</code>. We&rsquo;re first setting a local <code>_reviews</code> variable to all the <code>published</code> reviews; if there&rsquo;s a <code>book_slug</code> query parameter being passed in for this <code>GET</code> request, we&rsquo;re modifying this variable to select only the published reviews that have a <code>book_slug</code> attribute that matches the query param that was passed in. Ultimately, we&rsquo;re returning our <code>_reviews</code> variable, which will either be just an array of all the published reviews, or the published reviews that match our query parameter.</p>
+
+<p>We don&rsquo;t necessarily have to use a variable name prepended with an <code>_</code> underscore, but I&rsquo;ve seen other developers do this in their code and I&rsquo;ve come to realize that this can be one way of denoting to other developers that this variable is being modified but not explicitly used. It can be a way of indicating that this variable is only necessary to <em>assign</em> the instance variable <code>@reviews</code>, and is never called or referenced outside of our <code>begin</code> <code>end</code> code block. We should also note that our <code>index</code> action hasn&rsquo;t changed one bit. All of our modified logic still lives in the same method, and is still accessible from our <code>@reviews</code> instance variable, from any action within this controller.</p>
+
+<p>Sometimes, the <code>begin</code> <code>end</code> block for multiple-line memoization is simply used because all of the code won&rsquo;t fit on a single line. The <code>begin</code> <code>end</code> block ensures that the code will be executed together in a single chunk, which effectively encapuslates the block of code in the same way, as though it were written on a single line, but makes it look much prettier and far easier to read.</p>
+
+<h2>Crazy For Conditionals</h2>
+
+<iframe src="//giphy.com/embed/fNlRJ7Gwr4Lba" width="480" height="202" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>In order to really understand what&rsquo;s going on with memoization, it&rsquo;s important to identify the behind the scenes action of Ruby&rsquo;s &ldquo;or equals&rdquo; (sometimes referred to as the &ldquo;double pipe&rdquo;) operator: <code>||=</code>.</p>
+
+<p>When I first learned about this operator, I initially thought that it functioned by telling the Ruby interpreter something equivalent to, <em>Hey, if a value for this variable already exists, please return that. Otherwise, if this variable doesn&rsquo;t have a value yet, assign it to whatever block of code comes next</em>. But apparently, that&rsquo;s not exactly what&rsquo;s going on here. In actuality, this operator is far more nuanced that most people may initially think it to be. Peter Cooper&rsquo;s <a href="http://www.rubyinside.com/what-rubys-double-pipe-or-equals-really-does-5488.html">Ruby Inside blog post</a> does a fantastic job of unpacking all the different edge cases of the or equals operator, including the various scenarios when it can be a bit problematic. I really like the way that he summarizes the misconception behind the &ldquo;or equals&rdquo; operator quite simply as follows:</p>
+
+<blockquote><p>A common misconception is that <code>a ||= b</code> is equivalent to <code>a = a || b</code>, but it behaves like <code>a || a = b</code>. In <code>a = a || b</code>, <code>a</code> is set to something by the statement on every run, whereas with <code>a || a = b</code>, <code>a</code> is only set if <code>a</code> is logically false (i.e. if it&rsquo;s <code>nil</code> or <code>false</code>) because <code>||</code> is &lsquo;short circuiting&rsquo;. That is, if the left hand side of the <code>||</code> comparison is true, there&rsquo;s no need to check the right hand side.</p></blockquote>
+
+<p>In other words, what he&rsquo;s saying here is that when we write something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="vi">@review</span> <span class="o">||=</span> <span class="no">Review</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">params</span><span class="o">[</span><span class="ss">:id</span><span class="o">]</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>what we&rsquo;re <em>actually</em> doing is saying something along these lines to the Ruby interpreter: <em>If</em> <code>@reviews</code> <em>currently evaluates to</em> <code>false</code><em>, then set it to the the return value of</em> <code>Review.find(params[:id])</code><em>. But, if</em> <code>@reviews</code> <em>is not a falsey value, don&rsquo;t assign or set the variable to anything. Just stop running and exit out of the method.</em></p>
+
+<p>It&rsquo;s also worth bringing up the fact that both <code>nil</code> and <code>false</code> are &ldquo;falsey&rdquo; values, which means that if <code>@review</code> was <code>nil</code> and empty when this line runs, the method would <em>not</em> short circuit, and would continue to execute after the <code>||=</code> operator, thereby assigning the <code>@review</code> instance variable during method execution. This is significant if you are integrating with an external API where you can&rsquo;t be sure if your instance variable will be falsey or not:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Review</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">goodreads_reviews</span>
+</span><span class='line'>      <span class="vi">@goodreads_reviews</span> <span class="o">||=</span> <span class="k">begin</span>
+</span><span class='line'>          <span class="c1"># Some logic here that uses a third-party</span>
+</span><span class='line'>          <span class="c1"># API like Goodreads and returns an array </span>
+</span><span class='line'>          <span class="c1"># of reviews, if any happen to exist.</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In this case, if our API endpoint that we&rsquo;re querying happens to return <code>nil</code> for a set of reviews or for a particular book that may have no reviews, every single place that we&rsquo;re calling this method will be running the logic inside of the <code>begin</code> <code>end</code> block. This pretty much makes our idea of &ldquo;memoizing&rdquo; the result of this expensive query a moot point, because we&rsquo;re not &ldquo;remembering&rdquo; the return value, but instead just running that line of code again and again. We could fix this by writing a less beautiful but more flexible method like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Review</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">goodreads_reviews</span>
+</span><span class='line'>      <span class="k">unless</span> <span class="n">defined?</span> <span class="vi">@goodreads_reviews</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="vi">@goodreads_reviews</span> <span class="o">||=</span> <span class="k">begin</span>
+</span><span class='line'>          <span class="c1"># This will only execute now if</span>
+</span><span class='line'>          <span class="c1"># @goodreads_reviews is undefined</span>
+</span><span class='line'>          <span class="c1"># as nil, and not otherwise.</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="vi">@goodreads_reviews</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This isn&rsquo;t as big of an issue if we&rsquo;re using an <code>ActiveRecord</code> method or a scope, which would return an empty array <code>[]</code>, and not <code>nil</code>. But it&rsquo;s important to keep the memoization of falsey values in mind, since we could very easily be making a lot more queries to our database than we might realize.</p>
+
+<p>Finally, there&rsquo;s another tricky situation when it comes to memoizing a method that accepts an argument. Justin Weiss&#8217; <a href="http://www.justinweiss.com/articles/4-simple-memoization-patterns-in-ruby-and-one-gem/">blog post</a> explains how to get around this by using the Ruby <code>Hash</code> initializer method (<code>Hash.new</code>), which ensures that the only time a block will be executed is if we try to access a key that doesn&rsquo;t yet have a value assigned to it in the context of our hash. This can be a little hard to understand at first, but is pretty useful for more complex forms of method memoization.</p>
+
+<h2>Of memos long gone</h2>
+
+<p>Memoization has clearly been around for a long time in the computer science world, but interestingly, it&rsquo;s had a bit of a rocky history in Railsland. It turns out that there actually used to be an entire <code>ActiveSupport::Memoizable</code> <a href="http://apidock.com/rails/v3.2.13/ActiveSupport/Memoizable/memoize">module</a> back in an older version of Rails 3! Apparently, there was a lot of controversy surrounding that particular module, and it was deprecated and, eventually, completely removed in 2011.</p>
+
+<p>At the time of deprecation, the Rails core team encouraged everyone to use the <code>||=</code> &ldquo;or equals&rdquo; operator format of method memoization, and what&rsquo;s really cool about this is that you can actually see examples of how the core team members changed the code in <a href="https://github.com/rails/rails/commit/f2c0fb32c0dce7f8da0ce446e2d2f0cba5fd44b3">the exact commit</a> where the Memoizable module was removed. Here&rsquo;s one example in the Rails source code of method memoization in the <code>DateTimeSelector</code> class:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">DateTimeSelector</span>
+</span><span class='line'>  <span class="vi">@month_names</span> <span class="o">||=</span> <span class="k">begin</span>
+</span><span class='line'>      <span class="n">month_names</span> <span class="o">=</span> <span class="vi">@options</span><span class="o">[</span><span class="ss">:use_month_names</span><span class="o">]</span> <span class="o">||</span> <span class="n">translated_month_names</span>
+</span><span class='line'>      <span class="n">month_names</span><span class="o">.</span><span class="n">unshift</span><span class="p">(</span><span class="kp">nil</span><span class="p">)</span> <span class="k">if</span> <span class="n">month_names</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;</span> <span class="mi">13</span>
+</span><span class='line'>      <span class="n">month_names</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pretty cool, right!?</p>
+
+<p>Of course, some Rubyists were not a big fan of this commit and module deprecation. In fact, some developers have fought to keep the module alive in the form of gems! The two that are the most popular are <a href="https://github.com/dkubb/memoizable">the <code>memoizable</code> gem</a> as well as <a href="https://github.com/matthewrudy/memoist">the <code>memoist</code> gem</a>. Both of them ultimately allow us to write a memoizable method like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="s1">&#39;memoist&#39;</span>
+</span><span class='line'><span class="k">class</span> <span class="nc">Order</span>
+</span><span class='line'>  <span class="kp">extend</span> <span class="no">Memoist</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nf">card_last_4</span>
+</span><span class='line'>      <span class="c1"># Logic to decrypt and</span>
+</span><span class='line'>      <span class="c1"># return last 4 digits</span>
+</span><span class='line'>      <span class="c1"># of credit card on the</span>
+</span><span class='line'>      <span class="c1"># order, properly formatted.</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>    <span class="n">memoize</span> <span class="ss">:card_last_4</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Effectively, this continues what the <code>ActiveSupport::Memoizable</code> module used to allow. In the method above, calling <code>card_last_4</code> on an instance of an <code>Order</code> class would only be calculated once, and would be memoized from that point on.</p>
+
+<p>I haven&rsquo;t used either of these gems because I personally would prefer to follow Rails conventions. But, I plan on playing around with them a bit in order to try and understand why it was deprecated, and why it implemented in the first place. Of course, we could also read the entire <a href="https://github.com/rails/rails/commit/36253916b0b788d6ded56669d37c96ed05c92c5c">Github discussion</a> that took place at the time of deprecation, but that&rsquo;s a whole lot of comments to read.</p>
+
+<p>No matter what form of method memoization we choose to use, there are certain times when it makes a lot of sense and is clearly the right tool for the job. Anytime we find ourselves making repeated database queries, or time-consuming expensive calculations, or repeated calculations that are never <em>really</em> going to chance for an instance of a class or a controller, memoization using Ruby&rsquo;s <code>||=</code> operator is probably our best bet. And now that we know the theory and history behind Ruby method memoization, we&rsquo;ll never forget!</p>
+
+<p>I hope.</p>
+
+<iframe src="//giphy.com/embed/TidlFj5lXMEkU" width="480" height="201" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Memoization is a long-standing computer science concept that is basically the idea of &ldquo;remembering&rdquo; the value of a function to avoid running expensive method calls and calculations multiple times in our code.</li>
+<li>The crux of Ruby&rsquo;s memoization techniques relies upon using the conditional &ldquo;or equals&rdquo; operator <code>||=</code>, which assigns a value and executes the following line of code <em>only</em> if the variable being assigned is not falsey (i.e. not <code>nil</code> or <code>false</code>).</li>
+<li>There are some great blog posts on the basics of Ruby memoization. This two-part series (<a href="http://gavinmiller.io/2013/basics-of-ruby-memoization/">part one</a> and <a href="http://gavinmiller.io/2013/advanced-memoization-in-ruby/">part two</a>) is a pretty good place to start.</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-11-10T09:03:09-05:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:03 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/computer-science/'>computer science</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/11/03/hunting-down-the-scoop-on-activerecord-scopes/" title="Previous Post: Hunting Down The Scoop On ActiveRecord Scopes">&laquo; Hunting Down The Scoop On ActiveRecord Scopes</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/">Methods to Remember Things by: Ruby Memoization</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/11/03/hunting-down-the-scoop-on-activerecord-scopes/">Hunting Down the Scoop on ActiveRecord Scopes</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/27/digging-into-the-finder-object-pattern/">Digging Into the Finder Object Pattern</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/">Solutions for Slugs of All Sizes: Acts_as_url + To_param</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns/">Stop Worrying and Start Being Concerned: ActiveSupport Concerns</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
