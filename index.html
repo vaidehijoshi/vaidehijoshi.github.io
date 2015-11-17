@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="A couple of months ago, I wrote a blog post on some basic Ruby keywords including begin, end, rescue, and ensure. A few days after publishing said &hellip;">
+  <meta name="description" content="When you write code every day for a living, it&rsquo;s easy to get hyper-focused on building out new features and getting things done quickly. What& &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,58 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1/">Peeking Under the Hood of ActionController Parameters, Part 1</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-11-17T08:39:52-05:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:39 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/iKufnbkSIcliM" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>When you write code every day for a living, it&rsquo;s easy to get hyper-focused on building out new features and getting things done quickly. What&rsquo;s much harder is to take a step back and figure out exactly how something is working. Of course, sometimes this happens inherently and without any effort on your part &mdash; say for example, when you&rsquo;re fixing a bug or need to integrate with a third-party service and are forced to understand what&rsquo;s happening on a more granular level. But generally speaking, that is less common when you&rsquo;re working a within a framework that you&rsquo;re already comfortable with and use daily, without giving it a second thought.</p>
+
+<p>I had one of those &ldquo;take a step back and question everything&rdquo; kind of moments recently. I was writing a controller for the admin interface of a Rails application, and hit a roadblock. To be clear, there wasn&rsquo;t anything super complex about the controller I was writing; it had the basic CRUD actions that any controller does, and I had written controllers like it plenty of times before. Yet somehow, when I got to writing the <code>params</code> private method for this controller, I couldn&rsquo;t remember what methods I needed to use. I was super tempted to open up another controller and just copy and paste the strong parameters from one file into another. But I realized that this wasn&rsquo;t really going to help me at all. What I <em>really</em> needed to do was grasp how strong parameters worked on a more conceptual level. If I could understand why we use the methods that we use, and to what end, I would never need to even look up the documentation for whitelisting parameters ever again!</p>
+
+<p>So that&rsquo;s exactly what I did. I decided to peek under the hood of Rails&#8217; <code>ActionController</code>, and set my mind to learning everything there was the know about strong parameters. <em>Spoiler alert:</em> I didn&rsquo;t completely succeed, and I definitely don&rsquo;t know everything about whitelisting parameters. But what I <em>did</em> finally come to understand was why we use the methods that we do (think <code>require</code> and <code>permit</code>), and why we invoke them in that order. And hopefully I&rsquo;ll be able to explain how some that black box magic in Rails <em>actually</em> works!</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -532,56 +584,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/09/08/youve-got-mail-action-mailer-plus-letter-opener/">You&#8217;ve Got Mail: Action Mailer + Letter_Opener</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-09-08T21:45:34-04:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:45 pm</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><iframe src="//giphy.com/embed/9xfgwmsfIaSYg" width="480" height="265" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p>There&rsquo;s one thing that everyone loves: getting mail! But there&rsquo;s one thing that all developers would rather avoid: sending mail. Unfortunately, this paradox perfectly describes the joys and horrors of getting your application to send a single email.</p>
-
-<p>I recently worked on building out a password reset feature for one of our applications. In order for this feature to work, I had to figure out how to get my Rails application to send an email to our user with a password reset token in case they had forgotten their password. I thought that handling the authentication and token aspect of this would be complicated, but it turned out that learning about mailers was the more fun part. I had never actually worked with Rails mailers before, and honestly, I thought that I was in over my head (this also might be partly attributed to the fact that I had just come back from a two-week vacation and felt like I had completely forgotten how to code).</p>
-
-<p>So, I did what any developer would do: I cried and went home. Okay, okay, I&rsquo;m just kidding! What I <em>actually</em> did was read through the documentation, play around with my application and, in the process, taught myself how to use Rails Action Mailer. I never thought that I&rsquo;d say this but, getting that feature to work and seeing that email pop up was incredibly exciting. In fact, I don&rsquo;t think I&rsquo;ve ever been more excited about sending and receiving an email. But don&rsquo;t let me tell you how thrilling it was &mdash; let&rsquo;s create our own mailer and experience it together!</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/09/08/youve-got-mail-action-mailer-plus-letter-opener/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -597,6 +599,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1/">Peeking Under the Hood of ActionController Parameters, Part 1</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/">Methods to Remember Things by: Ruby Memoization</a>
       </li>
     
@@ -610,10 +616,6 @@
     
       <li class="post">
         <a href="/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/">Solutions for Slugs of All Sizes: Acts_as_url + To_param</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns/">Stop Worrying and Start Being Concerned: ActiveSupport Concerns</a>
       </li>
     
   </ul>

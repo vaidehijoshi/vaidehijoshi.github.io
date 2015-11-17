@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rails | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-11-10T08:49:14-05:00</updated>
+  <updated>2015-11-17T08:52:44-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,228 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Peeking Under the Hood of ActionController Parameters, Part 1]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1/"/>
+    <updated>2015-11-17T08:39:52-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/iKufnbkSIcliM" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>When you write code every day for a living, it&rsquo;s easy to get hyper-focused on building out new features and getting things done quickly. What&rsquo;s much harder is to take a step back and figure out exactly how something is working. Of course, sometimes this happens inherently and without any effort on your part &mdash; say for example, when you&rsquo;re fixing a bug or need to integrate with a third-party service and are forced to understand what&rsquo;s happening on a more granular level. But generally speaking, that is less common when you&rsquo;re working a within a framework that you&rsquo;re already comfortable with and use daily, without giving it a second thought.</p>
+
+<p>I had one of those &ldquo;take a step back and question everything&rdquo; kind of moments recently. I was writing a controller for the admin interface of a Rails application, and hit a roadblock. To be clear, there wasn&rsquo;t anything super complex about the controller I was writing; it had the basic CRUD actions that any controller does, and I had written controllers like it plenty of times before. Yet somehow, when I got to writing the <code>params</code> private method for this controller, I couldn&rsquo;t remember what methods I needed to use. I was super tempted to open up another controller and just copy and paste the strong parameters from one file into another. But I realized that this wasn&rsquo;t really going to help me at all. What I <em>really</em> needed to do was grasp how strong parameters worked on a more conceptual level. If I could understand why we use the methods that we use, and to what end, I would never need to even look up the documentation for whitelisting parameters ever again!</p>
+
+<p>So that&rsquo;s exactly what I did. I decided to peek under the hood of Rails&#8217; <code>ActionController</code>, and set my mind to learning everything there was the know about strong parameters. <em>Spoiler alert:</em> I didn&rsquo;t completely succeed, and I definitely don&rsquo;t know everything about whitelisting parameters. But what I <em>did</em> finally come to understand was why we use the methods that we do (think <code>require</code> and <code>permit</code>), and why we invoke them in that order. And hopefully I&rsquo;ll be able to explain how some that black box magic in Rails <em>actually</em> works!</p>
+
+<!--more-->
+
+
+<h2>Strong(est) Params</h2>
+
+<iframe src="//giphy.com/embed/oB6nlaw4QJ8TS" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>When we&rsquo;re first introduced to the Rails framework, there are some fairly basic components that we learn about, including the MVC structure, which stands for Model, View, Controller. Personally, I found models and views to be far easier to grasp than controllers. Controllers were a whole other beast entirely. In fact, one of the very first concepts that <a href="http://vaidehijoshi.github.io/blog/2014/10/30/have-you-met-your-controller-yet/">I struggled with</a> was the very basics of writing a controller action! I eventually got a better at that, and now for our bookstore application, I have a more sophisticated controller (in this case, for our <code>Order</code> objects), which looks like this:</p>
+
+<pre><code class="ruby">class OrdersController &lt; ApplicationController
+    def create
+        @order = Order.create(order_params)
+
+        render json: order
+    end
+
+    def show
+        render json: order
+    end
+
+    def update
+    if order.update(order_params)
+        render json: order
+    else
+        render json: {}, status: :unprocessable_entity
+    end
+    end
+
+    def destroy
+        order.destroy
+
+        render json: {}
+    end
+
+    private
+    def order
+        @order ||= Order.find(params[:id])
+    end
+
+    def order_params
+        # OH GOD WHY?!
+    end
+end
+</code></pre>
+
+<p>Nice! We&rsquo;re using our new <a href="http://vaidehijoshi.github.io/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/">memoization</a> technique, and we&rsquo;re rendering json responses to make it much easier to integrate with a JavaScript frontend; of course, we could have also just rendered our <code>@order</code> instance if this were a simple Rails application with no frontend framework. But&hellip;there&rsquo;s one thing that we&rsquo;re still missing, and clearly put off because I was dreading: our strong parameters!</p>
+
+<p>The <code>ActionController</code> <a href="http://edgeapi.rubyonrails.org/classes/ActionController/StrongParameters.html">strong parameters</a> module was introduced back in 2012 with the release of Rails 4. The idea behind strong params was to abstract out the creation of models via mass assignment into the controller, rather than in the context of a model. Prior to this feature, we used to need to whitelist attributes in our models using <code>attr_accessible</code></p>
+
+<pre><code class="ruby">class Order &lt; ActiveRecord::Base
+    attr_accessible :total, :number
+end
+</code></pre>
+
+<p>in order to use mass assignment to instantiate an object from our controller actions:</p>
+
+<pre><code class="ruby">class OrdersController &lt; ApplicationController
+    def create
+        @order = Order.create(params[:order])
+    end
+end
+</code></pre>
+
+<p>Not the best solution, right? Enter our knight in shining armor: <code>strong_parameters</code>, a <a href="https://github.com/rails/strong_parameters">gem</a> that the Rails core team released to fix this problem, which was eventually merged into Rails. Okay, let me rephrase that: our rather <em>misunderstood</em> knight in shining armor.</p>
+
+<p>In order to understand how strong params permits attributes, there are two essential methods we are required to understand.</p>
+
+<h2>Requirements</h2>
+
+<iframe src="//giphy.com/embed/NTzW6P8cpt90Q" width="480" height="298" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>The main reason for even <em>needing</em> strong parameters of any sort is to ensure that we&rsquo;re only passing safe, protected data from our user-accesible interface. We don&rsquo;t really expect most users to try to pass in malicious data, but it&rsquo;s always a possibility. Moreover, there are various situations (dealing with money, for example, or people&rsquo;s personal information) when delicate information must be passed around securely across the web.</p>
+
+<p>So, how can we ensure that only the correct data is being passed through, and that too in a <em>safe</em> way? The Rails solution to this problem is to <strong>whitelist</strong> a set of attributes that should be allowed to be modified and passed through by a user (regardless of whether the role of the user is that of a guest, admin, etc.).</p>
+
+<p>The first step to whitelisting any set of attributes is making sure that the parameter we are looking to &ldquo;whitelist&rdquo; is actually present. If we think about it, this pretty logical: how can we pass in the correct attributes to create or update an object if don&rsquo;t first check that we have the parameter that contains the attributes we need? Only once we ensure that a parameter exists can we begin to strip away the &ldquo;blacklisted&rdquo; attributes.</p>
+
+<p>In fact, that&rsquo;s exactly what this method does under the hood. If we peek into the <a href="https://github.com/rails/rails/blob/9ab2d030209d9608a6c866d83210f5b3b7d2319e/actionpack/lib/action_controller/metal/strong_parameters.rb#L246">source code</a> for this method, this is what we&rsquo;ll find:</p>
+
+<pre><code class="ruby">def require(key)
+    value = self[key]
+    if value.present? || value == false
+        value
+    else
+        raise ParameterMissing.new(key)
+    end
+end
+</code></pre>
+
+<p>At this point, we should be wondering what <code>self</code> is in the context of this method. In other words, what object responds to this <code>require</code> method, exactly? And what is this <code>ParameterMissing</code> error, exactly? Let&rsquo;s take a look at the <code>require</code> <a href="http://api.rubyonrails.org/classes/ActionController/Parameters.html#method-i-require">method documentation</a> to find out:</p>
+
+<blockquote><p>&ldquo;<code>require</code> ensures that a parameter is present. If it&rsquo;s present, returns the parameter at the given key, otherwise raises an ActionController::ParameterMissing error.&rdquo;</p></blockquote>
+
+<p>Okay, so now we know that the error being raised in the conditional is actually an <code>ActionController::ParameterMissing</code> error. One question answered. But what does <code>require</code> get invoked on? Well, it turns out that the answer to that is a new instance of an <code>ActionController::Parameters</code> object!</p>
+
+<p>There&rsquo;s a <a href="http://stackoverflow.com/a/18426829">great StackOverflow answer</a> that points this fact pretty explicitly. The <code>params</code> object that we refer to in the context of our controllers gets treated as though its just an instead of a Ruby <code>Hash</code>. But in actuality, it&rsquo;s an instance of something called <code>ActionController::Parameters</code>, which is the object that responds to the <code>require</code> method. But more on that a little bit later.</p>
+
+<p>For now, all that matters is that the <code>require</code> method returns a new instance of an <code>ActionController::Parameters</code> object for the key that is passed into it. If that key doesn&rsquo;t exist in the object, it throws an error. What does this mean, exactly? Well, when we write our <code>order_params</code> method in our <code>OrdersController</code>, it will begin like this:</p>
+
+<pre><code class="ruby">def order_params
+    params.require(:order)
+end
+</code></pre>
+
+<p>we&rsquo;re actually returning the <em>value</em> of the parameter at the key that we&rsquo;re requiring (in our case, <code>:order</code>):</p>
+
+<pre><code class="ruby">params = ActionController::Parameters.new(order: { total: 100.00, number: 'ABC123' })
+
+params.require(:order)
+# =&gt; { total: 100.00, number: 'ABC123' }
+</code></pre>
+
+<p>And what&rsquo;s more: we&rsquo;re creating a new instance of an <code>ActionController::Parameters</code> object whenever we invoke <code>params</code> in our controller! Okay, so that&rsquo;s the first step: making sure our parameter exists. The second requires a bit more&hellip;permission on our part.</p>
+
+<h2>Permissions</h2>
+
+<p>Now that we&rsquo;re sure that our parameter exists, we need to actually <em>permit</em> the correct attributes on our objects. Since our users can add more books to their cart while they&rsquo;re shopping, they should be able to update the <code>total</code> of their <code>Order</code>. However, the <code>number</code> on their order is unique (and probably has an index on it), and is generated on the backend when it&rsquo;s created. We definitely <em>don&rsquo;t</em> want them to be able to update or modify that value at any point!</p>
+
+<p>So, we need to <code>permit</code> a single attribute on our required parameter key. That means that our whitelisted params now look like this:</p>
+
+<pre><code class="ruby">def order_params
+    params.require(:order).permit(:total)
+end
+</code></pre>
+
+<p>So what&rsquo;s happening here? Well, the <code>permit</code> method also is defined on the <code>ActionController::Parameters</code> class. It returns a new <code>ActionController::Parameters</code> instance, which includes only the given filters &mdash; the arguments that we&rsquo;re passing in here as symbols &mdash; and sets <a href="https://github.com/rails/rails/blob/9ab2d030209d9608a6c866d83210f5b3b7d2319e/actionpack/lib/action_controller/metal/strong_parameters.rb#L444">an attribute</a> using a <strong>protected instance method</strong> called <code>@permitted</code> on the newly-created <code>ActionController::Parameters</code> to be <code>true</code>.</p>
+
+<p>This means that if we invoke <code>permit</code> on our required parameters, we&rsquo;ll return the actual hash, not the value for the parameter</p>
+
+<pre><code class="ruby">params = ActionController::Parameters.new(order: { total: 100.00, number: 'ABC123' })
+
+params.permit(:order)
+# =&gt; { order { total: 100.00, number: 'ABC123' } }
+</code></pre>
+
+<p>Wait, but how does this happen? Well, if we look at the source code, we&rsquo;ll see that a the permit method takes an array of arguments named <code>filters</code>, and then iterates through them to check what type of object they are:</p>
+
+<pre><code class="ruby">def permit(*filters)
+  params = self.class.new
+
+  filters.flatten.each do |filter|
+    case filter
+    when Symbol, String
+      permitted_scalar_filter(params, filter)
+    when Hash then
+      hash_filter(params, filter)
+    end
+  end
+
+  unpermitted_parameters!(params) if self.class.action_on_unpermitted_parameters
+
+  params.permit!
+end
+</code></pre>
+
+<p>The reason for the <code>case</code> statement here is to handle nested attributes, which might look like this:</p>
+
+<pre><code class="ruby">params.require(:order).permit(
+    :total,
+    :books: { 
+        { # book_object_1 }, 
+        { # book_object_2 }, 
+        { # book_object_3 } 
+    }
+)
+</code></pre>
+
+<p>So if we really only need these two methods to require a parameter key and then permit the correct key and value pairs inside of it, what&rsquo;s the need for having a seperate method? Why do we need to encapsulate this logic? We could very well just do something like this, right? And it would work:</p>
+
+<pre><code class="ruby">class OrdersController &lt; ApplicationController
+    def create
+        @order = Order.create(params.require(:order).permit(:total))
+    end
+end
+</code></pre>
+
+<p>It turns out that abstracting our strong params out into a private <code>order_params</code> method is just a good practice that was established by the Rails core team. The Rails guides <a href="http://edgeapi.rubyonrails.org/classes/ActionController/StrongParameters.html">explain this</a> pretty well:</p>
+
+<blockquote><p>&ldquo;Using a private method to encapsulate the permissible parameters is just a good pattern since you&rsquo;ll be able to reuse the same permit list between create and update. Also, you can specialize this method with per-user checking of permissible attributes.&rdquo;</p></blockquote>
+
+<p>Another reason for having a separate method is because things can get kind of tricky once you need to permit nested attributes. At that point, it&rsquo;s especially important to understand how these methods work.</p>
+
+<p>Tune in next week, when I&rsquo;ll continue this deep dive by exploring the <code>ActionController::Parameters</code> class and answer the super confusing question of <em>where params get instantiated</em> (no really&hellip;where?), and how to handle nested key value pairs, including hashes and arrays in whitelisted parameters. Until then, keep peeking into that source code and stay afloat like this guy:</p>
+
+<iframe src="//giphy.com/embed/lpLWBoCnX1IkM" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>require</code> method ensures that a parameter key is present, and throws an error of it doesn&rsquo;t exist. The <code>permit</code> method filters out the keys that we want to whitelist based on the filters (which we pass in as symbols) that are passed into it.</li>
+<li>Check out the documentation on <code>ActionController::Parameters</code> in the <a href="http://api.rubyonrails.org/classes/ActionController/Parameters.html">Rails guides</a>.</li>
+<li>This blog post does a great job of explaining <a href="http://blog.trackets.com/2013/08/17/strong-parameters-by-example.html">permit and require</a> by example.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Methods to Remember Things by: Ruby Memoization]]></title>
@@ -870,173 +1092,6 @@ end
 <li>The <code>acts_as_url</code> library expects an <code>url</code> attribute on a model, and uses that to generate the path for an object. You need to override Rails&#8217; <code>to_param</code> method that, by default, will use the <code>id</code> of an object to generate its path.</li>
 <li>This <a href="https://gist.github.com/jcasimir/1209730">awesome gist</a> by Jeff Casimir is the best write-up on slugs and Rails&#8217; url generation out there. Give it a read!</li>
 <li>The original <code>to_param</code> method used to be defined inside of <code>ActiveRecord::Base</code>, but has since moved to the <code>ActiveModel::Conversion</code> module, which handles default conversions, including <code>to_model</code>, <code>to_key</code>, and <code>to_partial_path</code>. Read more about how these methods work in the Conversion <a href="http://apidock.com/rails/ActiveModel/Conversion">module documentation</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Stop Worrying and Start Being Concerned: ActiveSupport Concerns]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns/"/>
-    <updated>2015-10-13T09:22:16-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/iQA2hMPX88icM" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>A few weeks ago, while learning everything I never knew about <a href="http://vaidehijoshi.github.io/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/">user authorization</a>, I also stumbled upon a cool refactoring pattern that I didn&rsquo;t even know existed. This pattern is based on the simple idea of Ruby modules and mixins, but is particularly handy when it comes to dealing with class methods and callbacks.</p>
-
-<p>ActiveSupport is a pretty massive component within Rails, and it&rsquo;s responsible for a ton of different functionality, including language extensions and utilities. I last wrote about ActiveSupport back when we were exploring the <a href="http://vaidehijoshi.github.io/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/">Rails inflector</a> and the libraries it provides for handling the pluralization of different strings. This was way back in September, and at the time, my understanding of ActiveSupport was pretty limited. It turns out that yes, ActiveSupport does provide a bunch of different patterns to transform simple Ruby strings&hellip;but it also has a lot more going on inside of it. For example, the <strong>ActiveSupport Concern module</strong>, which only recently made its debut in Rails 4.</p>
-
-<p>The ActiveSupport::Concern wrapper is an interesting way of encapsulating&hellip;well, certain functionality that you might be <em>concerned</em> with. These concerns take advantage of two directories that are automatically part of the load path within a Rails application: <code>app/models/concerns</code> and <code>app/controllers/concerns</code>. So, how do you write a concern, and what should go inside of it? Don&rsquo;t worry, that&rsquo;s exactly what we&rsquo;ll concern ourselves with next.</p>
-
-<!--more-->
-
-
-<h2>Should We Be Concerned?</h2>
-
-<iframe src="//giphy.com/embed/374pcIBVEGb6g" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Concerns are meant to make our lives less complicated. Or at the very least, we should be less concerned about the quality of our code if we use concerns, right? But what are ActiveSupport&rsquo;s Concerns really meant to be used for? And how do we know if we should be using them? Well, to answer this question, we can turn to the creator of Rails himself. In a blog post pre-Rails 4 titled <em>Put chubby models on a diet with concerns</em>, DHH explains when and why to consider using ActiveSupport&rsquo;s Concern module:</p>
-
-<blockquote><p>&ldquo;Concerns encapsulate both data access and domain logic about a certain slice of responsibility. Concerns are also a helpful way of extracting a slice of model that doesn’t seem part of its essence (what is and isn’t in the essence of a model is a fuzzy line and a longer discussion) without going full-bore Single Responsibility Principle and running the risk of ballooning your object inventory.&rdquo;</p></blockquote>
-
-<p>When we talk about concerns, what we really are honing in on is the most effective <em>separation of concerns</em>. I really like the way that David thinks of models having an &ldquo;essence&rdquo;, and I think that this is a great way of approaching when and when <em>not</em> to use a concern.</p>
-
-<p>Let&rsquo;s look at our bookstore application. We have an <code>User</code> model for anyone that signs up to use our application. Whenever a <code>User</code> signs up, we want to send them an email telling them that they&rsquo;ve been registered, and probably highlighting some of the cool things that they can do to set up their profile on our application. Now, this seems like something that only the <code>User</code> model would be concerned with, right? Well, yes, until we realize that we have another model that needs to share this same functionality!</p>
-
-<p>For example, we now have organizations that want to sign up for our application. They also need to receive the same email and be &ldquo;registered&rdquo;. As our application grows, we might even want to create a <code>Registration</code> model, which would belong to an <code>User</code> and <code>Organization</code>. Now, obviously we could accomplish what we wanted to by just adding the same lines of code to both models, but that makes for neither DRY code, nor a great separation of concerns. But wouldn&rsquo;t it be great if we could take this piece of &ldquo;registration&rdquo; functionality, wrap it up, and only pull it out when we need to use it? It turns out that is exactly what we can do with <code>ActiveSupport::Concern</code>.</p>
-
-<h2>Extending Our Concerns</h2>
-
-<iframe src="//giphy.com/embed/dnNuJUQvEnmjC" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Before we write our concern, let&rsquo;s look at what our <code>User</code> model looks like. Here&rsquo;s a truncated version that contains only the logic pertaining to registering a user:</p>
-
-<pre><code class="ruby">class User &lt; ActiveRecord::Base
-    after_commit :register_user, on: :create
-
-    def register_user
-        # Where our logic for registering a user
-        # would go. Would call on a background job
-        # to perform and send our registration email.
-    end
-end
-</code></pre>
-
-<p>We very well <em>could</em> stick this inside of our <code>organization.rb</code> model file, but there&rsquo;s a better way to do this. There are a few steps to creating a concern, the first of which is recognizing where to put it! Since we&rsquo;re creating a concern for a model, this will live inside of our <code>app/models/concerns</code> directory. We&rsquo;ll call this concern a  <code>Registerer</code> concern, since that&rsquo;s its single responsibility, and we can preemptively namespace our concern under <code>Users</code>, which would make its path <code>app/models/concerns/users/registerer.rb</code>.</p>
-
-<p>Next, we&rsquo;ll want to <code>extend</code> the Rails <code>ActiveSupport::Concern</code> module itself from within our concern:</p>
-
-<pre><code class="ruby">module Users
-    module Registerer
-        extend ActiveSupport::Concern
-    end
-end
-</code></pre>
-
-<p>Now, for the actual writing, there&rsquo;s one method that&rsquo;s going to be our new best friend: the <code>included</code> method, which takes a block. A little-known fact about this callback is that it&rsquo;s actually defined by Ruby&rsquo;s <code>Module</code> class, and it&rsquo;s called whenever a module is &ldquo;included&rdquo; into another class or module. This is where we&rsquo;ll put the important class methods and callbacks that we want to be shared amongst the models that will use our concern.</p>
-
-<pre><code class="ruby">module Users
-    module Registerer
-        extend ActiveSupport::Concern
-
-        included do
-            has_one :registration, dependent: :destroy
-
-            after_commit :register_user, on: :create
-        end
-
-        def register_user
-            send_registration_email(self)
-
-            touch(:registered_at)
-        end
-
-        def send_registration_email(self)
-            RegistrationEmailerJob.perform_later(self)
-        end
-    end
-end
-</code></pre>
-
-<p>This is mostly straightforward. All the logic for a registration now lives in this single file, including the creating of a registration association on our target object (in this case, the <code>User</code> model), the registering of a user by passing our <code>User</code> instance (<code>self</code>) to our <code>RegistrationEmailerJob</code>, and the updating of the <code>registered_at</code> attribute on our <code>User</code> model using the <a href="http://vaidehijoshi.github.io/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/">touch method</a> &mdash; assuming, of course, that we&rsquo;ve defensively coded this attribute onto our <code>User</code> model. We&rsquo;re also able to use the <code>after_commit</code> callback hook, since the <code>included</code> method can accept callback names as parameters.</p>
-
-<p>Now that we have all this code in one place, how do we add it to our model? Well, we can do it in a single line:</p>
-
-<pre><code class="ruby">class User &lt; ActiveRecord::Base
-    include Users::Registerer
-end
-</code></pre>
-
-<p>All we need to do is <code>include</code> our concern, just as we would a module. And down the road, when we find out that we need to create <code>Organization</code> model that shares this set of functionality, all we need to do is add the exact same line to our new model:</p>
-
-<pre><code class="ruby">class Organization &lt; ActiveRecord::Base
-    include Users::Registerer
-end
-</code></pre>
-
-<p>And here&rsquo;s the really nice part about utilizing concerns in this way: when we realize that we need to change how this works &mdash; maybe we need to add another job or service object, or perhaps another, more specific callback &mdash; we can add it to one place and update our logic in a single file! This ties in quite nicely to DHH&rsquo;s point of a model&rsquo;s &ldquo;essence&rdquo;. In this case, being able to be &ldquo;registered&rdquo; isn&rsquo;t necessarily something that pertains to the <code>User</code> model specifically. But, it also doesn&rsquo;t need to be its own <em>object</em> per se. Instead, we really just need a set of methods that can be available to be invoked upon an object, which is exactly what <code>ActiveSupport::Concern</code> provides us with.</p>
-
-<h2>Helpful Inclusion</h2>
-
-<p>Because concerns are so simple to extend and include, there are lots of use cases for them. We learned earlier that Rails comes with two <code>concerns</code> directories preloaded: one for <code>models</code>, and another for <code>controllers</code>. Let&rsquo;s look at a practical example for using <code>ActiveSupport::Concern</code> in the context of a controller.</p>
-
-<p>We <a href="http://vaidehijoshi.github.io/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/">recently added</a> the <code>pundit</code> gem to our bookstore app for user authorization. But we only had a few controller actions that actually <em>needed</em> to be authorized; the rest of our controllers didn&rsquo;t need any authorization, because they could be accessed by anyone. Our <code>Reviews</code> controller was being authorized, for example, but our <code>Comments</code> controller didn&rsquo;t need any authorization whatsoever.</p>
-
-<p>So, for the controllers that <em>didn&rsquo;t</em> need authorization, what did we do? Well, we were adding some <code>skip_after_actions</code> lines, which were instructions that the <code>pundit</code> gem documentation had given us:</p>
-
-<pre><code class="ruby">class CommentsController &lt; ApplicationController
-  skip_after_action :verify_authorized
-  skip_after_action :verify_policy_scoped
-
-  # RESTful controller actions go here!
-end
-</code></pre>
-
-<p>Now, imagine we also have a <code>BlogsController</code> with just an <code>index</code> action API endpoint, which doesn&rsquo;t need to be authorized. And maybe we also have <code>TagsController</code>, which also doesn&rsquo;t need to be authorized by <code>pundit</code>. We <em>could</em> copy and paste these two lines into every single controller&hellip;<em>or</em>, we could use our newfound knowledge of <code>ActiveSupport::Concern</code>!</p>
-
-<p>Let&rsquo;s share some of this code, shall we? We can create a <code>skip_authorized.rb</code> file inside of <code>app/controllers/concerns</code>. And inside of it, we&rsquo;ll include <code>Pundit</code> &mdash; otherwise, our <code>skip_after_actions</code> will have no idea what actions we&rsquo;re trying to skip! Our concern might look something like this:</p>
-
-<pre><code class="ruby">module SkipAuthorized
-  extend ActiveSupport::Concern
-
-  included do
-    skip_after_action :verify_authorized
-    skip_after_action :verify_policy_scoped
-  end
-end
-</code></pre>
-
-<p>Pretty simple, right? And suddenly, our <code>CommentsController</code>, <code>BlogsController</code>, <code>TagsController</code>, and pretty much <em>every single</em> controller that we want to share these <code>skip_after_action</code> callbacks now can be refactored to have this single line:</p>
-
-<pre><code class="ruby">class CommentsController &lt; ApplicationController
-    include SkipAuthorized
-
-    # RESTful controller actions go here!
-end
-</code></pre>
-
-<p>And now, if we wanted to <code>rescue</code> from a <code>Pundit::UnauthorizedError</code>, we could add a single line, into a single file&hellip;but all of our controllers would mix that in! Similarly, we could create an <code>Authorized</code> concern for every controller that needed to actually implement <code>pundit</code> authorization. See, there&rsquo;s no need to worry for the rest of our days, because instead, we can just be concerned &mdash; ActiveSupport concerned!</p>
-
-<iframe src="//giphy.com/embed/jfw9xNEouCJO" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>ActiveSupport&rsquo;s <code>Concern</code> module allows us to mix in callbacks, class and instance methods, and create associations on target objects. This module has an <code>included</code> method, which takes a block, as well as an <code>append_features</code> method and <code>class_methods</code> block, which you can read about in <a href="http://api.rubyonrails.org/classes/ActiveSupport/Concern.html#method-i-included">the source code</a>.</li>
-<li>This <a href="http://engineering.appfolio.com/2013/06/17/ruby-mixins-activesupportconcern/">blog post</a> is pretty fantastic in its explanation of mixins, modules, and concerns.</li>
-<li>Concerns are a little controversial in Railsland. This <a href="http://www.slideshare.net/justingordon/rails-conf-2014concernsdecoratorspresentersserviceobjectshelpershelpmedecideapril222014">slide deck</a> from RailsConf 2014 shares a bit about why that&rsquo;s the case.</li>
 </ul>
 
 ]]></content>

@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-11-10T08:49:14-05:00</updated>
+  <updated>2015-11-17T08:52:44-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,332 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Peeking Under the Hood of ActionController Parameters, Part 1]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1/"/>
+    <updated>2015-11-17T08:39:52-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/iKufnbkSIcliM" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>When you write code every day for a living, it&rsquo;s easy to get hyper-focused on building out new features and getting things done quickly. What&rsquo;s much harder is to take a step back and figure out exactly how something is working. Of course, sometimes this happens inherently and without any effort on your part &mdash; say for example, when you&rsquo;re fixing a bug or need to integrate with a third-party service and are forced to understand what&rsquo;s happening on a more granular level. But generally speaking, that is less common when you&rsquo;re working a within a framework that you&rsquo;re already comfortable with and use daily, without giving it a second thought.</p>
+
+<p>I had one of those &ldquo;take a step back and question everything&rdquo; kind of moments recently. I was writing a controller for the admin interface of a Rails application, and hit a roadblock. To be clear, there wasn&rsquo;t anything super complex about the controller I was writing; it had the basic CRUD actions that any controller does, and I had written controllers like it plenty of times before. Yet somehow, when I got to writing the <code>params</code> private method for this controller, I couldn&rsquo;t remember what methods I needed to use. I was super tempted to open up another controller and just copy and paste the strong parameters from one file into another. But I realized that this wasn&rsquo;t really going to help me at all. What I <em>really</em> needed to do was grasp how strong parameters worked on a more conceptual level. If I could understand why we use the methods that we use, and to what end, I would never need to even look up the documentation for whitelisting parameters ever again!</p>
+
+<p>So that&rsquo;s exactly what I did. I decided to peek under the hood of Rails&#8217; <code>ActionController</code>, and set my mind to learning everything there was the know about strong parameters. <em>Spoiler alert:</em> I didn&rsquo;t completely succeed, and I definitely don&rsquo;t know everything about whitelisting parameters. But what I <em>did</em> finally come to understand was why we use the methods that we do (think <code>require</code> and <code>permit</code>), and why we invoke them in that order. And hopefully I&rsquo;ll be able to explain how some that black box magic in Rails <em>actually</em> works!</p>
+
+<!--more-->
+
+
+<h2>Strong(est) Params</h2>
+
+<iframe src="//giphy.com/embed/oB6nlaw4QJ8TS" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>When we&rsquo;re first introduced to the Rails framework, there are some fairly basic components that we learn about, including the MVC structure, which stands for Model, View, Controller. Personally, I found models and views to be far easier to grasp than controllers. Controllers were a whole other beast entirely. In fact, one of the very first concepts that <a href="http://vaidehijoshi.github.io/blog/2014/10/30/have-you-met-your-controller-yet/">I struggled with</a> was the very basics of writing a controller action! I eventually got a better at that, and now for our bookstore application, I have a more sophisticated controller (in this case, for our <code>Order</code> objects), which looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">OrdersController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">create</span>
+</span><span class='line'>      <span class="vi">@order</span> <span class="o">=</span> <span class="no">Order</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">order_params</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="n">order</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">show</span>
+</span><span class='line'>      <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="n">order</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">update</span>
+</span><span class='line'>    <span class="k">if</span> <span class="n">order</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">order_params</span><span class="p">)</span>
+</span><span class='line'>      <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="n">order</span>
+</span><span class='line'>    <span class="k">else</span>
+</span><span class='line'>      <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="p">{},</span> <span class="ss">status</span><span class="p">:</span> <span class="ss">:unprocessable_entity</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">destroy</span>
+</span><span class='line'>      <span class="n">order</span><span class="o">.</span><span class="n">destroy</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="p">{}</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kp">private</span>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">order</span>
+</span><span class='line'>      <span class="vi">@order</span> <span class="o">||=</span> <span class="no">Order</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">params</span><span class="o">[</span><span class="ss">:id</span><span class="o">]</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">order_params</span>
+</span><span class='line'>      <span class="c1"># OH GOD WHY?!</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Nice! We&rsquo;re using our new <a href="http://vaidehijoshi.github.io/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/">memoization</a> technique, and we&rsquo;re rendering json responses to make it much easier to integrate with a JavaScript frontend; of course, we could have also just rendered our <code>@order</code> instance if this were a simple Rails application with no frontend framework. But&hellip;there&rsquo;s one thing that we&rsquo;re still missing, and clearly put off because I was dreading: our strong parameters!</p>
+
+<p>The <code>ActionController</code> <a href="http://edgeapi.rubyonrails.org/classes/ActionController/StrongParameters.html">strong parameters</a> module was introduced back in 2012 with the release of Rails 4. The idea behind strong params was to abstract out the creation of models via mass assignment into the controller, rather than in the context of a model. Prior to this feature, we used to need to whitelist attributes in our models using <code>attr_accessible</code></p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">attr_accessible</span> <span class="ss">:total</span><span class="p">,</span> <span class="ss">:number</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>in order to use mass assignment to instantiate an object from our controller actions:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">OrdersController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">create</span>
+</span><span class='line'>      <span class="vi">@order</span> <span class="o">=</span> <span class="no">Order</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">params</span><span class="o">[</span><span class="ss">:order</span><span class="o">]</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Not the best solution, right? Enter our knight in shining armor: <code>strong_parameters</code>, a <a href="https://github.com/rails/strong_parameters">gem</a> that the Rails core team released to fix this problem, which was eventually merged into Rails. Okay, let me rephrase that: our rather <em>misunderstood</em> knight in shining armor.</p>
+
+<p>In order to understand how strong params permits attributes, there are two essential methods we are required to understand.</p>
+
+<h2>Requirements</h2>
+
+<iframe src="//giphy.com/embed/NTzW6P8cpt90Q" width="480" height="298" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>The main reason for even <em>needing</em> strong parameters of any sort is to ensure that we&rsquo;re only passing safe, protected data from our user-accesible interface. We don&rsquo;t really expect most users to try to pass in malicious data, but it&rsquo;s always a possibility. Moreover, there are various situations (dealing with money, for example, or people&rsquo;s personal information) when delicate information must be passed around securely across the web.</p>
+
+<p>So, how can we ensure that only the correct data is being passed through, and that too in a <em>safe</em> way? The Rails solution to this problem is to <strong>whitelist</strong> a set of attributes that should be allowed to be modified and passed through by a user (regardless of whether the role of the user is that of a guest, admin, etc.).</p>
+
+<p>The first step to whitelisting any set of attributes is making sure that the parameter we are looking to &ldquo;whitelist&rdquo; is actually present. If we think about it, this pretty logical: how can we pass in the correct attributes to create or update an object if don&rsquo;t first check that we have the parameter that contains the attributes we need? Only once we ensure that a parameter exists can we begin to strip away the &ldquo;blacklisted&rdquo; attributes.</p>
+
+<p>In fact, that&rsquo;s exactly what this method does under the hood. If we peek into the <a href="https://github.com/rails/rails/blob/9ab2d030209d9608a6c866d83210f5b3b7d2319e/actionpack/lib/action_controller/metal/strong_parameters.rb#L246">source code</a> for this method, this is what we&rsquo;ll find:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">require</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">value</span> <span class="o">=</span> <span class="nb">self</span><span class="o">[</span><span class="n">key</span><span class="o">]</span>
+</span><span class='line'>  <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">present?</span> <span class="o">||</span> <span class="n">value</span> <span class="o">==</span> <span class="kp">false</span>
+</span><span class='line'>      <span class="n">value</span>
+</span><span class='line'>  <span class="k">else</span>
+</span><span class='line'>      <span class="k">raise</span> <span class="no">ParameterMissing</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>At this point, we should be wondering what <code>self</code> is in the context of this method. In other words, what object responds to this <code>require</code> method, exactly? And what is this <code>ParameterMissing</code> error, exactly? Let&rsquo;s take a look at the <code>require</code> <a href="http://api.rubyonrails.org/classes/ActionController/Parameters.html#method-i-require">method documentation</a> to find out:</p>
+
+<blockquote><p>&ldquo;<code>require</code> ensures that a parameter is present. If it&rsquo;s present, returns the parameter at the given key, otherwise raises an ActionController::ParameterMissing error.&rdquo;</p></blockquote>
+
+<p>Okay, so now we know that the error being raised in the conditional is actually an <code>ActionController::ParameterMissing</code> error. One question answered. But what does <code>require</code> get invoked on? Well, it turns out that the answer to that is a new instance of an <code>ActionController::Parameters</code> object!</p>
+
+<p>There&rsquo;s a <a href="http://stackoverflow.com/a/18426829">great StackOverflow answer</a> that points this fact pretty explicitly. The <code>params</code> object that we refer to in the context of our controllers gets treated as though its just an instead of a Ruby <code>Hash</code>. But in actuality, it&rsquo;s an instance of something called <code>ActionController::Parameters</code>, which is the object that responds to the <code>require</code> method. But more on that a little bit later.</p>
+
+<p>For now, all that matters is that the <code>require</code> method returns a new instance of an <code>ActionController::Parameters</code> object for the key that is passed into it. If that key doesn&rsquo;t exist in the object, it throws an error. What does this mean, exactly? Well, when we write our <code>order_params</code> method in our <code>OrdersController</code>, it will begin like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">order_params</span>
+</span><span class='line'>  <span class="n">params</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="ss">:order</span><span class="p">)</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>we&rsquo;re actually returning the <em>value</em> of the parameter at the key that we&rsquo;re requiring (in our case, <code>:order</code>):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">params</span> <span class="o">=</span> <span class="no">ActionController</span><span class="o">::</span><span class="no">Parameters</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">order</span><span class="p">:</span> <span class="p">{</span> <span class="ss">total</span><span class="p">:</span> <span class="mi">100</span><span class="o">.</span><span class="mo">00</span><span class="p">,</span> <span class="ss">number</span><span class="p">:</span> <span class="s1">&#39;ABC123&#39;</span> <span class="p">})</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">params</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="ss">:order</span><span class="p">)</span>
+</span><span class='line'><span class="c1"># =&gt; { total: 100.00, number: &#39;ABC123&#39; }</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And what&rsquo;s more: we&rsquo;re creating a new instance of an <code>ActionController::Parameters</code> object whenever we invoke <code>params</code> in our controller! Okay, so that&rsquo;s the first step: making sure our parameter exists. The second requires a bit more&hellip;permission on our part.</p>
+
+<h2>Permissions</h2>
+
+<p>Now that we&rsquo;re sure that our parameter exists, we need to actually <em>permit</em> the correct attributes on our objects. Since our users can add more books to their cart while they&rsquo;re shopping, they should be able to update the <code>total</code> of their <code>Order</code>. However, the <code>number</code> on their order is unique (and probably has an index on it), and is generated on the backend when it&rsquo;s created. We definitely <em>don&rsquo;t</em> want them to be able to update or modify that value at any point!</p>
+
+<p>So, we need to <code>permit</code> a single attribute on our required parameter key. That means that our whitelisted params now look like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">order_params</span>
+</span><span class='line'>  <span class="n">params</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="ss">:order</span><span class="p">)</span><span class="o">.</span><span class="n">permit</span><span class="p">(</span><span class="ss">:total</span><span class="p">)</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So what&rsquo;s happening here? Well, the <code>permit</code> method also is defined on the <code>ActionController::Parameters</code> class. It returns a new <code>ActionController::Parameters</code> instance, which includes only the given filters &mdash; the arguments that we&rsquo;re passing in here as symbols &mdash; and sets <a href="https://github.com/rails/rails/blob/9ab2d030209d9608a6c866d83210f5b3b7d2319e/actionpack/lib/action_controller/metal/strong_parameters.rb#L444">an attribute</a> using a <strong>protected instance method</strong> called <code>@permitted</code> on the newly-created <code>ActionController::Parameters</code> to be <code>true</code>.</p>
+
+<p>This means that if we invoke <code>permit</code> on our required parameters, we&rsquo;ll return the actual hash, not the value for the parameter</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">params</span> <span class="o">=</span> <span class="no">ActionController</span><span class="o">::</span><span class="no">Parameters</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">order</span><span class="p">:</span> <span class="p">{</span> <span class="ss">total</span><span class="p">:</span> <span class="mi">100</span><span class="o">.</span><span class="mo">00</span><span class="p">,</span> <span class="ss">number</span><span class="p">:</span> <span class="s1">&#39;ABC123&#39;</span> <span class="p">})</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">params</span><span class="o">.</span><span class="n">permit</span><span class="p">(</span><span class="ss">:order</span><span class="p">)</span>
+</span><span class='line'><span class="c1"># =&gt; { order { total: 100.00, number: &#39;ABC123&#39; } }</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Wait, but how does this happen? Well, if we look at the source code, we&rsquo;ll see that a the permit method takes an array of arguments named <code>filters</code>, and then iterates through them to check what type of object they are:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">permit</span><span class="p">(</span><span class="o">*</span><span class="n">filters</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">params</span> <span class="o">=</span> <span class="nb">self</span><span class="o">.</span><span class="n">class</span><span class="o">.</span><span class="n">new</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">filters</span><span class="o">.</span><span class="n">flatten</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">filter</span><span class="o">|</span>
+</span><span class='line'>    <span class="k">case</span> <span class="n">filter</span>
+</span><span class='line'>    <span class="k">when</span> <span class="no">Symbol</span><span class="p">,</span> <span class="nb">String</span>
+</span><span class='line'>      <span class="n">permitted_scalar_filter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">filter</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">when</span> <span class="no">Hash</span> <span class="k">then</span>
+</span><span class='line'>      <span class="n">hash_filter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">filter</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">unpermitted_parameters!</span><span class="p">(</span><span class="n">params</span><span class="p">)</span> <span class="k">if</span> <span class="nb">self</span><span class="o">.</span><span class="n">class</span><span class="o">.</span><span class="n">action_on_unpermitted_parameters</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">params</span><span class="o">.</span><span class="n">permit!</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The reason for the <code>case</code> statement here is to handle nested attributes, which might look like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">params</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="ss">:order</span><span class="p">)</span><span class="o">.</span><span class="n">permit</span><span class="p">(</span>
+</span><span class='line'>  <span class="ss">:total</span><span class="p">,</span>
+</span><span class='line'>  <span class="ss">:books</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>      <span class="p">{</span> <span class="c1"># book_object_1 }, </span>
+</span><span class='line'>      <span class="p">{</span> <span class="c1"># book_object_2 }, </span>
+</span><span class='line'>      <span class="p">{</span> <span class="c1"># book_object_3 } </span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So if we really only need these two methods to require a parameter key and then permit the correct key and value pairs inside of it, what&rsquo;s the need for having a seperate method? Why do we need to encapsulate this logic? We could very well just do something like this, right? And it would work:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">OrdersController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">create</span>
+</span><span class='line'>      <span class="vi">@order</span> <span class="o">=</span> <span class="no">Order</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="ss">:order</span><span class="p">)</span><span class="o">.</span><span class="n">permit</span><span class="p">(</span><span class="ss">:total</span><span class="p">))</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>It turns out that abstracting our strong params out into a private <code>order_params</code> method is just a good practice that was established by the Rails core team. The Rails guides <a href="http://edgeapi.rubyonrails.org/classes/ActionController/StrongParameters.html">explain this</a> pretty well:</p>
+
+<blockquote><p>&ldquo;Using a private method to encapsulate the permissible parameters is just a good pattern since you&rsquo;ll be able to reuse the same permit list between create and update. Also, you can specialize this method with per-user checking of permissible attributes.&rdquo;</p></blockquote>
+
+<p>Another reason for having a separate method is because things can get kind of tricky once you need to permit nested attributes. At that point, it&rsquo;s especially important to understand how these methods work.</p>
+
+<p>Tune in next week, when I&rsquo;ll continue this deep dive by exploring the <code>ActionController::Parameters</code> class and answer the super confusing question of <em>where params get instantiated</em> (no really&hellip;where?), and how to handle nested key value pairs, including hashes and arrays in whitelisted parameters. Until then, keep peeking into that source code and stay afloat like this guy:</p>
+
+<iframe src="//giphy.com/embed/lpLWBoCnX1IkM" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>require</code> method ensures that a parameter key is present, and throws an error of it doesn&rsquo;t exist. The <code>permit</code> method filters out the keys that we want to whitelist based on the filters (which we pass in as symbols) that are passed into it.</li>
+<li>Check out the documentation on <code>ActionController::Parameters</code> in the <a href="http://api.rubyonrails.org/classes/ActionController/Parameters.html">Rails guides</a>.</li>
+<li>This blog post does a great job of explaining <a href="http://blog.trackets.com/2013/08/17/strong-parameters-by-example.html">permit and require</a> by example.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Methods to Remember Things by: Ruby Memoization]]></title>
@@ -4875,239 +5201,6 @@ backend (Sidekiq, Resque, etc).&rdquo;</p></blockquote>
 <li>Service objects are POROs that you can use to encapsulate a specific piece of functionality, and can help you separate concerns in your application.</li>
 <li>Still curious about the theory behind service objects in Rails applications? Check out <a href="https://blog.engineyard.com/2014/keeping-your-rails-controllers-dry-with-services">this tutorial</a> and this super helpful <a href="http://blog.codeclimate.com/blog/2012/10/17/7-ways-to-decompose-fat-activerecord-models/">post</a>, which unpacks service objects in the context of refactoring.</li>
 <li>Where else can you use a service object? Well, a lot of places! This <a href="http://brewhouse.io/blog/2014/04/30/gourmet-service-objects.html">blog post</a> has a ton of examples of how to use them throughout your application.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Taskmanaging Your App, Part 1: Using Rake]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/"/>
-    <updated>2015-06-30T08:49:58-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/uRziFAtdD6H60" width="480" height="362" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Rake tasks: we&rsquo;ve all used &lsquo;em. From migrating our database to seeding it, we run commands using <code>rake</code> all of the time! But what actually happens when you run a rake task? And where is all this stuff defined, exactly? And how do you write a customized rake task of your very own?</p>
-
-<p>These were the questions I was asking myself last week, when I had to write a rake task to stage some data for an application I was working on. I knew exactly what my rake task was supposed to accomplish, and I had a general idea of the code that had to live inside of it. I didn&rsquo;t quite know how to write my rake task, however. And I definitely didn&rsquo;t know what was going on inside of the Ruby interpreter when it would read my yet-to-exist task.</p>
-
-<p>So, I set out to answer some of those questions, and learned a bit about how rake works in the process. It was an interesting rabbit hole to dive down, particularly since I had never before questioned what was happening when I ran a rake command in my command line. When you&rsquo;re first starting out with code, it&rsquo;s okay to accept some of the obfuscation that is inherently a part of the abstraction of larger applications. But you should never go too long without questioning why and how a certain thing works the way that it does. And that&rsquo;s exactly what we&rsquo;ll do with our beloved rake commands.</p>
-
-<!--more-->
-
-
-<h2>Form And Function</h2>
-
-<p>We use the <code>rake</code> command so often that it might be easy to forget that it&rsquo;s <em>actually</em> part of a gem! Most everything we use &ndash; including that little gem called <code>rails</code> &ndash; relies on the <code>rake</code> gem as a dependency. And everything we could ever want to know about <code>rake</code>&rsquo;s form and function can be found in a single place: the <code>Rakefile</code>, a top-level file that exists in any application that uses this gem to manage and run tasks of all kinds.</p>
-
-<p>So what&rsquo;s inside of our <code>Rakefile</code> after we generate a brand new Rails application? Something that looks like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1"># Add your own tasks in files placed in lib/tasks ending in .rake,</span>
-</span><span class='line'><span class="c1"># for example lib/tasks/capistrano.rake, and they will automatically be available to Rake.</span>
-</span><span class='line'>
-</span><span class='line'><span class="nb">require</span> <span class="no">File</span><span class="o">.</span><span class="n">expand_path</span><span class="p">(</span><span class="s1">&#39;../config/application&#39;</span><span class="p">,</span> <span class="bp">__FILE__</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'><span class="no">Rails</span><span class="o">.</span><span class="n">application</span><span class="o">.</span><span class="n">load_tasks</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Pretty empty, right? Except that there&rsquo;s a pretty important line in there at the end which invokes a <code>load_tasks</code> method on our application object, which is what allows rake to load tasks into our application itself. But how do we fill up this Rakefile with some awesome rake tasks? Well, if we read carefully, it seems like <code>rake</code> is telling us exactly what we need to do.</p>
-
-<p>Let&rsquo;s start by creating a data staging task that will load some initial data into our application so that we have something to work with while in development. We&rsquo;ll create a <code>stage_data.rake</code> file nested inside of our <code>lib/tasks</code> directories. But that&rsquo;s empty too! You know what that means, don&rsquo;t you? Time to write some tasks.</p>
-
-<h2>Managing Our Task Management</h2>
-
-<iframe src="//giphy.com/embed/gw3woz6oWXK48iE8" width="480" height="432" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Since we&rsquo;re working within the context of a mid-size Rails application, the first thing we probably want to do is namespace our rake tasks. We can do that a namespace block:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">namespace</span> <span class="ss">:data</span> <span class="k">do</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This is how we can break up all the tasks that are concerned with managing data. But for now, let&rsquo;s just work on writing a single task, which will stage our development environment with some sample data to help us while we&rsquo;re building out the front end later on.</p>
-
-<p>In order to write our rake task, we really just need two things: a description and then a <code>task</code> block. We know what we want our task to do, so that&rsquo;s what we&rsquo;ll put in our description. What we write here will be mostly to help us later on, when we want to know what tasks are available to us, and what exactly they do.</p>
-
-<p>We&rsquo;ll also want to specify any dependencies that this task might have.</p>
-
-<p>After the <code>desc</code> term, we&rsquo;re describing what our task will do, and then setting the command that we&rsquo;ll use to run the task itself. We&rsquo;re also specifying any dependencies that this task might have. In our case, the only thing that this task <em>depends upon</em> is the application itself. So, we want to make sure that our entire Rails application is loaded before running this task:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">namespace</span> <span class="ss">:data</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">desc</span> <span class="s2">&quot;Stage environment with sample data.&quot;</span>
-</span><span class='line'>  <span class="n">task</span> <span class="ss">stage</span><span class="p">:</span> <span class="ss">:environment</span> <span class="k">do</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Interestingly, all that&rsquo;s happening here is that a method called <code>task</code> is being invoked, and the key-value pair that we provided it (<code>stage: :environment</code>) is telling <code>task</code> exactly which other methods to execute before running the subsequent task we have defined inside of the block. I like how <a href="http://tutorials.jumpstartlab.com/topics/systems/automation.html">this tutorial</a> explains what&rsquo;s going on behind the scenes:</p>
-
-<blockquote><p>It starts with the task method which takes a hash parameter. The key will be the name of the task. The value stored under that key, here <code>:environment</code>, indicates which other Rake tasks should be run before this task is run. Think of them like dependencies. When your task depends on <code>:environment</code>, it will load your entire Rails application. If your task doesn’t actually need Rails, don’t depend on :environment and you can greatly increase startup time and decrease memory usage.</p></blockquote>
-
-<p>Another cool thing to keep in mind is the description. We know that our task description (after the <code>desc</code>) will show up again at some point. But when, exactly? Well, it comes into play when we run the <code>rake -T</code> command, which lists out all the tasks available to our specific application:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">♥</span> <span class="n">rake</span> <span class="o">-</span><span class="n">T</span>
-</span><span class='line'><span class="n">rake</span> <span class="ss">data</span><span class="p">:</span><span class="n">stage</span>          <span class="c1"># Stage environment with sample data.</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Cool! Whatever we write in our description is exactly what will be output if and when this command is run in the future. Now, how do we get this task to create some sample data every time it&rsquo;s run? Well, we&rsquo;ll want to use ActiveRecord in order to actually persist some objects to our database. There&rsquo;s a handy block method on <code>ActiveRecord::Base</code> that does exactly this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">namespace</span> <span class="ss">:data</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">desc</span> <span class="s2">&quot;Stage environment with sample data.&quot;</span>
-</span><span class='line'>  <span class="n">task</span> <span class="ss">stage</span><span class="p">:</span> <span class="ss">:environment</span> <span class="k">do</span>
-</span><span class='line'>      <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
-</span><span class='line'>          <span class="n">poetry</span> <span class="o">=</span> <span class="no">Genre</span><span class="o">.</span><span class="n">create!</span><span class="p">(</span><span class="nb">name</span><span class="p">:</span> <span class="s1">&#39;Poetry&#39;</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'>          <span class="no">POETRY_SUBGENRES</span> <span class="o">=</span> <span class="o">[</span><span class="s1">&#39;lyric&#39;</span><span class="p">,</span> <span class="s1">&#39;drama&#39;</span><span class="p">,</span> <span class="s1">&#39;epic&#39;</span><span class="o">]</span>
-</span><span class='line'>
-</span><span class='line'>          <span class="no">POETRY_SUBGENRES</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">genre</span><span class="o">|</span>
-</span><span class='line'>              <span class="no">SubGenre</span><span class="o">.</span><span class="n">create!</span><span class="p">(</span><span class="ss">sub_genre</span><span class="p">:</span> <span class="n">genre</span><span class="p">,</span> <span class="ss">parent_genre</span><span class="p">:</span> <span class="n">poetry</span><span class="p">)</span>
-</span><span class='line'>          <span class="k">end</span>
-</span><span class='line'>      <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Nice! We&rsquo;re creating a genre and some sub genres, and associating them together. We could also add in authors and books to make this task a bit more robust. And to get really fancy, we could import a csv of all this information if it lived somewhere else!</p>
-
-<h2>Extending Our Tasks Further</h2>
-
-<p>Now that we know how to structure our rake tasks, we can add more tasks into the very same file. In fact, we can take advantage of the namespacing that we set up early on right now! Let&rsquo;s create a <code>rake data:reset</code> task that will work almost the same as the task we wrote above. The only difference being that this task will destroy any data that was staged (or any that might be hanging around, for some strange reason).</p>
-
-<p>We can write that task inside of our same file, inside of our namespace:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">namespace</span> <span class="ss">:data</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">desc</span> <span class="s2">&quot;Stage environment with sample data.&quot;</span>
-</span><span class='line'>  <span class="n">task</span> <span class="ss">stage</span><span class="p">:</span> <span class="ss">:environment</span> <span class="k">do</span>
-</span><span class='line'>      <span class="c1"># the task we just wrote lives here!</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">desc</span> <span class="s2">&quot;Resets and clears all the sample data.&quot;</span>
-</span><span class='line'>  <span class="n">task</span> <span class="ss">reset</span><span class="p">:</span> <span class="ss">:environment</span> <span class="k">do</span>
-</span><span class='line'>    <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span><span class="o">.</span><span class="n">transaction</span> <span class="k">do</span>
-</span><span class='line'>      <span class="no">Genre</span><span class="o">.</span><span class="n">destroy_all</span>
-</span><span class='line'>      <span class="no">SubGenre</span><span class="o">.</span><span class="n">destroy_all</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>All we&rsquo;re doing is using the handy methods that ActiveRecord gives us for free inside of the blocks we&rsquo;ve defined in our task. And now when we run <code>rake -T</code>, we&rsquo;ll see this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">♥</span> <span class="n">rake</span> <span class="o">-</span><span class="n">T</span>
-</span><span class='line'><span class="n">rake</span> <span class="ss">data</span><span class="p">:</span><span class="n">stage</span>          <span class="c1"># Stage environment with sample data.</span>
-</span><span class='line'><span class="n">rake</span> <span class="ss">data</span><span class="p">:</span><span class="n">reset</span>          <span class="c1"># Resets and clears all the sample data.</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Look at us! We&rsquo;re rake task writing masters! We could get even fancier and make one task <em>depend upon</em> the other. Remember how the block syntax with the <code>task</code> method works? We can use the form of that syntax to make our task function the way we want to:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">namespace</span> <span class="ss">:data</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">desc</span> <span class="s2">&quot;Resets and stages the environment with sample data.&quot;</span>
-</span><span class='line'>  <span class="n">task</span> <span class="ss">stage</span><span class="p">:</span> <span class="o">[</span><span class="ss">:environment</span><span class="p">,</span> <span class="ss">:reset</span><span class="o">]</span> <span class="k">do</span>
-</span><span class='line'>      <span class="c1"># the task we wrote lives here!</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Now, we&rsquo;re specifying that not only should the <code>task</code> method load the environment, but it should also run the <code>rake data:reset</code> task before running the <code>rake data:stage</code> task! This could be super useful in development, when you don&rsquo;t want to have your database filled with duplicate data.</p>
-
-<p>Another fun thing we could do is pass in parameters to our rake task:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">namespace</span> <span class="ss">:data</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">desc</span> <span class="s2">&quot;Stages the environment with specific amount of sample book data.&quot;</span>
-</span><span class='line'>  <span class="n">task</span> <span class="ss">create_books</span><span class="p">:</span> <span class="o">[</span><span class="ss">:books_to_create</span><span class="o">]</span> <span class="ss">:environment</span> <span class="k">do</span>
-</span><span class='line'>    <span class="n">number_of_books</span> <span class="o">=</span> <span class="n">args</span><span class="o">[</span><span class="ss">:books_to_create</span><span class="o">]</span>
-</span><span class='line'>    <span class="c1"># Uses the books_to_create variable to</span>
-</span><span class='line'>    <span class="c1"># create the number of books we want.</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Now, when we call the <code>rake data:create_books[100]</code> method, we could have our rake task generate 100 books for us based on the input argument we provided it.</p>
-
-<p>This is pretty fun, right? We could put a ton of tasks that do all sorts of application management for us, and it would be no problem. Except that it would be, and here&rsquo;s why: we never want too much logic in one single part of our application. In other words, we want to separate out what different sections of application are concerned with. We probably could abstract out a lot of what these tasks into something else (another object?), which would help keep our rake tasks nice and lean.</p>
-
-<p>It turns out that this is a pretty common situation to run into, and not just with rake tasks! There&rsquo;s a really cool pattern that implements a special kind of object that performs a service for you so that your code can stay simple, without too much logic in it. These objects are called <em>service objects</em>, and until I saw them in some production-level code, I had never really thought about their purpose. Tune in again next week, when I&rsquo;ll dive into service objects and how they help us serparate concerns in our code. Until then, here&rsquo;s a rake-themed gif to tide you over:</p>
-
-<iframe src="//giphy.com/embed/5xtDarAX9eDPODdPMoo" width="480" height="480" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>Rake tasks are just Ruby code written inside of a either a <code>.rake</code> file in the <code>/app/tasks</code> directory, or sometimes within a <code>Rakefile</code> itself.</li>
-<li>A rake task needs a description and a <code>task</code> block. The description is what will be seen when you run <code>rake -T</code>, and the <code>task</code> block is where you&rsquo;ll write what the task actually has to do, and specify any dependencies.</li>
-<li>Need to see another example of how to make a rake task? Check out this awesome <a href="http://jasonseifer.com/2010/04/06/rake-tutorial">tutorial on rake</a>, or watch <a href="http://railscasts.com/episodes/66-custom-rake-tasks">this RailsCast</a>.</li>
 </ul>
 
 ]]></content>
