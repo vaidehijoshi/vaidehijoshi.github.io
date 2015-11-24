@@ -1,0 +1,486 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Peeking Under the Hood of ActionController Parameters, Part 2 - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="This blog post is part of a series on strong parameters. Read Part 1 here. Rails often feels like a black box, with all of the complex logic &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/11/24/peeking-under-the-hood-of-actioncontroller-parameters-part-2">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Peeking Under the Hood of ActionController Parameters, Part 2</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-11-24T08:56:47-05:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:56 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/computer-science/'>computer science</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><iframe src="//giphy.com/embed/Hhu5dqPScjXRm" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p><em>This blog post is part of a series on strong parameters. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1/">here</a>.</em></p>
+
+<p>Rails often feels like a black box, with all of the complex logic abstracted away and hidden from view. This leaves behind a clean, convention-abiding framework where form follows function. But another, perhaps less-intentional side effect of all the &ldquo;metaprogramming away&rdquo; of this framework&rsquo;s complexities is a frequent lack on clarity of what&rsquo;s going on behind the scenes.</p>
+
+<p>In my year of working with Rails, I&rsquo;ve come to appreciate and respect so many things about it. In fact, I think that there&rsquo;s something incredibly approachable about Ruby as one&rsquo;s first programming language, with Rails as its corresponding framework. And of course, there&rsquo;s something truly unique and welcoming about the Ruby and Rails programming community. All of these factors combined make it so easy for beginners of such different backgrounds to start building applications very quickly.</p>
+
+<p>However, once you get past the intial stage of building applications with the basic CRUD operations, or if you&rsquo;re trying to build something a bit more complex  with added functionality, or trying to integrate with another framework, you eventually hit a wall where you realize that that you&rsquo;re not completely sure how something works. This can be a hard wall to climb over, especially given the fact that you can start building things very quickly with Rails. Some people have heavily critiqued this aspect of the framework, arguing that it&rsquo;s detrimential to abstract away so much of what&rsquo;s <em>actually</em> going on, which makes it difficult for people to understand what their code is truly doing under the hood. I&rsquo;ve peronally encountered this &ldquo;wall of abstraction&rdquo; a few different times, but each time I found some piece of logic that worked differently than I thought it would, it only lead me to learn something new about the framework. Most recently, that lead me down a wild goose chase into the source code for <code>ActionController::Parameters</code> &mdash; a class that I didn&rsquo;t even know existed!</p>
+
+<!--more-->
+
+
+<h2>Quack Like A Hash</h2>
+
+<p><img src="http://geekandpoke.typepad.com/.a/6a00d8341d3df553ef01053719d13a970b-pi" style="display: block; margin-left: auto; margin-right: auto;"/></p>
+
+<p>There&rsquo;s a well-known saying that Rubyists often attribute to duck typing: <em>if it looks like a duck, and quacks like a duck, it probably is a duck.</em> In other words, if an object behaves like another object, it doesn&rsquo;t matter that it&rsquo;s of a certain class or &ldquo;type&rdquo; (or species!) of another object, just so long as it can respond to the correct method calls to implement the behavior of that object.</p>
+
+<p>This saying actually comes from a concept referred to as the &ldquo;duck test&rdquo;, which is a form of abductive reasoning, which is based on the idea that one can identify an unknown object by observing its habitual characteristics. However, this can be a little bit tricky because <em>sometimes</em>, just because something quacks like a duck and waddles like a duck doesn&rsquo;t mean that we should stop questioning what it actually is and just assume that it&rsquo;s a duck!</p>
+
+<p>Let me explain with an example. Whenever we send or receive data from the server, it appears that everything is being sent as a <code>Hash</code>. If we look at our <code>GET</code> requests or <code>POST</code> and <code>PUT</code> requests using HTTP protocol, our data usually looks like some variation on a theme of something like the following:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="p">{</span> <span class="ss">order</span><span class="p">:</span>
+</span><span class='line'>  <span class="p">{</span>
+</span><span class='line'>      <span class="ss">total</span><span class="p">:</span> <span class="mi">100</span><span class="o">.</span><span class="mo">00</span><span class="p">,</span>
+</span><span class='line'>      <span class="ss">number</span><span class="p">:</span> <span class="s1">&#39;ABC123&#39;</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If it acts like a hash, and quacks like a hash, it must be a hash, right? Well, not exactly. Last week we learned that <code>params</code> in our controllers are actually instances of <code>ActionController::Parameters</code>. But this data that we&rsquo;re sending back and forth still looks like its a plain old Ruby <code>Hash</code>. It also seems to behave like a hash, right? We can do something like this</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">if</span> <span class="n">params</span><span class="o">[</span><span class="ss">:order</span><span class="o">].</span><span class="n">present?</span>
+</span><span class='line'>  <span class="vi">@order</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">order_params</span><span class="p">)</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>and access a key in this so-called &ldquo;hash&rdquo; the same way we would with any other <code>Hash</code> data structure. So, what&rsquo;s different about <code>ActionController::Parameters</code>?</p>
+
+<p>Well, let&rsquo;s find out. We&rsquo;ll start by opening up <a href="https://github.com/rails/rails/blob/9ab2d030209d9608a6c866d83210f5b3b7d2319e/actionpack/lib/action_controller/metal/strong_parameters.rb#L108">the source code</a> for this class, which lives inside of the <code>ActionController</code> module. The first thing we&rsquo;ll notice is this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">ActionController</span>
+</span><span class='line'>  <span class="k">class</span> <span class="nc">Parameters</span> <span class="o">&lt;</span> <span class="no">ActiveSupport</span><span class="o">::</span><span class="no">HashWithIndifferentAccess</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Interesting! The <code>Parameters</code> class subclasses from <code>ActiveSupport::HashWithIndifferentAccess</code>. If we were really curious about what type of object <em>this</em> class inherits from, we could trace that back to see that <code>HashWithIndifferentAccess</code> simply <a href="https://github.com/rails/rails/blob/df6048407faefdc6774a8b5a02344fd4b1a734b1/activesupport/lib/active_support/hash_with_indifferent_access.rb#L43">inherits from</a> the class <code>Hash</code>. So, what makes <code>HashWithIndifferentAccess</code> different from plain old Ruby hashes?</p>
+
+<p>Well, the <a href="http://api.rubyonrails.org/classes/ActiveSupport/HashWithIndifferentAccess.html
+">Rails guides</a> answers this question pretty well:</p>
+
+<blockquote><p><code>HashWithIndifferentAccess</code> implements a hash where keys <code>:foo</code> and <code>"foo"</code> are considered to be the same. Internally symbols are mapped to strings when used as keys in the entire writing interface. You are  guaranteed that the key is returned as a string. This class is intended for use cases where strings or symbols are the expected keys and it is convenient to understand both as the same. For example the <code>params</code> hash in Ruby on Rails.</p></blockquote>
+
+<p>Awesome, this answers our question and more! This subclass gives us the flexibility to access the keys in a <code>params</code> &ldquo;hash&rdquo; by either a string or a symbol. The <code>HashWithIndifferentAccess</code> class still responds to the majority of the same methods that a Ruby <code>Hash</code> instance does, but with some added functionality, which can be especially handy if we&rsquo;re dealing with JSON responses.</p>
+
+<p><em>Protip:</em> we can easily create <code>HashWithIndifferentAccess</code> instances by creating a Ruby <code>Hash</code> instance and calling <code>with_indifferent_access</code> on it. This method is available to us since core extensions has the <code>with_indifferent_access</code> method defined on the <code>Hash</code> class by default:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">♥</span> <span class="n">rails</span> <span class="n">c</span>
+</span><span class='line'><span class="no">Loading</span> <span class="n">development</span> <span class="n">environment</span> <span class="p">(</span><span class="no">Rails</span> <span class="mi">4</span><span class="o">.</span><span class="mi">1</span><span class="o">.</span><span class="mi">4</span><span class="p">)</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">001</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="n">h</span> <span class="o">=</span> <span class="p">{</span><span class="ss">a</span><span class="p">:</span> <span class="s1">&#39;hi&#39;</span><span class="p">,</span> <span class="ss">b</span><span class="p">:</span> <span class="s1">&#39;hello&#39;</span><span class="p">}</span>
+</span><span class='line'><span class="o">.</span><span class="n">with_indifferent_access</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="p">{</span><span class="s2">&quot;a&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;hi&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;hello&quot;</span><span class="p">}</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">002</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="n">h</span><span class="o">.</span><span class="n">class</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="no">ActiveSupport</span><span class="o">::</span><span class="no">HashWithIndifferentAccess</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So, parameters aren&rsquo;t quite a hash, but they quack pretty much exactly like how a hash would quack. But there must be a good reason why they are different classes, right? Let&rsquo;s investigate further.</p>
+
+<h2>Waddle Like A Param</h2>
+
+<iframe src="//giphy.com/embed/jgIDKTrvTssDK" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>On a very basic level, <code>ActionController::Parameters</code> could be simplified to hashes with some serious restrictions and permissions. Because <code>ActionController::Parameters</code> inherits from <code>ActiveSupport::HashWithIndifferentAccess</code>, we can fetch values from our params &ldquo;hash&rdquo; using a symbol <code>:key</code> or a string <code>"key"</code>. But there are a few things that we can&rsquo;t do so easily, and that&rsquo;s where the functionality of <code>ActionController::Parameters</code> really starts to come into play and begins to make a lot more sense.</p>
+
+<p>We can easily create a new instance of <code>ActionController::Parameters</code>. In fact, we do it within the context of our controllers all the time!</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">permitted_params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="ss">:order</span><span class="p">)</span><span class="o">.</span><span class="n">permit</span><span class="p">(</span><span class="ss">:total</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">permitted_params</span>
+</span><span class='line'><span class="c1"># =&gt; {&quot;total&quot;=&gt;&quot;100.00&quot;}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">permitted_params</span><span class="o">.</span><span class="n">class</span>
+</span><span class='line'><span class="c1"># =&gt; ActionController::Parameters</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Except usually we wrap it in a <code>_params</code> suffixed method like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">order_params</span>
+</span><span class='line'>  <span class="n">params</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="ss">:order</span><span class="p">)</span><span class="o">.</span><span class="n">permit</span><span class="p">(</span><span class="ss">:total</span><span class="p">)</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Here is one example of the added functionality of this class. When we create a new instance of a <code>ActionController::Parameters</code> class, it is by default, not permitted.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">params</span> <span class="o">=</span> <span class="no">ActionController</span><span class="o">::</span><span class="no">Parameters</span><span class="o">.</span><span class="n">new</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">params</span><span class="o">.</span><span class="n">permitted?</span>
+</span><span class='line'><span class="c1"># =&gt; false</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The <code>permitted?</code> method actually doesn&rsquo;t do anything more than return an attribute on an instance of a <code>ActionController::Parameters</code> object, called <code>@permitted</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">permitted?</span>
+</span><span class='line'>  <span class="vi">@permitted</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So the question is, where does this attribute get set? Well, there are two places that can set this attribute to <code>true</code>. The first place is a method that we&rsquo;re already familiar with: the <code>permit</code> method! As we learned last week, this method calls <code>params.permit!</code> as its last line, after it filters out any paramters that aren&rsquo;t permitted scalar values (think <code>Symbol</code>, <code>String</code>, or <code>Hash</code>). However, we can also just call <code>permit!</code> on an instance of <code>ActionController::Parameters</code> ourselves.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">params</span> <span class="o">=</span> <span class="no">ActionController</span><span class="o">::</span><span class="no">Parameters</span><span class="o">.</span><span class="n">new</span>
+</span><span class='line'><span class="n">params</span><span class="o">.</span><span class="n">permitted?</span>
+</span><span class='line'><span class="c1"># =&gt; false</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">params</span><span class="o">.</span><span class="n">permit!</span>
+</span><span class='line'><span class="n">params</span><span class="o">.</span><span class="n">permitted?</span>
+</span><span class='line'><span class="c1"># =&gt; true</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The <code>permit!</code> method sets the <code>@permitted</code> attribute to <code>true</code>, and returns <code>self</code>, which in this case is just the instance of the params class. This method <a href="https://github.com/rails/rails/blob/9ab2d030209d9608a6c866d83210f5b3b7d2319e/actionpack/lib/action_controller/metal/strong_parameters.rb#L223">is quite useful</a> for mass assignment, since it effectively removes the need to list all the permitted values. It can be handy in a controller that is used only by admins that should have control over &mdash; and can be trusted with &mdash; updating all attributes of an object:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1"># def blog_params</span>
+</span><span class='line'>  <span class="c1"># params.require(:blog).permit(:title, </span>
+</span><span class='line'>      <span class="c1"># :author, :published_at, :tags, </span>
+</span><span class='line'>      <span class="c1"># :excerpt, :image, :image_caption, :external_url)</span>
+</span><span class='line'><span class="c1"># end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">def</span> <span class="nf">blog_params</span>
+</span><span class='line'>  <span class="n">params</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="ss">:blog</span><span class="p">)</span><span class="o">.</span><span class="n">permit!</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>However, this doesn&rsquo;t really make sense to use unless you are <em>sure</em> that you want to allow all the values to the params hash to be whitelisted. Proceed with caution!</p>
+
+<h2>Heavy Metal Controllers</h2>
+
+<p>Now that we know a little bit more about <code>ActionController::Parameters</code> and what kinds of ducks &mdash; oops, I mean <em>objects</em> &mdash; they really are, there&rsquo;s one question that we probably still have floating around in our heads: where on earth does our params come from during the request-response cycle&hellip;and <em>how</em> does it get set on a controller?</p>
+
+<p>To answer this question, we must trace back how a parameter comes in from a request, and then how it is set on a controller. It isn&rsquo;t magic (even though it seems like that&rsquo;s the case!). In reality, it&rsquo;s actually happening in a cool place called <code>ActionController::Metal</code>. Yes, that&rsquo;s a thing, and it happens to be the very class that <code>ActionController::Base</code> <a href="https://github.com/rails/rails/blob/7978ec722172b45e72ee78baefc23ab907a91131/actionpack/lib/action_controller/base.rb#L164">inherits</a> from. By default, we should always inherit from <code>ActionController::Base</code>, because it gives us a ton of functionality and modules that help speed things up.</p>
+
+<p>But even <code>ActionController::Base</code> has to come from <em>somewhere</em>, right? And that somewhere happens to be <code>ActionController::Metal</code>, which is the simplest possible controller that we can create in Rails, which provides little more than a Rack interface. Here&rsquo;s a very, <em>very</em> simplified version of what that class looks like in the Rails source code:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Metal</span> <span class="o">&lt;</span> <span class="no">AbstractController</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="c1"># Very truncated from the Rails source code!</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="n">attr_internal</span> <span class="ss">:headers</span><span class="p">,</span> <span class="ss">:response</span><span class="p">,</span> <span class="ss">:request</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span>
+</span><span class='line'>      <span class="vi">@_headers</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Content-Type&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;text/html&quot;</span><span class="p">}</span>
+</span><span class='line'>      <span class="vi">@_status</span> <span class="o">=</span> <span class="mi">200</span>
+</span><span class='line'>      <span class="vi">@_request</span> <span class="o">=</span> <span class="kp">nil</span>
+</span><span class='line'>      <span class="vi">@_response</span> <span class="o">=</span> <span class="kp">nil</span>
+</span><span class='line'>      <span class="vi">@_routes</span> <span class="o">=</span> <span class="kp">nil</span>
+</span><span class='line'>      <span class="k">super</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>As a request goes out or a response comes in, these values are set as instances on the controller itself! So if there was any doubt in your mind, everything in Ruby is an object &mdash; even controllers are just objects with instance variables and attr_readers and attr_accessors.</p>
+
+<p>So, where do our parameters get set? Well, they also live in an instance attribute called <code>@_params</code>, which is set by a <a href="https://github.com/rails/rails/blob/2910956fc9006d3c26f56992dab630fa97b7f7bc/actionpack/lib/action_controller/metal.rb#L140">params method</a>. The parameters come in from a request, and are beautifully memoized in a method that looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">params</span>
+</span><span class='line'>  <span class="vi">@_params</span> <span class="o">||=</span> <span class="n">request</span><span class="o">.</span><span class="n">parameters</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pretty amazing, right? That black box of <code>ActionController</code> and strong parameters doesn&rsquo;t seem so intimiating any more, does it?
+It&rsquo;s a little strange that we always talk about and use <code>params.require</code> and the <code>permit</code> method so often in Rails, particularly when we are first starting out, but we don&rsquo;t necessarily question where it comes from! Or how it is set or being used, for that matter! But now we know. And we&rsquo;ll never mistake our strong params for a simple Ruby hash again.</p>
+
+<p>Or a duck, for that matter.</p>
+
+<iframe src="//giphy.com/embed/NTSMCNXQQ1xiE" width="480" height="346" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>An instance of <code>ActionController::Parameters</code> behaves a lot like a hash that can be accessed with either symbol or string keys. This class has some added methods like <code>permitted?</code> and <code>permit!</code> which check and set the <code>@permitted</code> instance attribute on a params object.</li>
+<li>Curious to learn more about how strong params handles nested attributes? Check out this great <a href="http://patshaughnessy.net/2014/6/16/a-rule-of-thumb-for-strong-parameters">blog post</a> by Pat Shaughnessy.</li>
+<li>New to <code>ActionController::Metal</code>? Head over to the Rails docs <a href="http://api.rubyonrails.org/classes/ActionController/Metal.html">to learn more</a> and read this helpful <a href="http://stackoverflow.com/a/18189580">StackOverflow post</a>.</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-11-24T08:56:47-05:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:56 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/computer-science/'>computer science</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/11/24/peeking-under-the-hood-of-actioncontroller-parameters-part-2/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/11/24/peeking-under-the-hood-of-actioncontroller-parameters-part-2/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1/" title="Previous Post: Peeking Under The Hood Of ActionController Parameters, Part 1">&laquo; Peeking Under The Hood Of ActionController Parameters, Part 1</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/11/24/peeking-under-the-hood-of-actioncontroller-parameters-part-2/">Peeking Under the Hood of ActionController Parameters, Part 2</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1/">Peeking Under the Hood of ActionController Parameters, Part 1</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/">Methods to Remember Things by: Ruby Memoization</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/11/03/hunting-down-the-scoop-on-activerecord-scopes/">Hunting Down the Scoop on ActiveRecord Scopes</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/27/digging-into-the-finder-object-pattern/">Digging Into the Finder Object Pattern</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

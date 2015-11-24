@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-11-17T08:52:44-05:00</updated>
+  <updated>2015-11-24T08:46:49-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,288 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Peeking Under the Hood of ActionController Parameters, Part 2]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/11/24/peeking-under-the-hood-of-actioncontroller-parameters-part-2/"/>
+    <updated>2015-11-24T08:56:47-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/11/24/peeking-under-the-hood-of-actioncontroller-parameters-part-2</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/Hhu5dqPScjXRm" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p><em>This blog post is part of a series on strong parameters. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1/">here</a>.</em></p>
+
+<p>Rails often feels like a black box, with all of the complex logic abstracted away and hidden from view. This leaves behind a clean, convention-abiding framework where form follows function. But another, perhaps less-intentional side effect of all the &ldquo;metaprogramming away&rdquo; of this framework&rsquo;s complexities is a frequent lack on clarity of what&rsquo;s going on behind the scenes.</p>
+
+<p>In my year of working with Rails, I&rsquo;ve come to appreciate and respect so many things about it. In fact, I think that there&rsquo;s something incredibly approachable about Ruby as one&rsquo;s first programming language, with Rails as its corresponding framework. And of course, there&rsquo;s something truly unique and welcoming about the Ruby and Rails programming community. All of these factors combined make it so easy for beginners of such different backgrounds to start building applications very quickly.</p>
+
+<p>However, once you get past the intial stage of building applications with the basic CRUD operations, or if you&rsquo;re trying to build something a bit more complex  with added functionality, or trying to integrate with another framework, you eventually hit a wall where you realize that that you&rsquo;re not completely sure how something works. This can be a hard wall to climb over, especially given the fact that you can start building things very quickly with Rails. Some people have heavily critiqued this aspect of the framework, arguing that it&rsquo;s detrimential to abstract away so much of what&rsquo;s <em>actually</em> going on, which makes it difficult for people to understand what their code is truly doing under the hood. I&rsquo;ve peronally encountered this &ldquo;wall of abstraction&rdquo; a few different times, but each time I found some piece of logic that worked differently than I thought it would, it only lead me to learn something new about the framework. Most recently, that lead me down a wild goose chase into the source code for <code>ActionController::Parameters</code> &mdash; a class that I didn&rsquo;t even know existed!</p>
+
+<!--more-->
+
+
+<h2>Quack Like A Hash</h2>
+
+<p><img src="http://geekandpoke.typepad.com/.a/6a00d8341d3df553ef01053719d13a970b-pi" style="display: block; margin-left: auto; margin-right: auto;"/></p>
+
+<p>There&rsquo;s a well-known saying that Rubyists often attribute to duck typing: <em>if it looks like a duck, and quacks like a duck, it probably is a duck.</em> In other words, if an object behaves like another object, it doesn&rsquo;t matter that it&rsquo;s of a certain class or &ldquo;type&rdquo; (or species!) of another object, just so long as it can respond to the correct method calls to implement the behavior of that object.</p>
+
+<p>This saying actually comes from a concept referred to as the &ldquo;duck test&rdquo;, which is a form of abductive reasoning, which is based on the idea that one can identify an unknown object by observing its habitual characteristics. However, this can be a little bit tricky because <em>sometimes</em>, just because something quacks like a duck and waddles like a duck doesn&rsquo;t mean that we should stop questioning what it actually is and just assume that it&rsquo;s a duck!</p>
+
+<p>Let me explain with an example. Whenever we send or receive data from the server, it appears that everything is being sent as a <code>Hash</code>. If we look at our <code>GET</code> requests or <code>POST</code> and <code>PUT</code> requests using HTTP protocol, our data usually looks like some variation on a theme of something like the following:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="p">{</span> <span class="ss">order</span><span class="p">:</span>
+</span><span class='line'>  <span class="p">{</span>
+</span><span class='line'>      <span class="ss">total</span><span class="p">:</span> <span class="mi">100</span><span class="o">.</span><span class="mo">00</span><span class="p">,</span>
+</span><span class='line'>      <span class="ss">number</span><span class="p">:</span> <span class="s1">&#39;ABC123&#39;</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If it acts like a hash, and quacks like a hash, it must be a hash, right? Well, not exactly. Last week we learned that <code>params</code> in our controllers are actually instances of <code>ActionController::Parameters</code>. But this data that we&rsquo;re sending back and forth still looks like its a plain old Ruby <code>Hash</code>. It also seems to behave like a hash, right? We can do something like this</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">if</span> <span class="n">params</span><span class="o">[</span><span class="ss">:order</span><span class="o">].</span><span class="n">present?</span>
+</span><span class='line'>  <span class="vi">@order</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">order_params</span><span class="p">)</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>and access a key in this so-called &ldquo;hash&rdquo; the same way we would with any other <code>Hash</code> data structure. So, what&rsquo;s different about <code>ActionController::Parameters</code>?</p>
+
+<p>Well, let&rsquo;s find out. We&rsquo;ll start by opening up <a href="https://github.com/rails/rails/blob/9ab2d030209d9608a6c866d83210f5b3b7d2319e/actionpack/lib/action_controller/metal/strong_parameters.rb#L108">the source code</a> for this class, which lives inside of the <code>ActionController</code> module. The first thing we&rsquo;ll notice is this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">ActionController</span>
+</span><span class='line'>  <span class="k">class</span> <span class="nc">Parameters</span> <span class="o">&lt;</span> <span class="no">ActiveSupport</span><span class="o">::</span><span class="no">HashWithIndifferentAccess</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Interesting! The <code>Parameters</code> class subclasses from <code>ActiveSupport::HashWithIndifferentAccess</code>. If we were really curious about what type of object <em>this</em> class inherits from, we could trace that back to see that <code>HashWithIndifferentAccess</code> simply <a href="https://github.com/rails/rails/blob/df6048407faefdc6774a8b5a02344fd4b1a734b1/activesupport/lib/active_support/hash_with_indifferent_access.rb#L43">inherits from</a> the class <code>Hash</code>. So, what makes <code>HashWithIndifferentAccess</code> different from plain old Ruby hashes?</p>
+
+<p>Well, the <a href="http://api.rubyonrails.org/classes/ActiveSupport/HashWithIndifferentAccess.html
+">Rails guides</a> answers this question pretty well:</p>
+
+<blockquote><p><code>HashWithIndifferentAccess</code> implements a hash where keys <code>:foo</code> and <code>"foo"</code> are considered to be the same. Internally symbols are mapped to strings when used as keys in the entire writing interface. You are  guaranteed that the key is returned as a string. This class is intended for use cases where strings or symbols are the expected keys and it is convenient to understand both as the same. For example the <code>params</code> hash in Ruby on Rails.</p></blockquote>
+
+<p>Awesome, this answers our question and more! This subclass gives us the flexibility to access the keys in a <code>params</code> &ldquo;hash&rdquo; by either a string or a symbol. The <code>HashWithIndifferentAccess</code> class still responds to the majority of the same methods that a Ruby <code>Hash</code> instance does, but with some added functionality, which can be especially handy if we&rsquo;re dealing with JSON responses.</p>
+
+<p><em>Protip:</em> we can easily create <code>HashWithIndifferentAccess</code> instances by creating a Ruby <code>Hash</code> instance and calling <code>with_indifferent_access</code> on it. This method is available to us since core extensions has the <code>with_indifferent_access</code> method defined on the <code>Hash</code> class by default:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">♥</span> <span class="n">rails</span> <span class="n">c</span>
+</span><span class='line'><span class="no">Loading</span> <span class="n">development</span> <span class="n">environment</span> <span class="p">(</span><span class="no">Rails</span> <span class="mi">4</span><span class="o">.</span><span class="mi">1</span><span class="o">.</span><span class="mi">4</span><span class="p">)</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">001</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="n">h</span> <span class="o">=</span> <span class="p">{</span><span class="ss">a</span><span class="p">:</span> <span class="s1">&#39;hi&#39;</span><span class="p">,</span> <span class="ss">b</span><span class="p">:</span> <span class="s1">&#39;hello&#39;</span><span class="p">}</span>
+</span><span class='line'><span class="o">.</span><span class="n">with_indifferent_access</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="p">{</span><span class="s2">&quot;a&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;hi&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;hello&quot;</span><span class="p">}</span>
+</span><span class='line'><span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">002</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="n">h</span><span class="o">.</span><span class="n">class</span>
+</span><span class='line'><span class="o">=&gt;</span> <span class="no">ActiveSupport</span><span class="o">::</span><span class="no">HashWithIndifferentAccess</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So, parameters aren&rsquo;t quite a hash, but they quack pretty much exactly like how a hash would quack. But there must be a good reason why they are different classes, right? Let&rsquo;s investigate further.</p>
+
+<h2>Waddle Like A Param</h2>
+
+<iframe src="//giphy.com/embed/jgIDKTrvTssDK" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>On a very basic level, <code>ActionController::Parameters</code> could be simplified to hashes with some serious restrictions and permissions. Because <code>ActionController::Parameters</code> inherits from <code>ActiveSupport::HashWithIndifferentAccess</code>, we can fetch values from our params &ldquo;hash&rdquo; using a symbol <code>:key</code> or a string <code>"key"</code>. But there are a few things that we can&rsquo;t do so easily, and that&rsquo;s where the functionality of <code>ActionController::Parameters</code> really starts to come into play and begins to make a lot more sense.</p>
+
+<p>We can easily create a new instance of <code>ActionController::Parameters</code>. In fact, we do it within the context of our controllers all the time!</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">permitted_params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="ss">:order</span><span class="p">)</span><span class="o">.</span><span class="n">permit</span><span class="p">(</span><span class="ss">:total</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">permitted_params</span>
+</span><span class='line'><span class="c1"># =&gt; {&quot;total&quot;=&gt;&quot;100.00&quot;}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">permitted_params</span><span class="o">.</span><span class="n">class</span>
+</span><span class='line'><span class="c1"># =&gt; ActionController::Parameters</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Except usually we wrap it in a <code>_params</code> suffixed method like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">order_params</span>
+</span><span class='line'>  <span class="n">params</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="ss">:order</span><span class="p">)</span><span class="o">.</span><span class="n">permit</span><span class="p">(</span><span class="ss">:total</span><span class="p">)</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Here is one example of the added functionality of this class. When we create a new instance of a <code>ActionController::Parameters</code> class, it is by default, not permitted.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">params</span> <span class="o">=</span> <span class="no">ActionController</span><span class="o">::</span><span class="no">Parameters</span><span class="o">.</span><span class="n">new</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">params</span><span class="o">.</span><span class="n">permitted?</span>
+</span><span class='line'><span class="c1"># =&gt; false</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The <code>permitted?</code> method actually doesn&rsquo;t do anything more than return an attribute on an instance of a <code>ActionController::Parameters</code> object, called <code>@permitted</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">permitted?</span>
+</span><span class='line'>  <span class="vi">@permitted</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So the question is, where does this attribute get set? Well, there are two places that can set this attribute to <code>true</code>. The first place is a method that we&rsquo;re already familiar with: the <code>permit</code> method! As we learned last week, this method calls <code>params.permit!</code> as its last line, after it filters out any paramters that aren&rsquo;t permitted scalar values (think <code>Symbol</code>, <code>String</code>, or <code>Hash</code>). However, we can also just call <code>permit!</code> on an instance of <code>ActionController::Parameters</code> ourselves.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">params</span> <span class="o">=</span> <span class="no">ActionController</span><span class="o">::</span><span class="no">Parameters</span><span class="o">.</span><span class="n">new</span>
+</span><span class='line'><span class="n">params</span><span class="o">.</span><span class="n">permitted?</span>
+</span><span class='line'><span class="c1"># =&gt; false</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">params</span><span class="o">.</span><span class="n">permit!</span>
+</span><span class='line'><span class="n">params</span><span class="o">.</span><span class="n">permitted?</span>
+</span><span class='line'><span class="c1"># =&gt; true</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The <code>permit!</code> method sets the <code>@permitted</code> attribute to <code>true</code>, and returns <code>self</code>, which in this case is just the instance of the params class. This method <a href="https://github.com/rails/rails/blob/9ab2d030209d9608a6c866d83210f5b3b7d2319e/actionpack/lib/action_controller/metal/strong_parameters.rb#L223">is quite useful</a> for mass assignment, since it effectively removes the need to list all the permitted values. It can be handy in a controller that is used only by admins that should have control over &mdash; and can be trusted with &mdash; updating all attributes of an object:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1"># def blog_params</span>
+</span><span class='line'>  <span class="c1"># params.require(:blog).permit(:title, </span>
+</span><span class='line'>      <span class="c1"># :author, :published_at, :tags, </span>
+</span><span class='line'>      <span class="c1"># :excerpt, :image, :image_caption, :external_url)</span>
+</span><span class='line'><span class="c1"># end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">def</span> <span class="nf">blog_params</span>
+</span><span class='line'>  <span class="n">params</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="ss">:blog</span><span class="p">)</span><span class="o">.</span><span class="n">permit!</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>However, this doesn&rsquo;t really make sense to use unless you are <em>sure</em> that you want to allow all the values to the params hash to be whitelisted. Proceed with caution!</p>
+
+<h2>Heavy Metal Controllers</h2>
+
+<p>Now that we know a little bit more about <code>ActionController::Parameters</code> and what kinds of ducks &mdash; oops, I mean <em>objects</em> &mdash; they really are, there&rsquo;s one question that we probably still have floating around in our heads: where on earth does our params come from during the request-response cycle&hellip;and <em>how</em> does it get set on a controller?</p>
+
+<p>To answer this question, we must trace back how a parameter comes in from a request, and then how it is set on a controller. It isn&rsquo;t magic (even though it seems like that&rsquo;s the case!). In reality, it&rsquo;s actually happening in a cool place called <code>ActionController::Metal</code>. Yes, that&rsquo;s a thing, and it happens to be the very class that <code>ActionController::Base</code> <a href="https://github.com/rails/rails/blob/7978ec722172b45e72ee78baefc23ab907a91131/actionpack/lib/action_controller/base.rb#L164">inherits</a> from. By default, we should always inherit from <code>ActionController::Base</code>, because it gives us a ton of functionality and modules that help speed things up.</p>
+
+<p>But even <code>ActionController::Base</code> has to come from <em>somewhere</em>, right? And that somewhere happens to be <code>ActionController::Metal</code>, which is the simplest possible controller that we can create in Rails, which provides little more than a Rack interface. Here&rsquo;s a very, <em>very</em> simplified version of what that class looks like in the Rails source code:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Metal</span> <span class="o">&lt;</span> <span class="no">AbstractController</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="c1"># Very truncated from the Rails source code!</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="n">attr_internal</span> <span class="ss">:headers</span><span class="p">,</span> <span class="ss">:response</span><span class="p">,</span> <span class="ss">:request</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span>
+</span><span class='line'>      <span class="vi">@_headers</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Content-Type&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;text/html&quot;</span><span class="p">}</span>
+</span><span class='line'>      <span class="vi">@_status</span> <span class="o">=</span> <span class="mi">200</span>
+</span><span class='line'>      <span class="vi">@_request</span> <span class="o">=</span> <span class="kp">nil</span>
+</span><span class='line'>      <span class="vi">@_response</span> <span class="o">=</span> <span class="kp">nil</span>
+</span><span class='line'>      <span class="vi">@_routes</span> <span class="o">=</span> <span class="kp">nil</span>
+</span><span class='line'>      <span class="k">super</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>As a request goes out or a response comes in, these values are set as instances on the controller itself! So if there was any doubt in your mind, everything in Ruby is an object &mdash; even controllers are just objects with instance variables and attr_readers and attr_accessors.</p>
+
+<p>So, where do our parameters get set? Well, they also live in an instance attribute called <code>@_params</code>, which is set by a <a href="https://github.com/rails/rails/blob/2910956fc9006d3c26f56992dab630fa97b7f7bc/actionpack/lib/action_controller/metal.rb#L140">params method</a>. The parameters come in from a request, and are beautifully memoized in a method that looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">params</span>
+</span><span class='line'>  <span class="vi">@_params</span> <span class="o">||=</span> <span class="n">request</span><span class="o">.</span><span class="n">parameters</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pretty amazing, right? That black box of <code>ActionController</code> and strong parameters doesn&rsquo;t seem so intimiating any more, does it?
+It&rsquo;s a little strange that we always talk about and use <code>params.require</code> and the <code>permit</code> method so often in Rails, particularly when we are first starting out, but we don&rsquo;t necessarily question where it comes from! Or how it is set or being used, for that matter! But now we know. And we&rsquo;ll never mistake our strong params for a simple Ruby hash again.</p>
+
+<p>Or a duck, for that matter.</p>
+
+<iframe src="//giphy.com/embed/NTSMCNXQQ1xiE" width="480" height="346" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>An instance of <code>ActionController::Parameters</code> behaves a lot like a hash that can be accessed with either symbol or string keys. This class has some added methods like <code>permitted?</code> and <code>permit!</code> which check and set the <code>@permitted</code> instance attribute on a params object.</li>
+<li>Curious to learn more about how strong params handles nested attributes? Check out this great <a href="http://patshaughnessy.net/2014/6/16/a-rule-of-thumb-for-strong-parameters">blog post</a> by Pat Shaughnessy.</li>
+<li>New to <code>ActionController::Metal</code>? Head over to the Rails docs <a href="http://api.rubyonrails.org/classes/ActionController/Metal.html">to learn more</a> and read this helpful <a href="http://stackoverflow.com/a/18189580">StackOverflow post</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Peeking Under the Hood of ActionController Parameters, Part 1]]></title>
@@ -112,7 +394,7 @@
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>Nice! We&rsquo;re using our new <a href="http://vaidehijoshi.github.io/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/">memoization</a> technique, and we&rsquo;re rendering json responses to make it much easier to integrate with a JavaScript frontend; of course, we could have also just rendered our <code>@order</code> instance if this were a simple Rails application with no frontend framework. But&hellip;there&rsquo;s one thing that we&rsquo;re still missing, and clearly put off because I was dreading: our strong parameters!</p>
+<p>Nice! We&rsquo;re using our new <a href="http://vaidehijoshi.github.io/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/">memoization</a> technique, and we&rsquo;re rendering json responses to make it much easier to integrate with a JavaScript frontend; of course, we could have also just rendered our <code>@order</code> instance if this were a simple Rails application with no frontend framework. But&hellip;there&rsquo;s one thing that we&rsquo;re still missing, and clearly put off because I was dreading it: our strong parameters!</p>
 
 <p>The <code>ActionController</code> <a href="http://edgeapi.rubyonrails.org/classes/ActionController/StrongParameters.html">strong parameters</a> module was introduced back in 2012 with the release of Rails 4. The idea behind strong params was to abstract out the creation of models via mass assignment into the controller, rather than in the context of a model. Prior to this feature, we used to need to whitelist attributes in our models using <code>attr_accessible</code></p>
 
@@ -142,7 +424,7 @@
 
 <p>Not the best solution, right? Enter our knight in shining armor: <code>strong_parameters</code>, a <a href="https://github.com/rails/strong_parameters">gem</a> that the Rails core team released to fix this problem, which was eventually merged into Rails. Okay, let me rephrase that: our rather <em>misunderstood</em> knight in shining armor.</p>
 
-<p>In order to understand how strong params permits attributes, there are two essential methods we are required to understand.</p>
+<p>In order to comprehend how strong params permits attributes, there are two essential methods we are required to understand.</p>
 
 <h2>Requirements</h2>
 
@@ -155,7 +437,7 @@
 
 <p>So, how can we ensure that only the correct data is being passed through, and that too in a <em>safe</em> way? The Rails solution to this problem is to <strong>whitelist</strong> a set of attributes that should be allowed to be modified and passed through by a user (regardless of whether the role of the user is that of a guest, admin, etc.).</p>
 
-<p>The first step to whitelisting any set of attributes is making sure that the parameter we are looking to &ldquo;whitelist&rdquo; is actually present. If we think about it, this pretty logical: how can we pass in the correct attributes to create or update an object if don&rsquo;t first check that we have the parameter that contains the attributes we need? Only once we ensure that a parameter exists can we begin to strip away the &ldquo;blacklisted&rdquo; attributes.</p>
+<p>The first step to whitelisting any set of attributes is making sure that the parameter we are looking to &ldquo;whitelist&rdquo; is actually present. If we think about it, this is pretty logical: how can we pass in the correct attributes to create or update an object if don&rsquo;t first check that we have the parameter that contains the attributes we need? Only once we ensure that a parameter exists can we begin to strip away the &ldquo;blacklisted&rdquo; attributes.</p>
 
 <p>In fact, that&rsquo;s exactly what this method does under the hood. If we peek into the <a href="https://github.com/rails/rails/blob/9ab2d030209d9608a6c866d83210f5b3b7d2319e/actionpack/lib/action_controller/metal/strong_parameters.rb#L246">source code</a> for this method, this is what we&rsquo;ll find:</p>
 
@@ -178,13 +460,13 @@
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>At this point, we should be wondering what <code>self</code> is in the context of this method. In other words, what object responds to this <code>require</code> method, exactly? And what is this <code>ParameterMissing</code> error, exactly? Let&rsquo;s take a look at the <code>require</code> <a href="http://api.rubyonrails.org/classes/ActionController/Parameters.html#method-i-require">method documentation</a> to find out:</p>
+<p>At this point, we should be wondering what <code>self</code> is in the context of this method. In other words, what object responds to this <code>require</code> method? And what is this <code>ParameterMissing</code> error, exactly? Let&rsquo;s take a look at the <code>require</code> <a href="http://api.rubyonrails.org/classes/ActionController/Parameters.html#method-i-require">method documentation</a> to find out:</p>
 
-<blockquote><p>&ldquo;<code>require</code> ensures that a parameter is present. If it&rsquo;s present, returns the parameter at the given key, otherwise raises an ActionController::ParameterMissing error.&rdquo;</p></blockquote>
+<blockquote><p><code>require</code> ensures that a parameter is present. If it&rsquo;s present, returns the parameter at the given key, otherwise raises an ActionController::ParameterMissing error.</p></blockquote>
 
 <p>Okay, so now we know that the error being raised in the conditional is actually an <code>ActionController::ParameterMissing</code> error. One question answered. But what does <code>require</code> get invoked on? Well, it turns out that the answer to that is a new instance of an <code>ActionController::Parameters</code> object!</p>
 
-<p>There&rsquo;s a <a href="http://stackoverflow.com/a/18426829">great StackOverflow answer</a> that points this fact pretty explicitly. The <code>params</code> object that we refer to in the context of our controllers gets treated as though its just an instead of a Ruby <code>Hash</code>. But in actuality, it&rsquo;s an instance of something called <code>ActionController::Parameters</code>, which is the object that responds to the <code>require</code> method. But more on that a little bit later.</p>
+<p>There&rsquo;s a <a href="http://stackoverflow.com/a/18426829">great StackOverflow answer</a> that points this fact pretty explicitly. The <code>params</code> object that we refer to in the context of our controllers gets treated as though it&rsquo;s just an instance of a Ruby <code>Hash</code>. But in actuality, it&rsquo;s an instance of something called <code>ActionController::Parameters</code>, which is the object that responds to the <code>require</code> method. But more on that a little bit later.</p>
 
 <p>For now, all that matters is that the <code>require</code> method returns a new instance of an <code>ActionController::Parameters</code> object for the key that is passed into it. If that key doesn&rsquo;t exist in the object, it throws an error. What does this mean, exactly? Well, when we write our <code>order_params</code> method in our <code>OrdersController</code>, it will begin like this:</p>
 
@@ -197,7 +479,7 @@
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>we&rsquo;re actually returning the <em>value</em> of the parameter at the key that we&rsquo;re requiring (in our case, <code>:order</code>):</p>
+<p>We&rsquo;re actually returning the <em>value</em> of the parameter at the key that we&rsquo;re requiring (in our case, <code>order</code>):</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -210,7 +492,7 @@
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>And what&rsquo;s more: we&rsquo;re creating a new instance of an <code>ActionController::Parameters</code> object whenever we invoke <code>params</code> in our controller! Okay, so that&rsquo;s the first step: making sure our parameter exists. The second requires a bit more&hellip;permission on our part.</p>
+<p>And what&rsquo;s more: we&rsquo;re creating a new instance of an <code>ActionController::Parameters</code> object whenever we invoke <code>params</code> in our controller! Okay, so that&rsquo;s the first step: making sure our parameter exists. The second requires a bit more&hellip;<em>permission</em> on our part.</p>
 
 <h2>Permissions</h2>
 
@@ -242,7 +524,7 @@
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>Wait, but how does this happen? Well, if we look at the source code, we&rsquo;ll see that a the permit method takes an array of arguments named <code>filters</code>, and then iterates through them to check what type of object they are:</p>
+<p>Wait, but how does this happen? Well, if we look at the source code, we&rsquo;ll see that the permit method takes an array of arguments named <code>filters</code>, and then iterates through them to check what type of object they are:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -317,11 +599,11 @@
 
 <p>It turns out that abstracting our strong params out into a private <code>order_params</code> method is just a good practice that was established by the Rails core team. The Rails guides <a href="http://edgeapi.rubyonrails.org/classes/ActionController/StrongParameters.html">explain this</a> pretty well:</p>
 
-<blockquote><p>&ldquo;Using a private method to encapsulate the permissible parameters is just a good pattern since you&rsquo;ll be able to reuse the same permit list between create and update. Also, you can specialize this method with per-user checking of permissible attributes.&rdquo;</p></blockquote>
+<blockquote><p>Using a private method to encapsulate the permissible parameters is just a good pattern since you&rsquo;ll be able to reuse the same permit list between create and update. Also, you can specialize this method with per-user checking of permissible attributes.</p></blockquote>
 
 <p>Another reason for having a separate method is because things can get kind of tricky once you need to permit nested attributes. At that point, it&rsquo;s especially important to understand how these methods work.</p>
 
-<p>Tune in next week, when I&rsquo;ll continue this deep dive by exploring the <code>ActionController::Parameters</code> class and answer the super confusing question of <em>where params get instantiated</em> (no really&hellip;where?), and how to handle nested key value pairs, including hashes and arrays in whitelisted parameters. Until then, keep peeking into that source code and stay afloat like this guy:</p>
+<p>Tune in next week, when I&rsquo;ll continue this deep dive by exploring the <code>ActionController::Parameters</code> class and answer the super confusing question of <em>where params get instantiated</em> (no really&hellip;where?), and what makes a parameter different from a hash (no really, I promise that they&rsquo;re different!). Until then, keep peeking into that source code and stay afloat like this guy:</p>
 
 <iframe src="//giphy.com/embed/lpLWBoCnX1IkM" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -2462,6 +2744,10 @@ the <code>find_by_url</code> method, but we could also use the <code>find_by</co
     <id>http://vaidehijoshi.github.io/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/XgE4LlECZjw6k" width="480" height="218" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
+
+<p><br></p>
+
+<p><em>This blog post is part of a series on Active Job. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/">here</a>.</em></p>
 
 <p>With the advent of Rails 4.2, one thing is definitely for sure: there is now one background job to rule them all: Active Job. Last week, I learned about Active Job&rsquo;s <a href="http://vaidehijoshi.github.io/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/">easy integration</a> with ActionMailer. But, as nice as it is to have those simple <code>deliver_now</code> and <code>deliver_later</code> methods, there will inevitably be a time that we want to do something more &mdash; something that requires writing our own custom job.</p>
 
@@ -4910,297 +5196,6 @@ backend (Sidekiq, Resque, etc).&rdquo;</p></blockquote>
 <li>Using <code>references</code> in a migration is the same as <code>belongs_to</code>, but can make your code more clear. The <code>reversible</code> method is great for specifying how your migration should handle a reverse migration. Indexes are an easy way of adding an iteger column to speed up database queries.</li>
 <li>Need to see another example of manipulating data from within a migraiton? This <a href="http://railsguides.net/change-data-in-migrations-like-a-boss/">blog post</a> walks through some great examples using the <code>up</code> and <code>down</code> methods.</li>
 <li>Check out this great <a href="https://www.reinteractive.net/posts/178-reversible-migrations-with-active-record">post</a> on how to implement <code>reversible</code> in different situations!</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Taskmanaging Your App, Part 2: Service Objects]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/07/07/taskmanaging-your-app-part-2-service-objects/"/>
-    <updated>2015-07-07T08:28:40-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/07/07/taskmanaging-your-app-part-2-service-objects</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/xTiTnqpyEF0HbAosfe" width="480" height="480" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Everything seems to perform a service these days. We&rsquo;ve got infrastructure as a service, platforms as a service, and even software as a service. But the servicing doesn&rsquo;t end there: even our software applications often need specific services provided to them. But how, exactly?</p>
-
-<p>Well, if you&rsquo;ve ever opened up a Rails application and peeked inside of the main directories, you can get a good understanding of what exactly the application is doing. Pry into the models directory, and you&rsquo;ll see the kinds of objects the app transforms and manipulates. Open the controllers directory, and you&rsquo;ll see the different <em>CRUD</em> (<em>create, read, update, delete</em>) operations that are permitted by the application, and the various ways of handling requests and responses by the server.</p>
-
-<p>Seems pretty straightforward, right? Except until your application starts to swell in size, and then you&rsquo;re packing a ton of functionality into these two directories. We at least <em>try</em> and keep our models fat, and our controllers skinny. It would be great if just our trying to do that was successful all the time. Yet that&rsquo;s not usually what happens. Instead, things start to get messy, code starts to leak out all over the place, and we all just want to give up and go home. But we don&rsquo;t have to give up just yet! There&rsquo;s one trick that we haven&rsquo;t tried yet, and it&rsquo;s guaranteed to make our lives easier: utilizing <strong>service objects</strong>. Or, in other words, servicing parts of our application and separating our code out into more appropriate places.</p>
-
-<!--more-->
-
-
-<h2>Separating All Dem Concerns</h2>
-
-<p>Last week, we started off by learning about <a href="http://vaidehijoshi.github.io/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/">rake tasks</a>, which turned out be an awesome way of encapsulating a specific type of functionality into a single file. But when we started writing a <code>rake data:stage</code> task (which stages our database with some sample <code>Book</code> objects), we noticed that we were making a single rake task responsible for multiple things.</p>
-
-<p>We&rsquo;ve got a similar dilemma on our hands again this week. We have a <code>WishLists Controller</code>, which should be responsible for rendering all of the <code>Wish Lists</code> associated with a <code>User</code>. But here&rsquo;s the kicker: it should work with the Goodreads API to pull in the books that the User wants to read, and add that to their <code>Wish List</code>. Here&rsquo;s our current, clean and beautiful controller:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">WishListsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">index</span>
-</span><span class='line'>      <span class="k">if</span> <span class="n">user_signed_in?</span>
-</span><span class='line'>          <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="n">current_user</span><span class="o">.</span><span class="n">wish_lists</span>
-</span><span class='line'>      <span class="k">else</span>
-</span><span class='line'>          <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="p">{</span> <span class="ss">wish_lists</span><span class="p">:</span> <span class="o">[]</span> <span class="p">}</span>
-</span><span class='line'>      <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>It really pains me to ruin this controller with all the logic we&rsquo;re about to throw in there. Let&rsquo;s start writing it and see how it might look&hellip;</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">WishListsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">index</span>
-</span><span class='line'>      <span class="k">if</span> <span class="n">user_signed_in?</span>
-</span><span class='line'>          <span class="n">client</span> <span class="o">=</span> <span class="no">Goodreads</span><span class="o">::</span><span class="no">Client</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">api_key</span><span class="p">:</span> <span class="s1">&#39;OUR_API_KEY&#39;</span><span class="p">,</span>
-</span><span class='line'>          <span class="ss">api_secret</span><span class="p">:</span> <span class="s1">&#39;OUR_SECRET_TOKEN&#39;</span><span class="p">)</span>
-</span><span class='line'>          <span class="n">shelf</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">shelf</span><span class="p">(</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="s1">&#39;to-read&#39;</span><span class="p">)</span>
-</span><span class='line'>          <span class="n">books</span> <span class="o">=</span> <span class="n">shelf</span><span class="o">.</span><span class="n">books</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">book</span><span class="o">|</span>
-</span><span class='line'>              <span class="c1"># Creates an ActiveRecord instance</span>
-</span><span class='line'>              <span class="c1"># for all the books on the shelf </span>
-</span><span class='line'>              <span class="c1"># and returns a JSON object.</span>
-</span><span class='line'>          <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>          <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="n">books</span>
-</span><span class='line'>      <span class="k">else</span>
-</span><span class='line'>          <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="p">{</span> <span class="ss">wish_lists</span><span class="p">:</span> <span class="o">[]</span> <span class="p">}</span>
-</span><span class='line'>      <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>NOPE. Nope nope nope. This is already way too much for a single controller action. And all the requests between our application and the Goodreads API really shouldn&rsquo;t be up publicly available &ndash; they need to be private methods. And what if something goes wrong during those requests? We aren&rsquo;t handling those errors at all! And honestly, it really shouldn&rsquo;t be the <code>index</code> action&rsquo;s job to send a request, handle the response, create and persist book objects, and then, on top of <em>all</em> of that, render the <code>books</code> of the <code>Wish List</code>! This is not the right path.</p>
-
-<iframe src="//giphy.com/embed/srATnRQXsTfDG" width="480" height="269" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>What we really need to do is <strong>separate our concerns</strong>. Or, in other words, we need to divide and conquer our code. We know that the <code>index</code> action of our <code>WishLists Controller</code> shouldn&rsquo;t be responsible for all this work. So, let&rsquo;s delegate that task to someone else. In fact, let&rsquo;s create an object who&rsquo;s sole concern and single responsibility is going to be dealing importing books from the Goodreads API, persisting them to the database, and then returning an array of books to read in the form of a wish list.</p>
-
-<p>This object doesn&rsquo;t need to do anything more than that. It&rsquo;s existence is purely to help us &ndash; and help the rest of our application &ndash; out. This object is just going to provide a service. In fact, we might even go so far as to call it a <em>service object</em> (see what I did there?).</p>
-
-<h2>Servicing Our Application</h2>
-
-<p>So, if this service object doesn&rsquo;t have any other responsibilities except for getting, creating, and persisting <code>books</code> to a <code>wish_list</code>, we have to ask ourselves: do we really need this object to stay around? Well, not really, no. All we really want is for this object to show up when we need it to, do it&rsquo;s job, and then conveniently disappear. This means that we don&rsquo;t need to make it an ActiveRecord object; instead, let&rsquo;s make it a Plain Old Ruby Object (remember those?).</p>
-
-<p>We can start by either creating a <code>/services</code> directory on the top level and saving our <code>goodreads_importer.rb</code> service in there, or we can namespace it inside of our <code>/models</code> directory as <code>/goodreads/importer.rb</code>. Once we&rsquo;ve made our file, we can pretty much use the same code we started writing before, and abstract it out into this service object:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">GoodreadsImporter</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">options</span> <span class="o">=</span> <span class="p">{})</span>
-</span><span class='line'>      <span class="vi">@options</span> <span class="o">=</span> <span class="n">options</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="kp">private</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">client</span>
-</span><span class='line'>      <span class="vi">@client</span> <span class="o">||=</span> <span class="no">Goodreads</span><span class="o">::</span><span class="no">Client</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">api_key</span><span class="p">:</span>
-</span><span class='line'>      <span class="s1">&#39;OUR_API_KEY&#39;</span><span class="p">,</span> <span class="ss">api_secret</span><span class="p">:</span> <span class="s1">&#39;OUR_SECRET_TOKEN&#39;</span><span class="p">)</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="k">def</span> <span class="nf">shelf</span><span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="n">shelf_name</span><span class="p">)</span>
-</span><span class='line'>      <span class="vi">@shelf</span> <span class="o">||=</span> <span class="n">client</span><span class="o">.</span><span class="n">shelf</span><span class="p">(</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">shelf_name</span><span class="p">)</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="k">def</span> <span class="nf">books</span>
-</span><span class='line'>      <span class="vi">@books</span> <span class="o">||=</span> <span class="n">shelf</span><span class="o">.</span><span class="n">books</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">book</span><span class="o">|</span>
-</span><span class='line'>          <span class="c1"># Creates an ActiveRecord instance</span>
-</span><span class='line'>          <span class="c1"># for all the books on the shelf </span>
-</span><span class='line'>          <span class="c1"># and returns a JSON object.</span>
-</span><span class='line'>      <span class="k">end</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>So far, we&rsquo;re just initializing our <code>Importer</code> with some options. Notice that we&rsquo;re <em>not</em> inheriting from <code>ActiveRecord::Base</code>! This is just a plain Ruby class, like the ones we used to make when we were first learning about things like <a href="http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance-part-1/">inheritance</a>.</p>
-
-<p>We&rsquo;ve also abstracted out those API calls (<code>Client.new</code>) and the methods provided to us by the Goodreads API (<code>client.shelf</code>, <code>shelf.books</code>) into private methods that are only going to be accessible by this service object. Not only is this important because we don&rsquo;t want any other person or part of this application to be able to <em>access</em> these endpoints, but this is also going to be super helpful to us down the road. Now, if something goes wrong, we can narrow down exactly <em>where</em> in the process our application broke. And, we can write tests for specific parts of this service object, just to double and triple check that everything is working exactly as we expect it to.</p>
-
-<p>Next, we&rsquo;ll want to actually have some point of entry for this object. In other words, we need a way to actually use this object &ndash; some way to access all those private methods that we wrote just above. A pretty cool convention for a service object&rsquo;s point of entry is a <code>call</code> method. The idea here is that you &ldquo;call&rdquo; upon the service object to show up, perform its job, and then don&rsquo;t worry about it after it&rsquo;s done.</p>
-
-<p>This is what ours might look like:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">GoodreadsImporter</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">options</span> <span class="o">=</span> <span class="p">{})</span>
-</span><span class='line'>      <span class="vi">@options</span> <span class="o">=</span> <span class="n">options</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">call</span>
-</span><span class='line'>      <span class="n">books</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">b</span><span class="o">|</span>
-</span><span class='line'>          <span class="n">book</span> <span class="o">=</span> <span class="no">Book</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="nb">id</span><span class="p">:</span> <span class="n">b</span><span class="o">[</span><span class="ss">:id</span><span class="o">]</span><span class="p">)</span><span class="o">.</span><span class="n">first_or_initialize</span>
-</span><span class='line'>          <span class="n">book</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
-</span><span class='line'>      <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="kp">private</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">client</span>
-</span><span class='line'>      <span class="vi">@client</span> <span class="o">||=</span> <span class="no">Goodreads</span><span class="o">::</span><span class="no">Client</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">api_key</span><span class="p">:</span>
-</span><span class='line'>      <span class="s1">&#39;OUR_API_KEY&#39;</span><span class="p">,</span> <span class="ss">api_secret</span><span class="p">:</span> <span class="s1">&#39;OUR_SECRET_TOKEN&#39;</span><span class="p">)</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="k">def</span> <span class="nf">shelf</span><span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="n">shelf_name</span><span class="p">)</span>
-</span><span class='line'>      <span class="vi">@shelf</span> <span class="o">||=</span> <span class="n">client</span><span class="o">.</span><span class="n">shelf</span><span class="p">(</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">shelf_name</span><span class="p">)</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="k">def</span> <span class="nf">books</span>
-</span><span class='line'>      <span class="vi">@books</span> <span class="o">||=</span> <span class="n">shelf</span><span class="o">.</span><span class="n">books</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">book</span><span class="o">|</span>
-</span><span class='line'>          <span class="c1"># Creates an ActiveRecord instance</span>
-</span><span class='line'>          <span class="c1"># for all the books on the shelf </span>
-</span><span class='line'>          <span class="c1"># and returns a JSON object.</span>
-</span><span class='line'>      <span class="k">end</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Pretty simple, right? Okay, so now we have this fantastic little service object. But it doesn&rsquo;t actually exist in our application yet. At no point are we &ldquo;calling&rdquo; upon our service! Time to fix that.</p>
-
-<h2>Objects To Make Our Lives Easier</h2>
-
-<p>Now that we have a service that we can rely upon, all we need to do is plug it into our application. We could do this inside of our <code>WishLists Controller</code>, just as we originally planned:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">WishListsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">index</span>
-</span><span class='line'>      <span class="k">if</span> <span class="n">user_signed_in?</span>
-</span><span class='line'>          <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="n">current_user</span><span class="o">.</span><span class="n">wish_lists</span>
-</span><span class='line'>          <span class="k">if</span> <span class="no">GoodreadsImporter</span><span class="o">.</span><span class="n">new</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="s1">&#39;to-read&#39;</span><span class="p">)</span>
-</span><span class='line'>      <span class="k">else</span>
-</span><span class='line'>          <span class="n">render</span> <span class="ss">json</span><span class="p">:</span> <span class="p">{</span> <span class="ss">wish_lists</span><span class="p">:</span> <span class="o">[]</span> <span class="p">}</span>
-</span><span class='line'>      <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Or we could also stick it into the rake task we were writing last week:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">namespace</span> <span class="ss">:data</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">desc</span> <span class="s2">&quot;Stages the environment with data from Goodreads.&quot;</span>
-</span><span class='line'>  <span class="n">task</span> <span class="s2">&quot;goodreads:import&quot;</span> <span class="o">=&gt;</span> <span class="s2">&quot;environment&quot;</span> <span class="k">do</span>
-</span><span class='line'>    <span class="n">options</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span class='line'>    <span class="no">GoodreadsImporter</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">options</span><span class="p">)</span><span class="o">.</span><span class="n">call</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>And now in development, we can just run <code>rake data:goodreads:import</code> to call upon our service object. Writing tests for this would be super easy as well, since we&rsquo;d literally only have to test this one Ruby class to make sure that the service object wasn&rsquo;t broken.</p>
-
-<p>The coolest thing about service objects is that they exist on their own. They don&rsquo;t really need to know about what&rsquo;s going on around them (or even that they exist in the context of a giant framework called Rails!) You can just rely on pure Ruby code to make them work, and they&rsquo;ll do whatever they&rsquo;re supposed to do, whenever you need them to do it. I really liked <a href="http://blog.arkency.com/2013/09/services-what-they-are-and-why-we-need-them/">this blog post&rsquo;s</a> explanation of how they should work:</p>
-
-<blockquote><p>Rails has multiple entry points. Every controller action in Rails is the entry point! Additionally, it handles a lot of responsibilities (parsing user input, routing logic [like redirects], logging, rendering… ouch!). That’s where service objects comes to play. Service objects encapsulates single process of our business. They take all collaborators (database, logging, external adapters like Facebook, user parameters) and performs a given process. Services belongs to our domain - They shouldn’t know they’re within Rails or web app!</p></blockquote>
-
-<p>Even though it might seem like a lot of extra work in the moment, service objects can save you so much time and pain in the long run. And if you think about it, just like we need software as a service, our own code sometimes needs a service to do things for it. Cut your code some slack and help it out by creating a service object. You&rsquo;ll probably thank yourself down the road.</p>
-
-<p><img src="https://imgs.xkcd.com/comics/the_general_problem.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>Service objects are POROs that you can use to encapsulate a specific piece of functionality, and can help you separate concerns in your application.</li>
-<li>Still curious about the theory behind service objects in Rails applications? Check out <a href="https://blog.engineyard.com/2014/keeping-your-rails-controllers-dry-with-services">this tutorial</a> and this super helpful <a href="http://blog.codeclimate.com/blog/2012/10/17/7-ways-to-decompose-fat-activerecord-models/">post</a>, which unpacks service objects in the context of refactoring.</li>
-<li>Where else can you use a service object? Well, a lot of places! This <a href="http://brewhouse.io/blog/2014/04/30/gourmet-service-objects.html">blog post</a> has a ton of examples of how to use them throughout your application.</li>
 </ul>
 
 ]]></content>

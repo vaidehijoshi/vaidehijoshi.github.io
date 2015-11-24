@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Ruby | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-11-17T08:52:44-05:00</updated>
+  <updated>2015-11-24T08:46:49-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,206 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Peeking Under the Hood of ActionController Parameters, Part 2]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/11/24/peeking-under-the-hood-of-actioncontroller-parameters-part-2/"/>
+    <updated>2015-11-24T08:56:47-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/11/24/peeking-under-the-hood-of-actioncontroller-parameters-part-2</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/Hhu5dqPScjXRm" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p><em>This blog post is part of a series on strong parameters. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1/">here</a>.</em></p>
+
+<p>Rails often feels like a black box, with all of the complex logic abstracted away and hidden from view. This leaves behind a clean, convention-abiding framework where form follows function. But another, perhaps less-intentional side effect of all the &ldquo;metaprogramming away&rdquo; of this framework&rsquo;s complexities is a frequent lack on clarity of what&rsquo;s going on behind the scenes.</p>
+
+<p>In my year of working with Rails, I&rsquo;ve come to appreciate and respect so many things about it. In fact, I think that there&rsquo;s something incredibly approachable about Ruby as one&rsquo;s first programming language, with Rails as its corresponding framework. And of course, there&rsquo;s something truly unique and welcoming about the Ruby and Rails programming community. All of these factors combined make it so easy for beginners of such different backgrounds to start building applications very quickly.</p>
+
+<p>However, once you get past the intial stage of building applications with the basic CRUD operations, or if you&rsquo;re trying to build something a bit more complex  with added functionality, or trying to integrate with another framework, you eventually hit a wall where you realize that that you&rsquo;re not completely sure how something works. This can be a hard wall to climb over, especially given the fact that you can start building things very quickly with Rails. Some people have heavily critiqued this aspect of the framework, arguing that it&rsquo;s detrimential to abstract away so much of what&rsquo;s <em>actually</em> going on, which makes it difficult for people to understand what their code is truly doing under the hood. I&rsquo;ve peronally encountered this &ldquo;wall of abstraction&rdquo; a few different times, but each time I found some piece of logic that worked differently than I thought it would, it only lead me to learn something new about the framework. Most recently, that lead me down a wild goose chase into the source code for <code>ActionController::Parameters</code> &mdash; a class that I didn&rsquo;t even know existed!</p>
+
+<!--more-->
+
+
+<h2>Quack Like A Hash</h2>
+
+<p><img src="http://geekandpoke.typepad.com/.a/6a00d8341d3df553ef01053719d13a970b-pi" style="display: block; margin-left: auto; margin-right: auto;"/></p>
+
+<p>There&rsquo;s a well-known saying that Rubyists often attribute to duck typing: <em>if it looks like a duck, and quacks like a duck, it probably is a duck.</em> In other words, if an object behaves like another object, it doesn&rsquo;t matter that it&rsquo;s of a certain class or &ldquo;type&rdquo; (or species!) of another object, just so long as it can respond to the correct method calls to implement the behavior of that object.</p>
+
+<p>This saying actually comes from a concept referred to as the &ldquo;duck test&rdquo;, which is a form of abductive reasoning, which is based on the idea that one can identify an unknown object by observing its habitual characteristics. However, this can be a little bit tricky because <em>sometimes</em>, just because something quacks like a duck and waddles like a duck doesn&rsquo;t mean that we should stop questioning what it actually is and just assume that it&rsquo;s a duck!</p>
+
+<p>Let me explain with an example. Whenever we send or receive data from the server, it appears that everything is being sent as a <code>Hash</code>. If we look at our <code>GET</code> requests or <code>POST</code> and <code>PUT</code> requests using HTTP protocol, our data usually looks like some variation on a theme of something like the following:</p>
+
+<pre><code class="ruby">{ order: 
+    { 
+        total: 100.00, 
+        number: 'ABC123' 
+    } 
+}
+</code></pre>
+
+<p>If it acts like a hash, and quacks like a hash, it must be a hash, right? Well, not exactly. Last week we learned that <code>params</code> in our controllers are actually instances of <code>ActionController::Parameters</code>. But this data that we&rsquo;re sending back and forth still looks like its a plain old Ruby <code>Hash</code>. It also seems to behave like a hash, right? We can do something like this</p>
+
+<pre><code class="ruby">if params[:order].present?
+    @order.create(order_params)
+end
+</code></pre>
+
+<p>and access a key in this so-called &ldquo;hash&rdquo; the same way we would with any other <code>Hash</code> data structure. So, what&rsquo;s different about <code>ActionController::Parameters</code>?</p>
+
+<p>Well, let&rsquo;s find out. We&rsquo;ll start by opening up <a href="https://github.com/rails/rails/blob/9ab2d030209d9608a6c866d83210f5b3b7d2319e/actionpack/lib/action_controller/metal/strong_parameters.rb#L108">the source code</a> for this class, which lives inside of the <code>ActionController</code> module. The first thing we&rsquo;ll notice is this:</p>
+
+<pre><code class="ruby">module ActionController
+    class Parameters &lt; ActiveSupport::HashWithIndifferentAccess
+    end
+end
+</code></pre>
+
+<p>Interesting! The <code>Parameters</code> class subclasses from <code>ActiveSupport::HashWithIndifferentAccess</code>. If we were really curious about what type of object <em>this</em> class inherits from, we could trace that back to see that <code>HashWithIndifferentAccess</code> simply <a href="https://github.com/rails/rails/blob/df6048407faefdc6774a8b5a02344fd4b1a734b1/activesupport/lib/active_support/hash_with_indifferent_access.rb#L43">inherits from</a> the class <code>Hash</code>. So, what makes <code>HashWithIndifferentAccess</code> different from plain old Ruby hashes?</p>
+
+<p>Well, the <a href="http://api.rubyonrails.org/classes/ActiveSupport/HashWithIndifferentAccess.html
+">Rails guides</a> answers this question pretty well:</p>
+
+<blockquote><p><code>HashWithIndifferentAccess</code> implements a hash where keys <code>:foo</code> and <code>"foo"</code> are considered to be the same. Internally symbols are mapped to strings when used as keys in the entire writing interface. You are  guaranteed that the key is returned as a string. This class is intended for use cases where strings or symbols are the expected keys and it is convenient to understand both as the same. For example the <code>params</code> hash in Ruby on Rails.</p></blockquote>
+
+<p>Awesome, this answers our question and more! This subclass gives us the flexibility to access the keys in a <code>params</code> &ldquo;hash&rdquo; by either a string or a symbol. The <code>HashWithIndifferentAccess</code> class still responds to the majority of the same methods that a Ruby <code>Hash</code> instance does, but with some added functionality, which can be especially handy if we&rsquo;re dealing with JSON responses.</p>
+
+<p><em>Protip:</em> we can easily create <code>HashWithIndifferentAccess</code> instances by creating a Ruby <code>Hash</code> instance and calling <code>with_indifferent_access</code> on it. This method is available to us since core extensions has the <code>with_indifferent_access</code> method defined on the <code>Hash</code> class by default:</p>
+
+<pre><code class="ruby">♥ rails c
+Loading development environment (Rails 4.1.4)
+irb(main):001:0&gt; h = {a: 'hi', b: 'hello'}
+.with_indifferent_access
+=&gt; {"a"=&gt;"hi", "b"=&gt;"hello"}
+irb(main):002:0&gt; h.class
+=&gt; ActiveSupport::HashWithIndifferentAccess
+</code></pre>
+
+<p>So, parameters aren&rsquo;t quite a hash, but they quack pretty much exactly like how a hash would quack. But there must be a good reason why they are different classes, right? Let&rsquo;s investigate further.</p>
+
+<h2>Waddle Like A Param</h2>
+
+<iframe src="//giphy.com/embed/jgIDKTrvTssDK" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>On a very basic level, <code>ActionController::Parameters</code> could be simplified to hashes with some serious restrictions and permissions. Because <code>ActionController::Parameters</code> inherits from <code>ActiveSupport::HashWithIndifferentAccess</code>, we can fetch values from our params &ldquo;hash&rdquo; using a symbol <code>:key</code> or a string <code>"key"</code>. But there are a few things that we can&rsquo;t do so easily, and that&rsquo;s where the functionality of <code>ActionController::Parameters</code> really starts to come into play and begins to make a lot more sense.</p>
+
+<p>We can easily create a new instance of <code>ActionController::Parameters</code>. In fact, we do it within the context of our controllers all the time!</p>
+
+<pre><code class="ruby">permitted_params = params.require(:order).permit(:total)
+
+permitted_params
+# =&gt; {"total"=&gt;"100.00"}
+
+permitted_params.class
+# =&gt; ActionController::Parameters
+</code></pre>
+
+<p>Except usually we wrap it in a <code>_params</code> suffixed method like this:</p>
+
+<pre><code class="ruby">def order_params
+    params.require(:order).permit(:total)
+end
+</code></pre>
+
+<p>Here is one example of the added functionality of this class. When we create a new instance of a <code>ActionController::Parameters</code> class, it is by default, not permitted.</p>
+
+<pre><code class="ruby">params = ActionController::Parameters.new
+
+params.permitted? 
+# =&gt; false
+</code></pre>
+
+<p>The <code>permitted?</code> method actually doesn&rsquo;t do anything more than return an attribute on an instance of a <code>ActionController::Parameters</code> object, called <code>@permitted</code>:</p>
+
+<pre><code class="ruby">def permitted?
+    @permitted
+end
+</code></pre>
+
+<p>So the question is, where does this attribute get set? Well, there are two places that can set this attribute to <code>true</code>. The first place is a method that we&rsquo;re already familiar with: the <code>permit</code> method! As we learned last week, this method calls <code>params.permit!</code> as its last line, after it filters out any paramters that aren&rsquo;t permitted scalar values (think <code>Symbol</code>, <code>String</code>, or <code>Hash</code>). However, we can also just call <code>permit!</code> on an instance of <code>ActionController::Parameters</code> ourselves.</p>
+
+<pre><code class="ruby">params = ActionController::Parameters.new
+params.permitted?
+# =&gt; false
+
+params.permit!
+params.permitted?
+# =&gt; true
+</code></pre>
+
+<p>The <code>permit!</code> method sets the <code>@permitted</code> attribute to <code>true</code>, and returns <code>self</code>, which in this case is just the instance of the params class. This method <a href="https://github.com/rails/rails/blob/9ab2d030209d9608a6c866d83210f5b3b7d2319e/actionpack/lib/action_controller/metal/strong_parameters.rb#L223">is quite useful</a> for mass assignment, since it effectively removes the need to list all the permitted values. It can be handy in a controller that is used only by admins that should have control over &mdash; and can be trusted with &mdash; updating all attributes of an object:</p>
+
+<pre><code class="ruby"># def blog_params
+    # params.require(:blog).permit(:title, 
+        # :author, :published_at, :tags, 
+        # :excerpt, :image, :image_caption, :external_url)
+# end
+
+def blog_params
+    params.require(:blog).permit!
+end
+</code></pre>
+
+<p>However, this doesn&rsquo;t really make sense to use unless you are <em>sure</em> that you want to allow all the values to the params hash to be whitelisted. Proceed with caution!</p>
+
+<h2>Heavy Metal Controllers</h2>
+
+<p>Now that we know a little bit more about <code>ActionController::Parameters</code> and what kinds of ducks &mdash; oops, I mean <em>objects</em> &mdash; they really are, there&rsquo;s one question that we probably still have floating around in our heads: where on earth does our params come from during the request-response cycle&hellip;and <em>how</em> does it get set on a controller?</p>
+
+<p>To answer this question, we must trace back how a parameter comes in from a request, and then how it is set on a controller. It isn&rsquo;t magic (even though it seems like that&rsquo;s the case!). In reality, it&rsquo;s actually happening in a cool place called <code>ActionController::Metal</code>. Yes, that&rsquo;s a thing, and it happens to be the very class that <code>ActionController::Base</code> <a href="https://github.com/rails/rails/blob/7978ec722172b45e72ee78baefc23ab907a91131/actionpack/lib/action_controller/base.rb#L164">inherits</a> from. By default, we should always inherit from <code>ActionController::Base</code>, because it gives us a ton of functionality and modules that help speed things up.</p>
+
+<p>But even <code>ActionController::Base</code> has to come from <em>somewhere</em>, right? And that somewhere happens to be <code>ActionController::Metal</code>, which is the simplest possible controller that we can create in Rails, which provides little more than a Rack interface. Here&rsquo;s a very, <em>very</em> simplified version of what that class looks like in the Rails source code:</p>
+
+<pre><code class="ruby">class Metal &lt; AbstractController::Base
+    # Very truncated from the Rails source code!
+
+    attr_internal :headers, :response, :request
+
+    def initialize
+        @_headers = {"Content-Type" =&gt; "text/html"}
+        @_status = 200
+        @_request = nil
+        @_response = nil
+        @_routes = nil
+        super
+    end
+end
+</code></pre>
+
+<p>As a request goes out or a response comes in, these values are set as instances on the controller itself! So if there was any doubt in your mind, everything in Ruby is an object &mdash; even controllers are just objects with instance variables and attr_readers and attr_accessors.</p>
+
+<p>So, where do our parameters get set? Well, they also live in an instance attribute called <code>@_params</code>, which is set by a <a href="https://github.com/rails/rails/blob/2910956fc9006d3c26f56992dab630fa97b7f7bc/actionpack/lib/action_controller/metal.rb#L140">params method</a>. The parameters come in from a request, and are beautifully memoized in a method that looks like this:</p>
+
+<pre><code class="ruby">def params
+    @_params ||= request.parameters
+end
+</code></pre>
+
+<p>Pretty amazing, right? That black box of <code>ActionController</code> and strong parameters doesn&rsquo;t seem so intimiating any more, does it?
+It&rsquo;s a little strange that we always talk about and use <code>params.require</code> and the <code>permit</code> method so often in Rails, particularly when we are first starting out, but we don&rsquo;t necessarily question where it comes from! Or how it is set or being used, for that matter! But now we know. And we&rsquo;ll never mistake our strong params for a simple Ruby hash again.</p>
+
+<p>Or a duck, for that matter.</p>
+
+<iframe src="//giphy.com/embed/NTSMCNXQQ1xiE" width="480" height="346" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>An instance of <code>ActionController::Parameters</code> behaves a lot like a hash that can be accessed with either symbol or string keys. This class has some added methods like <code>permitted?</code> and <code>permit!</code> which check and set the <code>@permitted</code> instance attribute on a params object.</li>
+<li>Curious to learn more about how strong params handles nested attributes? Check out this great <a href="http://patshaughnessy.net/2014/6/16/a-rule-of-thumb-for-strong-parameters">blog post</a> by Pat Shaughnessy.</li>
+<li>New to <code>ActionController::Metal</code>? Head over to the Rails docs <a href="http://api.rubyonrails.org/classes/ActionController/Metal.html">to learn more</a> and read this helpful <a href="http://stackoverflow.com/a/18189580">StackOverflow post</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Peeking Under the Hood of ActionController Parameters, Part 1]]></title>
@@ -77,7 +277,7 @@
 end
 </code></pre>
 
-<p>Nice! We&rsquo;re using our new <a href="http://vaidehijoshi.github.io/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/">memoization</a> technique, and we&rsquo;re rendering json responses to make it much easier to integrate with a JavaScript frontend; of course, we could have also just rendered our <code>@order</code> instance if this were a simple Rails application with no frontend framework. But&hellip;there&rsquo;s one thing that we&rsquo;re still missing, and clearly put off because I was dreading: our strong parameters!</p>
+<p>Nice! We&rsquo;re using our new <a href="http://vaidehijoshi.github.io/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/">memoization</a> technique, and we&rsquo;re rendering json responses to make it much easier to integrate with a JavaScript frontend; of course, we could have also just rendered our <code>@order</code> instance if this were a simple Rails application with no frontend framework. But&hellip;there&rsquo;s one thing that we&rsquo;re still missing, and clearly put off because I was dreading it: our strong parameters!</p>
 
 <p>The <code>ActionController</code> <a href="http://edgeapi.rubyonrails.org/classes/ActionController/StrongParameters.html">strong parameters</a> module was introduced back in 2012 with the release of Rails 4. The idea behind strong params was to abstract out the creation of models via mass assignment into the controller, rather than in the context of a model. Prior to this feature, we used to need to whitelist attributes in our models using <code>attr_accessible</code></p>
 
@@ -97,7 +297,7 @@ end
 
 <p>Not the best solution, right? Enter our knight in shining armor: <code>strong_parameters</code>, a <a href="https://github.com/rails/strong_parameters">gem</a> that the Rails core team released to fix this problem, which was eventually merged into Rails. Okay, let me rephrase that: our rather <em>misunderstood</em> knight in shining armor.</p>
 
-<p>In order to understand how strong params permits attributes, there are two essential methods we are required to understand.</p>
+<p>In order to comprehend how strong params permits attributes, there are two essential methods we are required to understand.</p>
 
 <h2>Requirements</h2>
 
@@ -110,7 +310,7 @@ end
 
 <p>So, how can we ensure that only the correct data is being passed through, and that too in a <em>safe</em> way? The Rails solution to this problem is to <strong>whitelist</strong> a set of attributes that should be allowed to be modified and passed through by a user (regardless of whether the role of the user is that of a guest, admin, etc.).</p>
 
-<p>The first step to whitelisting any set of attributes is making sure that the parameter we are looking to &ldquo;whitelist&rdquo; is actually present. If we think about it, this pretty logical: how can we pass in the correct attributes to create or update an object if don&rsquo;t first check that we have the parameter that contains the attributes we need? Only once we ensure that a parameter exists can we begin to strip away the &ldquo;blacklisted&rdquo; attributes.</p>
+<p>The first step to whitelisting any set of attributes is making sure that the parameter we are looking to &ldquo;whitelist&rdquo; is actually present. If we think about it, this is pretty logical: how can we pass in the correct attributes to create or update an object if don&rsquo;t first check that we have the parameter that contains the attributes we need? Only once we ensure that a parameter exists can we begin to strip away the &ldquo;blacklisted&rdquo; attributes.</p>
 
 <p>In fact, that&rsquo;s exactly what this method does under the hood. If we peek into the <a href="https://github.com/rails/rails/blob/9ab2d030209d9608a6c866d83210f5b3b7d2319e/actionpack/lib/action_controller/metal/strong_parameters.rb#L246">source code</a> for this method, this is what we&rsquo;ll find:</p>
 
@@ -124,13 +324,13 @@ end
 end
 </code></pre>
 
-<p>At this point, we should be wondering what <code>self</code> is in the context of this method. In other words, what object responds to this <code>require</code> method, exactly? And what is this <code>ParameterMissing</code> error, exactly? Let&rsquo;s take a look at the <code>require</code> <a href="http://api.rubyonrails.org/classes/ActionController/Parameters.html#method-i-require">method documentation</a> to find out:</p>
+<p>At this point, we should be wondering what <code>self</code> is in the context of this method. In other words, what object responds to this <code>require</code> method? And what is this <code>ParameterMissing</code> error, exactly? Let&rsquo;s take a look at the <code>require</code> <a href="http://api.rubyonrails.org/classes/ActionController/Parameters.html#method-i-require">method documentation</a> to find out:</p>
 
-<blockquote><p>&ldquo;<code>require</code> ensures that a parameter is present. If it&rsquo;s present, returns the parameter at the given key, otherwise raises an ActionController::ParameterMissing error.&rdquo;</p></blockquote>
+<blockquote><p><code>require</code> ensures that a parameter is present. If it&rsquo;s present, returns the parameter at the given key, otherwise raises an ActionController::ParameterMissing error.</p></blockquote>
 
 <p>Okay, so now we know that the error being raised in the conditional is actually an <code>ActionController::ParameterMissing</code> error. One question answered. But what does <code>require</code> get invoked on? Well, it turns out that the answer to that is a new instance of an <code>ActionController::Parameters</code> object!</p>
 
-<p>There&rsquo;s a <a href="http://stackoverflow.com/a/18426829">great StackOverflow answer</a> that points this fact pretty explicitly. The <code>params</code> object that we refer to in the context of our controllers gets treated as though its just an instead of a Ruby <code>Hash</code>. But in actuality, it&rsquo;s an instance of something called <code>ActionController::Parameters</code>, which is the object that responds to the <code>require</code> method. But more on that a little bit later.</p>
+<p>There&rsquo;s a <a href="http://stackoverflow.com/a/18426829">great StackOverflow answer</a> that points this fact pretty explicitly. The <code>params</code> object that we refer to in the context of our controllers gets treated as though it&rsquo;s just an instance of a Ruby <code>Hash</code>. But in actuality, it&rsquo;s an instance of something called <code>ActionController::Parameters</code>, which is the object that responds to the <code>require</code> method. But more on that a little bit later.</p>
 
 <p>For now, all that matters is that the <code>require</code> method returns a new instance of an <code>ActionController::Parameters</code> object for the key that is passed into it. If that key doesn&rsquo;t exist in the object, it throws an error. What does this mean, exactly? Well, when we write our <code>order_params</code> method in our <code>OrdersController</code>, it will begin like this:</p>
 
@@ -139,7 +339,7 @@ end
 end
 </code></pre>
 
-<p>we&rsquo;re actually returning the <em>value</em> of the parameter at the key that we&rsquo;re requiring (in our case, <code>:order</code>):</p>
+<p>We&rsquo;re actually returning the <em>value</em> of the parameter at the key that we&rsquo;re requiring (in our case, <code>order</code>):</p>
 
 <pre><code class="ruby">params = ActionController::Parameters.new(order: { total: 100.00, number: 'ABC123' })
 
@@ -147,7 +347,7 @@ params.require(:order)
 # =&gt; { total: 100.00, number: 'ABC123' }
 </code></pre>
 
-<p>And what&rsquo;s more: we&rsquo;re creating a new instance of an <code>ActionController::Parameters</code> object whenever we invoke <code>params</code> in our controller! Okay, so that&rsquo;s the first step: making sure our parameter exists. The second requires a bit more&hellip;permission on our part.</p>
+<p>And what&rsquo;s more: we&rsquo;re creating a new instance of an <code>ActionController::Parameters</code> object whenever we invoke <code>params</code> in our controller! Okay, so that&rsquo;s the first step: making sure our parameter exists. The second requires a bit more&hellip;<em>permission</em> on our part.</p>
 
 <h2>Permissions</h2>
 
@@ -170,7 +370,7 @@ params.permit(:order)
 # =&gt; { order { total: 100.00, number: 'ABC123' } }
 </code></pre>
 
-<p>Wait, but how does this happen? Well, if we look at the source code, we&rsquo;ll see that a the permit method takes an array of arguments named <code>filters</code>, and then iterates through them to check what type of object they are:</p>
+<p>Wait, but how does this happen? Well, if we look at the source code, we&rsquo;ll see that the permit method takes an array of arguments named <code>filters</code>, and then iterates through them to check what type of object they are:</p>
 
 <pre><code class="ruby">def permit(*filters)
   params = self.class.new
@@ -213,11 +413,11 @@ end
 
 <p>It turns out that abstracting our strong params out into a private <code>order_params</code> method is just a good practice that was established by the Rails core team. The Rails guides <a href="http://edgeapi.rubyonrails.org/classes/ActionController/StrongParameters.html">explain this</a> pretty well:</p>
 
-<blockquote><p>&ldquo;Using a private method to encapsulate the permissible parameters is just a good pattern since you&rsquo;ll be able to reuse the same permit list between create and update. Also, you can specialize this method with per-user checking of permissible attributes.&rdquo;</p></blockquote>
+<blockquote><p>Using a private method to encapsulate the permissible parameters is just a good pattern since you&rsquo;ll be able to reuse the same permit list between create and update. Also, you can specialize this method with per-user checking of permissible attributes.</p></blockquote>
 
 <p>Another reason for having a separate method is because things can get kind of tricky once you need to permit nested attributes. At that point, it&rsquo;s especially important to understand how these methods work.</p>
 
-<p>Tune in next week, when I&rsquo;ll continue this deep dive by exploring the <code>ActionController::Parameters</code> class and answer the super confusing question of <em>where params get instantiated</em> (no really&hellip;where?), and how to handle nested key value pairs, including hashes and arrays in whitelisted parameters. Until then, keep peeking into that source code and stay afloat like this guy:</p>
+<p>Tune in next week, when I&rsquo;ll continue this deep dive by exploring the <code>ActionController::Parameters</code> class and answer the super confusing question of <em>where params get instantiated</em> (no really&hellip;where?), and what makes a parameter different from a hash (no really, I promise that they&rsquo;re different!). Until then, keep peeking into that source code and stay afloat like this guy:</p>
 
 <iframe src="//giphy.com/embed/lpLWBoCnX1IkM" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -937,161 +1137,6 @@ end
 <li>The finder object pattern helps keep your model logic strictly related to a class&#8217; behavior, while also keeping your controller&rsquo;s skinny. Since they are nothing more than plain old Ruby classes, finder objects don&rsquo;t need to inherit from <code>ActiveRecord::Base</code>, and should be responsible for nothing more than executing queries. Read more about them on this <a href="http://twin.github.io/finder-objects/">fantastic blog post</a>.</li>
 <li>Scopes are a great tool to use if a finder object seems like more work than it&rsquo;s really worth, given the size and context of your application. Read more about scopes in the Rails <a href="http://guides.rubyonrails.org/active_record_querying.html#scopes">documentation</a>.</li>
 <li>Want to see more examples of implementing finder objects? Check out this <a href="https://speakerdeck.com/weppos/maintaining-a-5yo-ruby-project-shark-edition?slide=103">slidedeck</a> series.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Solutions for Slugs of All Sizes: Acts_as_url + To_param]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/"/>
-    <updated>2015-10-20T08:17:21-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/g5FB33d3GVUkg" width="480" height="288" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Last week was my first week of working from home, which meant two things: spending a lot of time with my computer and limited time with other human beings and, more importantly, debugging things on my own without having anyone nearby to ask for help. The latter of the two actually ended up reaffirming the fact that I actually <em>can</em> debug a decent amount of things on my own if I just power through and am stubborn enough to not give up.</p>
-
-<p>I also learned something interesting about the debugging process: while we&rsquo;re learning, we often solve the same problem again and again. At least, this was the case for one of the features I was working on which involved using an object&rsquo;s slug to generate a url. As I started thinking through how to approach solving this, I immediately had the feeling that I had done something similar in another project. Digging through another repository&rsquo;s source code confirmed my suspicions, and I rediscovered the <code>stringex</code> gem and its multiple libraries, including <code>acts_as_url</code>!</p>
-
-<p>All of this begs the question: why didn&rsquo;t I remember that this gem existed &mdash; or that I had already used it? My guess is that it&rsquo;s because I neither wrote about it nor understood how it worked until a few days ago. This week, it&rsquo;s time to rectify that situation and dive into the <code>acts_as_url</code> library and find a solution for all slug problems, once and for all!</p>
-
-<!--more-->
-
-
-<h2>The Other Kind of Slug</h2>
-
-<iframe src="//giphy.com/embed/C1aCu8kUyF6p2" width="480" height="350" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>We all are familiar with the Rails mantra of <em>convention over configuration</em>, aka making the lives of developers easier by eliminating the need for them to make decisions about how to structure their code. Now, this design paradigm is pretty fantastic, particularly when we&rsquo;re first learning a new framework. But eventually, there comes a time when we need to tweak our code&rsquo;s conventions just a tiny little bit.</p>
-
-<p>What&rsquo;s an example of this? Well, take Rails convention of finding an object by it&rsquo;s <code>id</code>. This standardization pops up all over the place, but the one that we&rsquo;re particularly concerned with is the generation of a url. By default, Rails applications will build a URL path for the <code>show</code> action of any given controller based on the primary key (aka the <code>id</code> column in our database) of the object that we&rsquo;re trying to &ldquo;show&rdquo;.</p>
-
-<p>Let&rsquo;s put this in context of our bookstore application. We have a bunch of <code>Book</code> objects, and we want to iterate through their titles and then link to their individual &ldquo;show&rdquo; pages. A very basic, not-at-all-fancy template might look something like this:</p>
-
-<pre><code class="slim">h2 Books!
-- @books.each do |book|
-    p = link_to book.title, book_path(book)
-</code></pre>
-
-<p>It&rsquo;s important to note that we&rsquo;re actually passing in the <code>book</code> instance here &mdash; an <code>ActiveRecord</code> object, and <em>not</em> the <code>book</code>&rsquo;s <code>id</code>. Why is this important? Because there&rsquo;s a method that Rails is using to convert the <code>Book</code> object into a URL in order to generate the correct address for our <code>book_path</code>. That&rsquo;s why we need to pass it an <code>ActiveRecord</code> object, because the method that&rsquo;s being called expects an object and returns the <code>id</code> as parameters in the url. What does this look like, exactly? Well, right now our <code>book_path</code> takes a <code>Book</code> instance and creates a path that looks like this: <code>localhost:3000/books/25</code>.</p>
-
-<p>Which is fine! Actually, it&rsquo;s more than fine: it&rsquo;s the expected behavior given our Rails mantra of convention over configuration. But, what if we actually <em>want</em> to configure this a little bit more. What if, instead of using the primary key of our <code>Book</code> instances, we wanted to use the title of the book? It would be lovely if we could link someone to a particular book&rsquo;s page with a more human-readable url (for example, something like <code>awesomebookstore.com/books/the-bell-jar</code> in production).</p>
-
-<p>There&rsquo;s a solution for this problem, and it&rsquo;s called slugs. Slugs are a solution for semantic URL generation, which is also sometimes referred to as &ldquo;RESTful&rdquo; or &ldquo;SEO-friendly&rdquo; URL generation. As our application grows, not only would we want our URLs to be user-friendly, but we probably also will want them to be optimized for search engine results. So, we need to change our application&rsquo;s configuration to use a slug.</p>
-
-<p><em>Protip:</em> if anyone ever pop quizzes you about where the term &ldquo;slug&rdquo; comes from, you can totally school them with the following interesting fact: a &ldquo;slug&rdquo; used to be <a href="https://en.wikipedia.org/wiki/Slug_(publishing)">a shorter name</a> given to a newspaper article while it was in production; during the editing process, the article would be labeled by its slug, which would more specifically indicate the content of the story to the editors and reporters. The more you know, amirite?</p>
-
-<p>There are obviously a lot of ways to approach this, but why reinvent the wheel by writing a bunch of methods that someone else has already written? Let&rsquo;s make use of someone&rsquo;s open source work and use the <code>acts_as_url</code> library to get the job done for us!</p>
-
-<h2>Don&rsquo;t Let Slugs Slow You Down</h2>
-
-<iframe src="//giphy.com/embed/11zeCgKZ1MaNuE" width="480" height="342" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>The <code>acts_as_url</code> library is actually part of the <code>stringex</code> gem, which adds some useful extensions to Ruby&rsquo;s <code>String</code> class. After we add this gem to our <code>Gemfile</code> (<code>gem "stringex"</code>) and run <code>bundle install</code>, we can get started doing a quick setup.</p>
-
-<p>The documentation for this library is fairly straightforward, and a quick read-through gives us a good idea of what we need to do in order to make it work properly. The basic implementation of this library is four-fold:</p>
-
-<ol>
-<li>We need a column in our database that will map to the attribute used in generating our url.</li>
-<li>We need to call the <code>acts_as_url</code> method in our model using the attribute name that we want to use for generating our url.</li>
-<li>We need to override Rails&#8217; <code>to_param</code> method (Confused? Hang tight, we&rsquo;ll get there in a second!)</li>
-<li>We need to <code>find_by</code> our new url attribute inside of our controllers.</li>
-</ol>
-
-
-<p>Let&rsquo;s take it step by step. First, we&rsquo;ll write a migration that will add a <code>slug</code> column to our <code>books</code> database. This is going to be the column that will map to a <code>slug</code> attribute on our <code>Book</code> objects:</p>
-
-<pre><code class="ruby">class AddSlugColumnToBooks &lt; ActiveRecord::Migration
-  def change
-    add_column :books, :slug, :string
-  end
-end
-</code></pre>
-
-<p>Once we run <code>rake db:migrate</code> and add this attribute, we will want to add the <code>acts_as_url</code> class method to our <code>Book</code> model.</p>
-
-<pre><code class="ruby">class Book &lt; ActiveRecord::Base
-  acts_as_url :title, url_attribute: :slug
-end
-</code></pre>
-
-<p>The default behavior of this method expects that we have a column and attribute called <code>url</code> on our object. Since we aren&rsquo;t using the default attribute name, we need to specify the name of the attribute that we&rsquo;re using to store the generated url string. Thankfully, <code>acts_as_url</code> takes a bunch of options, including <code>url_attribute</code>, which is what we&rsquo;re using here. There are some other useful options <a href="https://github.com/rsl/stringex">worth checking out</a> in the documentation, including <code>scope</code>, <code>limit</code>, <code>truncate_words</code>, and <code>blacklist</code>.</p>
-
-<p>Next, we&rsquo;ll need to override Rail&rsquo;s <code>to_param</code> method in order to actually <em>use</em> our generated url attribute. Basically, we&rsquo;ll just want to write our own <code>to_param</code> method and return our <code>slug</code> attribute from inside of it.</p>
-
-<pre><code class="ruby">class Book &lt; ActiveRecord::Base
-  acts_as_url :title, url_attribute: :slug
-
-  def to_param
-    slug
-  end
-end
-</code></pre>
-
-<p>And finally, we need to make sure that we&rsquo;re finding our object using the appropriate attribute from within the context of our controller. The documentation suggests we use
-the <code>find_by_url</code> method, but we could also use the <code>find_by</code> method in our controller as well.</p>
-
-<pre><code class="ruby">class BooksController &lt; ApplicationController
-  def show
-    @book = Book.find_by(slug: params[:id]).decorate
-  end
-end
-</code></pre>
-
-<p>Nothing changes about how our controller works and we can still do all the fancy things we were doing before, like use a decorator (<a href="http://vaidehijoshi.github.io/blog/2015/01/13/tidying-up-those-views-using-decorators-in-rails/">Remember those?</a>). The only thing that happens now is that our original <code>book_path</code> helper will now use the <code>book</code> instance we passed it to generate a url with a slug instead of the primary key!</p>
-
-<p>Success! We&rsquo;ve done it! Actually, we&rsquo;ve <em>almost</em> done it. One tiny little thing that I always forget is all of the books that already exist in our database. What about them? They all have a <code>slug</code> attribute, sure, and a <code>slug</code> column &ndash; but there&rsquo;s a slight problem: the column is empty! So we can&rsquo;t <code>find_by</code> the <code>slug</code> attribute for those books, can we? In fact, if we try to call <code>to_param</code> on any of our preexisting <code>Book</code> instances right now, all we&rsquo;ll get is <code>nil</code>!</p>
-
-<p>No worries, we just need to call a method inside of our console:</p>
-
-<pre><code class="ruby">♥ rails c
-Loading development environment (Rails 4.1.4)
-irb(main):001:0&gt; Book.initialize_urls
-</code></pre>
-
-<p>Now all of the <code>Book</code> instances that had empty <code>slug</code> attributes have ben initialized, and we&rsquo;re good to go! Right? Wrong. Because I haven&rsquo;t explained the whole <code>to_param</code> situation yet, and I promised that I would get to it. Now&rsquo;s the time to figure out the magic behind that!</p>
-
-<h2>Rails Non-Sluggish Solution: <code>to_param</code></h2>
-
-<p>The Rails solution to generating params for an object&rsquo;s url path comes from its elegant <code>to_param</code> method. By default, this method just calls <code>to_s</code> on a Plain Old Ruby Object, and converts it to an instance of Ruby&rsquo;s <code>String</code> class. However, there are plenty of places where Rails itself <em>overrides</em> this method (which explains why we also have to do it in the context of our own controller)!</p>
-
-<p>In fact, the Rails documentation even explains when and how to go about redefining the implementation of this method:</p>
-
-<blockquote><p>&ldquo;Notably, the Rails routing system calls <code>to_param</code> on models to get a value for the <code>:id</code> placeholder. <code>ActiveRecord::Base#to_param</code> returns the <code>id</code> of a model, but you can redefine that method in your models.&rdquo;</p></blockquote>
-
-<pre><code class="ruby">class User
-  def to_param
-    "#{id}-#{name.parameterize}"
-  end
-end
-</code></pre>
-
-<p>Of course, we could have easily redefined this in the context of each of our models, but using the <code>acts_as_url</code> library reduces the amount of duplicated code that we need in each of our models, and is pretty sophisticated in that it allows us to use <em>different</em> attributes across different models to generate our url path.</p>
-
-<p>Interestingly, <a href="https://github.com/rails/rails/blob/7f18ea14c893cb5c9f04d4fda9661126758332b5/activemodel/lib/active_model/conversion.rb#L71">the source code</a> for Rails&#8217; <code>to_param</code> method reveals some elegant checks as well. This method first checks whether the object as been persisted to the database, and then returns a string representing the object&rsquo;s key. We can actually see how the <code>to_key</code> method is being called from <em>inside</em> of <code>to_param</code>, and how the default return value of an unpersisted object&rsquo;s param will be <code>nil</code>. This is the magic that goes on under the hood when we were trying to find the <code>slug</code> attributes for all of those <code>Book</code> instances before we called <code>initialize_urls</code> on them!</p>
-
-<p>So, even though slugs have a <em>reputation</em> of being slow, now we know how to speed through this problem with an elegant and quick solution! I can&rsquo;t say the same for this poor guy, though:</p>
-
-<iframe src="//giphy.com/embed/1KJPg114jm68U" width="480" height="169" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>acts_as_url</code> library expects an <code>url</code> attribute on a model, and uses that to generate the path for an object. You need to override Rails&#8217; <code>to_param</code> method that, by default, will use the <code>id</code> of an object to generate its path.</li>
-<li>This <a href="https://gist.github.com/jcasimir/1209730">awesome gist</a> by Jeff Casimir is the best write-up on slugs and Rails&#8217; url generation out there. Give it a read!</li>
-<li>The original <code>to_param</code> method used to be defined inside of <code>ActiveRecord::Base</code>, but has since moved to the <code>ActiveModel::Conversion</code> module, which handles default conversions, including <code>to_model</code>, <code>to_key</code>, and <code>to_partial_path</code>. Read more about how these methods work in the Conversion <a href="http://apidock.com/rails/ActiveModel/Conversion">module documentation</a>.</li>
 </ul>
 
 ]]></content>
