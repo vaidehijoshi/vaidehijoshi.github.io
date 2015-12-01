@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Ruby | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-11-24T08:46:49-05:00</updated>
+  <updated>2015-12-01T08:45:51-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,175 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Functions to Call Upon: ActiveRecord Association Callbacks]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks/"/>
+    <updated>2015-12-01T08:53:17-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/ajgpGefucxTH2" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>No developer knows <em>everything</em> &mdash; even if they do know a whole lot more than you do. I was reminded of this fact recently while pairing with a more experienced programmer on a large Ember-Rails project that&rsquo;s now coming to a close. We were right in the middle of adding some methods to a Rails model when we realized that we actually needed to change something about how one of our model&rsquo;s <code>ActiveRecord</code> associations worked.</p>
+
+<p>What we wanted to do was rely upon a callback function executing every time an association was created or destroyed. But, we hit a little bit of a wall, since we quickly realized that this wasn&rsquo;t as simple as we initially thought. The complication came with the fact that we were dealing with a <code>has_many</code> relationship, which meant that we weren&rsquo;t dealing with a single object, but rather a <em>collection</em> of objects. The developer I was pairing with explained that he knew that there were some methods that <code>ActiveRecord</code> has to achieve what we wanted to do, but he wasn&rsquo;t sure how they worked exactly, just that he had seen them before elsewhere.</p>
+
+<p>After doing a little research on what resources <code>ActiveRecord</code> provides when it comes to solving this problem in an elegant way, we eventually decided to go another route and use a different callback function. But in the process of pairing, we learned that there <em>are</em> some methods that exist in <code>ActiveRecord</code> that can come in handy in this situation. If we hadn&rsquo;t been on a tight deadline for the specific feature that we were building, we probably could have devoted more time to learning about these callbacks. So, I decided to come back to these callback functions and dig a little deeper. Interestingly, there really isn&rsquo;t that much documentation on <code>ActiveRecord</code>&rsquo;s association callback methods, and nearly no blog posts. This is uncharted territory, my friends! Are you ready? I hope so.</p>
+
+<!--more-->
+
+
+<h2>Hello, it&rsquo;s me, a callback function</h2>
+
+<iframe src="//giphy.com/embed/fOvKNgHUIChPi" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Callback functions are everywhere, particularly when we&rsquo;re inside the context of most Rails&#8217; models. Our average <code>ActiveRecord</code> callback will hook into the object life cycle of our <code>ActiveRecord</code> instances, which allows us to work with our object at any given point during its lifespan. The most common use case for implementing a callback is executing logic before or after the alteration of an object&rsquo;s state.</p>
+
+<p>Here&rsquo;s my personal list of my top callbacks (yes, I have a list):</p>
+
+<ol>
+<li><code>after_commit</code></li>
+<li><code>after_update</code></li>
+<li><code>after_destroy</code></li>
+<li><code>before_validation</code></li>
+<li><code>before_save</code></li>
+</ol>
+
+
+<p>They pretty much do exactly what you think they would do: they hook into the object at the point in it&rsquo;s create, update, validate, save, or destroy &ldquo;state&rdquo;, and allow you to execute whatever functionality you might need. This is just the tip of the iceberg though: check out <a href="http://guides.rubyonrails.org/active_record_callbacks.html#available-callbacks">the whole list</a> of <code>ActiveRecord</code> callbacks that are free to use.</p>
+
+<p>But let&rsquo;s get back to <strong>association callbacks</strong>. What makes them <em>different</em> from that bunch of functions we just listed above? Well, there&rsquo;s really one big difference in particular: association callbacks are similar to normal callbacks, but rather than hooking into the life cycle of a single object, they are triggered by the life cycle of a <em>collection of objects</em>. Unlike &ldquo;single object&rdquo; callbacks however, there are a limited number of a methods available for us to use. Actually, there&rsquo;s exactly four association callbacks, to get specific:</p>
+
+<ol>
+<li><code>before_add</code></li>
+<li><code>after_add</code></li>
+<li><code>before_remove</code></li>
+<li><code>after_remove</code></li>
+</ol>
+
+
+<p>There are two important things to note about how and when these callbacks are run:</p>
+
+<p>First, callbacks like <code>before_remove</code> and <code>after_remove</code> will run before and after the <code>delete</code> methods. In other words, when we call <code>objects.delete</code>, the <code>delete</code> method will invoke the <code>before_remove</code> and <code>after_remove</code> callbacks by default. Similarly, the <code>destroy</code> method will destroy a collection of records and remove them from an association while calling the <code>before_remove</code> and <code>after_remove</code> functions.</p>
+
+<p>Second, if any of the <code>before_add</code> callbacks throws an exception and cannot create the association with a record in the collection, the object simply won&rsquo;t be added to the collection. Similarly, if any of the objects passed to the <code>before_remove</code> callback throws an exception, the object won&rsquo;t be removed from the collection. This is pretty important to keep in mind for two reasons: if we want to make sure that objects are only added or removed from an association collection successfully, and want to throw an error of some sort if for some reason this is <em>unsuccessful</em>, this is a really good thing. But, if we want to be able to assume that an object can always be added or removed from a collection without fail, this is bad thing, because we can&rsquo;t always be sure that this will happen.</p>
+
+<p>With all these points in mind, there&rsquo;s only one question left to ask: how do we implement these callbacks, exactly? Time to find out.</p>
+
+<h2>Calling Upon Callbacks</h2>
+
+<iframe src="//giphy.com/embed/ixCowrTgEUeSKw1Zq8" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Implementing our association callback isn&rsquo;t too complicated of a task. Since these four association callbacks can only be invoked on a <code>has_many</code> or <code>has_many, through:</code> collection association, our callbacks can be added onto the same line where this association is defined in our model. For example, let&rsquo;s say that our <code>Order</code> objects can have many <code>Discount</code>s (apparently we&rsquo;re feeling particularly generous this holiday season, and we&rsquo;re going to allow many discounts rather than just one!). We can start off with a model that looks like this:</p>
+
+<pre><code class="ruby">class Order
+    has_many :discounts, after_add: :recalculate_total
+end
+</code></pre>
+
+<p>Whenever a <code>discount</code> is added to an <code>order</code> instance, we want to recalculate the total for our order, with the discount applied. We&rsquo;ve  added the callback to our association, and are passing our callback the name of the function (in this case, we&rsquo;ve called it <code>recalculate_total</code>) we want to be executed every single time a <code>discount</code> is added to our &ldquo;collection&rdquo; of discounts on an <code>order</code>.</p>
+
+<p>Now, all we need to do is actually write the <code>recalculate_total</code> method. Since we don&rsquo;t want this method to be called in any context aside from this association callback, we&rsquo;ll make it a <code>private</code> method:</p>
+
+<pre><code class="ruby">class Order
+    has_many :discounts, after_add: :recalculate_total
+
+    private
+
+    def recalculate_total(discount)
+        subtotal = items.map(&amp;:amount).inject(:+)
+
+        update!(total: (subtotal - discount))
+    end
+end
+</code></pre>
+
+<p>We can really pass as many methods to our callbacks as we want, in the form of symbols in an array. We can also pass a proc directly into this array as well, as explained by the <a href="http://api.rubyonrails.org/classes/ActiveRecord/Associations/ClassMethods.html">Rails docs</a>.</p>
+
+<pre><code class="ruby">class Order
+    has_many :discounts, after_add: [:recalculate_total, 
+    :touch_discount_applied_at]
+
+    private
+
+    def recalculate_total(discount)
+        subtotal = items.map(&amp;:amount).inject(:+)
+
+        update!(total: (subtotal - discount))
+    end
+
+    def touch_discount_applied_at
+        touch(:discount_applied_at)
+    end
+end
+</code></pre>
+
+<p>Pretty interesting, right? Who knew that this even existed?! (Spoiler alert: me. I had no clue this was even a thing.) But how does this even happen? Where is this defined, and how does it work? Let&rsquo;s dig one level deeper and dive into my favorite place: the Rails source code.</p>
+
+<h2>All About The Association Builder</h2>
+
+<p>I think one of the reasons that association callbacks aren&rsquo;t as well-known or written about is because they live in an odd place. In fact, they are defined inside of <code>ActiveRecord</code>&rsquo;s <code>Associations::Builder::CollectionAssociation</code> (wow, what a mouthful!) class, which doesn&rsquo;t actually have any documentation at all! No wonder this is Rails best-kept secret! This class is actually inherited by the <code>has_many</code> and <code>has_many_belongs_to_many</code> association classes, while the <code>CollectionAssociation</code> class itself inherits from the <code>Association</code> class.</p>
+
+<p>I&rsquo;m still not <em>completely</em> sure what&rsquo;s going on behind the scenes here, but from the source code it appears as though the association callbacks (namely <code>before_add</code>, <code>after_add</code>, <code>before_remove</code>, and <code>after_remove</code> to be exact) are all defined as <a href="https://github.com/rails/rails/blob/718468e1c9666ee8d58ae2a446e865a1e1e1fc4e/activerecord/lib/active_record/associations/builder/collection_association.rb#L8">an array of symbols</a>, which is set to a <code>CALLBACKS</code> constant, which is used throughout the class:</p>
+
+<pre><code class="ruby">require 'active_record/associations'
+
+module ActiveRecord::Associations::Builder
+    class CollectionAssociation &lt; Association
+
+        CALLBACKS = [:before_add, :after_add, 
+        :before_remove, :after_remove]
+
+        def self.define_callbacks(model, reflection)
+            # Truncated for brevity!
+
+            CALLBACKS.each { |callback_name|
+                define_callback(model, callback_name, name, options)
+            }
+        end
+    end
+end
+</code></pre>
+
+<p>So, if this is where our association callbacks are <em>defined</em>, where are they being invoked? I&rsquo;m glad you asked. It turns out, they&rsquo;re used most often inside of <code>ActiveRecord</code>&rsquo;s <code>Associations::CollectionAssociation</code> module, which contains methods that we use all the time on our <code>ActiveRecord</code> objects &mdash; perhaps without even realizing it! Our association callbacks are passed as arguments and then implemented by the <a href="https://github.com/rails/rails/blob/3f16a098452ee5d447142bd9a6f6045cb1fc83b4/activerecord/lib/active_record/associations/collection_association.rb#L583">callback method</a> in <code>CollectionAssociation</code> module.</p>
+
+<p>We can actually see our callbacks in action inside of a <code>private</code> method called <code>remove_records</code>, which is <a href="https://github.com/rails/rails/blob/3f16a098452ee5d447142bd9a6f6045cb1fc83b4/activerecord/lib/active_record/associations/collection_association.rb#L535">defined within</a> this very same module. Here&rsquo;s what that method looks like:</p>
+
+<pre><code class="ruby">def remove_records(existing_records, records, method)
+    records.each { |record| callback(:before_remove, record) }
+
+    delete_records(existing_records, method) if existing_records.any?
+    records.each { |record| target.delete(record) }
+
+    records.each { |record| callback(:after_remove, record) }
+end
+</code></pre>
+
+<p>Nice! There&rsquo;s our <code>after_remove</code> callback, being called on each of our <code>records</code> that&rsquo;s being passed into it. We might not even realize it, but the <code>remove_records</code> method is called upon by the <code>delete_or_destroy</code> method (another <code>private</code> method in this module), which is invoked by both of <code>ActiveRecord</code>&rsquo;s commonly-used <code>delete</code> and <code>destroy</code> methods! This is exactly how we can confirm what we learned earlier about our <code>before_remove</code> and <code>after_remove</code> callbacks. It&rsquo;s not magic &mdash; it&rsquo;s just code that&rsquo;s hiding from us! Except now we know how to call upon our callbacks, so we can say that we are strangers no more.</p>
+
+<iframe src="//giphy.com/embed/qWf8HTOti0mxG" width="480" height="249" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Association callbacks are similar to <code>ActiveRecord</code>&rsquo;s normal callbacks, except that they hook into the life cycle of a collection of objects (<code>has_many)</code>, rather than just a single object (<code>has_one</code>).</li>
+<li>Need to brush up on <code>ActiveRecord</code> associations? Head over to the <a href="http://api.rubyonrails.org/classes/ActiveRecord/Associations/ClassMethods.html">module documentation</a> for associations.</li>
+<li>Want to know exactly what&rsquo;s going on inside of the <code>destroy</code> and <code>delete</code> methods? Dive into the source code! Check out the <a href="https://github.com/rails/rails/blob/3f16a098452ee5d447142bd9a6f6045cb1fc83b4/activerecord/lib/active_record/associations/collection_association.rb#L267">delete</a> and <a href="https://github.com/rails/rails/blob/3f16a098452ee5d447142bd9a6f6045cb1fc83b4/activerecord/lib/active_record/associations/collection_association.rb#L281">destroy</a> method signatures.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Peeking Under the Hood of ActionController Parameters, Part 2]]></title>
@@ -914,229 +1083,6 @@ end
 <li>ActiveRecord scopes give us a lot of flexibility, even though they are effectively defining a class method on a model. The fundamental difference between them however, is that scopes should always return an <code>ActiveRecord::Relation</code> object, which makes them forever chainable!</li>
 <li>How does the <code>scope</code> method actually work? I&rsquo;m not sure that I understand all of it, but perhaps you will! Check it out in the <a href="https://github.com/rails/rails/blob/428d47adfed8d6aa7b21aec2bf5ad890961c9de3/activerecord/lib/active_record/scoping/named.rb#L143">Rails source code</a>!</li>
 <li>There are a few great primers on writing effective scopes, like <a href="http://www.informit.com/articles/article.aspx?p=2220311">this one</a>, and this <a href="http://blog.plataformatec.com.br/2013/02/active-record-scopes-vs-class-methods/">other one</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Digging Into the Finder Object Pattern]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/10/27/digging-into-the-finder-object-pattern/"/>
-    <updated>2015-10-27T08:58:31-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/10/27/digging-into-the-finder-object-pattern</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/y5A0PlFbGIk4o" width="480" height="280" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Most developers aren&rsquo;t ever <em>completely</em> happy with their code. I&rsquo;m no exception to this stereotype &mdash; I almost always know that I could probably write a cleaner, more concise method, controller, or class. Usually, it&rsquo;s a matter of not know the best tool to reach for to refactor my code; eventually, I learn a new pattern or form of encapuslating logic that I later use to make my old code a lot better.</p>
-
-<p>But a few weeks ago, I wrote 100 lines of beautiful code. I&rsquo;m talking about a goregous, straightforward, no-nonsense class that did a lot in a relatively few lines of Ruby. I still feel pretty proud of it (can you tell?), and part of the reason for this is because I also learned a new pattern while writing this class. I was actually pairing with another developer, and we wanted to try using a rather common Rails pattern to solve a problem we were running into again and again: messy queries in our controllers and models.</p>
-
-<p>We both were familiar with the concept of &ldquo;skinny controllers&rdquo; and &ldquo;fat models&rdquo;, or the idea that your controllers shouldn&rsquo;t be responsible for containing the logic specific to a model. However, we also didn&rsquo;t want our models to get out of control in size, which is exactly what was starting to happen. So, we searched for a workaround, and found our answer in one of the most elegant patterns I&rsquo;ve seen in awhile: <strong>finder objects</strong>. Finder objects are simple Ruby classes that encapuslate the logic behind querying the database, and they are hands down, my new favorite kind of Ruby object.</p>
-
-<!--more-->
-
-
-<h2>Scopin&#8217; Down The Problem of Scopes</h2>
-
-<iframe src="//giphy.com/embed/Y6eQqv3jdV4RO" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>In our bookstore application, we have <code>Order</code> objects, which represent the orders that a user places in our system. However, these are books that we&rsquo;re dealing with, and eventually we need to address the whole fulfillment process, which will need to be represented by a whole other set of models. For now, we&rsquo;ll try to keep it as simple as possible. Let&rsquo;s say that an <code>Order</code> has many <code>Shipments</code>, and each shipment represents a batch of <code>Book</code> objects (read: products) that need to be shipped out together.</p>
-
-<p>Right off the bat, we know that our <code>Shipment</code> model will have some kind of state machine that will need to track the different stages of the shipment phase. Again, to keep it simple, let&rsquo;s say that there are five different stages or <code>state</code>s of a shipment:</p>
-
-<ol>
-<li>A shipment starts off as <code>processing</code> once an order has been placed.</li>
-<li>Once it has been processed, it needs a label with the shipping address information, so it transitions to the <code>needs_label</code> state.</li>
-<li>After it has a label generated, it&rsquo;ll need a tracking number, so transitions to the <code>needs_tracking</code> state.</li>
-<li>Once it has a tracking number, it transitions to being <code>ready</code> for shipment.</li>
-<li>Finally, when the shipment is actually sent out of the warehouse and to our shipping service, it should be marked as <code>shipped</code>.</li>
-</ol>
-
-
-<p>To be clear, this is a <em>super</em> simplified version of what would happen in a real-life application! Now, in our admin panel, let&rsquo;s say that we have a page that will render all of our shipments, which should always ordered by when they were created, so that our admins know which shipments to process, and in which order.</p>
-
-<p>We can take it a step further and say that our main admin panel page &mdash; which will correspond to the <code>index</code> action in our controller, should show our admins the most urgent shipments that need their attention as soon as they log in; in other words, these would be the shipments that were created more than a week ago, but still haven&rsquo;t been processed.</p>
-
-<p>I think we can all agree that basic Rails best practices should steer us away from doing something like this:</p>
-
-<pre><code class="ruby">class ShipmentsController &lt; ApplicationController
-  def index
-    @shipments = Shipment.where(state: :ready)
-            .where('created_at &lt;= ?', Time.zone.now + 7.days)
-               .order(created_at: :desc)
-  end
-end
-</code></pre>
-
-<p>We <em>definitely</em> know that the controller really shouldn&rsquo;t be responsible for querying for the correct <code>Shipment</code> objects. All our controller should have to do is just render the correct ones, and not go digging for them in the database!</p>
-
-<p>Okay, so we&rsquo;ll create some scopes for these queries instead. These scopes should live in our model, not in the controller, right? Let&rsquo;s see what our model might look like if we take that approach:</p>
-
-<pre><code class="ruby">class Shipment &lt; ActiveRecord::Base
-    belongs_to :order
-
-    default_scope -&gt; { order(created_at: :desc) }
-    scope :shipped, -&gt; { where(state: 'shipped') }
-    scope :urgent, -&gt; {
-        where('created_at &lt;= ?', Time.zone.now + 7.days)
-    }
-end
-</code></pre>
-
-<p>This cleans things up a decent bit! Scopes are actually part of the Active Record Query Interface, and they allow us to specify commonly-used queries which we can then actually reference and use in the form of method calls on our models themselves. They are really nothing more than defining class methods on a model:</p>
-
-<pre><code class="ruby">class Shipment &lt; ActiveRecord::Base
-    def self.shipped
-        where(state: 'shipped')
-    end
-end
-</code></pre>
-
-<p>However, they&rsquo;re pretty wonderful because you can just chain them as method calls (<code>Shipment.urgent.shipped</code>), but all they do is execute the correct query for you:</p>
-
-<pre><code class="ruby">Shipment.shipped
-=&gt; SELECT "shipments".* FROM "shipments" WHERE "shipments"."state" = "shipped"
-</code></pre>
-
-<p>But the good news about scopes is also the bad <a href="news:">news:</a> you can just keep adding them and adding them, and chaining them onto everything. Our <code>Shipment</code> class has only three scopes at the moment, one of them being the <code>default</code> scope. But, we&rsquo;ll probably have a page that should only render only the shipments that are in the <code>needs_label</code> state, or a page that maps to a controller action which should only return shipments that are in the <code>needs_tracking</code> state. We <em>could</em> keep adding scopes and then have our controller actions call the scopes on the class to return the appropriate shipments from our database.</p>
-
-<p>Or, we could try something a little different.</p>
-
-<h2>Finder Objects</h2>
-
-<iframe src="//giphy.com/embed/12bpEjD05ac2IM" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Our scopes don&rsquo;t actually add any new behavior to our model. As we saw earlier, they are nothing more than macros for querying for the correct rows from our <code>shipments</code> table in our database. So, it really doesn&rsquo;t make sense for our model to contain all this logic that doesn&rsquo;t <em>add</em> any new behavior to it.</p>
-
-<p>It would be nice, however, if we could apply the rule of &ldquo;separation of concerns&rdquo; here, and have an entire class whose sole responsibility would be to dig up the correct objects based on the parameters we were querying by. Really, this class should do nothing more than <em>find the right objects</em>. You might even say that instances of this class are just&hellip;<em>finder objects</em>! (Get it? Man, I really hope you got it.)</p>
-
-<p>Anyways, how might this class look? Well, we don&rsquo;t need any of the functionality from ActiveRecord, so we can create it as just a Plain Old Ruby Class:</p>
-
-<pre><code class="ruby">class ShipmentFinder
-end
-</code></pre>
-
-<p>Next, we&rsquo;ll want to tell our finder object which models to query for, so it will know how to construct our queries, and which table to query. Since we never really want to have this method accessible elsewhere, we can make it a private class method that will only be called from the context of another <code>ShipmentFinder</code> class method:</p>
-
-<pre><code class="ruby">class ShipmentFinder
-    class &lt;&lt; self
-        private
-        def resource_class
-            ::Shipment
-        end
-    end
-end
-</code></pre>
-
-<p>Now, we can use Rails&#8217; <a href="https://github.com/rails/arel">arel DSL</a> to construct a basic query. To do this, we&rsquo;ll need a method that returns the table, which can also be a private method since we&rsquo;ll never want to call it explicitly:</p>
-
-<pre><code class="ruby">class ShipmentFinder
-    class &lt;&lt; self
-      private
-
-      def table
-        resource_class.arel_table
-      end
-
-      def resource_class
-        ::Shipment
-      end
-    end
-end
-</code></pre>
-
-<p>Now, we can write as many specific queries as we want. For example, we could write a <code>urgent_needs_tracking</code> class method that could constructs a query using two private methods, <code>needs_tracking</code> and <code>is_ready</code>:</p>
-
-<pre><code class="ruby">class ShipmentFinder
-    class &lt;&lt; self
-      def urgent_needs_tracking
-        query = needs_tracking.and(is_ready)
-
-        resource_class.where(query)
-      end
-
-      def shipped
-        resource_class.where(state: 'shipped')
-      end
-
-      private
-
-      def urgent
-        resource_class.where('created_at &lt;= ?', Time.zone.now + 7.days))
-      end
-
-      def is_ready
-        table[:state].eq('ready')
-      end
-
-      def needs_tracking
-        table[:state].eq('needs_tracking')
-      end
-
-      def needs_label
-        table[:state].eq('needs_label')
-      end
-
-      def table
-        resource_class.arel_table
-      end
-
-      def resource_class
-        ::Shipment
-      end
-    end
-end
-</code></pre>
-
-<p>Now we can rely on our <code>ShipmentFinder</code> class to find our shipments that have been created more than 7 days ago, and still don&rsquo;t have a tracking number. We also can add more functionality that can be used in specific instances, which is exactly what we&rsquo;ve done with our <code>needs_label</code> and <code>is_ready</code> private methods. We can use arel to construct queries using those methods to scope down what objects are actually returned. We don&rsquo;t have to do anything fancy, if we don&rsquo;t want to. Take a look at that <code>shipped</code> method &mdash; this is just using a simple <code>where</code> arel method to construct a query that reads like this: <code>SELECT "shipments".* FROM "shipments" WHERE "shipments"."state" = "shipped"</code>.</p>
-
-<p>Finally, the last step: it&rsquo;s time for us to actually call on our finder object to do its job!</p>
-
-<h2>Cleaner Querying, Cleaner Controllers</h2>
-
-<p>Let&rsquo;s bring it all together by going back to our <code>ShipmentsController</code> and add our new finder object into it. Our <code>index</code> action should now be able to account for different types of shipments that our admins might want to query for. For now, we&rsquo;ll construct our controller to accept a query parameter in our params hash that will be that <code>status</code> of the types of shipments we want to return. Depending on the frontend framework we&rsquo;re using, this might be a dropdown or checkbox option that will set a value on the <code>status</code> key in our params hash.</p>
-
-<p>Our controller action could now be rewritten to look something like this:</p>
-
-<pre><code class="ruby">class ShipmentsController &lt; ApplicationController
-  def index
-    status = params[:status]
-    status_method = status.to_sym
-
-    if ShipmentFinder.respond_to?(status_method)
-            @shipments = ShipmentFinder.send(status_method)
-        else
-            @shipments = Shipment.all
-        end
-  end
-end
-</code></pre>
-
-<p>Here, we&rsquo;re accessing the query param from <code>params[:status]</code>, and turning it into a symbol (<code>status_method</code>). Next, we&rsquo;re using Ruby&rsquo;s super handy <code>respond_to?</code> method, and sending our <code>status_method</code> symbol to our <code>ShipmentFinder</code>. So, if our admin selects an option that sends the query param <code>urgent_needs_tracking</code>, we are telling our finder object to call that method, and execute that query. The return value of the query executed by our <code>ShipmentFinder</code>&rsquo;s <code>urgent_needs_tracking</code> method is what will be set as the instance variable <code>@shipments</code> for the duration of this action on the controller.</p>
-
-<p>If no query param is set, or if our <code>ShipmentFinder</code> doesn&rsquo;t have a method that maps to a query param, we&rsquo;re just returning all of our <code>Shipment</code> objects by default.</p>
-
-<p>This is quite an improvement from our earlier code, which had our controller digging for rows in a database that it really didn&rsquo;t have anything to do with. Now, we&rsquo;ve separated our concerns into a new finder object, which exists as its own query interface on its own. It&rsquo;s also worth noting that sometimes, creating a finder object can be overkill, and sometimes, if we have a lot of finder objects, we&rsquo;d probably want to abstract a lot of this functionality out into a <code>BaseFinder</code> class, which our finder objects could inherit from. But this is definitely a great start. No more digging for us!</p>
-
-<iframe src="//giphy.com/embed/FqEDV3gjMhqRG" width="480" height="267" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The finder object pattern helps keep your model logic strictly related to a class&#8217; behavior, while also keeping your controller&rsquo;s skinny. Since they are nothing more than plain old Ruby classes, finder objects don&rsquo;t need to inherit from <code>ActiveRecord::Base</code>, and should be responsible for nothing more than executing queries. Read more about them on this <a href="http://twin.github.io/finder-objects/">fantastic blog post</a>.</li>
-<li>Scopes are a great tool to use if a finder object seems like more work than it&rsquo;s really worth, given the size and context of your application. Read more about scopes in the Rails <a href="http://guides.rubyonrails.org/active_record_querying.html#scopes">documentation</a>.</li>
-<li>Want to see more examples of implementing finder objects? Check out this <a href="https://speakerdeck.com/weppos/maintaining-a-5yo-ruby-project-shark-edition?slide=103">slidedeck</a> series.</li>
 </ul>
 
 ]]></content>

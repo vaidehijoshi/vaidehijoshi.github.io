@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-11-24T08:46:49-05:00</updated>
+  <updated>2015-12-01T08:45:51-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,235 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Functions to Call Upon: ActiveRecord Association Callbacks]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks/"/>
+    <updated>2015-12-01T08:53:17-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/ajgpGefucxTH2" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>No developer knows <em>everything</em> &mdash; even if they do know a whole lot more than you do. I was reminded of this fact recently while pairing with a more experienced programmer on a large Ember-Rails project that&rsquo;s now coming to a close. We were right in the middle of adding some methods to a Rails model when we realized that we actually needed to change something about how one of our model&rsquo;s <code>ActiveRecord</code> associations worked.</p>
+
+<p>What we wanted to do was rely upon a callback function executing every time an association was created or destroyed. But, we hit a little bit of a wall, since we quickly realized that this wasn&rsquo;t as simple as we initially thought. The complication came with the fact that we were dealing with a <code>has_many</code> relationship, which meant that we weren&rsquo;t dealing with a single object, but rather a <em>collection</em> of objects. The developer I was pairing with explained that he knew that there were some methods that <code>ActiveRecord</code> has to achieve what we wanted to do, but he wasn&rsquo;t sure how they worked exactly, just that he had seen them before elsewhere.</p>
+
+<p>After doing a little research on what resources <code>ActiveRecord</code> provides when it comes to solving this problem in an elegant way, we eventually decided to go another route and use a different callback function. But in the process of pairing, we learned that there <em>are</em> some methods that exist in <code>ActiveRecord</code> that can come in handy in this situation. If we hadn&rsquo;t been on a tight deadline for the specific feature that we were building, we probably could have devoted more time to learning about these callbacks. So, I decided to come back to these callback functions and dig a little deeper. Interestingly, there really isn&rsquo;t that much documentation on <code>ActiveRecord</code>&rsquo;s association callback methods, and nearly no blog posts. This is uncharted territory, my friends! Are you ready? I hope so.</p>
+
+<!--more-->
+
+
+<h2>Hello, it&rsquo;s me, a callback function</h2>
+
+<iframe src="//giphy.com/embed/fOvKNgHUIChPi" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Callback functions are everywhere, particularly when we&rsquo;re inside the context of most Rails&#8217; models. Our average <code>ActiveRecord</code> callback will hook into the object life cycle of our <code>ActiveRecord</code> instances, which allows us to work with our object at any given point during its lifespan. The most common use case for implementing a callback is executing logic before or after the alteration of an object&rsquo;s state.</p>
+
+<p>Here&rsquo;s my personal list of my top callbacks (yes, I have a list):</p>
+
+<ol>
+<li><code>after_commit</code></li>
+<li><code>after_update</code></li>
+<li><code>after_destroy</code></li>
+<li><code>before_validation</code></li>
+<li><code>before_save</code></li>
+</ol>
+
+
+<p>They pretty much do exactly what you think they would do: they hook into the object at the point in it&rsquo;s create, update, validate, save, or destroy &ldquo;state&rdquo;, and allow you to execute whatever functionality you might need. This is just the tip of the iceberg though: check out <a href="http://guides.rubyonrails.org/active_record_callbacks.html#available-callbacks">the whole list</a> of <code>ActiveRecord</code> callbacks that are free to use.</p>
+
+<p>But let&rsquo;s get back to <strong>association callbacks</strong>. What makes them <em>different</em> from that bunch of functions we just listed above? Well, there&rsquo;s really one big difference in particular: association callbacks are similar to normal callbacks, but rather than hooking into the life cycle of a single object, they are triggered by the life cycle of a <em>collection of objects</em>. Unlike &ldquo;single object&rdquo; callbacks however, there are a limited number of a methods available for us to use. Actually, there&rsquo;s exactly four association callbacks, to get specific:</p>
+
+<ol>
+<li><code>before_add</code></li>
+<li><code>after_add</code></li>
+<li><code>before_remove</code></li>
+<li><code>after_remove</code></li>
+</ol>
+
+
+<p>There are two important things to note about how and when these callbacks are run:</p>
+
+<p>First, callbacks like <code>before_remove</code> and <code>after_remove</code> will run before and after the <code>delete</code> methods. In other words, when we call <code>objects.delete</code>, the <code>delete</code> method will invoke the <code>before_remove</code> and <code>after_remove</code> callbacks by default. Similarly, the <code>destroy</code> method will destroy a collection of records and remove them from an association while calling the <code>before_remove</code> and <code>after_remove</code> functions.</p>
+
+<p>Second, if any of the <code>before_add</code> callbacks throws an exception and cannot create the association with a record in the collection, the object simply won&rsquo;t be added to the collection. Similarly, if any of the objects passed to the <code>before_remove</code> callback throws an exception, the object won&rsquo;t be removed from the collection. This is pretty important to keep in mind for two reasons: if we want to make sure that objects are only added or removed from an association collection successfully, and want to throw an error of some sort if for some reason this is <em>unsuccessful</em>, this is a really good thing. But, if we want to be able to assume that an object can always be added or removed from a collection without fail, this is bad thing, because we can&rsquo;t always be sure that this will happen.</p>
+
+<p>With all these points in mind, there&rsquo;s only one question left to ask: how do we implement these callbacks, exactly? Time to find out.</p>
+
+<h2>Calling Upon Callbacks</h2>
+
+<iframe src="//giphy.com/embed/ixCowrTgEUeSKw1Zq8" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Implementing our association callback isn&rsquo;t too complicated of a task. Since these four association callbacks can only be invoked on a <code>has_many</code> or <code>has_many, through:</code> collection association, our callbacks can be added onto the same line where this association is defined in our model. For example, let&rsquo;s say that our <code>Order</code> objects can have many <code>Discount</code>s (apparently we&rsquo;re feeling particularly generous this holiday season, and we&rsquo;re going to allow many discounts rather than just one!). We can start off with a model that looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span>
+</span><span class='line'>  <span class="n">has_many</span> <span class="ss">:discounts</span><span class="p">,</span> <span class="ss">after_add</span><span class="p">:</span> <span class="ss">:recalculate_total</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Whenever a <code>discount</code> is added to an <code>order</code> instance, we want to recalculate the total for our order, with the discount applied. We&rsquo;ve  added the callback to our association, and are passing our callback the name of the function (in this case, we&rsquo;ve called it <code>recalculate_total</code>) we want to be executed every single time a <code>discount</code> is added to our &ldquo;collection&rdquo; of discounts on an <code>order</code>.</p>
+
+<p>Now, all we need to do is actually write the <code>recalculate_total</code> method. Since we don&rsquo;t want this method to be called in any context aside from this association callback, we&rsquo;ll make it a <code>private</code> method:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span>
+</span><span class='line'>  <span class="n">has_many</span> <span class="ss">:discounts</span><span class="p">,</span> <span class="ss">after_add</span><span class="p">:</span> <span class="ss">:recalculate_total</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">private</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">recalculate_total</span><span class="p">(</span><span class="n">discount</span><span class="p">)</span>
+</span><span class='line'>      <span class="n">subtotal</span> <span class="o">=</span> <span class="n">items</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:amount</span><span class="p">)</span><span class="o">.</span><span class="n">inject</span><span class="p">(</span><span class="ss">:+</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">update!</span><span class="p">(</span><span class="ss">total</span><span class="p">:</span> <span class="p">(</span><span class="n">subtotal</span> <span class="o">-</span> <span class="n">discount</span><span class="p">))</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We can really pass as many methods to our callbacks as we want, in the form of symbols in an array. We can also pass a proc directly into this array as well, as explained by the <a href="http://api.rubyonrails.org/classes/ActiveRecord/Associations/ClassMethods.html">Rails docs</a>.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span>
+</span><span class='line'>  <span class="n">has_many</span> <span class="ss">:discounts</span><span class="p">,</span> <span class="ss">after_add</span><span class="p">:</span> <span class="o">[</span><span class="ss">:recalculate_total</span><span class="p">,</span>
+</span><span class='line'>  <span class="ss">:touch_discount_applied_at</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">private</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">recalculate_total</span><span class="p">(</span><span class="n">discount</span><span class="p">)</span>
+</span><span class='line'>      <span class="n">subtotal</span> <span class="o">=</span> <span class="n">items</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:amount</span><span class="p">)</span><span class="o">.</span><span class="n">inject</span><span class="p">(</span><span class="ss">:+</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">update!</span><span class="p">(</span><span class="ss">total</span><span class="p">:</span> <span class="p">(</span><span class="n">subtotal</span> <span class="o">-</span> <span class="n">discount</span><span class="p">))</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">touch_discount_applied_at</span>
+</span><span class='line'>      <span class="n">touch</span><span class="p">(</span><span class="ss">:discount_applied_at</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pretty interesting, right? Who knew that this even existed?! (Spoiler alert: me. I had no clue this was even a thing.) But how does this even happen? Where is this defined, and how does it work? Let&rsquo;s dig one level deeper and dive into my favorite place: the Rails source code.</p>
+
+<h2>All About The Association Builder</h2>
+
+<p>I think one of the reasons that association callbacks aren&rsquo;t as well-known or written about is because they live in an odd place. In fact, they are defined inside of <code>ActiveRecord</code>&rsquo;s <code>Associations::Builder::CollectionAssociation</code> (wow, what a mouthful!) class, which doesn&rsquo;t actually have any documentation at all! No wonder this is Rails best-kept secret! This class is actually inherited by the <code>has_many</code> and <code>has_many_belongs_to_many</code> association classes, while the <code>CollectionAssociation</code> class itself inherits from the <code>Association</code> class.</p>
+
+<p>I&rsquo;m still not <em>completely</em> sure what&rsquo;s going on behind the scenes here, but from the source code it appears as though the association callbacks (namely <code>before_add</code>, <code>after_add</code>, <code>before_remove</code>, and <code>after_remove</code> to be exact) are all defined as <a href="https://github.com/rails/rails/blob/718468e1c9666ee8d58ae2a446e865a1e1e1fc4e/activerecord/lib/active_record/associations/builder/collection_association.rb#L8">an array of symbols</a>, which is set to a <code>CALLBACKS</code> constant, which is used throughout the class:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="s1">&#39;active_record/associations&#39;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">module</span> <span class="nn">ActiveRecord::Associations::Builder</span>
+</span><span class='line'>  <span class="k">class</span> <span class="nc">CollectionAssociation</span> <span class="o">&lt;</span> <span class="no">Association</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="no">CALLBACKS</span> <span class="o">=</span> <span class="o">[</span><span class="ss">:before_add</span><span class="p">,</span> <span class="ss">:after_add</span><span class="p">,</span>
+</span><span class='line'>      <span class="ss">:before_remove</span><span class="p">,</span> <span class="ss">:after_remove</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">define_callbacks</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">reflection</span><span class="p">)</span>
+</span><span class='line'>          <span class="c1"># Truncated for brevity!</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="no">CALLBACKS</span><span class="o">.</span><span class="n">each</span> <span class="p">{</span> <span class="o">|</span><span class="n">callback_name</span><span class="o">|</span>
+</span><span class='line'>              <span class="n">define_callback</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">callback_name</span><span class="p">,</span> <span class="nb">name</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+</span><span class='line'>          <span class="p">}</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So, if this is where our association callbacks are <em>defined</em>, where are they being invoked? I&rsquo;m glad you asked. It turns out, they&rsquo;re used most often inside of <code>ActiveRecord</code>&rsquo;s <code>Associations::CollectionAssociation</code> module, which contains methods that we use all the time on our <code>ActiveRecord</code> objects &mdash; perhaps without even realizing it! Our association callbacks are passed as arguments and then implemented by the <a href="https://github.com/rails/rails/blob/3f16a098452ee5d447142bd9a6f6045cb1fc83b4/activerecord/lib/active_record/associations/collection_association.rb#L583">callback method</a> in <code>CollectionAssociation</code> module.</p>
+
+<p>We can actually see our callbacks in action inside of a <code>private</code> method called <code>remove_records</code>, which is <a href="https://github.com/rails/rails/blob/3f16a098452ee5d447142bd9a6f6045cb1fc83b4/activerecord/lib/active_record/associations/collection_association.rb#L535">defined within</a> this very same module. Here&rsquo;s what that method looks like:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">remove_records</span><span class="p">(</span><span class="n">existing_records</span><span class="p">,</span> <span class="n">records</span><span class="p">,</span> <span class="nb">method</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">records</span><span class="o">.</span><span class="n">each</span> <span class="p">{</span> <span class="o">|</span><span class="n">record</span><span class="o">|</span> <span class="n">callback</span><span class="p">(</span><span class="ss">:before_remove</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">delete_records</span><span class="p">(</span><span class="n">existing_records</span><span class="p">,</span> <span class="nb">method</span><span class="p">)</span> <span class="k">if</span> <span class="n">existing_records</span><span class="o">.</span><span class="n">any?</span>
+</span><span class='line'>  <span class="n">records</span><span class="o">.</span><span class="n">each</span> <span class="p">{</span> <span class="o">|</span><span class="n">record</span><span class="o">|</span> <span class="n">target</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">records</span><span class="o">.</span><span class="n">each</span> <span class="p">{</span> <span class="o">|</span><span class="n">record</span><span class="o">|</span> <span class="n">callback</span><span class="p">(</span><span class="ss">:after_remove</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span> <span class="p">}</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Nice! There&rsquo;s our <code>after_remove</code> callback, being called on each of our <code>records</code> that&rsquo;s being passed into it. We might not even realize it, but the <code>remove_records</code> method is called upon by the <code>delete_or_destroy</code> method (another <code>private</code> method in this module), which is invoked by both of <code>ActiveRecord</code>&rsquo;s commonly-used <code>delete</code> and <code>destroy</code> methods! This is exactly how we can confirm what we learned earlier about our <code>before_remove</code> and <code>after_remove</code> callbacks. It&rsquo;s not magic &mdash; it&rsquo;s just code that&rsquo;s hiding from us! Except now we know how to call upon our callbacks, so we can say that we are strangers no more.</p>
+
+<iframe src="//giphy.com/embed/qWf8HTOti0mxG" width="480" height="249" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Association callbacks are similar to <code>ActiveRecord</code>&rsquo;s normal callbacks, except that they hook into the life cycle of a collection of objects (<code>has_many)</code>, rather than just a single object (<code>has_one</code>).</li>
+<li>Need to brush up on <code>ActiveRecord</code> associations? Head over to the <a href="http://api.rubyonrails.org/classes/ActiveRecord/Associations/ClassMethods.html">module documentation</a> for associations.</li>
+<li>Want to know exactly what&rsquo;s going on inside of the <code>destroy</code> and <code>delete</code> methods? Dive into the source code! Check out the <a href="https://github.com/rails/rails/blob/3f16a098452ee5d447142bd9a6f6045cb1fc83b4/activerecord/lib/active_record/associations/collection_association.rb#L267">delete</a> and <a href="https://github.com/rails/rails/blob/3f16a098452ee5d447142bd9a6f6045cb1fc83b4/activerecord/lib/active_record/associations/collection_association.rb#L281">destroy</a> method signatures.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Peeking Under the Hood of ActionController Parameters, Part 2]]></title>
@@ -4967,235 +5196,6 @@ backend (Sidekiq, Resque, etc).&rdquo;</p></blockquote>
 <li>There are three main types of indexing: <em>single-column</em>, <em>compound</em>, and <em>unique</em> indexes. Compound indexes create an index on two ore more columns in a database, while unique indexes create a restraint on a single column index.</li>
 <li>This <a href="http://stackoverflow.com/a/1049392">StackOverflow answer</a> is the best explanation of how compound indexes actually work in terms of running a query. If you&rsquo;re still confused, give it a read!</li>
 <li>Uniqueness validations are super cool! Read more about them over <a href="https://robots.thoughtbot.com/the-perils-of-uniqueness-validations">here</a>, and check out some real-life examples of how to use them <a href="http://nyonura.com/blog/2014/Partial-Indexes-with-PostgreSQL-and-Rails/">here</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Writing Smart Migrations: References, Reversible, and Indexes]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/"/>
-    <updated>2015-07-14T08:47:19-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/SUtPZfyDenHoY" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>All it takes is a single feature to make you realize how well &ndash; or perhaps not so well &ndash; you&rsquo;ve written your application. Depending on if you&rsquo;ve done a good job of separating concerns, abstracting and encapsulating bits of functionality into cohesive code, and just generally not repeating yourself&hellip;well, you&rsquo;ll probably be way more enthusiastic about adding a huge new feature to an already massive application. But if you haven&rsquo;t done any of those things&hellip;well, you might find yourself doing a massive rewrite of your codebase just to implement a single feature.</p>
-
-<p>Luckily, the application I started adding a feature to last week is pretty well-built, which makes it flexible enough to add new functionality relatively easily. Yet even the most well-thought-out applications need to be teased apart and glued back together during the course of their lives. Often times, a big part of building out a new feature is restructuring the architecture of your application. When you&rsquo;re working with larger code bases (legacy code in particular), that can be the most daunting task. But a lot of the intimidation of that begins to dissipate once you know how to go about restructuring a schema which already exists without breaking all the the things.</p>
-
-<p>The first step in this process is writing migrations to change how the objects in your application and database relate to one another. Of course, knowing how to write the proper migration to suit your needs is just half the battle; the other half is writing a migration that makes object lookup in your database efficient and super fast. Even though I&rsquo;ve <a href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">written about migrations</a> before, I&rsquo;m learning that there&rsquo;s always so much more to know. So, let&rsquo;s get learning!</p>
-
-<!--more-->
-
-
-<h2>Referencing Your References</h2>
-
-<p>A really quick way to clean up our code is by changing the way that we create associations between objects from within our migrations. One feature we&rsquo;ll want to add is to have our <code>Book</code>s belong to a <code>Genre</code>. So far, we&rsquo;ve categorized our <code>Author</code>s by genre, but we&rsquo;ll want to be able to sort and organize our <code>Book</code> objects in a similar way.</p>
-
-<p>We often use <code>belongs_to</code> and <code>has_many</code> inside of our migrations, which is totally valid. But in this case, it probably makes more sense to use something called <code>references</code>. According to the Rails <a href="https://github.com/rails/rails/blob/88aa2efd692619e87eee88dfc48d608bea9bcdb4/activerecord/lib/active_record/connection_adapters/abstract/schema_definitions.rb#L421">source code</a>, <code>references</code> is just an alias of <code>belongs_to</code>. But, a <code>Book</code> doesn&rsquo;t really &ldquo;belong to&rdquo; a <code>Genre</code>, it&rsquo;s more that it should be able to &ldquo;reference&rdquo; the genre that it&rsquo;s associated with. We can add a reference fairly easily just like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddGenreToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
-</span><span class='line'>    <span class="n">add_reference</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:genre</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This will create a <code>genre_id</code> column inside of our <code>Books</code> table. We could also have done this initially inside of a <code>change</code> method, and written something like <code>t.references(:genre)</code> inside of our migration method. We also have the option to add a <code>type</code>, and specify whether the reference is a <code>polymorphic</code> association or not, as explained by the <a href="http://apidock.com/rails/ActiveRecord/ConnectionAdapters/Table/references">Rails API</a>:</p>
-
-<blockquote><p><code>references</code>: Adds a reference. Optionally adds a type column, if :polymorphic option is provided. The reference column will be an integer by default, the :type option can be used to specify a different type. A foreign key will be created if a foreign_key option is passed.</p></blockquote>
-
-<p>Using <code>references</code> instead of a typical <code>has_many</code> and <code>belongs_to</code> gives us a bit more flexibility moving forward, especially if we know that we&rsquo;ll be adding different types of associations in the long run.</p>
-
-<h2>Reverse, reverse!</h2>
-
-<p>One big feature we want to add to our Bookstore app is giving our <code>Books</code> a rating. There&rsquo;ll be some slightly complicated logic on the backend for this feature to actually work, since we&rsquo;ll need to update a <code>Book</code>&rsquo;s rating every single time a <code>User</code> rates it. But, let&rsquo;s not worry too much about how that logic will be implemented just yet. Instead, it&rsquo;ll be more helpful to break down this larger problem into a few smaller, bite-sized pieces.</p>
-
-<p>First things first: do what we know. And we know that we&rsquo;ll need to give every <code>Book</code> a <code>rating</code> attribute. We&rsquo;ll want this to use Ruby BigDecimal, so we&rsquo;ll specify that in our migration. This migration will start out pretty simple, since all we want to do is just give our <code>Book</code>s a new attribute:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddRatingColumnToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
-</span><span class='line'>    <span class="n">add_column</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:rating</span><span class="p">,</span> <span class="ss">:decimal</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>If we run <code>rake db:migrate</code>, and then open up our console, we can very quickly check that this added a column, just as we expected:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">♥</span> <span class="n">rails</span> <span class="n">c</span>
-</span><span class='line'><span class="o">&gt;</span> <span class="no">Book</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">pluck</span><span class="p">(</span><span class="ss">:rating</span><span class="p">)</span>
-</span><span class='line'><span class="c1"># =&gt; [nil, nil, nil, nil, nil, nil]</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Uh oh, that&rsquo;s not so great. We really don&rsquo;t want all of the <code>Book</code>s that are <em>already</em> inside of our database to have <code>nil</code> values for their <code>rating</code>. Honestly, a more accurate representation of their <code>rating</code> would just be <code>0</code>, since none of our <code>User</code>s have actually given these products a rating yet.</p>
-
-<p>What would be really nice is if we could do <em>two</em> things within this single migration: give our <code>Books</code> a <code>rating</code> column (done!), and set all of our pre-existing <code>Books</code> to have a <code>rating</code> of <code>0</code>. How can we do that? Well, by using <code>reversible</code>, of course!</p>
-
-<p>We already know that we can use the <code>up</code> and <code>down</code> methods to migrate &ldquo;up&rdquo; and &ldquo;down&rdquo; the history or &ldquo;life&rdquo; of our database. But there&rsquo;s also another handy method that can help us out here, called <code>reversible</code>. Here&rsquo;s what the <a href="http://edgeguides.rubyonrails.org/active_record_migrations.html">Rails Guides</a> say about <code>reversible</code>:</p>
-
-<blockquote><p>Complex migrations may require processing that Active Record doesn&rsquo;t know how to reverse. You can use <code>reversible</code> to specify what to do when running a migration and what else to do when reverting it. Using <code>reversible</code> will ensure that the instructions are executed in the right order too.</p></blockquote>
-
-<iframe src="//giphy.com/embed/11EAsNbNMMcO3u" width="480" height="148" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>So how can we implement <code>reversible</code> here? Well, to start, we need a reversible block, which takes a direction. If you&rsquo;re thinking that the direction should be <code>up</code> or <code>down</code>, you&rsquo;d be right! Since we&rsquo;re only adding a column in this migration, we don&rsquo;t need to worry about a <code>down</code> method, since migrating down will automatically just drop the <code>rating</code> column that we&rsquo;re adding. What we do need to do is make sure that when we migrate <em>up</em>, we&rsquo;re also updating our current <code>Book</code> records. We can do that by specifying the <code>up</code> method on our direction, and then pass a block to <code>reversible</code> telling it what to do:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddRatingColumnToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
-</span><span class='line'>    <span class="n">add_column</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:rating</span><span class="p">,</span> <span class="ss">:decimal</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">reversible</span> <span class="k">do</span> <span class="o">|</span><span class="n">direction</span><span class="o">|</span>
-</span><span class='line'>      <span class="n">direction</span><span class="o">.</span><span class="n">up</span> <span class="p">{</span> <span class="no">Book</span><span class="o">.</span><span class="n">update_all</span><span class="p">(</span><span class="ss">rating</span><span class="p">:</span> <span class="mi">0</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span> <span class="p">}</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Cool, this migration seems great. Now, we&rsquo;re not only adding a <code>rating</code> column to our <code>Books</code> table, but we&rsquo;re also updating all of our pre-existing <code>Book</code> objects so that they have some default value for their <code>rating</code>. Nothing about this should break ever, right?</p>
-
-<p>Wrong! Why? Because we can rename anything we want at any time&hellip;and then forget to change all of our files. When we decide to start selling music or movies and go full-on Amazon in our application, we&rsquo;ll probably want to rename our <code>Books</code> table to something like <code>Product</code> or <code>Item</code>. We&rsquo;ll create a new migration to rename our table, change our model names, and everything will be fine. Except for one teeny, tiny little problem: when we decide to deploy to Heroku and try to run <code>rake db:migrate</code>, everything will explode. And why might that happen? Well, because we renamed our table, and now we&rsquo;re trying to run a migration on a <code>Books</code> table for a <code>Book</code> model, which, at this moment in time, <em>doesn&rsquo;t even exist</em>.</p>
-
-<p>So, how can we fix this? Well, we can actually define a <code>Book</code> model inside of this very migration file. And, we can do it all in a single line:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddRatingColumnToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
-</span><span class='line'>  <span class="k">class</span> <span class="nc">Book</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span><span class="p">;</span> <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
-</span><span class='line'>    <span class="n">add_column</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:rating</span><span class="p">,</span> <span class="ss">:decimal</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">reversible</span> <span class="k">do</span> <span class="o">|</span><span class="n">direction</span><span class="o">|</span>
-</span><span class='line'>      <span class="n">direction</span><span class="o">.</span><span class="n">up</span> <span class="p">{</span> <span class="no">Book</span><span class="o">.</span><span class="n">update_all</span><span class="p">(</span><span class="ss">rating</span><span class="p">:</span> <span class="mi">0</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span> <span class="p">}</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Nice! Now, even if we forget to rename our old migrations, we can be sure that ActiveRecord won&rsquo;t complain if it can&rsquo;t find a <code>Book</code> model when this migration tries to run. In fact, it will <em>always</em> find a model no matter what we might rename our model or table to in the future because we&rsquo;ve defined an empty <code>Book</code> class inside of this migration file. We can be sure that this is the case because Ruby will first look for a class declaration inside of a file before searching anywhere else!</p>
-
-<h2>Index All The Things</h2>
-
-<p>Okay, time to get efficient. Let&rsquo;s look back at our first migration, where we were adding <code>Genre</code>s to <code>Book</code>s:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddGenreToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
-</span><span class='line'>    <span class="n">add_reference</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:genre</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This is fine, but there&rsquo;s one slight problem here: what if we only have a few <code>Genre</code>s, but a ton of <code>Book</code>s? When we want to run a method like <code>where</code> or <code>sort_by</code>, how will our application handle this? Well, without even testing out our query, we know it&rsquo;s not going to go so well. And why not? Because, as it stands, our application will have to sort through <em>every single one</em> of our books to find the ones that match our query. And after a couple hundred or thousands of books, this is going to massively slow down our application.</p>
-
-<p>But, we&rsquo;re smart enough to foresee that problem! We&rsquo;ll outsmart our application from the get-go, and just write a smart migration to begin with:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddGenreToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
-</span><span class='line'>    <span class="n">add_reference</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:genre</span><span class="p">,</span> <span class="ss">index</span><span class="p">:</span> <span class="kp">true</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>If we open up our <code>db/structure.sql</code>, we&rsquo;ll see this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">books</span> <span class="p">(</span>
-</span><span class='line'>  <span class="n">rating</span> <span class="nb">numeric</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span>
-</span><span class='line'>  <span class="n">genre_id</span> <span class="nb">integer</span>
-</span><span class='line'><span class="p">);</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">index_books_on_genre_id</span> <span class="k">ON</span> <span class="n">books</span> <span class="k">USING</span> <span class="n">btree</span> <span class="p">(</span><span class="n">genre_id</span><span class="p">);</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This created an <code>index</code> on our <code>Books</code> table, which is referenced to <code>Genre</code>. This is pretty amazing, because it means that our table will now use integers (not strings or any other data type) to look up an item on our table. Integer lookup is the cheapest and fastest way to look up an item in a database, which means that it&rsquo;s going to speed up our database like crazy!</p>
-
-<p>We also could have just written a completely new migraiton for this as well, which would implement the <code>add_index</code> method:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddGenreIndexToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
-</span><span class='line'>    <span class="n">add_index</span><span class="p">(</span><span class="ss">:books</span><span class="p">,</span> <span class="ss">:genre</span><span class="p">)</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>We could also use the <code>add_index</code> method to create unique indexes, or named indexes, as highlighted in the <a href="http://apidock.com/rails/ActiveRecord/ConnectionAdapters/SchemaStatements/add_index">documentation</a>. Sometimes, it&rsquo;s actually <a href="http://makandracards.com/makandra/32353-psa-index-true-in-rails-migrations-does-not-work-as-you-d-expect">safer</a> to use the <code>add_index</code> method rather than <code>index: true</code>.</p>
-
-<p>Now our migrations are not just clear and concise, but they&rsquo;re also helping our application run smoother and quicker in the process. Writing smart migrations can not only save us a lot of time down the road, but they make feature-writing a lot more fun! Not as fun as running wildly through the safari, but hey &ndash; it&rsquo;s a close second:</p>
-
-<iframe src="//giphy.com/embed/cyrx5VQ8PiWoE" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>Using <code>references</code> in a migration is the same as <code>belongs_to</code>, but can make your code more clear. The <code>reversible</code> method is great for specifying how your migration should handle a reverse migration. Indexes are an easy way of adding an iteger column to speed up database queries.</li>
-<li>Need to see another example of manipulating data from within a migraiton? This <a href="http://railsguides.net/change-data-in-migrations-like-a-boss/">blog post</a> walks through some great examples using the <code>up</code> and <code>down</code> methods.</li>
-<li>Check out this great <a href="https://www.reinteractive.net/posts/178-reversible-migrations-with-active-record">post</a> on how to implement <code>reversible</code> in different situations!</li>
 </ul>
 
 ]]></content>

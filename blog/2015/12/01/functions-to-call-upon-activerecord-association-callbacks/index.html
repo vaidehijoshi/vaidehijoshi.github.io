@@ -1,0 +1,433 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Functions to Call Upon: ActiveRecord Association Callbacks - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="No developer knows everything &mdash; even if they do know a whole lot more than you do. I was reminded of this fact recently while pairing with a &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Functions to Call Upon: ActiveRecord Association Callbacks</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-12-01T08:53:17-05:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>8:53 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><iframe src="//giphy.com/embed/ajgpGefucxTH2" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>No developer knows <em>everything</em> &mdash; even if they do know a whole lot more than you do. I was reminded of this fact recently while pairing with a more experienced programmer on a large Ember-Rails project that&rsquo;s now coming to a close. We were right in the middle of adding some methods to a Rails model when we realized that we actually needed to change something about how one of our model&rsquo;s <code>ActiveRecord</code> associations worked.</p>
+
+<p>What we wanted to do was rely upon a callback function executing every time an association was created or destroyed. But, we hit a little bit of a wall, since we quickly realized that this wasn&rsquo;t as simple as we initially thought. The complication came with the fact that we were dealing with a <code>has_many</code> relationship, which meant that we weren&rsquo;t dealing with a single object, but rather a <em>collection</em> of objects. The developer I was pairing with explained that he knew that there were some methods that <code>ActiveRecord</code> has to achieve what we wanted to do, but he wasn&rsquo;t sure how they worked exactly, just that he had seen them before elsewhere.</p>
+
+<p>After doing a little research on what resources <code>ActiveRecord</code> provides when it comes to solving this problem in an elegant way, we eventually decided to go another route and use a different callback function. But in the process of pairing, we learned that there <em>are</em> some methods that exist in <code>ActiveRecord</code> that can come in handy in this situation. If we hadn&rsquo;t been on a tight deadline for the specific feature that we were building, we probably could have devoted more time to learning about these callbacks. So, I decided to come back to these callback functions and dig a little deeper. Interestingly, there really isn&rsquo;t that much documentation on <code>ActiveRecord</code>&rsquo;s association callback methods, and nearly no blog posts. This is uncharted territory, my friends! Are you ready? I hope so.</p>
+
+<!--more-->
+
+
+<h2>Hello, it&rsquo;s me, a callback function</h2>
+
+<iframe src="//giphy.com/embed/fOvKNgHUIChPi" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Callback functions are everywhere, particularly when we&rsquo;re inside the context of most Rails&#8217; models. Our average <code>ActiveRecord</code> callback will hook into the object life cycle of our <code>ActiveRecord</code> instances, which allows us to work with our object at any given point during its lifespan. The most common use case for implementing a callback is executing logic before or after the alteration of an object&rsquo;s state.</p>
+
+<p>Here&rsquo;s my personal list of my top callbacks (yes, I have a list):</p>
+
+<ol>
+<li><code>after_commit</code></li>
+<li><code>after_update</code></li>
+<li><code>after_destroy</code></li>
+<li><code>before_validation</code></li>
+<li><code>before_save</code></li>
+</ol>
+
+
+<p>They pretty much do exactly what you think they would do: they hook into the object at the point in it&rsquo;s create, update, validate, save, or destroy &ldquo;state&rdquo;, and allow you to execute whatever functionality you might need. This is just the tip of the iceberg though: check out <a href="http://guides.rubyonrails.org/active_record_callbacks.html#available-callbacks">the whole list</a> of <code>ActiveRecord</code> callbacks that are free to use.</p>
+
+<p>But let&rsquo;s get back to <strong>association callbacks</strong>. What makes them <em>different</em> from that bunch of functions we just listed above? Well, there&rsquo;s really one big difference in particular: association callbacks are similar to normal callbacks, but rather than hooking into the life cycle of a single object, they are triggered by the life cycle of a <em>collection of objects</em>. Unlike &ldquo;single object&rdquo; callbacks however, there are a limited number of a methods available for us to use. Actually, there&rsquo;s exactly four association callbacks, to get specific:</p>
+
+<ol>
+<li><code>before_add</code></li>
+<li><code>after_add</code></li>
+<li><code>before_remove</code></li>
+<li><code>after_remove</code></li>
+</ol>
+
+
+<p>There are two important things to note about how and when these callbacks are run:</p>
+
+<p>First, callbacks like <code>before_remove</code> and <code>after_remove</code> will run before and after the <code>delete</code> methods. In other words, when we call <code>objects.delete</code>, the <code>delete</code> method will invoke the <code>before_remove</code> and <code>after_remove</code> callbacks by default. Similarly, the <code>destroy</code> method will destroy a collection of records and remove them from an association while calling the <code>before_remove</code> and <code>after_remove</code> functions.</p>
+
+<p>Second, if any of the <code>before_add</code> callbacks throws an exception and cannot create the association with a record in the collection, the object simply won&rsquo;t be added to the collection. Similarly, if any of the objects passed to the <code>before_remove</code> callback throws an exception, the object won&rsquo;t be removed from the collection. This is pretty important to keep in mind for two reasons: if we want to make sure that objects are only added or removed from an association collection successfully, and want to throw an error of some sort if for some reason this is <em>unsuccessful</em>, this is a really good thing. But, if we want to be able to assume that an object can always be added or removed from a collection without fail, this is bad thing, because we can&rsquo;t always be sure that this will happen.</p>
+
+<p>With all these points in mind, there&rsquo;s only one question left to ask: how do we implement these callbacks, exactly? Time to find out.</p>
+
+<h2>Calling Upon Callbacks</h2>
+
+<iframe src="//giphy.com/embed/ixCowrTgEUeSKw1Zq8" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Implementing our association callback isn&rsquo;t too complicated of a task. Since these four association callbacks can only be invoked on a <code>has_many</code> or <code>has_many, through:</code> collection association, our callbacks can be added onto the same line where this association is defined in our model. For example, let&rsquo;s say that our <code>Order</code> objects can have many <code>Discount</code>s (apparently we&rsquo;re feeling particularly generous this holiday season, and we&rsquo;re going to allow many discounts rather than just one!). We can start off with a model that looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span>
+</span><span class='line'>  <span class="n">has_many</span> <span class="ss">:discounts</span><span class="p">,</span> <span class="ss">after_add</span><span class="p">:</span> <span class="ss">:recalculate_total</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Whenever a <code>discount</code> is added to an <code>order</code> instance, we want to recalculate the total for our order, with the discount applied. We&rsquo;ve  added the callback to our association, and are passing our callback the name of the function (in this case, we&rsquo;ve called it <code>recalculate_total</code>) we want to be executed every single time a <code>discount</code> is added to our &ldquo;collection&rdquo; of discounts on an <code>order</code>.</p>
+
+<p>Now, all we need to do is actually write the <code>recalculate_total</code> method. Since we don&rsquo;t want this method to be called in any context aside from this association callback, we&rsquo;ll make it a <code>private</code> method:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span>
+</span><span class='line'>  <span class="n">has_many</span> <span class="ss">:discounts</span><span class="p">,</span> <span class="ss">after_add</span><span class="p">:</span> <span class="ss">:recalculate_total</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">private</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">recalculate_total</span><span class="p">(</span><span class="n">discount</span><span class="p">)</span>
+</span><span class='line'>      <span class="n">subtotal</span> <span class="o">=</span> <span class="n">items</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:amount</span><span class="p">)</span><span class="o">.</span><span class="n">inject</span><span class="p">(</span><span class="ss">:+</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">update!</span><span class="p">(</span><span class="ss">total</span><span class="p">:</span> <span class="p">(</span><span class="n">subtotal</span> <span class="o">-</span> <span class="n">discount</span><span class="p">))</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We can really pass as many methods to our callbacks as we want, in the form of symbols in an array. We can also pass a proc directly into this array as well, as explained by the <a href="http://api.rubyonrails.org/classes/ActiveRecord/Associations/ClassMethods.html">Rails docs</a>.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Order</span>
+</span><span class='line'>  <span class="n">has_many</span> <span class="ss">:discounts</span><span class="p">,</span> <span class="ss">after_add</span><span class="p">:</span> <span class="o">[</span><span class="ss">:recalculate_total</span><span class="p">,</span>
+</span><span class='line'>  <span class="ss">:touch_discount_applied_at</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">private</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">recalculate_total</span><span class="p">(</span><span class="n">discount</span><span class="p">)</span>
+</span><span class='line'>      <span class="n">subtotal</span> <span class="o">=</span> <span class="n">items</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:amount</span><span class="p">)</span><span class="o">.</span><span class="n">inject</span><span class="p">(</span><span class="ss">:+</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">update!</span><span class="p">(</span><span class="ss">total</span><span class="p">:</span> <span class="p">(</span><span class="n">subtotal</span> <span class="o">-</span> <span class="n">discount</span><span class="p">))</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">touch_discount_applied_at</span>
+</span><span class='line'>      <span class="n">touch</span><span class="p">(</span><span class="ss">:discount_applied_at</span><span class="p">)</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pretty interesting, right? Who knew that this even existed?! (Spoiler alert: me. I had no clue this was even a thing.) But how does this even happen? Where is this defined, and how does it work? Let&rsquo;s dig one level deeper and dive into my favorite place: the Rails source code.</p>
+
+<h2>All About The Association Builder</h2>
+
+<p>I think one of the reasons that association callbacks aren&rsquo;t as well-known or written about is because they live in an odd place. In fact, they are defined inside of <code>ActiveRecord</code>&rsquo;s <code>Associations::Builder::CollectionAssociation</code> (wow, what a mouthful!) class, which doesn&rsquo;t actually have any documentation at all! No wonder this is Rails best-kept secret! This class is actually inherited by the <code>has_many</code> and <code>has_many_belongs_to_many</code> association classes, while the <code>CollectionAssociation</code> class itself inherits from the <code>Association</code> class.</p>
+
+<p>I&rsquo;m still not <em>completely</em> sure what&rsquo;s going on behind the scenes here, but from the source code it appears as though the association callbacks (namely <code>before_add</code>, <code>after_add</code>, <code>before_remove</code>, and <code>after_remove</code> to be exact) are all defined as <a href="https://github.com/rails/rails/blob/718468e1c9666ee8d58ae2a446e865a1e1e1fc4e/activerecord/lib/active_record/associations/builder/collection_association.rb#L8">an array of symbols</a>, which is set to a <code>CALLBACKS</code> constant, which is used throughout the class:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="s1">&#39;active_record/associations&#39;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">module</span> <span class="nn">ActiveRecord::Associations::Builder</span>
+</span><span class='line'>  <span class="k">class</span> <span class="nc">CollectionAssociation</span> <span class="o">&lt;</span> <span class="no">Association</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="no">CALLBACKS</span> <span class="o">=</span> <span class="o">[</span><span class="ss">:before_add</span><span class="p">,</span> <span class="ss">:after_add</span><span class="p">,</span>
+</span><span class='line'>      <span class="ss">:before_remove</span><span class="p">,</span> <span class="ss">:after_remove</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">define_callbacks</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">reflection</span><span class="p">)</span>
+</span><span class='line'>          <span class="c1"># Truncated for brevity!</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="no">CALLBACKS</span><span class="o">.</span><span class="n">each</span> <span class="p">{</span> <span class="o">|</span><span class="n">callback_name</span><span class="o">|</span>
+</span><span class='line'>              <span class="n">define_callback</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">callback_name</span><span class="p">,</span> <span class="nb">name</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+</span><span class='line'>          <span class="p">}</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>    <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So, if this is where our association callbacks are <em>defined</em>, where are they being invoked? I&rsquo;m glad you asked. It turns out, they&rsquo;re used most often inside of <code>ActiveRecord</code>&rsquo;s <code>Associations::CollectionAssociation</code> module, which contains methods that we use all the time on our <code>ActiveRecord</code> objects &mdash; perhaps without even realizing it! Our association callbacks are passed as arguments and then implemented by the <a href="https://github.com/rails/rails/blob/3f16a098452ee5d447142bd9a6f6045cb1fc83b4/activerecord/lib/active_record/associations/collection_association.rb#L583">callback method</a> in <code>CollectionAssociation</code> module.</p>
+
+<p>We can actually see our callbacks in action inside of a <code>private</code> method called <code>remove_records</code>, which is <a href="https://github.com/rails/rails/blob/3f16a098452ee5d447142bd9a6f6045cb1fc83b4/activerecord/lib/active_record/associations/collection_association.rb#L535">defined within</a> this very same module. Here&rsquo;s what that method looks like:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">remove_records</span><span class="p">(</span><span class="n">existing_records</span><span class="p">,</span> <span class="n">records</span><span class="p">,</span> <span class="nb">method</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">records</span><span class="o">.</span><span class="n">each</span> <span class="p">{</span> <span class="o">|</span><span class="n">record</span><span class="o">|</span> <span class="n">callback</span><span class="p">(</span><span class="ss">:before_remove</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">delete_records</span><span class="p">(</span><span class="n">existing_records</span><span class="p">,</span> <span class="nb">method</span><span class="p">)</span> <span class="k">if</span> <span class="n">existing_records</span><span class="o">.</span><span class="n">any?</span>
+</span><span class='line'>  <span class="n">records</span><span class="o">.</span><span class="n">each</span> <span class="p">{</span> <span class="o">|</span><span class="n">record</span><span class="o">|</span> <span class="n">target</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">records</span><span class="o">.</span><span class="n">each</span> <span class="p">{</span> <span class="o">|</span><span class="n">record</span><span class="o">|</span> <span class="n">callback</span><span class="p">(</span><span class="ss">:after_remove</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span> <span class="p">}</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Nice! There&rsquo;s our <code>after_remove</code> callback, being called on each of our <code>records</code> that&rsquo;s being passed into it. We might not even realize it, but the <code>remove_records</code> method is called upon by the <code>delete_or_destroy</code> method (another <code>private</code> method in this module), which is invoked by both of <code>ActiveRecord</code>&rsquo;s commonly-used <code>delete</code> and <code>destroy</code> methods! This is exactly how we can confirm what we learned earlier about our <code>before_remove</code> and <code>after_remove</code> callbacks. It&rsquo;s not magic &mdash; it&rsquo;s just code that&rsquo;s hiding from us! Except now we know how to call upon our callbacks, so we can say that we are strangers no more.</p>
+
+<iframe src="//giphy.com/embed/qWf8HTOti0mxG" width="480" height="249" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>Association callbacks are similar to <code>ActiveRecord</code>&rsquo;s normal callbacks, except that they hook into the life cycle of a collection of objects (<code>has_many)</code>, rather than just a single object (<code>has_one</code>).</li>
+<li>Need to brush up on <code>ActiveRecord</code> associations? Head over to the <a href="http://api.rubyonrails.org/classes/ActiveRecord/Associations/ClassMethods.html">module documentation</a> for associations.</li>
+<li>Want to know exactly what&rsquo;s going on inside of the <code>destroy</code> and <code>delete</code> methods? Dive into the source code! Check out the <a href="https://github.com/rails/rails/blob/3f16a098452ee5d447142bd9a6f6045cb1fc83b4/activerecord/lib/active_record/associations/collection_association.rb#L267">delete</a> and <a href="https://github.com/rails/rails/blob/3f16a098452ee5d447142bd9a6f6045cb1fc83b4/activerecord/lib/active_record/associations/collection_association.rb#L281">destroy</a> method signatures.</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-12-01T08:53:17-05:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>8:53 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/11/24/peeking-under-the-hood-of-actioncontroller-parameters-part-2/" title="Previous Post: Peeking Under The Hood Of ActionController Parameters, Part 2">&laquo; Peeking Under The Hood Of ActionController Parameters, Part 2</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks/">Functions to Call Upon: ActiveRecord Association Callbacks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/11/24/peeking-under-the-hood-of-actioncontroller-parameters-part-2/">Peeking Under the Hood of ActionController Parameters, Part 2</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1/">Peeking Under the Hood of ActionController Parameters, Part 1</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/">Methods to Remember Things by: Ruby Memoization</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/11/03/hunting-down-the-scoop-on-activerecord-scopes/">Hunting Down the Scoop on ActiveRecord Scopes</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

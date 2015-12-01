@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="This blog post is part of a series on strong parameters. Read Part 1 here. Rails often feels like a black box, with all of the complex logic &hellip;">
+  <meta name="description" content="No developer knows everything &mdash; even if they do know a whole lot more than you do. I was reminded of this fact recently while pairing with a &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,58 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks/">Functions to Call Upon: ActiveRecord Association Callbacks</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-12-01T08:53:17-05:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>8:53 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/ajgpGefucxTH2" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>No developer knows <em>everything</em> &mdash; even if they do know a whole lot more than you do. I was reminded of this fact recently while pairing with a more experienced programmer on a large Ember-Rails project that&rsquo;s now coming to a close. We were right in the middle of adding some methods to a Rails model when we realized that we actually needed to change something about how one of our model&rsquo;s <code>ActiveRecord</code> associations worked.</p>
+
+<p>What we wanted to do was rely upon a callback function executing every time an association was created or destroyed. But, we hit a little bit of a wall, since we quickly realized that this wasn&rsquo;t as simple as we initially thought. The complication came with the fact that we were dealing with a <code>has_many</code> relationship, which meant that we weren&rsquo;t dealing with a single object, but rather a <em>collection</em> of objects. The developer I was pairing with explained that he knew that there were some methods that <code>ActiveRecord</code> has to achieve what we wanted to do, but he wasn&rsquo;t sure how they worked exactly, just that he had seen them before elsewhere.</p>
+
+<p>After doing a little research on what resources <code>ActiveRecord</code> provides when it comes to solving this problem in an elegant way, we eventually decided to go another route and use a different callback function. But in the process of pairing, we learned that there <em>are</em> some methods that exist in <code>ActiveRecord</code> that can come in handy in this situation. If we hadn&rsquo;t been on a tight deadline for the specific feature that we were building, we probably could have devoted more time to learning about these callbacks. So, I decided to come back to these callback functions and dig a little deeper. Interestingly, there really isn&rsquo;t that much documentation on <code>ActiveRecord</code>&rsquo;s association callback methods, and nearly no blog posts. This is uncharted territory, my friends! Are you ready? I hope so.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -538,60 +590,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/">Working Hard or Hardly Working, Part 2: Custom Jobs</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-09-22T08:59:45-04:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>8:59 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><iframe src="//giphy.com/embed/XgE4LlECZjw6k" width="480" height="218" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p><em>This blog post is part of a series on Active Job. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/">here</a>.</em></p>
-
-<p>With the advent of Rails 4.2, one thing is definitely for sure: there is now one background job to rule them all: Active Job. Last week, I learned about Active Job&rsquo;s <a href="http://vaidehijoshi.github.io/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/">easy integration</a> with ActionMailer. But, as nice as it is to have those simple <code>deliver_now</code> and <code>deliver_later</code> methods, there will inevitably be a time that we want to do something more &mdash; something that requires writing our own custom job.</p>
-
-<p>Active Job is, thankfully, very good at letting us do this. Since my ActionMailer post last week, I&rsquo;ve written a few jobs using Active Job&rsquo;s framework. And each time that I&rsquo;ve done it, it&rsquo;s gotten easier and easier. Of course, not all of my jobs have been super complex, but once I understood the basics, I could look at other people&rsquo;s code and understand how it was structure and what exactly was going on.</p>
-
-<p>The only way to get comfortable writing my own custom jobs was by &ndash; wait for it &ndash; actually <em>writing</em> one! So that&rsquo;s exactly what we&rsquo;ll do together. Let&rsquo;s turn our ActionMailer method from last week into its own job that will be able to run asychronously. Hold on to your hats, because we&rsquo;re about to leave the shire.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -607,6 +605,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks/">Functions to Call Upon: ActiveRecord Association Callbacks</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/11/24/peeking-under-the-hood-of-actioncontroller-parameters-part-2/">Peeking Under the Hood of ActionController Parameters, Part 2</a>
       </li>
     
@@ -620,10 +622,6 @@
     
       <li class="post">
         <a href="/blog/2015/11/03/hunting-down-the-scoop-on-activerecord-scopes/">Hunting Down the Scoop on ActiveRecord Scopes</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/27/digging-into-the-finder-object-pattern/">Digging Into the Finder Object Pattern</a>
       </li>
     
   </ul>
