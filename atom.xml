@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-12-01T19:51:57-05:00</updated>
+  <updated>2015-12-08T09:09:19-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,317 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Breaking the News: Wisper + Pub-Sub]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/12/08/breaking-the-news-wisper-plus-pub-sub/"/>
+    <updated>2015-12-08T08:50:17-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/12/08/breaking-the-news-wisper-plus-pub-sub</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/3oEduPlMkw4LZE7624" width="480" height="300" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>I&rsquo;ve been rather reflective this past week. This is mostly because the end of this year of technical Tuesdays is now very much in sight, with only a handful more posts left to write. Also, I&rsquo;ve been going back over old posts and correcting a few spelling and code snippet mistakes that have been brought to my attention (shoutout to all of you who have been proofreading for me!). All of this is to say that I never realized until recently that I&rsquo;ve covered quite the spread of different topics over the past year!</p>
+
+<p>But here&rsquo;s the rub: I&rsquo;m not even <em>close</em> to being done with my list of things I still want to learn more about. And even though that list keeps growing, I&rsquo;ve noticed that the complexity behind the concepts I&rsquo;m learning and writing about has begun to slowly change. While I started off focusing on syntax and DSL-specific topics, now those topics have become more theoretical in nature. While I used to write about things like the Rails <a href="http://localhost:4000/blog/2015/06/09/refactoring-to-reveal-rails-group-by/">group_by</a> method and the <a href="http://localhost:4000/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/">ampersand</a> operator, now I&rsquo;m diving into more complex concepts like <a href="http://localhost:4000/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks/">association callbacks</a> and <a href="http://localhost:4000/blog/2015/07/07/taskmanaging-your-app-part-2-service-objects/">service objects</a>.</p>
+
+<p>This week took complex concepts to a whole new level. I&rsquo;m talking about higher-level CS theory that I didn&rsquo;t even know existed. It all started when I heard someone use the term <strong>&ldquo;pub-sub&rdquo;</strong> (yeah, that&rsquo;s a thing!). And it stands for <strong>publish-subscribe</strong>, which is a messaging pattern used in software architecture. If you&rsquo;ve never heard about this before, don&rsquo;t worry &mdash; I hadn&rsquo;t either! It&rsquo;s apparently not all that common in Rails development, but <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise">JavaScript promises</a> are a loose example for how they are constructed. But let&rsquo;s not get carried away with semicolons and such nonesense. How does the publish-subscribe pattern work in Ruby? It&rsquo;s time to learn all about it!</p>
+
+<!--more-->
+
+
+<h2>Extra extra! Read all about pub-sub</h2>
+
+<iframe src="//giphy.com/embed/13gOSoNUzh55g4" width="480" height="288" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>In the context of building out systems of software, the publish-subscribe pattern is a way of handling how messages are sent between objects. We are probably already familiar with the concept of the &ldquo;single responsiblity principle&rdquo;, or the idea that no method should be responsible for more than one thing. This same concept extends to other parts of our application as well. As we&rsquo;ve learned through the process of refactoring, our controllers shouldn&rsquo;t be responsible for the logic that really belongs in model. Similarly, a model shouldn&rsquo;t be responsible for calling on a third-party service or performing some task or piece of logic that doesn&rsquo;t really relate to its own state.</p>
+
+<p>The way that we solve this in Ruby is by abstracting out logic into smaller components. We have service objects, which are responsible for carrying out tasks and therefore are easily-testable, and encapuslate a very specific piece of functionality that the rest of the application doesn&rsquo;t really need to know about.</p>
+
+<p>In Ruby, when we have two objects that are connected in some way &mdash; for example, a <code>Dog</code> <code>belongs_to</code> its <code>Human</code> &mdash; and the state of the <code>Human</code> changes, we probably want to notify the instance of the <code>Dog</code> that the object is associated with. We could say that the <code>Human</code> sends out a &ldquo;message&rdquo; to the objects that are &ldquo;listening&rdquo; to it. The real terms that we are trying to use here are <strong>publish</strong> and <strong>subscribe</strong>. An instance of a <code>Human</code> object &ldquo;publishes&rdquo; events (i.e., the human <code>wakes_up</code>, <code>is_ready_to_play</code>, etc.), and the <code>Dog</code> object listens and &ldquo;subscribes&rdquo; to these events (and probably behaves accordingly, aka it would <code>jump_excitedly</code> when the human <code>is_ready_to_play</code>).</p>
+
+<p>Usually, for smaller applications, it&rsquo;s fine to just rely on one object telling another to behave a certain way explicitly. But, things get kind of messy as you have more objects &ldquo;listening&rdquo; to the events of other objects. This is where our knowledge of service objects can come in handy. We can pretty easily abstract out units of work into service classes. But, this still means that we need to notify our service classes whenever they need to change; in other words, we have to tell our services <em>Hey, you need to behave in a certain way because something about the object you&rsquo;re associated with has changed!</em></p>
+
+<p>The <strong>publish-subscribe pattern</strong> uses the exact same concept of sending messages between objects when something about one of the objects changes &mdash; however, it does this by using an intermediary object, sometimes called a <strong>message broker</strong> or an <strong>event bus</strong>. The important thing here is that the object that does the &ldquo;publishing&rdquo; or &ldquo;broadcasting&rdquo; of an event has no idea who is listening to its events. It just sends out a signal of sorts. The intermediary message broker object then is responsible for knowing who is &ldquo;subscribed&rdquo; to this event, and who needs to know about it. The message broker then makes sure that the correct object gets this message. In the simple example from above, a <code>Human</code> might publish an event, and another object, such as a <code>DogNotifer</code>, would be responsible for telling the <code>Dog</code> instance that it needs to do something.</p>
+
+<p>I really like the way that Ahmed Abdel Razzak explains this in his <a href="http://www.toptal.com/ruby-on-rails/the-publish-subscribe-pattern-on-rails">blog post</a>:</p>
+
+<blockquote><p>&ldquo;The publish-subscribe pattern is a Ruby on Rails messaging pattern where senders of messages (publishers), do not program the messages to be sent directly to specific receivers (subscribers). Instead, the programmer “publishes” messages (events), without any knowledge of any subscribers there may be. The pub-sub is a pattern used to communicate messages between different system components without these components knowing anything about each other’s identity.&rdquo;</p></blockquote>
+
+<p>This concept can be a little tricky to understand in Ruby until you see all the classes in action. So let&rsquo;s start publishing and subscribing!</p>
+
+<h2>Hush, don&rsquo;t shout</h2>
+
+<iframe src="//giphy.com/embed/dYHtDUl1VZ0ly" width="480" height="257" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>There are a few different pub-sub gems out there, but the one that I&rsquo;ve found the easiest to use is a gem called <a href="https://github.com/krisleech/wisper/tree/v1"><code>wisper</code></a>.</p>
+
+<p>We&rsquo;ll start the same way that we always do: by adding <code>gem 'wisper'</code> to our <code>Gemfile</code>, and then running the <code>bundle</code> command.</p>
+
+<p>Now, let&rsquo;s take a look at one of our Ruby classes that we can implement the pub-sub pattern on. Here we have a <code>PressReview</code> class, that is a representation of a book review that might generate a lot of press for an <code>Author</code> in our bookstore app. These press reviews are pretty important (think the New York Times Bestseller List, etc.), so we want to notify the author of the book when the press review goes live. We also want to generate a tiny news snippet that will just have a few lines about the article once it has been created:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">PressReview</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="n">after_commit</span> <span class="ss">:alert_author</span><span class="p">,</span> <span class="ss">on</span><span class="p">:</span> <span class="ss">:create</span>
+</span><span class='line'>  <span class="n">after_commit</span> <span class="ss">:generate_news_item</span><span class="p">,</span> <span class="ss">on</span><span class="p">:</span> <span class="ss">:create</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">private</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">alert_author</span>
+</span><span class='line'>      <span class="no">AuthorMailer</span><span class="o">.</span><span class="n">send_alert_email</span><span class="p">(</span><span class="nb">self</span><span class="p">)</span><span class="o">.</span><span class="n">deliver_later</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">generate_news_item</span>
+</span><span class='line'>      <span class="no">NewsItem</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="nb">self</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The first thing that we&rsquo;ll want to do to add the <code>wisper</code> gem is to include the <code>Wisper::Publisher</code> module into the class that is going to be broadcasting events. In this case, we want to broadcast an event when our <code>PressReview</code> class has been successfully created and has gone &ldquo;live&rdquo;. Let&rsquo;s create a message broker class called <code>CreatePressReview</code> that will handle the broadcasting of this event. We will either need to include <code>Wisper::Publisher</code> or alternatively, <code>Wisper.publisher</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">CreatePressReview</span>
+</span><span class='line'>  <span class="kp">include</span> <span class="no">Wisper</span><span class="o">::</span><span class="no">Publisher</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Next, we&rsquo;ll need to add the method that is going to be doing the &ldquo;broadcasting&rdquo; of the event. It&rsquo;s pretty typical to use a <code>call</code> method to do this. Inside of this broadcasting method, we&rsquo;ll want to handle two different situations (think JavaScript promises): if our <code>press_review</code> is created succesfully, or if it fails to be created:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">CreatePressReview</span>
+</span><span class='line'>  <span class="kp">include</span> <span class="no">Wisper</span><span class="o">::</span><span class="no">Publisher</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="n">press_review_id</span><span class="p">)</span>
+</span><span class='line'>      <span class="n">press_review</span> <span class="o">=</span> <span class="no">PressReview</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">press_review_id</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="c1"># Some logic here to make sure that </span>
+</span><span class='line'>      <span class="c1"># the press_review we just found is live and </span>
+</span><span class='line'>      <span class="c1"># visible to the public, based on its state</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">if</span> <span class="n">press_review</span><span class="o">.</span><span class="n">live?</span>
+</span><span class='line'>          <span class="n">broadcast</span><span class="p">(</span><span class="ss">:press_review_created_success</span><span class="p">,</span> <span class="n">press_review</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">else</span>
+</span><span class='line'>          <span class="n">broadcast</span><span class="p">(</span><span class="ss">:press_review_created_failed</span><span class="p">,</span> <span class="n">press_review</span><span class="p">)</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We&rsquo;ll notice that this class takes a <code>press_review_id</code>, and then contains the logic to set and check whether the <code>press_review</code> we just found is <code>live</code> or not. If it is live and we&rsquo;re ready to notify our author and generate our news item, we&rsquo;re calling the <code>broadcast</code> method, and passing it the name of the function we want to execute, along with the <code>press_review</code> instance. And if the <code>press_review</code> <em>isn&rsquo;t</em> live, we&rsquo;re calling a different method isntead.</p>
+
+<p>It&rsquo;s worth noting that the <code>broadcast</code> method is also aliased to <code>publish</code> and <code>announce</code>, so either of these lines would have also worked:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">publish</span><span class="p">(</span><span class="ss">:press_review_created_success</span><span class="p">,</span> <span class="n">press_review</span><span class="p">)</span>
+</span><span class='line'><span class="n">announce</span><span class="p">(</span><span class="ss">:press_review_created_success</span><span class="p">,</span> <span class="n">press_review</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Before we add any listener objects that will subscribe to these events, let&rsquo;s first abstract out those <code>alert_author</code> and <code>generate_news_item</code> private methods from our <code>PressReview</code> class into services objects. Our <code>alert_author</code> method can now be rewritten as a <code>AuthorAlerter</code> Plain Old Ruby Class, which calls upon an <code>AuthorMailer</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AuthorAlerter</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">alert_author</span><span class="p">(</span><span class="n">press_review_id</span><span class="p">)</span>
+</span><span class='line'>      <span class="n">press_review</span> <span class="o">=</span> <span class="no">PressReview</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">press_review_id</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="no">AuthorMailer</span><span class="o">.</span><span class="n">send_alert_email</span><span class="p">(</span><span class="n">press_review</span><span class="p">)</span><span class="o">.</span><span class="n">deliver_later</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AuthorMailer</span> <span class="o">&lt;</span> <span class="no">ApplicationMailer</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">send_alert_email</span><span class="p">(</span><span class="n">press_review</span><span class="p">)</span>
+</span><span class='line'>      <span class="c1"># Sends an email to the author</span>
+</span><span class='line'>      <span class="c1"># alerting them of a new press review</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And our <code>generate_news_item</code> method can be refactored into a <code>NewsItemGenerator</code> service class, that creates a new instance of a <code>NewsItem</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">NewsItemGenerator</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">generate_news_item</span><span class="p">(</span><span class="n">press_review_id</span><span class="p">)</span>
+</span><span class='line'>      <span class="n">press_review</span> <span class="o">=</span> <span class="no">PressReview</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">press_review_id</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="no">NewsItem</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="ss">press_review_id</span><span class="p">:</span> <span class="n">press_review_id</span><span class="p">,</span> <span class="ss">published_at</span><span class="p">:</span> <span class="n">press_review</span><span class="o">.</span><span class="n">live_date</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">NewsItem</span>
+</span><span class='line'>  <span class="n">belongs_to</span> <span class="ss">:press_review</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">validates</span> <span class="ss">:published_at</span><span class="p">,</span> <span class="ss">presence</span><span class="p">:</span> <span class="kp">true</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now that we have our publishers in place, we need to make our service objects actually &ldquo;listen&rdquo; to these events.</p>
+
+<h2>How And Why To Wisper</h2>
+
+<p>Our event listeners will subscribe at runtime to their publishers, which means that they won&rsquo;t be executed until the broadcast events are actually invoked.</p>
+
+<p>We can make any object a listener that subscribes to broadcast events by calling the <code>subscribe</code> method. So, inside of our controller, we could do something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">CreatePressReviewController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">create</span>
+</span><span class='line'>      <span class="c1"># The ActiveRecord logic to actually </span>
+</span><span class='line'>      <span class="c1"># create a press review would go here</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">create_press_review</span> <span class="o">=</span> <span class="no">CreatePressReview</span><span class="o">.</span><span class="n">new</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">create_press_review</span><span class="o">.</span><span class="n">subscribe</span><span class="p">(</span><span class="no">AuthorAlerter</span><span class="o">.</span><span class="n">new</span><span class="p">)</span>
+</span><span class='line'>      <span class="n">create_press_review</span><span class="o">.</span><span class="n">subscribe</span><span class="p">(</span><span class="no">NewsItemGenerator</span><span class="o">.</span><span class="n">new</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">create_press_review</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">press_review_id</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We&rsquo;ll remember that it&rsquo;s the <code>CreatePressReview</code> intermediary event bus class that&rsquo;s actually responsible for broadcasting our events now, not the callbacks in the <code>PressReview</code> class like we had before! We&rsquo;re making sure that our <code>AuthorAlerter</code> and <code>NewsItemGenerator</code> services are subscribed to the &ldquo;sucess&rdquo; and &ldquo;failure&rdquo; events of the <code>call</code> method that is defined in our <code>CreatePressReview</code> intermediary class. And it&rsquo;s only when we invoke the <code>call</code> method (in the last of this controller action) that we&rsquo;re &ldquo;broadcasting&rdquo; our event. We&rsquo;ve hooked up everything in such a way that the event bus class and the service objects will run the correct code if our <code>press_review</code> instance actually goes live.</p>
+
+<p>But we&rsquo;re not limited to doing all of this inside of a controller action! If we wanted to do this directly from our Rails model itself, we could write some similar logic by specificing the methods we want to invoke if the <code>PressReview</code> was created successfully:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">PressReview</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="kp">include</span> <span class="no">Wisper</span><span class="o">::</span><span class="no">Publisher</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">belongs_to</span> <span class="ss">:author</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">after_commit</span> <span class="ss">:publish_creation_successful</span><span class="p">,</span> <span class="ss">on</span><span class="p">:</span> <span class="ss">:create</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">private</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">publish_creation_successful</span>
+</span><span class='line'>      <span class="n">broadcast</span><span class="p">(</span><span class="ss">:press_review_created_success</span><span class="p">,</span> <span class="nb">self</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">publish_creation_failed</span>
+</span><span class='line'>      <span class="n">broadcast</span><span class="p">(</span><span class="ss">:press_review_created_failed</span><span class="p">,</span> <span class="nb">self</span><span class="p">)</span> <span class="k">if</span> <span class="n">errors</span><span class="o">.</span><span class="n">any?</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This rewrite has helped us divide our code into smaller, discrete classes that are easily-testable. In fact, we could use the <a href="https://github.com/krisleech/wisper-rspec"><code>wisper-rspec</code> gem</a> to help us in stubbing out some tests!</p>
+
+<p>The pub-sub pattern might not be for everyone, but it&rsquo;s certainly interesting to read and learn about. Even you decide to never use it, at least you can say that you saw a really cute penguin do some serious subscribing at the end of this post:</p>
+
+<iframe src="//giphy.com/embed/dPWFfe3tykssE" width="480" height="307" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The publish-subscribe <a href="https://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern">pattern</a> is a way to abstract out the conveying of messages between objects. The <code>wisper</code> gem is useful for implementing pub-sub in Ruby.</li>
+<li>Want to read more about the pub-sub pattern in Rails? Check out this great <a href="http://www.toptal.com/ruby-on-rails/the-publish-subscribe-pattern-on-rails">blog post</a>.</li>
+<li>The <code>wisper</code> gem has changed a bit over time, so there are a few good write-ups on how to implement it. Check one out <a href="ttp://www.sitepoint.com/using-wisper-to-decompose-applications/">here</a> and <a href="https://niallburkley.com/blog/ruby-publish-subscribe/">here</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Functions to Call Upon: ActiveRecord Association Callbacks]]></title>
@@ -4969,245 +5280,6 @@ backend (Sidekiq, Resque, etc).&rdquo;</p></blockquote>
 <li>The <code>paperclip</code> gem really needs only two things to function properly: a <code>has_attached_file :attachment</code> in the model and an <code>attachment_file_name</code> column in the database. The <code>attachment_content_type</code> is only required if you&rsquo;re going to use content type validation.</li>
 <li>If you want to see some <code>paperclip</code> in action, check out this <a href="http://railscasts.com/episodes/134-paperclip">RailsCast</a> that covers all the basics.</li>
 <li>Want to dive into the <code>paperclip</code> source code? Go for it! Perhaps you can start by checking out their well-documented <a href="http://www.rubydoc.info/gems/paperclip/Paperclip/ClassMethods">class methods</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[All the Columns Fit to Index: Unique + Compound Indexing]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing/"/>
-    <updated>2015-07-21T08:02:04-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/MMEfo9QQgKInK" width="480" height="269" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Database indexing: the last frontier. Well, okay, not the <em>last</em> frontier perse&hellip;more like the frontier that I&rsquo;ve been reading about a lot recently. While learning about writing about <a href="http://vaidehijoshi.github.io/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/">smart and efficient</a> migrations, I stumbled upon a rabbit hole that I had to restrain myself from going down: the rabbit hole of <strong>database indexing</strong>. But this week, I allowed myself to explore and learn some more about how indexes work.</p>
-
-<p>As the cat gif above might already suggest, an index in a database is much like an index in a book: a place where you can quickly look up the exact information that you need. We already know that indexing can be super helpful when it comes to application performance. Using indexes forces our database to use integers to look up rows &ndash; which are just representations of items or objects &ndash; in our database. The reason that they&rsquo;re so efficient is because looking up something in a database is both fast <em>and</em> cheap if we use an integer to do it (using a string on the other hand, is much, much slower and more expensive). By implementing a simple index, we can speed up a single query by seconds!</p>
-
-<p>But it turns out that even a single index can be complicated. And that&rsquo;s because there are so many kinds of indexes available for us to use. In fact, there&rsquo;s a whole <em>world</em> of different types of database indexes out there. Of course, knowing the options available to us when it comes to database indexing is just half the battle; the other half is knowing when it&rsquo;s the right time to use all these different types of indexes. The best way to learn is by playing around with some indexing ourselves &ndash; so let&rsquo;s dive in!</p>
-
-<!--more-->
-
-
-<h2>Indexes All Around Us</h2>
-
-<p>The most common index type that we have dealt with so far are <strong>single-column</strong> indexes. They work pretty much exactly as their name would suggest: they create an index on a specific column of a database. So far, almost all of the indexes we&rsquo;ve generated have been indexed on a specific single column of a table.</p>
-
-<iframe src="//giphy.com/embed/bjDq7WCjstuPS" width="480" height="329" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Let&rsquo;s think for a second: when we use a PostgreSQL to run a migration, the one column that always gets generated is an <code>id</code> column, which is unique for every row in that database, even if the object is deleted. If we think about it, that&rsquo;s an example of an index. In fact, PostgreSQL automatically generates an index for the primary key of any table, and always generates a new, unique key for each new row in the database.</p>
-
-<p>One of the very first migrations we ran for our Bookstore application looked like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">CreateBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
-</span><span class='line'>    <span class="n">create_table</span> <span class="ss">:books</span> <span class="k">do</span> <span class="o">|</span><span class="n">t</span><span class="o">|</span>
-</span><span class='line'>      <span class="n">t</span><span class="o">.</span><span class="n">string</span> <span class="ss">:title</span>
-</span><span class='line'>    <span class="k">end</span>    
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>and generated a tiny little table, which didn&rsquo;t have all that much &ndash; but it did have an index as its <code>id</code> primary key column, which we can confirm by looking at our <code>structure.sql</code> file:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">books</span> <span class="p">(</span>
-</span><span class='line'>    <span class="n">id</span> <span class="nb">integer</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
-</span><span class='line'>    <span class="n">title</span> <span class="nb">character</span> <span class="nb">varying</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span>
-</span><span class='line'><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>The advantage of having an <code>id integer</code> column here is that our database can very easily look up a specific row in our <code>books</code> table by using the index. We can also see that there&rsquo;s automatically a <code>NOT NULL</code> validation that prevents any row in the database from being created <em>without</em> an <code>id</code>. This isn&rsquo;t something that we wrote &ndash; this is something that Postgres does automatically! And although it might seem pretty obvious and a bit simple right now, it&rsquo;s important to note &ndash; especially since indexes can get rather complicated, rather fast.</p>
-
-<p>Another form of indexing that we&rsquo;ve played around with is adding our own indexes to <code>has_many</code> and <code>belongs_to</code> associations, often by using <code>references</code> to alias those relationships:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddGenreToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
-</span><span class='line'>    <span class="n">add_reference</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:genre</span><span class="p">,</span> <span class="ss">index</span><span class="p">:</span> <span class="kp">true</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>And if we already have a relationship set up, we can just write a quick migration to manually add an index to our <code>books</code> table:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddGenreIndexToBooks</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
-</span><span class='line'>    <span class="n">add_index</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:genre</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This migration adds an index on <code>genre_id</code> column within our <code>books</code> table, which makes it very quick and easy to look up a book by it&rsquo;s corresponding genre. This is still only a single-column, or <strong>independent index</strong>, because it is only dealing with a single column within a database table. But if there are single indexes, that must mean that the idea of &ldquo;multiple&rdquo; indexes is also must be a real thing, right?</p>
-
-<h2>Two Indexes Are (Sometimes) Better Than One</h2>
-
-<p>Indexes are easy to add; what&rsquo;s harder is knowing what <em>kind</em> of index to add. Sometimes, a single-column index does the trick. But it&rsquo;s also possible that it&rsquo;s quite the right tool for the job.</p>
-
-<p>Let&rsquo;s say that we are doing an overhaul on our Bookstore application and scaling for size. We&rsquo;ve decided that in addition to selling our own curated selection of books, we&rsquo;re also going to allow new, lesser-known bookstores to sign up for our service and sell their own books. Our vendors will have their own admin panel (think vendor portal), and the bookstore staff will have a separate admin panel from which to monitor all the sales across all the vendors who are signed up for our service.</p>
-
-<p>All of our admins (staff and vendors) have an <code>user_id</code>. But, our staff and our vendors aren&rsquo;t just simple users of our application &ndash; they have special roles, and need access to specific pages, depending on their roles. Our admins also have an <code>admin_id</code> in addition to their base <code>user_ids</code>, while our vendors have a <code>vendor_id</code>, based on their roles as smaller-scale booksellers who will be using our software to sell their products.</p>
-
-<p>Within our staff admin panel, we want our admins to be able to quickly view all sales across our signed up vendors, in addition to one specific vendors sales reports. If an admin logs into the admin panel and clicks on a specific bookseller, the panel should immediately load all the information pertinent to that specific vendor.</p>
-
-<p>The first thing we might think to do is what we already know &ndash; namely, add an index on the columns we know we want to look up:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddIndexesToUsers</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
-</span><span class='line'>      <span class="n">add_index</span> <span class="ss">:users</span>
-</span><span class='line'>      <span class="n">add_index</span> <span class="ss">:users</span><span class="p">,</span> <span class="ss">:vendor_id</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>However, these indexes don&rsquo;t actually do what we think they&rsquo;ll do. This adds an index to the primary key column on our <code>users</code> table, which will allow us to quickly look up a single <code>User</code>. It also adds an index to our <code>vendor_id</code> column, and allows us to look up a <code>User</code> instance based on its <code>vendor_id</code>, if it has one.</p>
-
-<p>But here&rsquo;s the rub: we&rsquo;re only adding a single index in this migration. That is to say, we&rsquo;re adding an index on our <code>user_ids</code>, and we&rsquo;re adding an index on our <code>vendor_ids</code>. What we <em>really</em> need is an index that first sorts our data by <code>user_id</code>, and then filters down to the users that match our <code>vendor_id</code>.</p>
-
-<iframe src="//giphy.com/embed/PUBxelwT57jsQ" width="480" height="332" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Don&rsquo;t worry, this is totally doable! We just need to index <em>two</em> columns, instead of one. Actually, there&rsquo;s a perfect name &ndash; or set of names &ndash; for what we need: a <strong>compound index</strong> (aka a concatenated, multi-column, composite or combined index).</p>
-
-<p>Ultimately, we want our database to execute a query that looks something like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">SELECT</span> <span class="o">*</span> <span class="k">FROM</span> <span class="n">users</span> <span class="k">WHERE</span> <span class="n">user_id</span> <span class="o">=</span> <span class="o">?</span> <span class="k">AND</span> <span class="n">vendor_id</span> <span class="o">=</span> <span class="o">?</span><span class="p">;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>so that we can avoid writing a SQL statement in our <code>UsersController</code> like we have now (ew, let&rsquo;s not do that):</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">class</span> <span class="n">UsersController</span> <span class="o">&lt;</span> <span class="n">ApplicationController</span>
-</span><span class='line'>  <span class="n">def</span> <span class="n">sign_in</span>
-</span><span class='line'>      <span class="o">@</span><span class="k">user</span> <span class="o">=</span> <span class="k">User</span><span class="p">.</span><span class="k">where</span><span class="p">(</span><span class="ss">&quot;user_id = ? AND vendor_id = ?&quot;</span><span class="p">,</span> <span class="n">params</span><span class="p">[:</span><span class="n">user_id</span><span class="p">],</span> <span class="n">params</span><span class="p">[:</span><span class="n">vendor_id</span><span class="p">])</span>
-</span><span class='line'>      <span class="o">#</span> <span class="n">authenticate</span> <span class="k">and</span> <span class="n">sign</span> <span class="k">in</span> <span class="n">the</span> <span class="n">vendor</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>So how are we going to manage all of this, you might ask? Well, pretty easily. Writing a compound index is almost as easy as writing a single-column index:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddIndexesToUsers</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
-</span><span class='line'>      <span class="n">add_index</span> <span class="ss">:users</span><span class="p">,</span> <span class="o">[</span><span class="ss">:id</span><span class="p">,</span> <span class="n">vendor_id</span><span class="o">]</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>And that&rsquo;s it! But what&rsquo;s happening, exactly? Well, we&rsquo;re still creating a single index, but we&rsquo;re doing it across multiple columns. The first column (<code>user_id</code>) is the primary &ldquo;sort criterion&rdquo;, and the second column (<code>vendor_id</code>) is the secondary &ldquo;sort criterion&rdquo;. The important thing to remember here is that <em>order matters</em>. We&rsquo;ll only ever look up a vendor by <code>user_id</code> first, and then by <code>vendor_id</code>. This makes sense if you think about it, since we&rsquo;ll first want to authenticate by the user currently logged in (in other words, using the current session).</p>
-
-<p>I really liked the way that Markus Winand describes two-column indexing on <a href="http://use-the-index-luke.com/sql/where-clause/the-equals-operator/concatenated-keys">his blog</a>:</p>
-
-<blockquote><p>The ordering of a two-column index is therefore like the ordering of a telephone directory: it is first sorted by surname, then by first name. That means that a two-column index does not support searching on the second column alone; that would be like searching a telephone directory by first name.</p></blockquote>
-
-<p>Compound indexes are super cool because they let you quickly look up the first field/column in a database, and then quickly look up <em>another</em> field/column in a database &ndash; but only within the records that were returned by the first index. At the end of the query, you&rsquo;ll only have rows that satisfy parts of that <code>AND</code> SQL query we wrote earlier!</p>
-
-<h2>Indexes Like None Other</h2>
-
-<p>I think we can all agree that indexing can help us narrow down a lot of rows in a database and is probably the coolest filtration system ever invented by and for developers. But that&rsquo;s not all that indexes can do! They can also prevent some pretty sticky situations that we often overlook.</p>
-
-<p>By now, something that we&rsquo;re all familiar with is validations. One of the most common kinds of validations that we see in our Rails models all of the time is <code>uniqueness:true</code>, or <code>validates_uniqueness_of</code>. However, here&rsquo;s something we don&rsquo;t always think about (or perhaps never even realized): these validations only occur at the the ActiveRecord level. And this fact can pose some problems.</p>
-
-<p>Imagine two vendors are signing up to use our Bookstore app. They both want to name their store the same thing, but we definitely don&rsquo;t want that to happen. So we add this line to our <code>Users</code> table:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">module</span> <span class="nn">User</span>
-</span><span class='line'>  <span class="k">class</span> <span class="nc">Vendor</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
-</span><span class='line'>    <span class="n">validates</span> <span class="ss">:store_name</span><span class="p">,</span> <span class="ss">presence</span><span class="p">:</span> <span class="kp">true</span><span class="p">,</span> <span class="ss">uniqueness</span><span class="p">:</span> <span class="kp">true</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Cool, so this is fine then, right? Wrong! Because we just sent out an email blast telling all these potential vendors that they could sign up for a free 60-day trial. Now, all of a sudden, tons of vendors are signing up! And it just so happens, that two of them signed up at almost the exact same second, and wanted to use the same name: <code>Super Cool Books</code> (I know, I know, what are the chances, right?!)</p>
-
-<p>Here&rsquo;s the problem: the moment that both of these potential vendors signed up for our service, no row in our polymorphic <code>vendors</code> database existed with a <code>store_name</code> that corresponded to the string, <code>Super Cool Books</code>. So what did ActiveRecord do? It created a new row! Actually&hellip;it created <em>two</em> new rows. At almost the exact same time. With the <em>exact same store name</em>. Uh oh.</p>
-
-<p>So how can we fix this? We need to take our <code>uniqueness</code> validation down another level. In fact, we need to make our <em>database</em> responsible for validating uniqueness. And we can do this by adding a <strong>unique index</strong>.</p>
-
-<p>Again, this is pretty easy. We just need to add a <code>unique: true</code> constraint on the column that we want to be able to index:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddStoreNameIndexToVendors</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
-</span><span class='line'>    <span class="n">add_index</span> <span class="ss">:vendors</span><span class="p">,</span> <span class="ss">:store_name</span><span class="p">,</span> <span class="ss">unique</span><span class="p">:</span> <span class="kp">true</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Now, when two vendors try to sign up to be called <code>Super Cool Books</code>, only one will actually be able to have that name. As soon as an unique index is created on the <code>store_name</code> column of our <code>vendors</code> database, any other record that tries to be created with that index will raise a <code>ActiveRecord::RecordNotUnique</code> error. This is going to be super helpful to us in avoiding inconsistant data, particularly when we know that a lot of data is going to be created at once.</p>
-
-<p>The world of indexes is mostly uncharted territory. It&rsquo;s also important to keep in mind that you never want to create <em>too</em> many indexes, and only ones that we actually need, since they will <a href="http://www.rubyonrails365.com/low-hanging-fruits-for-better-sql-performance-in-rails/">slow down</a> the &ldquo;write&rdquo; time to the database (whenever we use SQL commands like <code>UPDATE</code> or <code>CREATE</code>, for example). But that doesn&rsquo;t mean we can&rsquo;t learn about the different kinds of indexes that exist and be completely wowed at how amazing databases are. See, this cat is completely floored &ndash; and quite frankly, I am too:</p>
-
-<iframe src="//giphy.com/embed/vSSdLSLbGIXio" width="480" height="453" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>There are three main types of indexing: <em>single-column</em>, <em>compound</em>, and <em>unique</em> indexes. Compound indexes create an index on two ore more columns in a database, while unique indexes create a restraint on a single column index.</li>
-<li>This <a href="http://stackoverflow.com/a/1049392">StackOverflow answer</a> is the best explanation of how compound indexes actually work in terms of running a query. If you&rsquo;re still confused, give it a read!</li>
-<li>Uniqueness validations are super cool! Read more about them over <a href="https://robots.thoughtbot.com/the-perils-of-uniqueness-validations">here</a>, and check out some real-life examples of how to use them <a href="http://nyonura.com/blog/2014/Partial-Indexes-with-PostgreSQL-and-Rails/">here</a>.</li>
 </ul>
 
 ]]></content>

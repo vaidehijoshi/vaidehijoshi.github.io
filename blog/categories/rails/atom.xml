@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Rails | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/rails/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-12-01T19:51:57-05:00</updated>
+  <updated>2015-12-08T09:09:19-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,214 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Breaking the News: Wisper + Pub-Sub]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/12/08/breaking-the-news-wisper-plus-pub-sub/"/>
+    <updated>2015-12-08T08:50:17-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/12/08/breaking-the-news-wisper-plus-pub-sub</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/3oEduPlMkw4LZE7624" width="480" height="300" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>I&rsquo;ve been rather reflective this past week. This is mostly because the end of this year of technical Tuesdays is now very much in sight, with only a handful more posts left to write. Also, I&rsquo;ve been going back over old posts and correcting a few spelling and code snippet mistakes that have been brought to my attention (shoutout to all of you who have been proofreading for me!). All of this is to say that I never realized until recently that I&rsquo;ve covered quite the spread of different topics over the past year!</p>
+
+<p>But here&rsquo;s the rub: I&rsquo;m not even <em>close</em> to being done with my list of things I still want to learn more about. And even though that list keeps growing, I&rsquo;ve noticed that the complexity behind the concepts I&rsquo;m learning and writing about has begun to slowly change. While I started off focusing on syntax and DSL-specific topics, now those topics have become more theoretical in nature. While I used to write about things like the Rails <a href="http://localhost:4000/blog/2015/06/09/refactoring-to-reveal-rails-group-by/">group_by</a> method and the <a href="http://localhost:4000/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/">ampersand</a> operator, now I&rsquo;m diving into more complex concepts like <a href="http://localhost:4000/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks/">association callbacks</a> and <a href="http://localhost:4000/blog/2015/07/07/taskmanaging-your-app-part-2-service-objects/">service objects</a>.</p>
+
+<p>This week took complex concepts to a whole new level. I&rsquo;m talking about higher-level CS theory that I didn&rsquo;t even know existed. It all started when I heard someone use the term <strong>&ldquo;pub-sub&rdquo;</strong> (yeah, that&rsquo;s a thing!). And it stands for <strong>publish-subscribe</strong>, which is a messaging pattern used in software architecture. If you&rsquo;ve never heard about this before, don&rsquo;t worry &mdash; I hadn&rsquo;t either! It&rsquo;s apparently not all that common in Rails development, but <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise">JavaScript promises</a> are a loose example for how they are constructed. But let&rsquo;s not get carried away with semicolons and such nonesense. How does the publish-subscribe pattern work in Ruby? It&rsquo;s time to learn all about it!</p>
+
+<!--more-->
+
+
+<h2>Extra extra! Read all about pub-sub</h2>
+
+<iframe src="//giphy.com/embed/13gOSoNUzh55g4" width="480" height="288" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>In the context of building out systems of software, the publish-subscribe pattern is a way of handling how messages are sent between objects. We are probably already familiar with the concept of the &ldquo;single responsiblity principle&rdquo;, or the idea that no method should be responsible for more than one thing. This same concept extends to other parts of our application as well. As we&rsquo;ve learned through the process of refactoring, our controllers shouldn&rsquo;t be responsible for the logic that really belongs in model. Similarly, a model shouldn&rsquo;t be responsible for calling on a third-party service or performing some task or piece of logic that doesn&rsquo;t really relate to its own state.</p>
+
+<p>The way that we solve this in Ruby is by abstracting out logic into smaller components. We have service objects, which are responsible for carrying out tasks and therefore are easily-testable, and encapuslate a very specific piece of functionality that the rest of the application doesn&rsquo;t really need to know about.</p>
+
+<p>In Ruby, when we have two objects that are connected in some way &mdash; for example, a <code>Dog</code> <code>belongs_to</code> its <code>Human</code> &mdash; and the state of the <code>Human</code> changes, we probably want to notify the instance of the <code>Dog</code> that the object is associated with. We could say that the <code>Human</code> sends out a &ldquo;message&rdquo; to the objects that are &ldquo;listening&rdquo; to it. The real terms that we are trying to use here are <strong>publish</strong> and <strong>subscribe</strong>. An instance of a <code>Human</code> object &ldquo;publishes&rdquo; events (i.e., the human <code>wakes_up</code>, <code>is_ready_to_play</code>, etc.), and the <code>Dog</code> object listens and &ldquo;subscribes&rdquo; to these events (and probably behaves accordingly, aka it would <code>jump_excitedly</code> when the human <code>is_ready_to_play</code>).</p>
+
+<p>Usually, for smaller applications, it&rsquo;s fine to just rely on one object telling another to behave a certain way explicitly. But, things get kind of messy as you have more objects &ldquo;listening&rdquo; to the events of other objects. This is where our knowledge of service objects can come in handy. We can pretty easily abstract out units of work into service classes. But, this still means that we need to notify our service classes whenever they need to change; in other words, we have to tell our services <em>Hey, you need to behave in a certain way because something about the object you&rsquo;re associated with has changed!</em></p>
+
+<p>The <strong>publish-subscribe pattern</strong> uses the exact same concept of sending messages between objects when something about one of the objects changes &mdash; however, it does this by using an intermediary object, sometimes called a <strong>message broker</strong> or an <strong>event bus</strong>. The important thing here is that the object that does the &ldquo;publishing&rdquo; or &ldquo;broadcasting&rdquo; of an event has no idea who is listening to its events. It just sends out a signal of sorts. The intermediary message broker object then is responsible for knowing who is &ldquo;subscribed&rdquo; to this event, and who needs to know about it. The message broker then makes sure that the correct object gets this message. In the simple example from above, a <code>Human</code> might publish an event, and another object, such as a <code>DogNotifer</code>, would be responsible for telling the <code>Dog</code> instance that it needs to do something.</p>
+
+<p>I really like the way that Ahmed Abdel Razzak explains this in his <a href="http://www.toptal.com/ruby-on-rails/the-publish-subscribe-pattern-on-rails">blog post</a>:</p>
+
+<blockquote><p>&ldquo;The publish-subscribe pattern is a Ruby on Rails messaging pattern where senders of messages (publishers), do not program the messages to be sent directly to specific receivers (subscribers). Instead, the programmer “publishes” messages (events), without any knowledge of any subscribers there may be. The pub-sub is a pattern used to communicate messages between different system components without these components knowing anything about each other’s identity.&rdquo;</p></blockquote>
+
+<p>This concept can be a little tricky to understand in Ruby until you see all the classes in action. So let&rsquo;s start publishing and subscribing!</p>
+
+<h2>Hush, don&rsquo;t shout</h2>
+
+<iframe src="//giphy.com/embed/dYHtDUl1VZ0ly" width="480" height="257" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>There are a few different pub-sub gems out there, but the one that I&rsquo;ve found the easiest to use is a gem called <a href="https://github.com/krisleech/wisper/tree/v1"><code>wisper</code></a>.</p>
+
+<p>We&rsquo;ll start the same way that we always do: by adding <code>gem 'wisper'</code> to our <code>Gemfile</code>, and then running the <code>bundle</code> command.</p>
+
+<p>Now, let&rsquo;s take a look at one of our Ruby classes that we can implement the pub-sub pattern on. Here we have a <code>PressReview</code> class, that is a representation of a book review that might generate a lot of press for an <code>Author</code> in our bookstore app. These press reviews are pretty important (think the New York Times Bestseller List, etc.), so we want to notify the author of the book when the press review goes live. We also want to generate a tiny news snippet that will just have a few lines about the article once it has been created:</p>
+
+<pre><code class="ruby">class PressReview &lt; ActiveRecord::Base
+    after_commit :alert_author, on: :create
+    after_commit :generate_news_item, on: :create
+
+    private
+    def alert_author
+        AuthorMailer.send_alert_email(self).deliver_later
+    end
+
+    def generate_news_item
+        NewsItem.create(self)
+    end
+end
+</code></pre>
+
+<p>The first thing that we&rsquo;ll want to do to add the <code>wisper</code> gem is to include the <code>Wisper::Publisher</code> module into the class that is going to be broadcasting events. In this case, we want to broadcast an event when our <code>PressReview</code> class has been successfully created and has gone &ldquo;live&rdquo;. Let&rsquo;s create a message broker class called <code>CreatePressReview</code> that will handle the broadcasting of this event. We will either need to include <code>Wisper::Publisher</code> or alternatively, <code>Wisper.publisher</code>:</p>
+
+<pre><code class="ruby">class CreatePressReview
+    include Wisper::Publisher
+end
+</code></pre>
+
+<p>Next, we&rsquo;ll need to add the method that is going to be doing the &ldquo;broadcasting&rdquo; of the event. It&rsquo;s pretty typical to use a <code>call</code> method to do this. Inside of this broadcasting method, we&rsquo;ll want to handle two different situations (think JavaScript promises): if our <code>press_review</code> is created succesfully, or if it fails to be created:</p>
+
+<pre><code class="ruby">class CreatePressReview
+    include Wisper::Publisher
+
+    def call(press_review_id)
+        press_review = PressReview.find(press_review_id)
+
+        # Some logic here to make sure that 
+        # the press_review we just found is live and 
+        # visible to the public, based on its state
+
+        if press_review.live?
+            broadcast(:press_review_created_success, press_review)
+        else
+            broadcast(:press_review_created_failed, press_review)
+        end
+    end
+end
+</code></pre>
+
+<p>We&rsquo;ll notice that this class takes a <code>press_review_id</code>, and then contains the logic to set and check whether the <code>press_review</code> we just found is <code>live</code> or not. If it is live and we&rsquo;re ready to notify our author and generate our news item, we&rsquo;re calling the <code>broadcast</code> method, and passing it the name of the function we want to execute, along with the <code>press_review</code> instance. And if the <code>press_review</code> <em>isn&rsquo;t</em> live, we&rsquo;re calling a different method isntead.</p>
+
+<p>It&rsquo;s worth noting that the <code>broadcast</code> method is also aliased to <code>publish</code> and <code>announce</code>, so either of these lines would have also worked:</p>
+
+<pre><code class="ruby">publish(:press_review_created_success, press_review)
+announce(:press_review_created_success, press_review)
+</code></pre>
+
+<p>Before we add any listener objects that will subscribe to these events, let&rsquo;s first abstract out those <code>alert_author</code> and <code>generate_news_item</code> private methods from our <code>PressReview</code> class into services objects. Our <code>alert_author</code> method can now be rewritten as a <code>AuthorAlerter</code> Plain Old Ruby Class, which calls upon an <code>AuthorMailer</code>:</p>
+
+<pre><code class="ruby">class AuthorAlerter
+    def alert_author(press_review_id)
+        press_review = PressReview.find(press_review_id)
+
+        AuthorMailer.send_alert_email(press_review).deliver_later
+    end
+end
+</code></pre>
+
+<pre><code class="ruby">class AuthorMailer &lt; ApplicationMailer
+    def send_alert_email(press_review)
+        # Sends an email to the author
+        # alerting them of a new press review
+    end
+end
+</code></pre>
+
+<p>And our <code>generate_news_item</code> method can be refactored into a <code>NewsItemGenerator</code> service class, that creates a new instance of a <code>NewsItem</code>:</p>
+
+<pre><code class="ruby">class NewsItemGenerator
+    def generate_news_item(press_review_id)
+        press_review = PressReview.find(press_review_id)
+
+        NewsItem.create(press_review_id: press_review_id, published_at: press_review.live_date)
+    end
+end
+</code></pre>
+
+<pre><code class="ruby">class NewsItem
+    belongs_to :press_review
+
+    validates :published_at, presence: true
+end
+</code></pre>
+
+<p>Now that we have our publishers in place, we need to make our service objects actually &ldquo;listen&rdquo; to these events.</p>
+
+<h2>How And Why To Wisper</h2>
+
+<p>Our event listeners will subscribe at runtime to their publishers, which means that they won&rsquo;t be executed until the broadcast events are actually invoked.</p>
+
+<p>We can make any object a listener that subscribes to broadcast events by calling the <code>subscribe</code> method. So, inside of our controller, we could do something like this:</p>
+
+<pre><code class="ruby">class CreatePressReviewController &lt; ApplicationController
+    def create
+        # The ActiveRecord logic to actually 
+        # create a press review would go here
+
+        create_press_review = CreatePressReview.new
+
+        create_press_review.subscribe(AuthorAlerter.new)
+        create_press_review.subscribe(NewsItemGenerator.new)
+
+        create_press_review.call(press_review_id)
+    end
+end
+</code></pre>
+
+<p>We&rsquo;ll remember that it&rsquo;s the <code>CreatePressReview</code> intermediary event bus class that&rsquo;s actually responsible for broadcasting our events now, not the callbacks in the <code>PressReview</code> class like we had before! We&rsquo;re making sure that our <code>AuthorAlerter</code> and <code>NewsItemGenerator</code> services are subscribed to the &ldquo;sucess&rdquo; and &ldquo;failure&rdquo; events of the <code>call</code> method that is defined in our <code>CreatePressReview</code> intermediary class. And it&rsquo;s only when we invoke the <code>call</code> method (in the last of this controller action) that we&rsquo;re &ldquo;broadcasting&rdquo; our event. We&rsquo;ve hooked up everything in such a way that the event bus class and the service objects will run the correct code if our <code>press_review</code> instance actually goes live.</p>
+
+<p>But we&rsquo;re not limited to doing all of this inside of a controller action! If we wanted to do this directly from our Rails model itself, we could write some similar logic by specificing the methods we want to invoke if the <code>PressReview</code> was created successfully:</p>
+
+<pre><code class="ruby">class PressReview &lt; ActiveRecord::Base
+    include Wisper::Publisher
+
+    belongs_to :author
+
+    after_commit :publish_creation_successful, on: :create
+
+    private
+    def publish_creation_successful
+        broadcast(:press_review_created_success, self)
+    end
+
+    def publish_creation_failed
+        broadcast(:press_review_created_failed, self) if errors.any?
+    end
+end
+</code></pre>
+
+<p>This rewrite has helped us divide our code into smaller, discrete classes that are easily-testable. In fact, we could use the <a href="https://github.com/krisleech/wisper-rspec"><code>wisper-rspec</code> gem</a> to help us in stubbing out some tests!</p>
+
+<p>The pub-sub pattern might not be for everyone, but it&rsquo;s certainly interesting to read and learn about. Even you decide to never use it, at least you can say that you saw a really cute penguin do some serious subscribing at the end of this post:</p>
+
+<iframe src="//giphy.com/embed/dPWFfe3tykssE" width="480" height="307" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The publish-subscribe <a href="https://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern">pattern</a> is a way to abstract out the conveying of messages between objects. The <code>wisper</code> gem is useful for implementing pub-sub in Ruby.</li>
+<li>Want to read more about the pub-sub pattern in Rails? Check out this great <a href="http://www.toptal.com/ruby-on-rails/the-publish-subscribe-pattern-on-rails">blog post</a>.</li>
+<li>The <code>wisper</code> gem has changed a bit over time, so there are a few good write-ups on how to implement it. Check one out <a href="ttp://www.sitepoint.com/using-wisper-to-decompose-applications/">here</a> and <a href="https://niallburkley.com/blog/ruby-publish-subscribe/">here</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Functions to Call Upon: ActiveRecord Association Callbacks]]></title>
@@ -818,283 +1026,6 @@ end
 <li>Memoization is a long-standing computer science concept that is basically the idea of &ldquo;remembering&rdquo; the value of a function to avoid running expensive method calls and calculations multiple times in our code.</li>
 <li>The crux of Ruby&rsquo;s memoization techniques relies upon using the conditional &ldquo;or equals&rdquo; operator <code>||=</code>, which assigns a value and executes the following line of code <em>only</em> if the variable being assigned is not falsey (i.e. not <code>nil</code> or <code>false</code>).</li>
 <li>There are some great blog posts on the basics of Ruby memoization. This two-part series (<a href="http://gavinmiller.io/2013/basics-of-ruby-memoization/">part one</a> and <a href="http://gavinmiller.io/2013/advanced-memoization-in-ruby/">part two</a>) is a pretty good place to start.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Hunting Down the Scoop on ActiveRecord Scopes]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/11/03/hunting-down-the-scoop-on-activerecord-scopes/"/>
-    <updated>2015-11-03T08:43:46-05:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/11/03/hunting-down-the-scoop-on-activerecord-scopes</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/PzrPi0UVzgYHm" width="480" height="254" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>Over the past forty or so Tuesdays &mdash; has it really been that many?! &mdash; I&rsquo;ve written on a spread of topics. There&rsquo;s a slight problem with this: sometimes I forget what I have and haven&rsquo;t written about. Here&rsquo;s a case in point for you: last week, I wrote about <a href="http://vaidehijoshi.github.io/blog/2015/10/27/digging-into-the-finder-object-pattern/">finder objects</a>, and casually tossed in some scopes into my models. It turns out, I&rsquo;ve never actually written about how scopes work, or what they really do!</p>
-
-<p>I know, I know, that&rsquo;s pretty terrible of me. I actually learned about scopes awhile ago, and now I use them fairly often in my applications. However, I got so used to writing them, that I never really thought that much about how they work behind the scenes. In fact, when I sat down to write <em>this</em> post, I had to go on a hunt into the Rails source code and Ruby blogosphere to figure out what was going on under the hood every single time I implemented a scope in my code.</p>
-
-<p>The main reason that I like to use <strong>ActiveRecord scopes</strong> is because they allow us to specify commonly-used queries, but encapsulate these queries into methods, which we can then call on our models or association objects. However, my hunt lead me to find out that scopes have been around for awhile in Railsland, so they&rsquo;re not exactly that new. But, what&rsquo;s interesting about them is how their implementation has changed and grown with different releases of Rails. There&rsquo;s also a lot of debate over how and when scopes are different from their counterparts, or simpler class methods. But what makes a scope exactly? Well, it&rsquo;s finally time for us to hunt down the answer to that question.</p>
-
-<!--more-->
-
-
-<h2>The simplest of scopes</h2>
-
-<iframe src="//giphy.com/embed/uH37VANhgHDaM" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>While developing applications, we often run into a situation where we want to select a particular group of objects (read: rows from our database) based on the characteristics that they share. The basic implementation of scopes can be summed up as this simple idea: being able to narrow down the objects that we want into a specific subset, based on some given parameters. We can tell <code>ActiveRecord</code> (an Object Relational Mapper, or ORM) to select a certain group of objects by implementing a scope that is specific to a model. Luckily, scopes aren&rsquo;t too difficult to define, and mostly adhere to a simple structure.</p>
-
-<p>In our bookstore app for example, we have a <code>Review</code> object, that we allow our users to write about the <code>Book</code>s that they purchase through our store. For now, our <code>Review</code>s belong to a <code>User</code>, and they have some basic attributes which map to columns in our database, including a <code>published_at</code> datetime attribute, that we set when our User clicks the submit button, which saves their &ldquo;drafted&rdquo; review and turns it into a &ldquo;published&rdquo; review.</p>
-
-<p>However, one side effect of having this attribute (and effectively, two different states or &ldquo;types&rdquo; of reviews) is that we now have no obvious form of selecting only our &ldquo;published&rdquo; reviews &mdash; that is to say, reviews that have a <code>published_at</code> date attribute set on them. How can we fix this? Well, we can write a class method that, when invoked, will run a query on our <code>ActiveRecord</code> object and only return the reviews that have this attribute. If we did that, our model might look something like this:</p>
-
-<pre><code class="ruby">class Review &lt; ActiveRecord::Base
-    belongs_to :user
-
-    def self.published
-        where('published_at IS NOT NULL')
-    end
-end
-</code></pre>
-
-<p>Okay, that&rsquo;s a good start. Remember that the implicit <code>self</code> in the body of this class method is our <code>Review</code> class, so we&rsquo;re basically running <code>Review.where('published_at IS NOT NULL')</code>. But now we run into another problem: this query isn&rsquo;t all that specific, is it? What makes a <code>published</code> review, exactly? Well, it&rsquo;s not just the fact that the <code>published_at</code> date should be set; we also need to account for the fact that some reviews could be set to be published in the <em>future</em>, at a later date. What we <em>really</em> want to select are our reviews that have a <code>published_at</code> date that has already happened; in other words, a date which occurred in the past. We can modify our class method to account for this:</p>
-
-<pre><code class="ruby">class Review &lt; ActiveRecord::Base
-    belongs_to :user
-
-    def self.published
-        where('published_at IS NOT NULL AND 
-        published_at &lt;= ?', Time.zone.now)
-    end
-end
-</code></pre>
-
-<p>If we try out this class method, we can see the exact SQL that gets executed:</p>
-
-<pre><code class="ruby">♥ rails c
-Loading development environment (Rails 4.1.4)
-irb(main):001:0&gt; Review.published
-# SELECT "reviews".* FROM "reviews" WHERE "reviews".
-"published_at" IS NOT NULL AND "reviews"."published_
-at" &lt;= 2015-10-27 08:07:36 -0400
-</code></pre>
-
-<p>However, instead of writing this functionality into the body of a class method, we could accomplish the exact same thing by using a scope:</p>
-
-<pre><code class="ruby">class Review &lt; ActiveRecord::Base
-    belongs_to :user
-
-    scope :published, -&gt; {
-        where('published_at IS NOT NULL AND 
-        published_at &lt;= ?', Time.zone.now)
-    }
-end
-</code></pre>
-
-<p>which allows us to invoke a method in the console that pretty much looks like the method we had before:</p>
-
-<pre><code class="ruby">irb(main):002:0&gt; Review.published
-  Review Load (2.6ms)  SELECT "reviews".* FROM 
-  "reviews" WHERE "reviews".
-"published_at" IS NOT NULL AND "reviews"."published_
-at" &lt;= 2015-10-27 08:07:36 -0400
-=&gt; #&lt;ActiveRecord::Relation []&gt;
-</code></pre>
-
-<p>Okay, wait &mdash; what&rsquo;s going on here?! How did that even happen? Well, let&rsquo;s break it down:</p>
-
-<ol>
-<li>First, we&rsquo;re using something called the <code>scope</code> method. This class method is defined within the <code>ActiveRecord::Scoping::Named</code> module.</li>
-<li>Second, the <code>scope</code> class method requires two important arguments: a <strong>name</strong> for the scope, and a <strong>callable object</strong> that includes a query criteria. That last part about passing a callable object is pretty important, because only procs and lambdas are callable objects. In fact, that <code>-&gt; {}</code> syntax that we&rsquo;re using is just another way of writing a lambda in Ruby.</li>
-<li>Third, and most interestingly, the return value of our scope was an <code>ActiveRecord::Relation</code> object. This is significant because <code>ActiveRecord::Relation</code> objects are <em>not</em> eagerly-loaded &mdash; they&rsquo;re <em>lazily-loaded</em>. Lazy-loading basically means that we&rsquo;re never going to query to the database until we actually <em>need</em> to. What makes this really awesome is that lazy-loading allows us to call more methods (read: scopes galore!) on our returned <code>ActiveRecord::Relation</code> object.</li>
-</ol>
-
-
-<p>It looks like perhaps there&rsquo;s some funky stuff going on here. But, all of these things still don&rsquo;t really answer our burning question: why use a scope when we could just write a class method?!</p>
-
-<h2>Class methods by any other name</h2>
-
-<iframe src="//giphy.com/embed/fwok0XCSAIivm" width="480" height="729" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>What&rsquo;s in a scope? A class method by any other name would smell just as sweet! Oops, I got carried away there. Enough poetry, let&rsquo;s talk prose. Or scopes, rather, and why we might want to use them.</p>
-
-<p>We want to change the implementation of our <code>published</code> class method such that it accepts an argument that makes our query more flexible. Let&rsquo;s say that we want to be able to filter our <code>Review</code>s by a specific publication date. We might now have a class method that looks like this:</p>
-
-<pre><code class="ruby">class Review &lt; ActiveRecord::Base
-    belongs_to :user
-
-    def self.published(on)
-        where('published_at IS NOT NULL AND 
-        published_at &lt;= ?', on)
-    end
-end
-</code></pre>
-
-<p>The <code>on</code> parameter would ideally be a <code>Date</code> or a <code>Datetime</code> object that would dynamically change the rows that we&rsquo;ll query for in our database. This will behave exactly like we want it to, until&hellip;it breaks. How can we break this? Well, let&rsquo;s say that we now want to order our published reviews by their <code>position</code> attribute, which for the time being, is just an integer. No problem, we can do that, right?</p>
-
-<pre><code class="ruby">irb(main):003:0&gt; Review.published(Time.zone.now)
-    .order(position: asc)
-    Review Load (0.2ms)  SELECT "review".* FROM 
-    "review"  WHERE (published_at IS NOT NULL AND 
-    published_at &lt;= 2015-11-02 08:07:36 -0400) 
-    ORDER BY "review"."position" ASC
-=&gt; #&lt;ActiveRecord::Relation [#&lt;Review id: 1, published_at: 
-"2015-08-02 00:04:22", position: 5&gt;, #&lt;Review id: 2, 
-published_at: nil, position: 10, published_at: 
-"2015-10-02 00:02:00"&gt;]&gt;
-</code></pre>
-
-<p>Sure, no problem! This returns exactly what we&rsquo;d expect. But what if we&rsquo;re relying on this method elsewhere and somehow don&rsquo;t pass in a parameter to our <code>published</code> method. What happens then?</p>
-
-<pre><code class="ruby">irb(main):004:0&gt; Review.published(nil).order(position: asc)
-=&gt; NoMethodError: undefined method `order' for nil:NilClass
-</code></pre>
-
-<p>BOOM! Everything broke. Oops. What happened here? We tried to call the <code>order</code> method on a falsy object (aka <code>nil</code>). Obviously Ruby is unhappy, because it looks like <code>Review.published(nil)</code> returns <code>nil</code>, which doesn&rsquo;t respond to a method called <code>order</code>!</p>
-
-<p>Now, let&rsquo;s go fast forward to our new scope implementation in the Review class:</p>
-
-<pre><code class="ruby">class Review &lt; ActiveRecord::Base
-    belongs_to :user
-
-    scope :published, -&gt; (on) {
-        where('published_at IS NOT NULL AND 
-        published_at &lt;= ?', on)
-    }
-end
-</code></pre>
-
-<p>We&rsquo;ve changed our callable object to accept a parameter, which is how we&rsquo;re going to determine our <code>published_at</code> date. We can be pretty certain that this will execute the same query if we pass an actual <em>date</em> to this scope. But what if we pass <code>nil</code> again?</p>
-
-<pre><code class="ruby">irb(main):005:0&gt; Review.published(nil)
-    .order(position: asc)
-   Review Load (0.2ms)  SELECT "review".* 
-   FROM "review"  WHERE (published_at IS NOT 
-   NULL AND published_at &lt;= 2015-11-02 08:07:36 -0400) 
-   ORDER BY "review"."position" ASC
-=&gt; #&lt;ActiveRecord::Relation [#&lt;Review id: 1, published_at: 
-nil, position: 1, created_at: "2015-11-02 00:45:22", 
-updated_at: "2015-11-02 00:45:22"&gt;, #&lt;Review id: 2, 
-published_at: nil, position: 2, created_at: 
-"2015-11-02 00:46:22", updated_at: "2015-11-02 00:46:22"&gt;]&gt;
-</code></pre>
-
-<p>Well, would you look at that! It didn&rsquo;t break! It ran our expected query, but because scopes return <code>ActiveRecord::Relation</code> objects, it didn&rsquo;t call <code>order</code> on <code>nil</code>, it just kept chaining on to our query. The first part of our query (responsible for finding any reviews that were published on a date) didn&rsquo;t return anything, but the second part of our query (responsible for just ordering whatever got returned by our first query) did work! How, exactly? Well, <a href="http://aspiringwebdev.com/use-activerecord-scopes-not-class-methods-in-rails-to-avoid-errors/">it just so happens</a> that calling a method on a blank <code>ActiveRecord::Relation</code> object returns that same relation. An important thing to note: if we had a query that was scoping down our reviews to ones that were published on a date and ordering <em>those</em> objects by their position, we would have gotten an empty relation:</p>
-
-<pre><code class="sql">SELECT "review".* FROM "review"  WHERE 
-(published_at IS NOT NULL AND published_at 
-&lt;= 2015-11-02 08:07:36 -0400 AND 
-(ORDER BY "review"."position" ASC))
-</code></pre>
-
-<p>The above query narrows down our scope quite a bit, which we could do if we wanted to specify that to SQL. But in our case, our <code>ORDER BY</code> clause isn&rsquo;t grouped inside of the <code>AND</code>, but instead exists outside of it, which is why we&rsquo;re not getting an empty relation returned to us.</p>
-
-<p>While we&rsquo;re on the topic of relations, it&rsquo;s also important to note that the method we have right now <em>does not</em> return an object to us! Relations are not objects! We&rsquo;d need to explicitly query for a record if we wanted to return it:</p>
-
-<pre><code class="ruby">irb(main):006:0&gt; Review.published(nil)
-    .order(position: asc).first
-=&gt; #&lt;Review id: 1, published_at: nil, position: 1, 
-created_at: "2015-11-02 00:45:22", 
-updated_at: "2015-11-02 00:45:22"&gt;
-</code></pre>
-
-<p>Hopefully we should now be able to easily see that the <code>order</code> method that we&rsquo;re chaining on right there at the end could really be abstracted into its own scope! Let&rsquo;s fix that, shall we?</p>
-
-<pre><code class="ruby">class Review &lt; ActiveRecord::Base
-    belongs_to :user
-
-    scope :published, -&gt; (on) {
-        where('published_at IS NOT NULL AND 
-        published_at &lt;= ?', on)
-    }
-
-    scope :ordered, -&gt; { order(position: :asc) } 
-end
-</code></pre>
-
-<p>Much better. Now we can just chain on our <code>order</code> scope to our <code>published</code> scope without ever having to worry that our scopes will break. But wait, there&rsquo;s even more we can do with scopes!</p>
-
-<h2>Special scope tricks</h2>
-
-<p>Because scopes accept lambdas and procs, we can pass in different arguments. We did that before when we passed in a datetime parameter. But this kind of flexibility can be especially powerful, because we can do things like pass in limits:</p>
-
-<pre><code class="ruby">class Review &lt; ActiveRecord::Base
-    scope :published, -&gt; (limit: 20) {
-        where('published_at IS NOT NULL AND 
-        published_at &lt;= ?', Time.zone.now)
-    }
-end
-</code></pre>
-
-<p>This will run our same SQL query, but will add <code>LIMIT 10</code> to the end of it. We can customize this scope further, or we can add more if we need to. We also might want to just perpetually apply a scope to all queries on a specific model. When we run into this situation, we can use the <code>default_scope</code> method.</p>
-
-<pre><code class="ruby">class Review &lt; ActiveRecord::Base
-    default_scope -&gt; { order(published_at: :desc) }
-end
-</code></pre>
-
-<p>This will automatically append all of our SQL queries on this model with <code>ORDER BY "review"."position" DESC</code>. What&rsquo;s really nice about having a default scope is that we don&rsquo;t need to write and perpetually call a method named something like <code>by_published_date</code> on this model; it will be applied and invoked by default on all instances of this class.</p>
-
-<p>According to <a href="http://guides.rubyonrails.org/active_record_querying.html#scopes">the documentation</a>, if we want to get <em>super</em> fancy with our default scope and have so much logic that it&rsquo;s bursting from our callable object&rsquo;s so-called seams, we can also define it in an alternate way as a class method:</p>
-
-<pre><code class="ruby">class Review &lt; ActiveRecord::Base
-  def self.default_scope
-    # Get fancy in here, but just make sure 
-    # to return an ActiveRecord::Relation.
-    # Otherwise, any scopes we chain onto 
-    # this will automatically break!
-  end
-end
-</code></pre>
-
-<p>We&rsquo;re also not limited to just using the <code>where</code> method! We can use plenty of other <code>ActiveRecord::Relation</code> methods, such as <code>joins</code> or <code>includes</code>, which will eager load other relations when we want to. Here&rsquo;s a handy scope we could add to our <code>Shipment</code> model that <a href="http://vaidehijoshi.github.io/blog/2015/10/27/digging-into-the-finder-object-pattern/">we built out</a> last week:</p>
-
-<pre><code class="ruby">class Shipment &lt; ActiveRecord::Base
-    default_scope -&gt; { includes(:order, :line_items) }
-end
-</code></pre>
-
-<p>This is pretty cool because we&rsquo;re using our <code>default_scope</code> method to automatically eager-load our associated <code>order</code> and <code>line_items</code> on our <code>shipment</code> without having to make two additional queries just to load them! As is the case with <code>includes</code>, it might not always be a good idea to do this, since we could be loading more records than we want, or could get stuck with a n+1 situation on our hands. But if we know what we&rsquo;re doing and are sure that this scope is necessary, it can be pretty powerful.</p>
-
-<p>We can also merge two scopes together, which effectively allows us to mix and match different <code>WHERE</code> conditions and group them together in SQL with an <code>AND</code>:</p>
-
-<pre><code class="ruby">class Shipment &lt; ActiveRecord::Base
-    scope :shipped -&gt; { where(state: 'shipped') }
-    scope :damaged -&gt; { where(condition: 'damaged') }
-end
-</code></pre>
-
-<p>which we can then merge into a single SQL query by chaining our scopes together:</p>
-
-<pre><code class="ruby">irb(main):007:0&gt; Shipment.shipped.received
-=&gt; SELECT "shipments".* FROM "shipments" WHERE 
-"shipments"."state" = 'shipped' AND "shipments".
-"condition" = 'damaged'
-</code></pre>
-
-<p>We&rsquo;ll notice that in this situation, our <code>WHERE</code> clauses are grouped together with an <code>AND</code>, which can help us when it comes to writing super specific queries.</p>
-
-<iframe src="//giphy.com/embed/OIIB1hkbwFs76" width="480" height="339" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>ActiveRecord scopes give us a lot of flexibility, even though they are effectively defining a class method on a model. The fundamental difference between them however, is that scopes should always return an <code>ActiveRecord::Relation</code> object, which makes them forever chainable!</li>
-<li>How does the <code>scope</code> method actually work? I&rsquo;m not sure that I understand all of it, but perhaps you will! Check it out in the <a href="https://github.com/rails/rails/blob/428d47adfed8d6aa7b21aec2bf5ad890961c9de3/activerecord/lib/active_record/scoping/named.rb#L143">Rails source code</a>!</li>
-<li>There are a few great primers on writing effective scopes, like <a href="http://www.informit.com/articles/article.aspx?p=2220311">this one</a>, and this <a href="http://blog.plataformatec.com.br/2013/02/active-record-scopes-vs-class-methods/">other one</a>.</li>
 </ul>
 
 ]]></content>

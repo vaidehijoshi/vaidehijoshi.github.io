@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="All it takes is a single feature to make you realize how well &ndash; or perhaps not so well &ndash; you&rsquo;ve written your application. &hellip;">
+  <meta name="description" content="Database indexing: the last frontier. Well, okay, not the last frontier perse&hellip;more like the frontier that I&rsquo;ve been reading about a lot &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,56 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing/">All the Columns Fit to Index: Unique + Compound Indexing</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-07-21T08:02:04-04:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>8:02 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/postgresql/'>postgresql</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/sql/'>sql</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/MMEfo9QQgKInK" width="480" height="269" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+
+
+<p>Database indexing: the last frontier. Well, okay, not the <em>last</em> frontier perse&hellip;more like the frontier that I&rsquo;ve been reading about a lot recently. While learning about writing about <a href="http://vaidehijoshi.github.io/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/">smart and efficient</a> migrations, I stumbled upon a rabbit hole that I had to restrain myself from going down: the rabbit hole of <strong>database indexing</strong>. But this week, I allowed myself to explore and learn some more about how indexes work.</p>
+
+<p>As the cat gif above might already suggest, an index in a database is much like an index in a book: a place where you can quickly look up the exact information that you need. We already know that indexing can be super helpful when it comes to application performance. Using indexes forces our database to use integers to look up rows &ndash; which are just representations of items or objects &ndash; in our database. The reason that they&rsquo;re so efficient is because looking up something in a database is both fast <em>and</em> cheap if we use an integer to do it (using a string on the other hand, is much, much slower and more expensive). By implementing a simple index, we can speed up a single query by seconds!</p>
+
+<p>But it turns out that even a single index can be complicated. And that&rsquo;s because there are so many kinds of indexes available for us to use. In fact, there&rsquo;s a whole <em>world</em> of different types of database indexes out there. Of course, knowing the options available to us when it comes to database indexing is just half the battle; the other half is knowing when it&rsquo;s the right time to use all these different types of indexes. The best way to learn is by playing around with some indexing ourselves &ndash; so let&rsquo;s dive in!</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -525,58 +575,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/">Investigating Ruby&#8217;s Global Functions + Kernel Module With Puts</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-05-12T08:09:27-04:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:09 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><iframe src="//giphy.com/embed/10Vy7fN9fr7dD2" width="480" height="361" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>When you&rsquo;re a relatively new developer, it&rsquo;s easy to get caught up in all of the things that you don&rsquo;t know. And boy is <em>that</em> a long, long list of things. But there&rsquo;s also another list that we should probably consider and revisit from time to time: the list of all the things we thought we knew, but didn&rsquo;t <em>really</em> understand when we learned them.</p>
-
-<p>Last week, while developing some curriculum for an Intro to Programming course, my co-teacher and I had one of those moments. We were trying to draw a diagram to explain the concept of an object &ldquo;receiving&rdquo; a method. As I looked back through our code snippets, I noticed that we were using very basic methods like <code>puts</code> and <code>gets</code> quite often, as most Ruby tutorials usually do. And then I realized something: I had no clue what the receiver of the <code>puts</code> method was.</p>
-
-<p>We both just sat there, partly perplexed and partly dumbfounded. How could we not know how <code>puts</code> and <code>gets</code> really worked? We used them all the time when we were learning to code, so perhaps we didn&rsquo;t really think past the flexibility of these methods. But now that we are both more seasoned programmers, it seemed strange that we had never really thought about this before.</p>
-
-<p>So, I did exactly what any good developer would do: I asked Twitter. Well, okay, I asked Twitter&hellip;and then I put on my detective hat and did some investigating of my own.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/4">&larr; Older</a>
@@ -594,6 +592,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/12/08/breaking-the-news-wisper-plus-pub-sub/">Breaking the News: Wisper + Pub-Sub</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks/">Functions to Call Upon: ActiveRecord Association Callbacks</a>
       </li>
     
@@ -607,10 +609,6 @@
     
       <li class="post">
         <a href="/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/">Methods to Remember Things by: Ruby Memoization</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/11/03/hunting-down-the-scoop-on-activerecord-scopes/">Hunting Down the Scoop on ActiveRecord Scopes</a>
       </li>
     
   </ul>
