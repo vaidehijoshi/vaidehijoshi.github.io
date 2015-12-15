@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-12-11T08:28:00-05:00</updated>
+  <updated>2015-12-15T08:49:57-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,249 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[You've Got a Friend in Friendly_Id]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/12/15/youve-got-a-friend-in-friendly-id/"/>
+    <updated>2015-12-15T08:11:15-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/12/15/youve-got-a-friend-in-friendly-id</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/13pT5ZMDTKiKJO" width="480" height="241" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>One of my favorite aspects of programming is the fact that there&rsquo;s always more than one way to do something. In fact, I think this is probably why I consider the very act of writing and building software to be a far more intutive task, rather than a merely structured, logical, and rigid pursuit. The very notion of no &ldquo;one single solution&rdquo; to solving a problem is what makes programming both a critical thinking skill, but also a creative one.</p>
+
+<p>Let me give you an example: a few months ago, I wrote about <a href="http://vaidehijoshi.github.io/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/">using slugs</a> and the <code>acts_as_url</code> gem to create human-readable urls for an application I was working on. Rails has a handy <code>to_param</code> method that can be used in conjunction with this gem to generate a hyphen-separated string that can be used in the <code>show</code> route of a resource in place of the object&rsquo;s numeric <code>id</code>, which is both unreadable and usually doesn&rsquo;t provide any point of reference for the user. So, here we are, using slugs.</p>
+
+<p>However, just because we did something one way initially doesn&rsquo;t mean that our way is the <em>only</em> way to do it. Actually, I am certain that there are other solutions &mdash; and some of them might actually be more flexible than our approach! This was what I realized very quickly when I recently learned about another gem that solves the same problem of slugs in a different, and rather interesting way! In fact it took what I already knew about using and generating slugs in an url structure to another level by using <strong>text-based identifiers in place of ids</strong>. Basically, it allows us to query for objects by finding them using their slugs, rather than their <code>id</code>s. Doesn&rsquo;t this make you super excited? Time to find out more about this approach and become friends with the <code>friendly_id</code> gem!</p>
+
+<!--more-->
+
+
+<h2>Making Friends With Friendly_Id</h2>
+
+<iframe src="//giphy.com/embed/Wsk723nT8tXpe" width="480" height="223" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>The <code>friendly_id</code> gem, created and maintained by <a href="https://github.com/norman">Norman Clarke</a>, describes itself as &ldquo;the Swiss Army bulldozer of slugging and permalink plugins for ActiveRecord&rdquo;. And that&rsquo;s probably a pretty accurate name for all the things that this one single gem is capable of doing!</p>
+
+<p>Before we can really explore all of its neat features, we need to do some initial setup. We&rsquo;ll start by adding <code>friendly_id</code> to our <code>Gemfile</code>, and then running <code>bundle</code>:</p>
+
+<p><code>gem 'friendly_id', '~&gt; 5.1.0'</code></p>
+
+<p>It&rsquo;s worth mentioning here that if we&rsquo;re running on Rails 4.0 or higher, we must use <code>friendly_id</code> <code>5.0.0</code> or greater.</p>
+
+<p>Next, we know we&rsquo;ll need to add a <code>slug</code> column to the table in our database that we want to implement <code>friendly_id</code> on. We&rsquo;ll add a <code>publishers</code> table to our bookstore application, and assure that they always have a <code>name</code> and a <code>slug</code> column when they are committed to the database. We&rsquo;ll also add a unique index to the <code>slug</code> column, since we&rsquo;ll be using the slug in our urls, which means that no two <code>publisher</code> instances should have the same slug &mdash; and also because we&rsquo;ll want to be able to look up publishers by their slug rather than by their <code>id</code>:</p>
+
+<pre><code class="ruby">class CreatePublishers &lt; ActiveRecord::Migration
+    def self.up
+        create_table :publishers do |t|
+          t.string :name, null: false
+          t.string :slug, null: false
+        end
+
+        add_index :publishers, :slug, unique: true
+    end
+
+    def self.down
+        drop_table :publishers
+    end
+end
+</code></pre>
+
+<p>It&rsquo;s worth nothing that if we were adding <code>friendly_id</code> to rows that already existed in our database, we would need to generate slugs for these preexisting objects. We have a few options on where to put this command &mdash; in a rake task or from the console, for example &mdash; but we&rsquo;d have to find each of our objects and call <code>save</code> on them to generate their slugs. For example, if we were implementing <code>friendly_id</code> on our preexisting <code>Author</code> class, we would run this line:</p>
+
+<p><code>Author.find_each(&amp;:save)</code></p>
+
+<p>Now, time to extend or include the <code>FriendlyId</code> module in our model; that&rsquo;s right, it doesn&rsquo;t matter which one you do, just as long as the model has access to the methods defined in the module:</p>
+
+<pre><code class="ruby">class Publisher &lt; ActiveRecord::Base
+    extend FriendlyId
+
+    validates :name, :slug, presence: true
+end
+</code></pre>
+
+<p>Now comes the actual implementation! We need to use one method in particular in order to configure the way that the <code>FriendlyId</code> module will behave inside the context of the model. This method is aptly named as: <code>friendly_id</code>, which is essentially just the &ldquo;base&rdquo; method of the <code>FriendlyId</code> module:</p>
+
+<pre><code class="ruby">class Publisher &lt; ActiveRecord::Base
+    extend FriendlyId
+    friendly_id :name, use: :slugged
+
+    validates :name, :slug, presence: true
+end
+</code></pre>
+
+<p>This method sets the default configurations of what method (yes, a method and <em>not</em> a column in the database!) it should use when trying to find an object. It also allows you to pass an <code>options</code> hash, which is what we&rsquo;re doing when we pass it <code>use: :slugged</code>. We&rsquo;re effectively telling the <code>friendly_id</code> method to use the <a href="http://norman.github.io/friendly_id/FriendlyId/Slugged.html">slugged addon</a>.</p>
+
+<p>So now that we&rsquo;ve got the most basic implementation set up, what does this allow us to do, exactly? Well, given our current model, we can now find instance of our <code>Publisher</code> class by their name:</p>
+
+<pre><code class="ruby">Publisher.friendly.find('random-house')
+#=&gt; finds and returns an instance of the Publisher class
+with a slug 'random-house'
+</code></pre>
+
+<p>Cool! We&rsquo;re doing almost what Rails&#8217; <code>ActiveRecord</code> <code>find</code> method would do, but we&rsquo;re now no longer finding by a numerical <code>id</code>, but a string identifer that actually <em>means</em> something to both us as programmers, and our users!</p>
+
+<p>But what if we didn&rsquo;t want to litter our codebase with <code>friendly.find</code> everywhere? There&rsquo;s a solution for that, too. We just need to use another addon, which isn&rsquo;t implemented by default, called <code>finders</code>:</p>
+
+<pre><code class="ruby">class Publisher &lt; ActiveRecord::Base
+    extend FriendlyId
+    friendly_id :name, use: [:slugged, :finders]
+    validates :name, :slug, presence: true
+end
+</code></pre>
+
+<p>This allows us to invoke <code>find</code> directly &mdash; but we have to be careful with this because it could conflict with other places where we are using <code>ActiveRecord</code>&rsquo;s <code>find(id)</code> method. Now we can do something like this very easily:</p>
+
+<pre><code class="ruby">Publisher.find('random-house')
+#=&gt; finds and returns an instance of the Publisher class
+with a slug 'random-house'
+</code></pre>
+
+<p>As we continue to implement <code>friendly_id</code> on other models in our application, we&rsquo;ll need to keep in mind that any classes that participate in single-table inheritence must extend <code>FriendlyId</code> in both the parent classes, and all its children classes as well.</p>
+
+<p>But what else can this gem do? It&rsquo;s time to finally start playing around with all of its functionality!</p>
+
+<h2>Where You Lead, Friendly_Id Will Follow</h2>
+
+<iframe src="//giphy.com/embed/nVXzt7FSJlX7W" width="480" height="239" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>When the documentation called this gem the &ldquo;Swiss Army bulldozer&rdquo; of slug url generation, it wasn&rsquo;t kidding! There really is a <em>ton</em> that we can do with the various modules and addons provided to us by <code>friendly_id</code>. We&rsquo;ll explore just a handful of things that we can modify for different use cases.</p>
+
+<h3>Should Generate New Friendly Id?</h3>
+
+<p>One question we should answer off the bat is how exactly this gem actually decides to generate a slug. It turns out that the <code>friendly_id</code> gem has a <code>should_generate_new_friendly_id?</code> method, which determines <a href="http://norman.github.io/friendly_id/FriendlyId/Slugged.html#should_generate_new_friendly_id%3F-instance_method">when and whether</a> to generate a new slug. A peek into the source code of this gem reveals that this method just checks whether there is a slug column defined, and the <code>base</code> method on the FriendlyId module configurations has been called or not:</p>
+
+<pre><code class="ruby">def should_generate_new_friendly_id?
+    send(friendly_id_config.slug_column).nil? &amp;&amp; 
+        !send(friendly_id_config.base).nil?
+end
+</code></pre>
+
+<p>The documentation points out that it is totally fine to override this method in our models &mdash; for example, if we only wanted our slugs to be generated once upon creation, and never updated.</p>
+
+<h3>Duplicate Ids</h3>
+
+<p>By default, <code>friendly_id</code> expects the slug values that we told it to use in our model to be unique. It also helps that we assured that this is the case by creating a unique index on our <code>slug</code> column. But, what happens if an admin (or even a user) tries to create an object that would create a duplicate <code>friendly_id</code>? Well, the gem handles this case in a pretty cool way: it just appends a UUID to the generated slug to ensure that it will be a unique value:</p>
+
+<pre><code class="ruby">publisher_a = Publisher.create(name: "Harper Collins")
+publisher_b = Publisher.create(name: "Harper Collins")
+
+publisher_a.friendly_id #=&gt; "harper-collins"
+publisher_b.friendly_id #=&gt; "harper-collins-102-c9f6749b-daez-4586-a21x-waz87ak16oe2"
+</code></pre>
+
+<p>Pretty awesome, right? It really does seem like this gem is a developer&rsquo;s best friend!</p>
+
+<h3>Slug Candidates</h3>
+
+<p>As nice as it is that we have the functionality to append an UUID sequence to prevent non-unique slugs, it would also be nice if we had some control over how to modify a potential clash in <code>friendly_id</code> identifiers. Well, our wish is this gem&rsquo;s command! We can use a lovely &ldquo;candidates&rdquo; feature (new in version <code>5.0</code> of this gem!) to set up a list of alternate slugs that we can use to distinguish records in place of sequence.</p>
+
+<p>We&rsquo;ll first add two required columns to our <code>publishers</code> database, <code>city</code> and <code>country</code>:</p>
+
+<pre><code class="ruby">class AddCityAndCountryToPublishers &lt; ActiveRecord::Migration
+    def change
+        add_column :publishers, :city, :string, null: false
+        add_column :publishers, :country, :string, null: false
+    end
+end
+</code></pre>
+
+<p>After we run <code>rake db:migrate</code>, and make sure that these values are all populate in our pre-existing records, we&rsquo;ll tell the <code>friendly_id</code> base method to use the <code>slug_candidates</code> method, which is going to be a set of instructions on how to construct the <code>slug</code> for any given instance of our <code>Publisher</code> class:</p>
+
+<pre><code class="ruby">class Publisher &lt; ActiveRecord::Base
+    extend FriendlyId
+    friendly_id :slug_candidates, use: :slugged
+
+    validates :name, :slug, :city, :country, presence: true
+
+    def slug_candidates
+        [
+            :name,
+            [:name, :city],
+            [:name, :city, :country]
+        ]
+    end
+end
+</code></pre>
+
+<p>You&rsquo;ll remember that I mentioned that <code>friendly_id</code> uses a method, and not a column in the database to generate a slug &mdash; well, this is exactly why it does that: so that we can override a method very easily! Now the <code>friendly_id</code> base method will use first the <code>name</code> attribute, then the <code>name</code> and <code>city</code> attributes, followed by the <code>name</code>, <code>city</code>, and <code>country</code> attributes.</p>
+
+<pre><code class="ruby">publisher_a = Publisher.create(name: "Harper Collins", city: 'New York City')
+publisher_b = Publisher.create(name: "Harper Collins", city: 'San Francisco')
+
+publisher_a.friendly_id #=&gt; "harper-collins-new-york-city"
+publisher_b.friendly_id #=&gt; "harper-collins-san-francisco"
+</code></pre>
+
+<p>It&rsquo;s worth noting that our method doesn&rsquo;t have to be named <code>slug_candidates</code> in the context of our class: this is just the <strong>base method</strong> of our <code>FriendlyId</code> module, which means that we can mame it anything we want, so long as we pass it to our <code>friendly_id</code> method when we tell it what we want to use to generate our <code>id</code>s for finding our objects. The nice thing about using an array of symbols (as opposed to string literals or procs and lambdas), is that the <code>FriendlyId</code> module will invoke a method of the same exact name on our <code>Publisher</code> model, which can be helpful if we have a <code>city</code> and <code>country</code> attribute on each of our <code>publisher</code> instances, which maps to a column in our database.</p>
+
+<p>Of course, if we do happen to have an edge case where two instances of a <code>Publisher</code> have the exact same <code>name</code>, <code>city</code>, and <code>country</code>, the <code>friendly_id</code> gem can handle this situation as well! What will it do, exactly? Here&rsquo;s what the documentation says:</p>
+
+<blockquote><p>&ldquo;If none of the [slug] candidates can generate a unique slug, then FriendlyId will append a UUID to the first candidate as a last resort.&rdquo;</p></blockquote>
+
+<p>Nice! So we can always depend on our slugs being unique in some way or another &mdash; in the worst case (which probably won&rsquo;t even happen that often!), it&rsquo;ll just add a UUID at the end of the slug that matches another one, making it unique.</p>
+
+<h2>Saving Old Friends</h2>
+
+<p>We&rsquo;ve been working mostly with the <code>slugged</code> addon, but there are also quite a few other addons available to us. One of the most interesting ones is the <code>history</code> addon, which allows us to save <a href="http://norman.github.io/friendly_id/FriendlyId/History.html">different versions</a> of an instance&rsquo;s <code>slug</code> attributes!</p>
+
+<p>For example, if we had <code>Article</code> instances that might allow for their <code>title</code>s to be updated by admins, we wouldn&rsquo;t want all of our urls to be broken when an admin changed a title on an article, right? Well, this addon helps us prevent that.</p>
+
+<p>In order for us to implement this module, we need add a table to your database to store the slug records. Luckily, <code>friendly_id</code> has a generator for this:</p>
+
+<pre><code class="ruby">rails generate friendly_id
+rake db:migrate
+</code></pre>
+
+<p>Now we just need to specify that our base method needs to use the <code>history</code> addon:</p>
+
+<pre><code class="ruby">class Article &lt; ActiveRecord::Base
+    extend FriendlyId
+    friendly_id :name, use: :history
+end
+</code></pre>
+
+<p>And now in our controller we can do something like this!</p>
+
+<pre><code class="ruby">class ArticlesController &lt; ApplicationController
+    before_filter :find_article
+
+    def find_article
+        @article = Article.find params[:id]
+
+        # If an old id is used to find the record,
+        # we can handle a can redirect accordingly!
+    end
+end
+</code></pre>
+
+<p>There are so many interesting use cases for this gem, and it turns out that it does a lot of the stuff we already know about under the hood. One quick example: it uses Rails&#8217; <code>ActiveSupport</code> <a href="http://api.rubyonrails.org/classes/ActiveSupport/Inflector.html#method-i-parameterize">parameterize method</a>, which is actually used by <code>to_param</code> &mdash; and which we have already explored on our own!</p>
+
+<p>So, there&rsquo;s never just one way to do anything. As long as we&rsquo;re willing to learn the fundamentals of how to solve a problem in one way, we can explore all the different solutions that people have already come up with. And when it comes to generating urls and handling strange situations with slugs, we&rsquo;ve got it covered with our new best friend, the <code>friendly_id</code> gem.</p>
+
+<iframe src="//giphy.com/embed/LnaPDokBEmONG" width="480" height="240" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>friendly_id</code> gem is a way to find objects and generate urls using strings instead of numerical ids. The <a href="http://norman.github.io/friendly_id/">documentation</a> for this gem is fantastic, check it out!</li>
+<li>Here&rsquo;s a very simple <a href="http://railscasts.com/episodes/314-pretty-urls-with-friendlyid">railscast</a> that implements <code>friendly_id</code> in its most basic capacity.</li>
+<li>Curious about how that <code>friendly_id</code> base method works? Check out the <a href="https://github.com/norman/friendly_id/blob/8069fc9959215e5f4872927928b3b7a95e9beacd/lib/friendly_id/base.rb#L191">source code</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Breaking the News: Wisper + Pub-Sub]]></title>
@@ -819,213 +1062,6 @@ end
 <li>The <code>require</code> method ensures that a parameter key is present, and throws an error of it doesn&rsquo;t exist. The <code>permit</code> method filters out the keys that we want to whitelist based on the filters (which we pass in as symbols) that are passed into it.</li>
 <li>Check out the documentation on <code>ActionController::Parameters</code> in the <a href="http://api.rubyonrails.org/classes/ActionController/Parameters.html">Rails guides</a>.</li>
 <li>This blog post does a great job of explaining <a href="http://blog.trackets.com/2013/08/17/strong-parameters-by-example.html">permit and require</a> by example.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Methods to Remember Things by: Ruby Memoization]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/"/>
-    <updated>2015-11-10T09:03:09-05:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/xUrmE6PJBEbni" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>A couple of months ago, I wrote <a href="http://vaidehijoshi.github.io/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/">a blog post</a> on some basic Ruby keywords including <code>begin</code>, <code>end</code>, <code>rescue</code>, and <code>ensure</code>. A few days after publishing said post, another Rubyist friend of mine sent me a message telling me to read about memoization. &ldquo;You basically describe memoization in your post without ever explicitly explaining it,&rdquo; she had said. At the time, I had added it to my ever-growing list of &ldquo;things to learn more about&rdquo;, but promptly forgot to make the time to learn about the concept.</p>
-
-<p>Cut to last week, when I was trying to write a controller action that had to do something a bit more complex than simply render a JSON-formatted response of a given resource. So, I started off by implementing a <code>begin</code> <code>end</code> block to execute a bunch of code that needed to run on it&rsquo;s own. I remembered writing about how to use these two keywords, so I pulled up my post and was suddenly reminded of&hellip;<strong>memoization</strong>. It turned out that I actually needed to use memoization in this controller action, and had already been using it elsewhere in the very same project! But, I still didn&rsquo;t understand what it was, or in what way I had been using it so far.</p>
-
-<p>After putting it off for months, it was finally time to learn about this memoization business. For those of us (myself included!) who haven&rsquo;t quite gotten the memo on memoization, here&rsquo;s the brief lowdown: the term dates back to the year 1968, when it was <a href="https://en.wikipedia.org/wiki/Memoization">coined by</a> Donald Michie, a British artificial intelligence researcher who worked alongside Alan Turing at the Code and Cypher School at Bletchley Park during WWII. The basic idea of a memoization function is that it can &ldquo;remember&rdquo; the result that corresponds to a set of given inputs. In other words, it can store the results of an expensive function call by &ldquo;saving&rdquo; the result such that when you call the same function again with the same parameters, you don&rsquo;t need to rerun the function. In the context of computer science specifically, this is a kind of optimization technique that is used to make programs more efficient and much faster. There are a few different ways that memoization pops up in Ruby and Rails, which is exactly what we&rsquo;ll need to learn about next!</p>
-
-<!--more-->
-
-
-<h2>Multiple Memoization</h2>
-
-<iframe src="//giphy.com/embed/yg4IHVMEvUxby" width="480" height="240" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>There are effectively two types of memoization when it comes to Rails applications: simple, single-line memoization, and the more complex form found in multiple-line memoization. They still are the same concept and we can implement them using the same conditional operator; the fundamental difference between the two types hinges upon how much logic needs to be run for the object that we&rsquo;re trying to &ldquo;remember&rdquo;, or in other words, <em>memoize</em>.</p>
-
-<p>Let&rsquo;s start with a simple memoization example. In our bookstore application, we have a piece of functionality that allows users to write reviews for books that they have purchased. Currently however, our <code>ReviewsController</code> doesn&rsquo;t account for that functionality. It only has a simple <code>index</code> action that is currently rendering all the <code>Reviews</code> that have been <code>published</code>:</p>
-
-<pre><code class="ruby">class ReviewsController &lt; ApplicationController
-    def index
-        render json: Review.published
-    end
-end
-</code></pre>
-
-<p>The <code>published</code> method that we&rsquo;re chaining on here is just a simple scope that we <a href="http://vaidehijoshi.github.io/blog/2015/11/03/hunting-down-the-scoop-on-activerecord-scopes/">learned about last week</a>, and added on to our <code>Review</code> model:</p>
-
-<pre><code class="ruby">class Review &lt; ActiveRecord::Base
-    scope :published, -&gt; {
-        where('published_at IS NOT NULL AND 
-        published_at &lt;= ?', Time.zone.now)
-    }
-end
-</code></pre>
-
-<p>We can implement some simple memoization by abstracting out what&rsquo;s currently happening in the <code>index</code> action of our <code>ReviewsController</code>. Since memoization roughly translates to the concept of &ldquo;remembering&rdquo; the return value of a function without having to call it again, we could use Ruby&rsquo;s instance variable to store the return value of an expensive function call. In our case, the function that we&rsquo;re calling and saving to our instance variable is the <code>published</code> scope on our <code>Review</code> class:</p>
-
-<pre><code class="ruby">class ReviewsController &lt; ApplicationController
-    def index
-        render json: reviews
-    end
-
-    private
-    def reviews
-        @reviews ||= Review.published
-    end
-end
-</code></pre>
-
-<p>Now our <code>index</code> action is calling the private <code>reviews</code> method, which is &ldquo;remembering&rdquo;, or essentially assigning and saving the return value of <code>Review.published</code> to the instance variable <code>@reviews</code>. Right now it doesn&rsquo;t look like much, but this could help keep our code clean as we continue to build out this controller.</p>
-
-<p>The tricky thing to keep in mind with controllers is that they are nothing more than Ruby classes. This is important to remember because this instance variable will exist for the lifespan of a single request; if we make a network call (probably a <code>GET</code> request) when we query the <code>index</code> endpoint of our <code>ReviewsController</code>, the <code>@reviews</code> instance variable will be assigned and exist for the duration of that request. Once that request has completed, that instance of the controller is no longer needed and a new one would be created. Right now, we&rsquo;re not doing very much in our existing codebase with this piece of functionality. But why might that be important? Let&rsquo;s find out.</p>
-
-<p>Imagine that the <code>index</code> action of our <code>ReviewsController</code> needs to be rewritten to account for a new piece of functionality. Instead of merely loading all of our <code>published</code> book reviews, we now want to be able to account for some query params. For example, if a user navigated to a route such as <code>/the-sound-and-fury/reviews</code>, they should be able to see all the published books reviews for that specific book, based on the book slug that is used in the URL. We immediately know that we need to change our <code>reviews</code> method. But it&rsquo;s not going to be as simple as just chaining on another method; we have a bit more complicated logic going on here.</p>
-
-<p>First, we&rsquo;ll need to check whether there&rsquo;s a <code>book_slug</code> parameter being passed in. If there is, we&rsquo;ll need to query for the correct book reviews based on that query param. If there is no parameter being passed in, we&rsquo;ll just want to return our <code>published</code> Reviews. To account for this new feature, our method may now look something like this:</p>
-
-<pre><code class="ruby">class ReviewsController &lt; ApplicationController
-        def index
-        render json: reviews
-    end
-
-    private
-        def reviews
-        @reviews ||= begin
-
-        _reviews = Review.published
-
-        if params[:book_slug].present?
-            _reviews = _reviews.where(book_slug: params[:book_slug])
-        end
-
-        _reviews
-      end
-    end
-end
-</code></pre>
-
-<p>Here, we&rsquo;re implementing the multiple-line form of memoization, which calls for the use of our favorite Ruby keywords, <code>begin</code> and <code>end</code>. We&rsquo;re first setting a local <code>_reviews</code> variable to all the <code>published</code> reviews; if there&rsquo;s a <code>book_slug</code> query parameter being passed in for this <code>GET</code> request, we&rsquo;re modifying this variable to select only the published reviews that have a <code>book_slug</code> attribute that matches the query param that was passed in. Ultimately, we&rsquo;re returning our <code>_reviews</code> variable, which will either be just an array of all the published reviews, or the published reviews that match our query parameter.</p>
-
-<p>We don&rsquo;t necessarily have to use a variable name prepended with an <code>_</code> underscore, but I&rsquo;ve seen other developers do this in their code and I&rsquo;ve come to realize that this can be one way of denoting to other developers that this variable is being modified but not explicitly used. It can be a way of indicating that this variable is only necessary to <em>assign</em> the instance variable <code>@reviews</code>, and is never called or referenced outside of our <code>begin</code> <code>end</code> code block. We should also note that our <code>index</code> action hasn&rsquo;t changed one bit. All of our modified logic still lives in the same method, and is still accessible from our <code>@reviews</code> instance variable, from any action within this controller.</p>
-
-<p>Sometimes, the <code>begin</code> <code>end</code> block for multiple-line memoization is simply used because all of the code won&rsquo;t fit on a single line. The <code>begin</code> <code>end</code> block ensures that the code will be executed together in a single chunk, which effectively encapuslates the block of code in the same way, as though it were written on a single line, but makes it look much prettier and far easier to read.</p>
-
-<h2>Crazy For Conditionals</h2>
-
-<iframe src="//giphy.com/embed/fNlRJ7Gwr4Lba" width="480" height="202" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>In order to really understand what&rsquo;s going on with memoization, it&rsquo;s important to identify the behind the scenes action of Ruby&rsquo;s &ldquo;or equals&rdquo; (sometimes referred to as the &ldquo;double pipe&rdquo;) operator: <code>||=</code>.</p>
-
-<p>When I first learned about this operator, I initially thought that it functioned by telling the Ruby interpreter something equivalent to, <em>Hey, if a value for this variable already exists, please return that. Otherwise, if this variable doesn&rsquo;t have a value yet, assign it to whatever block of code comes next</em>. But apparently, that&rsquo;s not exactly what&rsquo;s going on here. In actuality, this operator is far more nuanced that most people may initially think it to be. Peter Cooper&rsquo;s <a href="http://www.rubyinside.com/what-rubys-double-pipe-or-equals-really-does-5488.html">Ruby Inside blog post</a> does a fantastic job of unpacking all the different edge cases of the or equals operator, including the various scenarios when it can be a bit problematic. I really like the way that he summarizes the misconception behind the &ldquo;or equals&rdquo; operator quite simply as follows:</p>
-
-<blockquote><p>A common misconception is that <code>a ||= b</code> is equivalent to <code>a = a || b</code>, but it behaves like <code>a || a = b</code>. In <code>a = a || b</code>, <code>a</code> is set to something by the statement on every run, whereas with <code>a || a = b</code>, <code>a</code> is only set if <code>a</code> is logically false (i.e. if it&rsquo;s <code>nil</code> or <code>false</code>) because <code>||</code> is &lsquo;short circuiting&rsquo;. That is, if the left hand side of the <code>||</code> comparison is true, there&rsquo;s no need to check the right hand side.</p></blockquote>
-
-<p>In other words, what he&rsquo;s saying here is that when we write something like this:</p>
-
-<pre><code class="ruby">@review ||= Review.find(params[:id])
-</code></pre>
-
-<p>what we&rsquo;re <em>actually</em> doing is saying something along these lines to the Ruby interpreter: <em>If</em> <code>@reviews</code> <em>currently evaluates to</em> <code>false</code><em>, then set it to the the return value of</em> <code>Review.find(params[:id])</code><em>. But, if</em> <code>@reviews</code> <em>is not a falsey value, don&rsquo;t assign or set the variable to anything. Just stop running and exit out of the method.</em></p>
-
-<p>It&rsquo;s also worth bringing up the fact that both <code>nil</code> and <code>false</code> are &ldquo;falsey&rdquo; values, which means that if <code>@review</code> was <code>nil</code> and empty when this line runs, the method would <em>not</em> short circuit, and would continue to execute after the <code>||=</code> operator, thereby assigning the <code>@review</code> instance variable during method execution. This is significant if you are integrating with an external API where you can&rsquo;t be sure if your instance variable will be falsey or not:</p>
-
-<pre><code class="ruby">class Review &lt; ActiveRecord::Base
-    def goodreads_reviews
-        @goodreads_reviews ||= begin
-            # Some logic here that uses a third-party
-            # API like Goodreads and returns an array 
-            # of reviews, if any happen to exist.
-        end
-    end
-end
-</code></pre>
-
-<p>In this case, if our API endpoint that we&rsquo;re querying happens to return <code>nil</code> for a set of reviews or for a particular book that may have no reviews, every single place that we&rsquo;re calling this method will be running the logic inside of the <code>begin</code> <code>end</code> block. This pretty much makes our idea of &ldquo;memoizing&rdquo; the result of this expensive query a moot point, because we&rsquo;re not &ldquo;remembering&rdquo; the return value, but instead just running that line of code again and again. We could fix this by writing a less beautiful but more flexible method like this:</p>
-
-<pre><code class="ruby">class Review &lt; ActiveRecord::Base
-    def goodreads_reviews
-        unless defined? @goodreads_reviews
-
-        @goodreads_reviews ||= begin
-            # This will only execute now if
-            # @goodreads_reviews is undefined
-            # as nil, and not otherwise.
-        end
-
-        @goodreads_reviews
-    end
-end
-</code></pre>
-
-<p>This isn&rsquo;t as big of an issue if we&rsquo;re using an <code>ActiveRecord</code> method or a scope, which would return an empty array <code>[]</code>, and not <code>nil</code>. But it&rsquo;s important to keep the memoization of falsey values in mind, since we could very easily be making a lot more queries to our database than we might realize.</p>
-
-<p>Finally, there&rsquo;s another tricky situation when it comes to memoizing a method that accepts an argument. Justin Weiss&#8217; <a href="http://www.justinweiss.com/articles/4-simple-memoization-patterns-in-ruby-and-one-gem/">blog post</a> explains how to get around this by using the Ruby <code>Hash</code> initializer method (<code>Hash.new</code>), which ensures that the only time a block will be executed is if we try to access a key that doesn&rsquo;t yet have a value assigned to it in the context of our hash. This can be a little hard to understand at first, but is pretty useful for more complex forms of method memoization.</p>
-
-<h2>Of memos long gone</h2>
-
-<p>Memoization has clearly been around for a long time in the computer science world, but interestingly, it&rsquo;s had a bit of a rocky history in Railsland. It turns out that there actually used to be an entire <code>ActiveSupport::Memoizable</code> <a href="http://apidock.com/rails/v3.2.13/ActiveSupport/Memoizable/memoize">module</a> back in an older version of Rails 3! Apparently, there was a lot of controversy surrounding that particular module, and it was deprecated and, eventually, completely removed in 2011.</p>
-
-<p>At the time of deprecation, the Rails core team encouraged everyone to use the <code>||=</code> &ldquo;or equals&rdquo; operator format of method memoization, and what&rsquo;s really cool about this is that you can actually see examples of how the core team members changed the code in <a href="https://github.com/rails/rails/commit/f2c0fb32c0dce7f8da0ce446e2d2f0cba5fd44b3">the exact commit</a> where the Memoizable module was removed. Here&rsquo;s one example in the Rails source code of method memoization in the <code>DateTimeSelector</code> class:</p>
-
-<pre><code class="ruby">class DateTimeSelector
-    @month_names ||= begin
-        month_names = @options[:use_month_names] || translated_month_names
-        month_names.unshift(nil) if month_names.size &lt; 13
-        month_names
-    end
-end
-</code></pre>
-
-<p>Pretty cool, right!?</p>
-
-<p>Of course, some Rubyists were not a big fan of this commit and module deprecation. In fact, some developers have fought to keep the module alive in the form of gems! The two that are the most popular are <a href="https://github.com/dkubb/memoizable">the <code>memoizable</code> gem</a> as well as <a href="https://github.com/matthewrudy/memoist">the <code>memoist</code> gem</a>. Both of them ultimately allow us to write a memoizable method like this:</p>
-
-<pre><code class="ruby">require 'memoist'
-class Order
-    extend Memoist
-
-        def card_last_4
-        # Logic to decrypt and
-        # return last 4 digits
-        # of credit card on the
-        # order, properly formatted.
-    end
-    memoize :card_last_4
-end
-</code></pre>
-
-<p>Effectively, this continues what the <code>ActiveSupport::Memoizable</code> module used to allow. In the method above, calling <code>card_last_4</code> on an instance of an <code>Order</code> class would only be calculated once, and would be memoized from that point on.</p>
-
-<p>I haven&rsquo;t used either of these gems because I personally would prefer to follow Rails conventions. But, I plan on playing around with them a bit in order to try and understand why it was deprecated, and why it implemented in the first place. Of course, we could also read the entire <a href="https://github.com/rails/rails/commit/36253916b0b788d6ded56669d37c96ed05c92c5c">Github discussion</a> that took place at the time of deprecation, but that&rsquo;s a whole lot of comments to read.</p>
-
-<p>No matter what form of method memoization we choose to use, there are certain times when it makes a lot of sense and is clearly the right tool for the job. Anytime we find ourselves making repeated database queries, or time-consuming expensive calculations, or repeated calculations that are never <em>really</em> going to chance for an instance of a class or a controller, memoization using Ruby&rsquo;s <code>||=</code> operator is probably our best bet. And now that we know the theory and history behind Ruby method memoization, we&rsquo;ll never forget!</p>
-
-<p>I hope.</p>
-
-<iframe src="//giphy.com/embed/TidlFj5lXMEkU" width="480" height="201" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>Memoization is a long-standing computer science concept that is basically the idea of &ldquo;remembering&rdquo; the value of a function to avoid running expensive method calls and calculations multiple times in our code.</li>
-<li>The crux of Ruby&rsquo;s memoization techniques relies upon using the conditional &ldquo;or equals&rdquo; operator <code>||=</code>, which assigns a value and executes the following line of code <em>only</em> if the variable being assigned is not falsey (i.e. not <code>nil</code> or <code>false</code>).</li>
-<li>There are some great blog posts on the basics of Ruby memoization. This two-part series (<a href="http://gavinmiller.io/2013/basics-of-ruby-memoization/">part one</a> and <a href="http://gavinmiller.io/2013/advanced-memoization-in-ruby/">part two</a>) is a pretty good place to start.</li>
 </ul>
 
 ]]></content>

@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="Database indexing: the last frontier. Well, okay, not the last frontier perse&hellip;more like the frontier that I&rsquo;ve been reading about a lot &hellip;">
+  <meta name="description" content="They say that a picture is worth a thousand words. How they came up with a such a nice, conveniently specific number number I&rsquo;ll never know. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,55 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/07/28/clipping-images-for-rails-using-paperclip/">Clipping Images for Rails: Using Paperclip</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-07-28T08:42:36-04:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:42 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><img src="http://www.officemuseum.com/1894_Gem_Paper_Clip_adv_discovered_by_The_Early_Office_Museum.JPG" style="display: block; margin-left: auto; margin-right: auto;"/></p>
+
+<p>They say that a picture is worth a thousand words. How they came up with a such a nice, conveniently specific number number I&rsquo;ll never know. But what I do know is that everything on the web is just data floating around in cyberspace. And when I say everything, I really do mean <em>everything</em> &ndash; including pictures!</p>
+
+<p>I&rsquo;ve worked on a few different projects that have required building out an interface to allow a user or an admin to upload images. The first time that I had to do this, I knew that there were a few different Rails gems out there to help make this magic happen. But I didn&rsquo;t really understand what was going on when I implemented these gems the first time around. To be quite honest, the first time I had to implement file uploading, I just followed the setup steps rather blindly. Now that I&rsquo;ve had to solve the same problem multiple times, however, I feel a bit more comfortable with the process.</p>
+
+<p>There are a few different gems out there for handing file attachment in Rails, but my favorite one to use so far has been <strong>paperclip</strong>. Created by the super cool developers over at <a href="https://github.com/thoughtbot/paperclip">ThoughtBot</a>, the paperclip gem is fairly simple and straightforward to use. The reason that I like this gem in particular is that it fits seamlessly into the Rails framework. Files and attachments are treated just like an attribute on an ActiveRecord object, which makes the setup process both easy and intuitive. However, that doesn&rsquo;t mean that it&rsquo;s not intimidating at first! Luckily, we&rsquo;re going to walk through using the paperclip gem together.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/07/28/clipping-images-for-rails-using-paperclip/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -526,55 +575,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">The Secret Life of Your Database, Part 1: Migrations</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-05-19T08:51:11-04:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:51 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><img src="http://31.media.tumblr.com/tumblr_mcsccsfcnn1qz9l5so1_1280.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
-
-<p>As young developers, we often get caught up in what we don&rsquo;t know. One of the first and hardest lessons to learn when you&rsquo;re starting out as a programmer is the sheer volume of things that you don&rsquo;t know. You have to get comfortable not knowing them, and you have to work towards learning as much about them as you can.</p>
-
-<p>However, sometimes we focus so much on learning new things, that we forget to come back to what we already know &ndash; or at least, what we <em>think</em> we already know. In fact, this is exactly what I&rsquo;ve been guilty of for the past few weeks. I&rsquo;ve been focusing so much on learning new frameworks and getting comfortable with other languages, that I forgot to question my knowledge of Rails. Since it was a known domain and language, I assumed that I didn&rsquo;t need to revisit it that often.</p>
-
-<p>But boy, was I wrong. Just because you&rsquo;re familiar with something doesn&rsquo;t mean that you understand it completely. The trick to dealing with this is to make yourself feel uncomfortable in your otherwise familiar language. And that&rsquo;s exactly what happened to me. Last week, while writing some lines of SQL (yes, really), I ran across a database migration that used an <code>up</code> and a <code>down</code> method. I saw those lines of code and realized something: I had no idea how my database really works. In fact, I&rsquo;ve written so many migrations in so many Rails applications that, at some point, I&rsquo;ve stopped thinking about what was actually going on under the hood. So, I set out to make myself uncomfortable and uncover the secret life of my database.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/4">&larr; Older</a>
@@ -592,6 +592,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/12/15/youve-got-a-friend-in-friendly-id/">You&#8217;ve Got a Friend in Friendly_Id</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/12/08/breaking-the-news-wisper-plus-pub-sub/">Breaking the News: Wisper + Pub-Sub</a>
       </li>
     
@@ -605,10 +609,6 @@
     
       <li class="post">
         <a href="/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1/">Peeking Under the Hood of ActionController Parameters, Part 1</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/">Methods to Remember Things by: Ruby Memoization</a>
       </li>
     
   </ul>

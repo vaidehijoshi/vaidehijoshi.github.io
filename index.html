@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="I&rsquo;ve been rather reflective this past week. This is mostly because the end of this year of technical Tuesdays is now very much in sight, with &hellip;">
+  <meta name="description" content="One of my favorite aspects of programming is the fact that there&rsquo;s always more than one way to do something. In fact, I think this is probably &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,58 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/12/15/youve-got-a-friend-in-friendly-id/">You&#8217;ve Got a Friend in Friendly_Id</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-12-15T08:11:15-05:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:11 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/13pT5ZMDTKiKJO" width="480" height="241" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>One of my favorite aspects of programming is the fact that there&rsquo;s always more than one way to do something. In fact, I think this is probably why I consider the very act of writing and building software to be a far more intutive task, rather than a merely structured, logical, and rigid pursuit. The very notion of no &ldquo;one single solution&rdquo; to solving a problem is what makes programming both a critical thinking skill, but also a creative one.</p>
+
+<p>Let me give you an example: a few months ago, I wrote about <a href="http://vaidehijoshi.github.io/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/">using slugs</a> and the <code>acts_as_url</code> gem to create human-readable urls for an application I was working on. Rails has a handy <code>to_param</code> method that can be used in conjunction with this gem to generate a hyphen-separated string that can be used in the <code>show</code> route of a resource in place of the object&rsquo;s numeric <code>id</code>, which is both unreadable and usually doesn&rsquo;t provide any point of reference for the user. So, here we are, using slugs.</p>
+
+<p>However, just because we did something one way initially doesn&rsquo;t mean that our way is the <em>only</em> way to do it. Actually, I am certain that there are other solutions &mdash; and some of them might actually be more flexible than our approach! This was what I realized very quickly when I recently learned about another gem that solves the same problem of slugs in a different, and rather interesting way! In fact it took what I already knew about using and generating slugs in an url structure to another level by using <strong>text-based identifiers in place of ids</strong>. Basically, it allows us to query for objects by finding them using their slugs, rather than their <code>id</code>s. Doesn&rsquo;t this make you super excited? Time to find out more about this approach and become friends with the <code>friendly_id</code> gem!</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/12/15/youve-got-a-friend-in-friendly-id/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -538,58 +590,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/10/06/fleeting-filing-with-ruby-tempfile/">Fleeting Filing With Ruby Tempfile</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-10-06T08:46:30-04:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:46 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><iframe src="//giphy.com/embed/3ViDyv13D9HQQ" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>There are times in a Ruby program or Rails application that one comes to a single realization: <em>Oh no, I need to deal with an external file!</em> For larger applications, this might manifest as a request to your Amazon S3 bucket for a file, which you then need to modify in some way, or perhaps just simply read and have access to. But sometimes, even a simple Ruby script or plain old Ruby class may need to read or write to an external file.</p>
-
-<p>I honestly didn&rsquo;t know a lot about Ruby&rsquo;s File class (wait, Ruby has a <em>file</em> class?! Yes, yes it does.) until recently, when I had to handle a situation that would allow me to download files from a file storage service (such as S3), and then process the file locally on my machine. The process was a bit complicated, and I still think that I have more to learn about how it actually works. But, one thing that I <em>did</em> actually start to wrap my head around is <strong>Ruby Tempfiles</strong>. Yup, that&rsquo;s right: not only does Ruby have a <code>File</code> class &mdash; it also has a <code>Tempfile</code> class.</p>
-
-<p>It turns out that these two classes intersect quite a bit, and it can be a little confusing to know how they differ. The only way to really understand Ruby&rsquo;s <code>Tempfile</code> class is to play around with it and create some tempfiles. So let&rsquo;s get filin&#8217;!</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/10/06/fleeting-filing-with-ruby-tempfile/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -605,6 +605,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/12/15/youve-got-a-friend-in-friendly-id/">You&#8217;ve Got a Friend in Friendly_Id</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/12/08/breaking-the-news-wisper-plus-pub-sub/">Breaking the News: Wisper + Pub-Sub</a>
       </li>
     
@@ -618,10 +622,6 @@
     
       <li class="post">
         <a href="/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1/">Peeking Under the Hood of ActionController Parameters, Part 1</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/">Methods to Remember Things by: Ruby Memoization</a>
       </li>
     
   </ul>

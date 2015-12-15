@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>http://vaidehijoshi.github.io/blog/2015/12/15/youve-got-a-friend-in-friendly-id/</loc>
+    <lastmod>2015-12-15T08:11:15-05:00</lastmod>
+  </url>
+  <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/12/08/breaking-the-news-wisper-plus-pub-sub/</loc>
     <lastmod>2015-12-08T08:50:17-05:00</lastmod>
   </url>
@@ -286,5 +290,20 @@
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/categories/markdown/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/posts/2/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/posts/3/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/posts/4/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/posts/5/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/posts/6/</loc>
   </url>
 </urlset>

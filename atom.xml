@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-12-11T08:28:00-05:00</updated>
+  <updated>2015-12-15T08:49:57-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,349 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[You've Got a Friend in Friendly_Id]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/12/15/youve-got-a-friend-in-friendly-id/"/>
+    <updated>2015-12-15T08:11:15-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/12/15/youve-got-a-friend-in-friendly-id</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/13pT5ZMDTKiKJO" width="480" height="241" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>One of my favorite aspects of programming is the fact that there&rsquo;s always more than one way to do something. In fact, I think this is probably why I consider the very act of writing and building software to be a far more intutive task, rather than a merely structured, logical, and rigid pursuit. The very notion of no &ldquo;one single solution&rdquo; to solving a problem is what makes programming both a critical thinking skill, but also a creative one.</p>
+
+<p>Let me give you an example: a few months ago, I wrote about <a href="http://vaidehijoshi.github.io/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/">using slugs</a> and the <code>acts_as_url</code> gem to create human-readable urls for an application I was working on. Rails has a handy <code>to_param</code> method that can be used in conjunction with this gem to generate a hyphen-separated string that can be used in the <code>show</code> route of a resource in place of the object&rsquo;s numeric <code>id</code>, which is both unreadable and usually doesn&rsquo;t provide any point of reference for the user. So, here we are, using slugs.</p>
+
+<p>However, just because we did something one way initially doesn&rsquo;t mean that our way is the <em>only</em> way to do it. Actually, I am certain that there are other solutions &mdash; and some of them might actually be more flexible than our approach! This was what I realized very quickly when I recently learned about another gem that solves the same problem of slugs in a different, and rather interesting way! In fact it took what I already knew about using and generating slugs in an url structure to another level by using <strong>text-based identifiers in place of ids</strong>. Basically, it allows us to query for objects by finding them using their slugs, rather than their <code>id</code>s. Doesn&rsquo;t this make you super excited? Time to find out more about this approach and become friends with the <code>friendly_id</code> gem!</p>
+
+<!--more-->
+
+
+<h2>Making Friends With Friendly_Id</h2>
+
+<iframe src="//giphy.com/embed/Wsk723nT8tXpe" width="480" height="223" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>The <code>friendly_id</code> gem, created and maintained by <a href="https://github.com/norman">Norman Clarke</a>, describes itself as &ldquo;the Swiss Army bulldozer of slugging and permalink plugins for ActiveRecord&rdquo;. And that&rsquo;s probably a pretty accurate name for all the things that this one single gem is capable of doing!</p>
+
+<p>Before we can really explore all of its neat features, we need to do some initial setup. We&rsquo;ll start by adding <code>friendly_id</code> to our <code>Gemfile</code>, and then running <code>bundle</code>:</p>
+
+<p><code>gem 'friendly_id', '~&gt; 5.1.0'</code></p>
+
+<p>It&rsquo;s worth mentioning here that if we&rsquo;re running on Rails 4.0 or higher, we must use <code>friendly_id</code> <code>5.0.0</code> or greater.</p>
+
+<p>Next, we know we&rsquo;ll need to add a <code>slug</code> column to the table in our database that we want to implement <code>friendly_id</code> on. We&rsquo;ll add a <code>publishers</code> table to our bookstore application, and assure that they always have a <code>name</code> and a <code>slug</code> column when they are committed to the database. We&rsquo;ll also add a unique index to the <code>slug</code> column, since we&rsquo;ll be using the slug in our urls, which means that no two <code>publisher</code> instances should have the same slug &mdash; and also because we&rsquo;ll want to be able to look up publishers by their slug rather than by their <code>id</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">CreatePublishers</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">up</span>
+</span><span class='line'>      <span class="n">create_table</span> <span class="ss">:publishers</span> <span class="k">do</span> <span class="o">|</span><span class="n">t</span><span class="o">|</span>
+</span><span class='line'>        <span class="n">t</span><span class="o">.</span><span class="n">string</span> <span class="ss">:name</span><span class="p">,</span> <span class="ss">null</span><span class="p">:</span> <span class="kp">false</span>
+</span><span class='line'>        <span class="n">t</span><span class="o">.</span><span class="n">string</span> <span class="ss">:slug</span><span class="p">,</span> <span class="ss">null</span><span class="p">:</span> <span class="kp">false</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">add_index</span> <span class="ss">:publishers</span><span class="p">,</span> <span class="ss">:slug</span><span class="p">,</span> <span class="ss">unique</span><span class="p">:</span> <span class="kp">true</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">down</span>
+</span><span class='line'>      <span class="n">drop_table</span> <span class="ss">:publishers</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>It&rsquo;s worth nothing that if we were adding <code>friendly_id</code> to rows that already existed in our database, we would need to generate slugs for these preexisting objects. We have a few options on where to put this command &mdash; in a rake task or from the console, for example &mdash; but we&rsquo;d have to find each of our objects and call <code>save</code> on them to generate their slugs. For example, if we were implementing <code>friendly_id</code> on our preexisting <code>Author</code> class, we would run this line:</p>
+
+<p><code>Author.find_each(&amp;:save)</code></p>
+
+<p>Now, time to extend or include the <code>FriendlyId</code> module in our model; that&rsquo;s right, it doesn&rsquo;t matter which one you do, just as long as the model has access to the methods defined in the module:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Publisher</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="kp">extend</span> <span class="no">FriendlyId</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="n">validates</span> <span class="ss">:name</span><span class="p">,</span> <span class="ss">:slug</span><span class="p">,</span> <span class="ss">presence</span><span class="p">:</span> <span class="kp">true</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now comes the actual implementation! We need to use one method in particular in order to configure the way that the <code>FriendlyId</code> module will behave inside the context of the model. This method is aptly named as: <code>friendly_id</code>, which is essentially just the &ldquo;base&rdquo; method of the <code>FriendlyId</code> module:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Publisher</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="kp">extend</span> <span class="no">FriendlyId</span>
+</span><span class='line'>  <span class="n">friendly_id</span> <span class="ss">:name</span><span class="p">,</span> <span class="ss">use</span><span class="p">:</span> <span class="ss">:slugged</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">validates</span> <span class="ss">:name</span><span class="p">,</span> <span class="ss">:slug</span><span class="p">,</span> <span class="ss">presence</span><span class="p">:</span> <span class="kp">true</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This method sets the default configurations of what method (yes, a method and <em>not</em> a column in the database!) it should use when trying to find an object. It also allows you to pass an <code>options</code> hash, which is what we&rsquo;re doing when we pass it <code>use: :slugged</code>. We&rsquo;re effectively telling the <code>friendly_id</code> method to use the <a href="http://norman.github.io/friendly_id/FriendlyId/Slugged.html">slugged addon</a>.</p>
+
+<p>So now that we&rsquo;ve got the most basic implementation set up, what does this allow us to do, exactly? Well, given our current model, we can now find instance of our <code>Publisher</code> class by their name:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Publisher</span><span class="o">.</span><span class="n">friendly</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;random-house&#39;</span><span class="p">)</span>
+</span><span class='line'><span class="c1">#=&gt; finds and returns an instance of the Publisher class</span>
+</span><span class='line'><span class="n">with</span> <span class="n">a</span> <span class="n">slug</span> <span class="s1">&#39;random-house&#39;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Cool! We&rsquo;re doing almost what Rails&#8217; <code>ActiveRecord</code> <code>find</code> method would do, but we&rsquo;re now no longer finding by a numerical <code>id</code>, but a string identifer that actually <em>means</em> something to both us as programmers, and our users!</p>
+
+<p>But what if we didn&rsquo;t want to litter our codebase with <code>friendly.find</code> everywhere? There&rsquo;s a solution for that, too. We just need to use another addon, which isn&rsquo;t implemented by default, called <code>finders</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Publisher</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="kp">extend</span> <span class="no">FriendlyId</span>
+</span><span class='line'>  <span class="n">friendly_id</span> <span class="ss">:name</span><span class="p">,</span> <span class="ss">use</span><span class="p">:</span> <span class="o">[</span><span class="ss">:slugged</span><span class="p">,</span> <span class="ss">:finders</span><span class="o">]</span>
+</span><span class='line'>  <span class="n">validates</span> <span class="ss">:name</span><span class="p">,</span> <span class="ss">:slug</span><span class="p">,</span> <span class="ss">presence</span><span class="p">:</span> <span class="kp">true</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This allows us to invoke <code>find</code> directly &mdash; but we have to be careful with this because it could conflict with other places where we are using <code>ActiveRecord</code>&rsquo;s <code>find(id)</code> method. Now we can do something like this very easily:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Publisher</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;random-house&#39;</span><span class="p">)</span>
+</span><span class='line'><span class="c1">#=&gt; finds and returns an instance of the Publisher class</span>
+</span><span class='line'><span class="n">with</span> <span class="n">a</span> <span class="n">slug</span> <span class="s1">&#39;random-house&#39;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>As we continue to implement <code>friendly_id</code> on other models in our application, we&rsquo;ll need to keep in mind that any classes that participate in single-table inheritence must extend <code>FriendlyId</code> in both the parent classes, and all its children classes as well.</p>
+
+<p>But what else can this gem do? It&rsquo;s time to finally start playing around with all of its functionality!</p>
+
+<h2>Where You Lead, Friendly_Id Will Follow</h2>
+
+<iframe src="//giphy.com/embed/nVXzt7FSJlX7W" width="480" height="239" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>When the documentation called this gem the &ldquo;Swiss Army bulldozer&rdquo; of slug url generation, it wasn&rsquo;t kidding! There really is a <em>ton</em> that we can do with the various modules and addons provided to us by <code>friendly_id</code>. We&rsquo;ll explore just a handful of things that we can modify for different use cases.</p>
+
+<h3>Should Generate New Friendly Id?</h3>
+
+<p>One question we should answer off the bat is how exactly this gem actually decides to generate a slug. It turns out that the <code>friendly_id</code> gem has a <code>should_generate_new_friendly_id?</code> method, which determines <a href="http://norman.github.io/friendly_id/FriendlyId/Slugged.html#should_generate_new_friendly_id%3F-instance_method">when and whether</a> to generate a new slug. A peek into the source code of this gem reveals that this method just checks whether there is a slug column defined, and the <code>base</code> method on the FriendlyId module configurations has been called or not:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">should_generate_new_friendly_id?</span>
+</span><span class='line'>  <span class="nb">send</span><span class="p">(</span><span class="n">friendly_id_config</span><span class="o">.</span><span class="n">slug_column</span><span class="p">)</span><span class="o">.</span><span class="n">nil?</span> <span class="o">&amp;&amp;</span>
+</span><span class='line'>      <span class="o">!</span><span class="nb">send</span><span class="p">(</span><span class="n">friendly_id_config</span><span class="o">.</span><span class="n">base</span><span class="p">)</span><span class="o">.</span><span class="n">nil?</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The documentation points out that it is totally fine to override this method in our models &mdash; for example, if we only wanted our slugs to be generated once upon creation, and never updated.</p>
+
+<h3>Duplicate Ids</h3>
+
+<p>By default, <code>friendly_id</code> expects the slug values that we told it to use in our model to be unique. It also helps that we assured that this is the case by creating a unique index on our <code>slug</code> column. But, what happens if an admin (or even a user) tries to create an object that would create a duplicate <code>friendly_id</code>? Well, the gem handles this case in a pretty cool way: it just appends a UUID to the generated slug to ensure that it will be a unique value:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">publisher_a</span> <span class="o">=</span> <span class="no">Publisher</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="nb">name</span><span class="p">:</span> <span class="s2">&quot;Harper Collins&quot;</span><span class="p">)</span>
+</span><span class='line'><span class="n">publisher_b</span> <span class="o">=</span> <span class="no">Publisher</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="nb">name</span><span class="p">:</span> <span class="s2">&quot;Harper Collins&quot;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">publisher_a</span><span class="o">.</span><span class="n">friendly_id</span> <span class="c1">#=&gt; &quot;harper-collins&quot;</span>
+</span><span class='line'><span class="n">publisher_b</span><span class="o">.</span><span class="n">friendly_id</span> <span class="c1">#=&gt; &quot;harper-collins-102-c9f6749b-daez-4586-a21x-waz87ak16oe2&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pretty awesome, right? It really does seem like this gem is a developer&rsquo;s best friend!</p>
+
+<h3>Slug Candidates</h3>
+
+<p>As nice as it is that we have the functionality to append an UUID sequence to prevent non-unique slugs, it would also be nice if we had some control over how to modify a potential clash in <code>friendly_id</code> identifiers. Well, our wish is this gem&rsquo;s command! We can use a lovely &ldquo;candidates&rdquo; feature (new in version <code>5.0</code> of this gem!) to set up a list of alternate slugs that we can use to distinguish records in place of sequence.</p>
+
+<p>We&rsquo;ll first add two required columns to our <code>publishers</code> database, <code>city</code> and <code>country</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddCityAndCountryToPublishers</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>      <span class="n">add_column</span> <span class="ss">:publishers</span><span class="p">,</span> <span class="ss">:city</span><span class="p">,</span> <span class="ss">:string</span><span class="p">,</span> <span class="ss">null</span><span class="p">:</span> <span class="kp">false</span>
+</span><span class='line'>      <span class="n">add_column</span> <span class="ss">:publishers</span><span class="p">,</span> <span class="ss">:country</span><span class="p">,</span> <span class="ss">:string</span><span class="p">,</span> <span class="ss">null</span><span class="p">:</span> <span class="kp">false</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>After we run <code>rake db:migrate</code>, and make sure that these values are all populate in our pre-existing records, we&rsquo;ll tell the <code>friendly_id</code> base method to use the <code>slug_candidates</code> method, which is going to be a set of instructions on how to construct the <code>slug</code> for any given instance of our <code>Publisher</code> class:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Publisher</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="kp">extend</span> <span class="no">FriendlyId</span>
+</span><span class='line'>  <span class="n">friendly_id</span> <span class="ss">:slug_candidates</span><span class="p">,</span> <span class="ss">use</span><span class="p">:</span> <span class="ss">:slugged</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">validates</span> <span class="ss">:name</span><span class="p">,</span> <span class="ss">:slug</span><span class="p">,</span> <span class="ss">:city</span><span class="p">,</span> <span class="ss">:country</span><span class="p">,</span> <span class="ss">presence</span><span class="p">:</span> <span class="kp">true</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">slug_candidates</span>
+</span><span class='line'>      <span class="o">[</span>
+</span><span class='line'>          <span class="ss">:name</span><span class="p">,</span>
+</span><span class='line'>          <span class="o">[</span><span class="ss">:name</span><span class="p">,</span> <span class="ss">:city</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>          <span class="o">[</span><span class="ss">:name</span><span class="p">,</span> <span class="ss">:city</span><span class="p">,</span> <span class="ss">:country</span><span class="o">]</span>
+</span><span class='line'>      <span class="o">]</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>You&rsquo;ll remember that I mentioned that <code>friendly_id</code> uses a method, and not a column in the database to generate a slug &mdash; well, this is exactly why it does that: so that we can override a method very easily! Now the <code>friendly_id</code> base method will use first the <code>name</code> attribute, then the <code>name</code> and <code>city</code> attributes, followed by the <code>name</code>, <code>city</code>, and <code>country</code> attributes.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">publisher_a</span> <span class="o">=</span> <span class="no">Publisher</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="nb">name</span><span class="p">:</span> <span class="s2">&quot;Harper Collins&quot;</span><span class="p">,</span> <span class="ss">city</span><span class="p">:</span> <span class="s1">&#39;New York City&#39;</span><span class="p">)</span>
+</span><span class='line'><span class="n">publisher_b</span> <span class="o">=</span> <span class="no">Publisher</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="nb">name</span><span class="p">:</span> <span class="s2">&quot;Harper Collins&quot;</span><span class="p">,</span> <span class="ss">city</span><span class="p">:</span> <span class="s1">&#39;San Francisco&#39;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">publisher_a</span><span class="o">.</span><span class="n">friendly_id</span> <span class="c1">#=&gt; &quot;harper-collins-new-york-city&quot;</span>
+</span><span class='line'><span class="n">publisher_b</span><span class="o">.</span><span class="n">friendly_id</span> <span class="c1">#=&gt; &quot;harper-collins-san-francisco&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>It&rsquo;s worth noting that our method doesn&rsquo;t have to be named <code>slug_candidates</code> in the context of our class: this is just the <strong>base method</strong> of our <code>FriendlyId</code> module, which means that we can mame it anything we want, so long as we pass it to our <code>friendly_id</code> method when we tell it what we want to use to generate our <code>id</code>s for finding our objects. The nice thing about using an array of symbols (as opposed to string literals or procs and lambdas), is that the <code>FriendlyId</code> module will invoke a method of the same exact name on our <code>Publisher</code> model, which can be helpful if we have a <code>city</code> and <code>country</code> attribute on each of our <code>publisher</code> instances, which maps to a column in our database.</p>
+
+<p>Of course, if we do happen to have an edge case where two instances of a <code>Publisher</code> have the exact same <code>name</code>, <code>city</code>, and <code>country</code>, the <code>friendly_id</code> gem can handle this situation as well! What will it do, exactly? Here&rsquo;s what the documentation says:</p>
+
+<blockquote><p>&ldquo;If none of the [slug] candidates can generate a unique slug, then FriendlyId will append a UUID to the first candidate as a last resort.&rdquo;</p></blockquote>
+
+<p>Nice! So we can always depend on our slugs being unique in some way or another &mdash; in the worst case (which probably won&rsquo;t even happen that often!), it&rsquo;ll just add a UUID at the end of the slug that matches another one, making it unique.</p>
+
+<h2>Saving Old Friends</h2>
+
+<p>We&rsquo;ve been working mostly with the <code>slugged</code> addon, but there are also quite a few other addons available to us. One of the most interesting ones is the <code>history</code> addon, which allows us to save <a href="http://norman.github.io/friendly_id/FriendlyId/History.html">different versions</a> of an instance&rsquo;s <code>slug</code> attributes!</p>
+
+<p>For example, if we had <code>Article</code> instances that might allow for their <code>title</code>s to be updated by admins, we wouldn&rsquo;t want all of our urls to be broken when an admin changed a title on an article, right? Well, this addon helps us prevent that.</p>
+
+<p>In order for us to implement this module, we need add a table to your database to store the slug records. Luckily, <code>friendly_id</code> has a generator for this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">rails</span> <span class="n">generate</span> <span class="n">friendly_id</span>
+</span><span class='line'><span class="n">rake</span> <span class="ss">db</span><span class="p">:</span><span class="n">migrate</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now we just need to specify that our base method needs to use the <code>history</code> addon:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Article</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="kp">extend</span> <span class="no">FriendlyId</span>
+</span><span class='line'>  <span class="n">friendly_id</span> <span class="ss">:name</span><span class="p">,</span> <span class="ss">use</span><span class="p">:</span> <span class="ss">:history</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And now in our controller we can do something like this!</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ArticlesController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="n">before_filter</span> <span class="ss">:find_article</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">find_article</span>
+</span><span class='line'>      <span class="vi">@article</span> <span class="o">=</span> <span class="no">Article</span><span class="o">.</span><span class="n">find</span> <span class="n">params</span><span class="o">[</span><span class="ss">:id</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="c1"># If an old id is used to find the record,</span>
+</span><span class='line'>      <span class="c1"># we can handle a can redirect accordingly!</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>There are so many interesting use cases for this gem, and it turns out that it does a lot of the stuff we already know about under the hood. One quick example: it uses Rails&#8217; <code>ActiveSupport</code> <a href="http://api.rubyonrails.org/classes/ActiveSupport/Inflector.html#method-i-parameterize">parameterize method</a>, which is actually used by <code>to_param</code> &mdash; and which we have already explored on our own!</p>
+
+<p>So, there&rsquo;s never just one way to do anything. As long as we&rsquo;re willing to learn the fundamentals of how to solve a problem in one way, we can explore all the different solutions that people have already come up with. And when it comes to generating urls and handling strange situations with slugs, we&rsquo;ve got it covered with our new best friend, the <code>friendly_id</code> gem.</p>
+
+<iframe src="//giphy.com/embed/LnaPDokBEmONG" width="480" height="240" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>friendly_id</code> gem is a way to find objects and generate urls using strings instead of numerical ids. The <a href="http://norman.github.io/friendly_id/">documentation</a> for this gem is fantastic, check it out!</li>
+<li>Here&rsquo;s a very simple <a href="http://railscasts.com/episodes/314-pretty-urls-with-friendlyid">railscast</a> that implements <code>friendly_id</code> in its most basic capacity.</li>
+<li>Curious about how that <code>friendly_id</code> base method works? Check out the <a href="https://github.com/norman/friendly_id/blob/8069fc9959215e5f4872927928b3b7a95e9beacd/lib/friendly_id/base.rb#L191">source code</a>.</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Breaking the News: Wisper + Pub-Sub]]></title>
@@ -5020,266 +5363,6 @@ backend (Sidekiq, Resque, etc).&rdquo;</p></blockquote>
 <li>Environment variables are how we can store our secret credentials; they live inside of the <code>.env</code> file and should never be committed to source control! Want to read more about env variables in Rails? Check out this great <a href="http://bayendor.github.io/blog/2015/01/16/managing-rails-environment-variables/">blog post</a> and this super <a href="http://railsapps.github.io/rails-environment-variables.html">informative tutorial</a>.</li>
 <li>The <code>aws-sdk</code> gem is an easy way to integrate <code>paperclip</code> and AWS S3. You can dive into the gem&rsquo;s <a href="https://github.com/aws/aws-sdk-ruby">source code</a> to learn more!</li>
 <li>Heroku has some fantastic guides on how to <a href="https://devcenter.heroku.com/articles/s3#s3-setup">set up S3</a> and how to upload files to S3 <a href="https://devcenter.heroku.com/articles/paperclip-s3">using paperclip</a>.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Clipping Images for Rails: Using Paperclip]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/07/28/clipping-images-for-rails-using-paperclip/"/>
-    <updated>2015-07-28T08:42:36-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/07/28/clipping-images-for-rails-using-paperclip</id>
-    <content type="html"><![CDATA[<p><img src="http://www.officemuseum.com/1894_Gem_Paper_Clip_adv_discovered_by_The_Early_Office_Museum.JPG" style="display: block; margin-left: auto; margin-right: auto;"/></p>
-
-<p>They say that a picture is worth a thousand words. How they came up with a such a nice, conveniently specific number number I&rsquo;ll never know. But what I do know is that everything on the web is just data floating around in cyberspace. And when I say everything, I really do mean <em>everything</em> &ndash; including pictures!</p>
-
-<p>I&rsquo;ve worked on a few different projects that have required building out an interface to allow a user or an admin to upload images. The first time that I had to do this, I knew that there were a few different Rails gems out there to help make this magic happen. But I didn&rsquo;t really understand what was going on when I implemented these gems the first time around. To be quite honest, the first time I had to implement file uploading, I just followed the setup steps rather blindly. Now that I&rsquo;ve had to solve the same problem multiple times, however, I feel a bit more comfortable with the process.</p>
-
-<p>There are a few different gems out there for handing file attachment in Rails, but my favorite one to use so far has been <strong>paperclip</strong>. Created by the super cool developers over at <a href="https://github.com/thoughtbot/paperclip">ThoughtBot</a>, the paperclip gem is fairly simple and straightforward to use. The reason that I like this gem in particular is that it fits seamlessly into the Rails framework. Files and attachments are treated just like an attribute on an ActiveRecord object, which makes the setup process both easy and intuitive. However, that doesn&rsquo;t mean that it&rsquo;s not intimidating at first! Luckily, we&rsquo;re going to walk through using the paperclip gem together.</p>
-
-<!--more-->
-
-
-<h2>How To Start Clipping</h2>
-
-<iframe src="//giphy.com/embed/xXG9gNuwQcN1u" width="480" height="425" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>Since <code>paperclip</code> is a gem, the first thing we&rsquo;ll have to do before we really get started on clipping anything is add it to our <code>Gemfile</code>:</p>
-
-<p><code>gem "paperclip", "~&gt; 4.3"</code></p>
-
-<p>and then <code>bundle install</code>, because it&rsquo;s what all the cool kids do. This is also a good time to make sure that we have <code>ImageMagick</code>, which is one of <code>paperclip</code>&rsquo;s dependencies. (We can always run <code>brew install imagemagick</code> to install it if we don&rsquo;t have it already.)</p>
-
-<p>Now it&rsquo;s time to get clipping! And take a look at our schema, obvs. For our Bookstore app, we want each of our authors to have a headshot image uploaded and associated with their work. This is going to be super important from a user experience point of view, and it will be something that will be displayed on the show page of any given author.</p>
-
-<p>There are two ways to go about actually adding an attachment to our model; one of them is is a bit easier because it generates a migration for you. But we&rsquo;ll go ahead and write our own migration to start.</p>
-
-<p>We already have an <code>Author</code> model and migration. What we need to do is add an <code>attachment</code> column that&rsquo;ll handle everything from file uploading to associating a file with a specific <code>Author</code> object. So, we can just write a migration (<code>rails g migration AddProfileMediaToAuthors</code>) that will add an <code>attachment</code> column to our <code>Authors</code> table:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddProfileMediaToAuthors</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">up</span>
-</span><span class='line'>    <span class="n">add_attachment</span> <span class="ss">:authors</span><span class="p">,</span> <span class="ss">:profile_media</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">down</span>
-</span><span class='line'>    <span class="n">remove_attachment</span> <span class="ss">:authors</span><span class="p">,</span> <span class="ss">:profile_media</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>We&rsquo;ll call our attachment columns <code>profile_media</code> to preemptively namespace the different types of attachments that we might have on a single <code>Author</code>&rsquo;s page. And just in case you needed a little refresher on the difference between the <code>up</code> and <code>down</code> methods, head <a href="http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/">over here</a>.</p>
-
-<p>Okay, now we&rsquo;ll run <code>rake db:migrate</code>, and take a look at our <code>schema.rb</code> file. Let&rsquo;s see what happened:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">create_table</span> <span class="s2">&quot;authors&quot;</span><span class="p">,</span> <span class="ss">force</span><span class="p">:</span> <span class="ss">:cascade</span> <span class="k">do</span> <span class="o">|</span><span class="n">t</span><span class="o">|</span>
-</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">string</span>   <span class="s2">&quot;firstname&quot;</span>
-</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">string</span>   <span class="s2">&quot;lastname&quot;</span>
-</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">datetime</span> <span class="s2">&quot;created_at&quot;</span><span class="p">,</span>         <span class="ss">null</span><span class="p">:</span> <span class="kp">false</span>
-</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">datetime</span> <span class="s2">&quot;updated_at&quot;</span><span class="p">,</span>         <span class="ss">null</span><span class="p">:</span> <span class="kp">false</span>
-</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">string</span>   <span class="s2">&quot;profile_media_file_name&quot;</span>
-</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">string</span>   <span class="s2">&quot;profile_media_content_type&quot;</span>
-</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">integer</span>  <span class="s2">&quot;profile_media_file_size&quot;</span>
-</span><span class='line'>  <span class="n">t</span><span class="o">.</span><span class="n">datetime</span> <span class="s2">&quot;profile_media_updated_at&quot;</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Interesting! So our <code>add_attachment</code> method actually did a lot of things for us, didn&rsquo;t it? That&rsquo;s because it&rsquo;s actually a helper method does a lot of important things that <code>paperclip</code> relies on:</p>
-
-<ol>
-<li>It adds a <code>file_name</code> for our attachment.</li>
-<li>It adds a <code>content_type</code> for our attachments, which will be the <em>mime type</em> of our images.</li>
-<li>It adds the <code>file_size</code> of our attachments.</li>
-<li>It creates a <code>updated_at</code> column, which is particularly useful since we can order and sort our attachments/images by <code>datetime</code> format.</li>
-</ol>
-
-
-<p>Now we need to hook up our database migration with the corresponding model!</p>
-
-<h2>Objects With Attached Files</h2>
-
-<p><img src="http://2.bp.blogspot.com/_khdFP9RCQSw/TSPePSmnscI/AAAAAAAAAK4/My8FyIo8Xuo/s1600/a-jpeg-is-worth-approximately-a-thousand-words.gif" style="display: block; margin-left: auto; margin-right: auto;"/></p>
-
-<p>Inside of our <code>Author</code> class, we need want to add one very important line to our model: <code>has_attached_file</code>. The important thing about this method is that it needs to correspond to whatever we named our attachment in our migrations from earlier. In our case, we called our attachments <code>profile_media</code>, so that&rsquo;s exactly what we&rsquo;ll use inside of our model as well:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
-</span><span class='line'>  <span class="n">has_attached_file</span> <span class="ss">:profile_media</span><span class="p">,</span>
-</span><span class='line'>      <span class="ss">styles</span><span class="p">:</span> <span class="p">{</span>
-</span><span class='line'>          <span class="ss">large</span><span class="p">:</span> <span class="s2">&quot;500x500&quot;</span><span class="p">,</span>
-</span><span class='line'>          <span class="ss">medium</span><span class="p">:</span> <span class="s2">&quot;300x300&quot;</span><span class="p">,</span>
-</span><span class='line'>          <span class="ss">thumb</span><span class="p">:</span> <span class="s2">&quot;100x100&quot;</span>
-</span><span class='line'>      <span class="p">},</span>
-</span><span class='line'>      <span class="ss">default_url</span><span class="p">:</span> <span class="s2">&quot;/images/:style/missing_profile_media.png&quot;</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This line sets up a few defaults for us and gives us the option of having a few different sizes for our <code>profile_media</code>. The <code>default_url</code> can be helpful if we ever want to give our attachment url a default and avoid an instance of <code>nil</code>. The sizes that we specify here are what we&rsquo;ll use inside of our views:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">=</span> <span class="n">link_to</span> <span class="n">image_tag</span><span class="p">(</span><span class="n">author</span><span class="o">.</span><span class="n">profile_media</span><span class="o">.</span><span class="n">url</span><span class="p">(</span><span class="ss">:thumb</span><span class="p">)),</span> <span class="n">author</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">url</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>But the most important part of making all of this work is, of course, permitting our media to be seen! (I&rsquo;m looking at you, strong params!). All we need to do is add our attachment name (<code>profile_media</code>) to our permitted parameters, which is already being used by our controller actions:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AuthorsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
-</span><span class='line'>  <span class="k">def</span> <span class="nf">create</span>
-</span><span class='line'>      <span class="n">author</span> <span class="o">=</span> <span class="no">Author</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">author_params</span><span class="p">)</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="kp">private</span>
-</span><span class='line'>    <span class="k">def</span> <span class="nf">author_params</span>
-</span><span class='line'>      <span class="n">params</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="ss">:author</span><span class="p">)</span><span class="o">.</span><span class="n">permit</span><span class="p">(</span><span class="ss">:firstname</span><span class="p">,</span> <span class="ss">:lastname</span><span class="p">,</span> <span class="ss">:profile_media</span><span class="p">)</span>
-</span><span class='line'>    <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Pretty simple, right? But these are just the bare bones of <code>paperclip</code>. We can spice things up a bit, too!</p>
-
-<h2>Validating And Customizing Our Clippings</h2>
-
-<p>Once we have the gem up and working, it&rsquo;s super easy to add some bells and whistles and write it to fit our application&rsquo;s specific standards. The developers at ThoughtBot actually have several different validators that we can implement, including <code>AttachmentContentTypeValidator</code>, <code>AttachmentPresenceValidator</code>, and <code>AttachmentSizeValidator</code>. Personally, however, I prefer the old school helper methods, which function in exactly the same way.</p>
-
-<p>Let&rsquo;s add a <code>validates_attachment_content_type</code> to our <code>Author</code> class, and validate that the content being uploaded is actually an <code>image</code>. We can do that with a nice regular expression:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
-</span><span class='line'>  <span class="n">has_attached_file</span> <span class="ss">:profile_media</span><span class="p">,</span>
-</span><span class='line'>      <span class="ss">styles</span><span class="p">:</span> <span class="p">{</span>
-</span><span class='line'>          <span class="ss">large</span><span class="p">:</span> <span class="s2">&quot;500x500&quot;</span><span class="p">,</span>
-</span><span class='line'>          <span class="ss">medium</span><span class="p">:</span> <span class="s2">&quot;300x300&quot;</span><span class="p">,</span>
-</span><span class='line'>          <span class="ss">thumb</span><span class="p">:</span> <span class="s2">&quot;100x100&quot;</span>
-</span><span class='line'>      <span class="p">},</span>
-</span><span class='line'>          <span class="ss">default_url</span><span class="p">:</span> <span class="s2">&quot;/images/:style/missing_profile_media.png&quot;</span>
-</span><span class='line'>
-</span><span class='line'>      <span class="n">validates_attachment_content_type</span> <span class="ss">:profile_media</span><span class="p">,</span> <span class="ss">content_type</span><span class="p">:</span> <span class="sr">/\Aimage\/.*\Z/</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>We can also validate the size and presence of our attachment as well:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">validates</span> <span class="ss">:profile_image</span><span class="p">,</span> <span class="ss">attachment_presence</span><span class="p">:</span> <span class="ss">:true</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">validates_attachment_size</span> <span class="ss">:profile_media</span><span class="p">,</span> <span class="ss">size</span><span class="p">:</span> <span class="p">{</span> <span class="k">in</span><span class="p">:</span> <span class="mi">0</span><span class="o">.</span><span class="n">.</span><span class="mi">100</span><span class="o">.</span><span class="n">kilobytes</span> <span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>And what about deleting attachments? Well, because <code>paperclip</code> is designed to work so well with ActiveRecord, any attachment we create is treated just like an attribute. As the documentation explains,</p>
-
-<blockquote><p>The intent behind <code>paperclip</code> was to keep setup as easy as possible and to treat files as much like other attributes as possible. This means they aren&rsquo;t saved to their final locations on disk, nor are they deleted if set to nil, until ActiveRecord::Base#save is called. It manages validations based on size and presence, if required.</p></blockquote>
-
-<p>Since the only way to delete an attachment is by setting the attribute to <code>nil</code>, there are a few different ways to actually go about deleting attachments. One implementation that I like to use is writing a custom method that checks whether an <code>Author</code> object has it&rsquo;s <code>profile_media</code> attribute equal to <code>nil</code> before saving it:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
-</span><span class='line'>  <span class="n">before_save</span> <span class="ss">:delete_profile_media</span><span class="p">,</span>
-</span><span class='line'>      <span class="k">if</span><span class="p">:</span> <span class="o">-&gt;</span> <span class="p">{</span> <span class="n">remove_profile_media</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">profile_media_updated_at_changed?</span> <span class="p">}</span>
-</span><span class='line'>  
-</span><span class='line'>  <span class="kp">attr_accessor</span> <span class="ss">:remove_profile_media</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="kp">private</span>
-</span><span class='line'>      <span class="k">def</span> <span class="nf">delete_profile_media</span>
-</span><span class='line'>          <span class="nb">self</span><span class="o">.</span><span class="n">profile_media</span> <span class="o">=</span> <span class="kp">nil</span>
-</span><span class='line'>      <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>In this structure, I also create an attribute on my <code>Author</code> object called <code>remove_profile_media</code>, which will either be <code>0</code> or <code>1</code>, based on whether a box on a form has been checked or not. If the button is checked, <code>remove_profile_media</code> will be set to <code>1</code>, and I&rsquo;ll call the <code>delete_profile_media</code> method in my <code>before_save</code> hook.</p>
-
-<p>If deleting data is something that scares you (or if you&rsquo;re a fan of the <code>acts_as_paranoid</code> gem) there&rsquo;s also another option. You can just preserve your files along with your &ldquo;soft deleted&rdquo; models:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Author</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
-</span><span class='line'>  <span class="n">has_attached_file</span> <span class="ss">:profile_media</span><span class="p">,</span> <span class="p">{</span>
-</span><span class='line'>      <span class="ss">preserve_files</span><span class="p">:</span> <span class="s2">&quot;true&quot;</span><span class="p">,</span>
-</span><span class='line'>  <span class="p">}</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This extra line prevents any data in our <code>profile_media</code> columns from being completely erased when the model is soft deleted. The good news here is that when the object is restored later on, our images will be too! And that is just as good of a reason as any to celebrate!</p>
-
-<iframe src="//giphy.com/embed/osMIREQbo3s2c" width="480" height="255" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>The <code>paperclip</code> gem really needs only two things to function properly: a <code>has_attached_file :attachment</code> in the model and an <code>attachment_file_name</code> column in the database. The <code>attachment_content_type</code> is only required if you&rsquo;re going to use content type validation.</li>
-<li>If you want to see some <code>paperclip</code> in action, check out this <a href="http://railscasts.com/episodes/134-paperclip">RailsCast</a> that covers all the basics.</li>
-<li>Want to dive into the <code>paperclip</code> source code? Go for it! Perhaps you can start by checking out their well-documented <a href="http://www.rubydoc.info/gems/paperclip/Paperclip/ClassMethods">class methods</a>.</li>
 </ul>
 
 ]]></content>

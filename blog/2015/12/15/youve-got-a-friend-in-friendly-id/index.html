@@ -1,0 +1,547 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>You&#8217;ve Got a Friend in Friendly_Id - Words and Code</title>
+  <meta name="author" content="Vaidehi Joshi">
+
+  
+  <meta name="description" content="One of my favorite aspects of programming is the fact that there&rsquo;s always more than one way to do something. In fact, I think this is probably &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://vaidehijoshi.github.io/blog/2015/12/15/youve-got-a-friend-in-friendly-id">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Words and Code" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Words and Code</a></h1>
+  
+    <h2>One writer&#8217;s journey from words to code.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:vaidehijoshi.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/about">About Vaidehi</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">You&#8217;ve Got a Friend in Friendly_Id</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-12-15T08:11:15-05:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:11 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><iframe src="//giphy.com/embed/13pT5ZMDTKiKJO" width="480" height="241" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>One of my favorite aspects of programming is the fact that there&rsquo;s always more than one way to do something. In fact, I think this is probably why I consider the very act of writing and building software to be a far more intutive task, rather than a merely structured, logical, and rigid pursuit. The very notion of no &ldquo;one single solution&rdquo; to solving a problem is what makes programming both a critical thinking skill, but also a creative one.</p>
+
+<p>Let me give you an example: a few months ago, I wrote about <a href="http://vaidehijoshi.github.io/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/">using slugs</a> and the <code>acts_as_url</code> gem to create human-readable urls for an application I was working on. Rails has a handy <code>to_param</code> method that can be used in conjunction with this gem to generate a hyphen-separated string that can be used in the <code>show</code> route of a resource in place of the object&rsquo;s numeric <code>id</code>, which is both unreadable and usually doesn&rsquo;t provide any point of reference for the user. So, here we are, using slugs.</p>
+
+<p>However, just because we did something one way initially doesn&rsquo;t mean that our way is the <em>only</em> way to do it. Actually, I am certain that there are other solutions &mdash; and some of them might actually be more flexible than our approach! This was what I realized very quickly when I recently learned about another gem that solves the same problem of slugs in a different, and rather interesting way! In fact it took what I already knew about using and generating slugs in an url structure to another level by using <strong>text-based identifiers in place of ids</strong>. Basically, it allows us to query for objects by finding them using their slugs, rather than their <code>id</code>s. Doesn&rsquo;t this make you super excited? Time to find out more about this approach and become friends with the <code>friendly_id</code> gem!</p>
+
+<!--more-->
+
+
+<h2>Making Friends With Friendly_Id</h2>
+
+<iframe src="//giphy.com/embed/Wsk723nT8tXpe" width="480" height="223" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>The <code>friendly_id</code> gem, created and maintained by <a href="https://github.com/norman">Norman Clarke</a>, describes itself as &ldquo;the Swiss Army bulldozer of slugging and permalink plugins for ActiveRecord&rdquo;. And that&rsquo;s probably a pretty accurate name for all the things that this one single gem is capable of doing!</p>
+
+<p>Before we can really explore all of its neat features, we need to do some initial setup. We&rsquo;ll start by adding <code>friendly_id</code> to our <code>Gemfile</code>, and then running <code>bundle</code>:</p>
+
+<p><code>gem 'friendly_id', '~&gt; 5.1.0'</code></p>
+
+<p>It&rsquo;s worth mentioning here that if we&rsquo;re running on Rails 4.0 or higher, we must use <code>friendly_id</code> <code>5.0.0</code> or greater.</p>
+
+<p>Next, we know we&rsquo;ll need to add a <code>slug</code> column to the table in our database that we want to implement <code>friendly_id</code> on. We&rsquo;ll add a <code>publishers</code> table to our bookstore application, and assure that they always have a <code>name</code> and a <code>slug</code> column when they are committed to the database. We&rsquo;ll also add a unique index to the <code>slug</code> column, since we&rsquo;ll be using the slug in our urls, which means that no two <code>publisher</code> instances should have the same slug &mdash; and also because we&rsquo;ll want to be able to look up publishers by their slug rather than by their <code>id</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">CreatePublishers</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">up</span>
+</span><span class='line'>      <span class="n">create_table</span> <span class="ss">:publishers</span> <span class="k">do</span> <span class="o">|</span><span class="n">t</span><span class="o">|</span>
+</span><span class='line'>        <span class="n">t</span><span class="o">.</span><span class="n">string</span> <span class="ss">:name</span><span class="p">,</span> <span class="ss">null</span><span class="p">:</span> <span class="kp">false</span>
+</span><span class='line'>        <span class="n">t</span><span class="o">.</span><span class="n">string</span> <span class="ss">:slug</span><span class="p">,</span> <span class="ss">null</span><span class="p">:</span> <span class="kp">false</span>
+</span><span class='line'>      <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">add_index</span> <span class="ss">:publishers</span><span class="p">,</span> <span class="ss">:slug</span><span class="p">,</span> <span class="ss">unique</span><span class="p">:</span> <span class="kp">true</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">down</span>
+</span><span class='line'>      <span class="n">drop_table</span> <span class="ss">:publishers</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>It&rsquo;s worth nothing that if we were adding <code>friendly_id</code> to rows that already existed in our database, we would need to generate slugs for these preexisting objects. We have a few options on where to put this command &mdash; in a rake task or from the console, for example &mdash; but we&rsquo;d have to find each of our objects and call <code>save</code> on them to generate their slugs. For example, if we were implementing <code>friendly_id</code> on our preexisting <code>Author</code> class, we would run this line:</p>
+
+<p><code>Author.find_each(&amp;:save)</code></p>
+
+<p>Now, time to extend or include the <code>FriendlyId</code> module in our model; that&rsquo;s right, it doesn&rsquo;t matter which one you do, just as long as the model has access to the methods defined in the module:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Publisher</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="kp">extend</span> <span class="no">FriendlyId</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="n">validates</span> <span class="ss">:name</span><span class="p">,</span> <span class="ss">:slug</span><span class="p">,</span> <span class="ss">presence</span><span class="p">:</span> <span class="kp">true</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now comes the actual implementation! We need to use one method in particular in order to configure the way that the <code>FriendlyId</code> module will behave inside the context of the model. This method is aptly named as: <code>friendly_id</code>, which is essentially just the &ldquo;base&rdquo; method of the <code>FriendlyId</code> module:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Publisher</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="kp">extend</span> <span class="no">FriendlyId</span>
+</span><span class='line'>  <span class="n">friendly_id</span> <span class="ss">:name</span><span class="p">,</span> <span class="ss">use</span><span class="p">:</span> <span class="ss">:slugged</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">validates</span> <span class="ss">:name</span><span class="p">,</span> <span class="ss">:slug</span><span class="p">,</span> <span class="ss">presence</span><span class="p">:</span> <span class="kp">true</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This method sets the default configurations of what method (yes, a method and <em>not</em> a column in the database!) it should use when trying to find an object. It also allows you to pass an <code>options</code> hash, which is what we&rsquo;re doing when we pass it <code>use: :slugged</code>. We&rsquo;re effectively telling the <code>friendly_id</code> method to use the <a href="http://norman.github.io/friendly_id/FriendlyId/Slugged.html">slugged addon</a>.</p>
+
+<p>So now that we&rsquo;ve got the most basic implementation set up, what does this allow us to do, exactly? Well, given our current model, we can now find instance of our <code>Publisher</code> class by their name:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Publisher</span><span class="o">.</span><span class="n">friendly</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;random-house&#39;</span><span class="p">)</span>
+</span><span class='line'><span class="c1">#=&gt; finds and returns an instance of the Publisher class</span>
+</span><span class='line'><span class="n">with</span> <span class="n">a</span> <span class="n">slug</span> <span class="s1">&#39;random-house&#39;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Cool! We&rsquo;re doing almost what Rails&#8217; <code>ActiveRecord</code> <code>find</code> method would do, but we&rsquo;re now no longer finding by a numerical <code>id</code>, but a string identifer that actually <em>means</em> something to both us as programmers, and our users!</p>
+
+<p>But what if we didn&rsquo;t want to litter our codebase with <code>friendly.find</code> everywhere? There&rsquo;s a solution for that, too. We just need to use another addon, which isn&rsquo;t implemented by default, called <code>finders</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Publisher</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="kp">extend</span> <span class="no">FriendlyId</span>
+</span><span class='line'>  <span class="n">friendly_id</span> <span class="ss">:name</span><span class="p">,</span> <span class="ss">use</span><span class="p">:</span> <span class="o">[</span><span class="ss">:slugged</span><span class="p">,</span> <span class="ss">:finders</span><span class="o">]</span>
+</span><span class='line'>  <span class="n">validates</span> <span class="ss">:name</span><span class="p">,</span> <span class="ss">:slug</span><span class="p">,</span> <span class="ss">presence</span><span class="p">:</span> <span class="kp">true</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This allows us to invoke <code>find</code> directly &mdash; but we have to be careful with this because it could conflict with other places where we are using <code>ActiveRecord</code>&rsquo;s <code>find(id)</code> method. Now we can do something like this very easily:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Publisher</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;random-house&#39;</span><span class="p">)</span>
+</span><span class='line'><span class="c1">#=&gt; finds and returns an instance of the Publisher class</span>
+</span><span class='line'><span class="n">with</span> <span class="n">a</span> <span class="n">slug</span> <span class="s1">&#39;random-house&#39;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>As we continue to implement <code>friendly_id</code> on other models in our application, we&rsquo;ll need to keep in mind that any classes that participate in single-table inheritence must extend <code>FriendlyId</code> in both the parent classes, and all its children classes as well.</p>
+
+<p>But what else can this gem do? It&rsquo;s time to finally start playing around with all of its functionality!</p>
+
+<h2>Where You Lead, Friendly_Id Will Follow</h2>
+
+<iframe src="//giphy.com/embed/nVXzt7FSJlX7W" width="480" height="239" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>When the documentation called this gem the &ldquo;Swiss Army bulldozer&rdquo; of slug url generation, it wasn&rsquo;t kidding! There really is a <em>ton</em> that we can do with the various modules and addons provided to us by <code>friendly_id</code>. We&rsquo;ll explore just a handful of things that we can modify for different use cases.</p>
+
+<h3>Should Generate New Friendly Id?</h3>
+
+<p>One question we should answer off the bat is how exactly this gem actually decides to generate a slug. It turns out that the <code>friendly_id</code> gem has a <code>should_generate_new_friendly_id?</code> method, which determines <a href="http://norman.github.io/friendly_id/FriendlyId/Slugged.html#should_generate_new_friendly_id%3F-instance_method">when and whether</a> to generate a new slug. A peek into the source code of this gem reveals that this method just checks whether there is a slug column defined, and the <code>base</code> method on the FriendlyId module configurations has been called or not:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">should_generate_new_friendly_id?</span>
+</span><span class='line'>  <span class="nb">send</span><span class="p">(</span><span class="n">friendly_id_config</span><span class="o">.</span><span class="n">slug_column</span><span class="p">)</span><span class="o">.</span><span class="n">nil?</span> <span class="o">&amp;&amp;</span>
+</span><span class='line'>      <span class="o">!</span><span class="nb">send</span><span class="p">(</span><span class="n">friendly_id_config</span><span class="o">.</span><span class="n">base</span><span class="p">)</span><span class="o">.</span><span class="n">nil?</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The documentation points out that it is totally fine to override this method in our models &mdash; for example, if we only wanted our slugs to be generated once upon creation, and never updated.</p>
+
+<h3>Duplicate Ids</h3>
+
+<p>By default, <code>friendly_id</code> expects the slug values that we told it to use in our model to be unique. It also helps that we assured that this is the case by creating a unique index on our <code>slug</code> column. But, what happens if an admin (or even a user) tries to create an object that would create a duplicate <code>friendly_id</code>? Well, the gem handles this case in a pretty cool way: it just appends a UUID to the generated slug to ensure that it will be a unique value:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">publisher_a</span> <span class="o">=</span> <span class="no">Publisher</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="nb">name</span><span class="p">:</span> <span class="s2">&quot;Harper Collins&quot;</span><span class="p">)</span>
+</span><span class='line'><span class="n">publisher_b</span> <span class="o">=</span> <span class="no">Publisher</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="nb">name</span><span class="p">:</span> <span class="s2">&quot;Harper Collins&quot;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">publisher_a</span><span class="o">.</span><span class="n">friendly_id</span> <span class="c1">#=&gt; &quot;harper-collins&quot;</span>
+</span><span class='line'><span class="n">publisher_b</span><span class="o">.</span><span class="n">friendly_id</span> <span class="c1">#=&gt; &quot;harper-collins-102-c9f6749b-daez-4586-a21x-waz87ak16oe2&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Pretty awesome, right? It really does seem like this gem is a developer&rsquo;s best friend!</p>
+
+<h3>Slug Candidates</h3>
+
+<p>As nice as it is that we have the functionality to append an UUID sequence to prevent non-unique slugs, it would also be nice if we had some control over how to modify a potential clash in <code>friendly_id</code> identifiers. Well, our wish is this gem&rsquo;s command! We can use a lovely &ldquo;candidates&rdquo; feature (new in version <code>5.0</code> of this gem!) to set up a list of alternate slugs that we can use to distinguish records in place of sequence.</p>
+
+<p>We&rsquo;ll first add two required columns to our <code>publishers</code> database, <code>city</code> and <code>country</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddCityAndCountryToPublishers</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">change</span>
+</span><span class='line'>      <span class="n">add_column</span> <span class="ss">:publishers</span><span class="p">,</span> <span class="ss">:city</span><span class="p">,</span> <span class="ss">:string</span><span class="p">,</span> <span class="ss">null</span><span class="p">:</span> <span class="kp">false</span>
+</span><span class='line'>      <span class="n">add_column</span> <span class="ss">:publishers</span><span class="p">,</span> <span class="ss">:country</span><span class="p">,</span> <span class="ss">:string</span><span class="p">,</span> <span class="ss">null</span><span class="p">:</span> <span class="kp">false</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>After we run <code>rake db:migrate</code>, and make sure that these values are all populate in our pre-existing records, we&rsquo;ll tell the <code>friendly_id</code> base method to use the <code>slug_candidates</code> method, which is going to be a set of instructions on how to construct the <code>slug</code> for any given instance of our <code>Publisher</code> class:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Publisher</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="kp">extend</span> <span class="no">FriendlyId</span>
+</span><span class='line'>  <span class="n">friendly_id</span> <span class="ss">:slug_candidates</span><span class="p">,</span> <span class="ss">use</span><span class="p">:</span> <span class="ss">:slugged</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">validates</span> <span class="ss">:name</span><span class="p">,</span> <span class="ss">:slug</span><span class="p">,</span> <span class="ss">:city</span><span class="p">,</span> <span class="ss">:country</span><span class="p">,</span> <span class="ss">presence</span><span class="p">:</span> <span class="kp">true</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">slug_candidates</span>
+</span><span class='line'>      <span class="o">[</span>
+</span><span class='line'>          <span class="ss">:name</span><span class="p">,</span>
+</span><span class='line'>          <span class="o">[</span><span class="ss">:name</span><span class="p">,</span> <span class="ss">:city</span><span class="o">]</span><span class="p">,</span>
+</span><span class='line'>          <span class="o">[</span><span class="ss">:name</span><span class="p">,</span> <span class="ss">:city</span><span class="p">,</span> <span class="ss">:country</span><span class="o">]</span>
+</span><span class='line'>      <span class="o">]</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>You&rsquo;ll remember that I mentioned that <code>friendly_id</code> uses a method, and not a column in the database to generate a slug &mdash; well, this is exactly why it does that: so that we can override a method very easily! Now the <code>friendly_id</code> base method will use first the <code>name</code> attribute, then the <code>name</code> and <code>city</code> attributes, followed by the <code>name</code>, <code>city</code>, and <code>country</code> attributes.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">publisher_a</span> <span class="o">=</span> <span class="no">Publisher</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="nb">name</span><span class="p">:</span> <span class="s2">&quot;Harper Collins&quot;</span><span class="p">,</span> <span class="ss">city</span><span class="p">:</span> <span class="s1">&#39;New York City&#39;</span><span class="p">)</span>
+</span><span class='line'><span class="n">publisher_b</span> <span class="o">=</span> <span class="no">Publisher</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="nb">name</span><span class="p">:</span> <span class="s2">&quot;Harper Collins&quot;</span><span class="p">,</span> <span class="ss">city</span><span class="p">:</span> <span class="s1">&#39;San Francisco&#39;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">publisher_a</span><span class="o">.</span><span class="n">friendly_id</span> <span class="c1">#=&gt; &quot;harper-collins-new-york-city&quot;</span>
+</span><span class='line'><span class="n">publisher_b</span><span class="o">.</span><span class="n">friendly_id</span> <span class="c1">#=&gt; &quot;harper-collins-san-francisco&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>It&rsquo;s worth noting that our method doesn&rsquo;t have to be named <code>slug_candidates</code> in the context of our class: this is just the <strong>base method</strong> of our <code>FriendlyId</code> module, which means that we can mame it anything we want, so long as we pass it to our <code>friendly_id</code> method when we tell it what we want to use to generate our <code>id</code>s for finding our objects. The nice thing about using an array of symbols (as opposed to string literals or procs and lambdas), is that the <code>FriendlyId</code> module will invoke a method of the same exact name on our <code>Publisher</code> model, which can be helpful if we have a <code>city</code> and <code>country</code> attribute on each of our <code>publisher</code> instances, which maps to a column in our database.</p>
+
+<p>Of course, if we do happen to have an edge case where two instances of a <code>Publisher</code> have the exact same <code>name</code>, <code>city</code>, and <code>country</code>, the <code>friendly_id</code> gem can handle this situation as well! What will it do, exactly? Here&rsquo;s what the documentation says:</p>
+
+<blockquote><p>&ldquo;If none of the [slug] candidates can generate a unique slug, then FriendlyId will append a UUID to the first candidate as a last resort.&rdquo;</p></blockquote>
+
+<p>Nice! So we can always depend on our slugs being unique in some way or another &mdash; in the worst case (which probably won&rsquo;t even happen that often!), it&rsquo;ll just add a UUID at the end of the slug that matches another one, making it unique.</p>
+
+<h2>Saving Old Friends</h2>
+
+<p>We&rsquo;ve been working mostly with the <code>slugged</code> addon, but there are also quite a few other addons available to us. One of the most interesting ones is the <code>history</code> addon, which allows us to save <a href="http://norman.github.io/friendly_id/FriendlyId/History.html">different versions</a> of an instance&rsquo;s <code>slug</code> attributes!</p>
+
+<p>For example, if we had <code>Article</code> instances that might allow for their <code>title</code>s to be updated by admins, we wouldn&rsquo;t want all of our urls to be broken when an admin changed a title on an article, right? Well, this addon helps us prevent that.</p>
+
+<p>In order for us to implement this module, we need add a table to your database to store the slug records. Luckily, <code>friendly_id</code> has a generator for this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">rails</span> <span class="n">generate</span> <span class="n">friendly_id</span>
+</span><span class='line'><span class="n">rake</span> <span class="ss">db</span><span class="p">:</span><span class="n">migrate</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now we just need to specify that our base method needs to use the <code>history</code> addon:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">Article</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+</span><span class='line'>  <span class="kp">extend</span> <span class="no">FriendlyId</span>
+</span><span class='line'>  <span class="n">friendly_id</span> <span class="ss">:name</span><span class="p">,</span> <span class="ss">use</span><span class="p">:</span> <span class="ss">:history</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And now in our controller we can do something like this!</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">ArticlesController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="n">before_filter</span> <span class="ss">:find_article</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">find_article</span>
+</span><span class='line'>      <span class="vi">@article</span> <span class="o">=</span> <span class="no">Article</span><span class="o">.</span><span class="n">find</span> <span class="n">params</span><span class="o">[</span><span class="ss">:id</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="c1"># If an old id is used to find the record,</span>
+</span><span class='line'>      <span class="c1"># we can handle a can redirect accordingly!</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>There are so many interesting use cases for this gem, and it turns out that it does a lot of the stuff we already know about under the hood. One quick example: it uses Rails&#8217; <code>ActiveSupport</code> <a href="http://api.rubyonrails.org/classes/ActiveSupport/Inflector.html#method-i-parameterize">parameterize method</a>, which is actually used by <code>to_param</code> &mdash; and which we have already explored on our own!</p>
+
+<p>So, there&rsquo;s never just one way to do anything. As long as we&rsquo;re willing to learn the fundamentals of how to solve a problem in one way, we can explore all the different solutions that people have already come up with. And when it comes to generating urls and handling strange situations with slugs, we&rsquo;ve got it covered with our new best friend, the <code>friendly_id</code> gem.</p>
+
+<iframe src="//giphy.com/embed/LnaPDokBEmONG" width="480" height="240" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>The <code>friendly_id</code> gem is a way to find objects and generate urls using strings instead of numerical ids. The <a href="http://norman.github.io/friendly_id/">documentation</a> for this gem is fantastic, check it out!</li>
+<li>Here&rsquo;s a very simple <a href="http://railscasts.com/episodes/314-pretty-urls-with-friendlyid">railscast</a> that implements <code>friendly_id</code> in its most basic capacity.</li>
+<li>Curious about how that <code>friendly_id</code> base method works? Check out the <a href="https://github.com/norman/friendly_id/blob/8069fc9959215e5f4872927928b3b7a95e9beacd/lib/friendly_id/base.rb#L191">source code</a>.</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Vaidehi Joshi</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-12-15T08:11:15-05:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:11 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://vaidehijoshi.github.io/blog/2015/12/15/youve-got-a-friend-in-friendly-id/" data-via="" data-counturl="http://vaidehijoshi.github.io/blog/2015/12/15/youve-got-a-friend-in-friendly-id/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/12/08/breaking-the-news-wisper-plus-pub-sub/" title="Previous Post: Breaking The News: Wisper + Pub-Sub">&laquo; Breaking The News: Wisper + Pub-Sub</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/12/15/youve-got-a-friend-in-friendly-id/">You&#8217;ve Got a Friend in Friendly_Id</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/08/breaking-the-news-wisper-plus-pub-sub/">Breaking the News: Wisper + Pub-Sub</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks/">Functions to Call Upon: ActiveRecord Association Callbacks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/11/24/peeking-under-the-hood-of-actioncontroller-parameters-part-2/">Peeking Under the Hood of ActionController Parameters, Part 2</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1/">Peeking Under the Hood of ActionController Parameters, Part 1</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Vaidehi Joshi -
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
