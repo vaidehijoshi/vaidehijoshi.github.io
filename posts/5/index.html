@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="When working in Rails, it&rsquo;s all the family &ndash; literally. No matter the size of your application, almost all of your objects are going to &hellip;">
+  <meta name="description" content="My favorite thing about programming is the fact that you never run out of opportunities to be completely floored. There&rsquo;s literally always &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,55 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/03/17/a-machine-state-of-mind-part-1-understanding-state-machines/">A Machine State of Mind, Part 1: Understanding State Machines</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-03-17T08:11:22-04:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:11 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/computer-science/'>computer science</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><img src="http://www.kurzweilai.net/images/flowchart.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
+
+<p>My favorite thing about programming is the fact that you never run out of opportunities to be completely floored. There&rsquo;s literally <em>always</em> either a concept, theory, framework, or language that you don&rsquo;t know. This is actually fantastic, because there&rsquo;s no dearth of opportunity when it comes to learning. And you always come head-to-head with these facts when you pair program with a more experienced developer.</p>
+
+<p>One of the new concepts that I encountered this week was the idea of <strong>state machines</strong>, sometimes referred to as &ldquo;finite state machines&rdquo;. At first I thought that this was something unique to the gem that we are using in one of our large-scale applications, but it turns out it&rsquo;s not a Rails thing. In fact, it&rsquo;s not even a Ruby thing! It&rsquo;s a <em>Computer Science</em> thing; to be a bit more specific, it&rsquo;s a mathematical abstraction used to design complex algorithms. But for all intents and purposes, it&rsquo;s a Computer Science theory that we use almost all the time, whether we know it or not.</p>
+
+<p>If you got through that paragraph without freaking out, you deserve a medal. All this CS theory sounds terrifying, right? Well, don&rsquo;t worry. For programming purposes, you don&rsquo;t actually need to think too much about how state machines are constructed and what&rsquo;s being abstracted away. Even though state machines can get incredibly complex, relatively quickly, let&rsquo;s not overwhelm ourselves; we only need to think about state machines in the context of programming. So we&rsquo;ll keep it simple and focus on what state machines are, how they work, and when to use them.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/03/17/a-machine-state-of-mind-part-1-understanding-state-machines/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -537,53 +586,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/01/13/tidying-up-those-views-using-decorators-in-rails/">Tidying Up Those Views: Using Decorators in Rails</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-01-13T22:53:10-05:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:53 pm</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Last week, I had my first full-day technical interview. It was a thrilling experience, and so much more fun than I expected. Part of that was because I viewed the whole experience not as an evaluation, but rather an opportunity to learn as much as I could from experienced developers. I also knew that, irrespective of whether I did well or not, I&rsquo;d learn some new technologies and tricks. And boy, was that the truth.</p>
-
-<p>I left the interview with a long list of things I&rsquo;d never heard of (<em>why hello, blog posts for the next five Tuesdays!</em>), one of which included the use of decorators in Rails. I was actually kind of surprised that I had never encountered decorators while building my own Rails apps, but it turns out that these are actually pretty advanced topics and there&rsquo;s a good amount of <a href="https://bibwild.wordpress.com/2012/12/19/the-simplest-rails-decorator-implementation-that-just-might-work/">debate on how and when to use decorators</a>, and <a href="http://thepugautomatic.com/2014/03/draper/">whether or not they&rsquo;re actually useful</a>.</p>
-
-<p>But hey, none these discussions apply or make any sense unless you know <em>what</em> a decorator actually is. So, let&rsquo;s find out!</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/01/13/tidying-up-those-views-using-decorators-in-rails/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/6">&larr; Older</a>
@@ -601,6 +603,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/12/22/composing-microscopic-rails-views-with-cells/">Composing Microscopic Rails Views With Cells</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/12/15/youve-got-a-friend-in-friendly-id/">You&#8217;ve Got a Friend in Friendly_Id</a>
       </li>
     
@@ -614,10 +620,6 @@
     
       <li class="post">
         <a href="/blog/2015/11/24/peeking-under-the-hood-of-actioncontroller-parameters-part-2/">Peeking Under the Hood of ActionController Parameters, Part 2</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1/">Peeking Under the Hood of ActionController Parameters, Part 1</a>
       </li>
     
   </ul>

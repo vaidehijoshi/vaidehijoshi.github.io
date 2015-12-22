@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="One of my favorite aspects of programming is the fact that there&rsquo;s always more than one way to do something. In fact, I think this is probably &hellip;">
+  <meta name="description" content="I crossed over to the dark side awhile ago, and I can hide it no longer. And when I say &ldquo;the dark side&rdquo;, what I mean is JavaScript. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,58 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/12/22/composing-microscopic-rails-views-with-cells/">Composing Microscopic Rails Views With Cells</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-12-22T08:48:07-05:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>8:48 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/ember/'>ember</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><iframe src="//giphy.com/embed/8OYw2Tm8gnrGw" width="480" height="384" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>I crossed over to the dark side awhile ago, and I can hide it no longer. And when I say &ldquo;the dark side&rdquo;, what I mean is JavaScript. Surprise, surprise &mdash; I am now haunted by semicolons everywhere I go! I&rsquo;ve been working a lot with Ember and a little bit with React over the past six months, and have both struggled and enjoyed integrating these frameworks with a Rails API. At first, coming back to Rails after a week or so of Ember was just like coming home: warm, comforting, and familiar. Yet the wild west of braces and semicolons called out to me. The more that I worked outside of Rails, the more comfortable I became with more functional programming concepts (read: concepts that are abstracted away such that you don&rsquo;t ever have to think about them in the Rails framework). After awhile, I noticed that coming back to Rails was less like coming back to something familiar, but instead something that often seemed limiting and constricting in its conventions.</p>
+
+<p>As much as I love the convention over configuration format that Rails brings to the table, there are times when I wish that there was a better way to do something. A lot of my desires lie at the crux of two forms of programming that I respect, and yet see both benefits and drawbacks in: functional programming and object-oriented programming. While JavaScript is an OOP language, Reflux/React emphasize more functional programming techniques like unidirectional data flow, for example. Ember is very much an object-oriented framework and, similar to Rails, is massive with a decent amount of abstraction hiding what&rsquo;s actually going on. Yet Ember is also heading in a more functional direction, embracing the unidirectional dataflow approach used in Reflux, which Ember <a href="http://www.samselikoff.com/blog/data-down-actions-up/">refers to</a> as &ldquo;data down, actions up&rdquo;.</p>
+
+<p>Without veering <em>too</em> far off topic here, what I&rsquo;m trying to get at here is this: we can learn a lot from observing how other frameworks (and even other languages!) handle their code when things get messy. I&rsquo;ve come to respect Ember a lot over the past few months, and one of the many reasons I do is because of how the framework handles encapsulation. Ember has a pretty fantastic way of packaging up view logic into a single, <a href="https://guides.emberjs.com/v1.10.0/components/">standalone piece of code</a> known as a <strong>component</strong>. Ember components are powerful because they can be rendered as many times as you need, and contain the logic for how something should appear. This means that we can iterate through an array of objects and render the same component, an encapsulation of how that object should appear, and only change the code in one place should we need to do so. I love how components work, and I&rsquo;ve wistfully longed for a way to do something similar in Rails views. It turns out that someone else also wanted the same thing I did, except that he actually built it &mdash; thank you, <a href="https://github.com/apotonick">Nick</a>! And now we get to play with his creation, which is aptly called the <code>cells</code> gem.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/12/22/composing-microscopic-rails-views-with-cells/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -538,58 +590,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns/">Stop Worrying and Start Being Concerned: ActiveSupport Concerns</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-10-13T09:22:16-04:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:22 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><iframe src="//giphy.com/embed/iQA2hMPX88icM" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>A few weeks ago, while learning everything I never knew about <a href="http://vaidehijoshi.github.io/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/">user authorization</a>, I also stumbled upon a cool refactoring pattern that I didn&rsquo;t even know existed. This pattern is based on the simple idea of Ruby modules and mixins, but is particularly handy when it comes to dealing with class methods and callbacks.</p>
-
-<p>ActiveSupport is a pretty massive component within Rails, and it&rsquo;s responsible for a ton of different functionality, including language extensions and utilities. I last wrote about ActiveSupport back when we were exploring the <a href="http://vaidehijoshi.github.io/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/">Rails inflector</a> and the libraries it provides for handling the pluralization of different strings. This was way back in September, and at the time, my understanding of ActiveSupport was pretty limited. It turns out that yes, ActiveSupport does provide a bunch of different patterns to transform simple Ruby strings&hellip;but it also has a lot more going on inside of it. For example, the <strong>ActiveSupport Concern module</strong>, which only recently made its debut in Rails 4.</p>
-
-<p>The ActiveSupport::Concern wrapper is an interesting way of encapsulating&hellip;well, certain functionality that you might be <em>concerned</em> with. These concerns take advantage of two directories that are automatically part of the load path within a Rails application: <code>app/models/concerns</code> and <code>app/controllers/concerns</code>. So, how do you write a concern, and what should go inside of it? Don&rsquo;t worry, that&rsquo;s exactly what we&rsquo;ll concern ourselves with next.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -605,6 +605,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/12/22/composing-microscopic-rails-views-with-cells/">Composing Microscopic Rails Views With Cells</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/12/15/youve-got-a-friend-in-friendly-id/">You&#8217;ve Got a Friend in Friendly_Id</a>
       </li>
     
@@ -618,10 +622,6 @@
     
       <li class="post">
         <a href="/blog/2015/11/24/peeking-under-the-hood-of-actioncontroller-parameters-part-2/">Peeking Under the Hood of ActionController Parameters, Part 2</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1/">Peeking Under the Hood of ActionController Parameters, Part 1</a>
       </li>
     
   </ul>

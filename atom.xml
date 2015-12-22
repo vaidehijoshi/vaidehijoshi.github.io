@@ -4,7 +4,7 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-12-15T08:49:57-05:00</updated>
+  <updated>2015-12-22T08:47:58-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,317 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Composing Microscopic Rails Views With Cells]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/12/22/composing-microscopic-rails-views-with-cells/"/>
+    <updated>2015-12-22T08:48:07-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/12/22/composing-microscopic-rails-views-with-cells</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/8OYw2Tm8gnrGw" width="480" height="384" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>I crossed over to the dark side awhile ago, and I can hide it no longer. And when I say &ldquo;the dark side&rdquo;, what I mean is JavaScript. Surprise, surprise &mdash; I am now haunted by semicolons everywhere I go! I&rsquo;ve been working a lot with Ember and a little bit with React over the past six months, and have both struggled and enjoyed integrating these frameworks with a Rails API. At first, coming back to Rails after a week or so of Ember was just like coming home: warm, comforting, and familiar. Yet the wild west of braces and semicolons called out to me. The more that I worked outside of Rails, the more comfortable I became with more functional programming concepts (read: concepts that are abstracted away such that you don&rsquo;t ever have to think about them in the Rails framework). After awhile, I noticed that coming back to Rails was less like coming back to something familiar, but instead something that often seemed limiting and constricting in its conventions.</p>
+
+<p>As much as I love the convention over configuration format that Rails brings to the table, there are times when I wish that there was a better way to do something. A lot of my desires lie at the crux of two forms of programming that I respect, and yet see both benefits and drawbacks in: functional programming and object-oriented programming. While JavaScript is an OOP language, Reflux/React emphasize more functional programming techniques like unidirectional data flow, for example. Ember is very much an object-oriented framework and, similar to Rails, is massive with a decent amount of abstraction hiding what&rsquo;s actually going on. Yet Ember is also heading in a more functional direction, embracing the unidirectional dataflow approach used in Reflux, which Ember <a href="http://www.samselikoff.com/blog/data-down-actions-up/">refers to</a> as &ldquo;data down, actions up&rdquo;.</p>
+
+<p>Without veering <em>too</em> far off topic here, what I&rsquo;m trying to get at here is this: we can learn a lot from observing how other frameworks (and even other languages!) handle their code when things get messy. I&rsquo;ve come to respect Ember a lot over the past few months, and one of the many reasons I do is because of how the framework handles encapsulation. Ember has a pretty fantastic way of packaging up view logic into a single, <a href="https://guides.emberjs.com/v1.10.0/components/">standalone piece of code</a> known as a <strong>component</strong>. Ember components are powerful because they can be rendered as many times as you need, and contain the logic for how something should appear. This means that we can iterate through an array of objects and render the same component, an encapsulation of how that object should appear, and only change the code in one place should we need to do so. I love how components work, and I&rsquo;ve wistfully longed for a way to do something similar in Rails views. It turns out that someone else also wanted the same thing I did, except that he actually built it &mdash; thank you, <a href="https://github.com/apotonick">Nick</a>! And now we get to play with his creation, which is aptly called the <code>cells</code> gem.</p>
+
+<!--more-->
+
+
+<h2>Components of A Cell</h2>
+
+<iframe src="//giphy.com/embed/xTiTnwpayDX55v8bsY" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>The <code>cells</code> gem is packed with a cornucopia of functionality. Seriously: it does so many things &mdash; all the things! But before we go down the path of all the bells and whistles that this gem provides us with, it&rsquo;s important to understand what it is meant to do at its most simplest level.</p>
+
+<p>So much of the time, our Rails views are the first files to devolve into a complete and utter mess, with <code>if</code> <code>else</code> conditional statements in slim or erb that make it hard to read and really shouldn&rsquo;t even belong there. But at the same time, we don&rsquo;t really want to put them in our controller either, and it seems strange to make a model responsible for knowing how to present itself (and effectively blur the lines between the Model and View in a MVC framework). As it stands, partials and helpers are the only good solution to this problem, but they&rsquo;re not really &ldquo;good&rdquo; solutions by any means.</p>
+
+<p>Rails views are meant to be dumb &mdash; that is to say, they shouldn&rsquo;t be responsible for determing the logic for <em>how</em> to render anything. Theoretically, you should just pass them some information, and they should spit it out in the correct format. But with partials, this can easily get out of control; we quickly end up with &ldquo;decider logic&rdquo;, or some sort of conditional statement that determines how the view should render itself. If we get a little queasy just thinking about this, that&rsquo;s a good thing: logic should live in a class, not a view of any kind!</p>
+
+<p>And that&rsquo;s where the <code>cells</code> gem comes in. At its core, it gives us an easy way to create a kind of Ruby object that has a single responsibility: rendering a template. Yup, you read that correctly: an <em>object</em> that renders a <em>view</em>. Or, as the documentation refers to them, <strong>view models</strong>:</p>
+
+<blockquote><p>&ldquo;Think of cells, or view models, as small Rails controllers, but without any HTTP coupling. Cells embrace all presentation and rendering logic to present a fragment of the UI. The scope of that fragment is up to you: it can embrace an entire page, a single comment container in a thread or just an avatar image link.&rdquo;</p></blockquote>
+
+<p>So far, this isn&rsquo;t anything <em>too</em> complicated, right? But what does this look like in practice? Let&rsquo;s take a quick peek.</p>
+
+<p>In our bookstore application, we have a navigation panel that the user sees when they log in. We&rsquo;ll probably have a button or tab that will reveal past addresses that are associated with the current user&rsquo;s account. The annoying thing about addresses is that we probably want to format them different, depending on whether they have two street addresses (think apartment number, suite, etc.), or if they have an international address, or maybe for some other edge case that we haven&rsquo;t even run into or considered quite yet. Ultimately, it would be pretty great if we could just take all the logic of how and whether to render an address and pass it off to an &ldquo;address component&rdquo; that would be responsible for handling this.</p>
+
+<p>Using the <code>cells</code> API, we can do exactly that. And this is what it would look like in a template, using a helper:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="o">&lt;%=</span> <span class="n">cell</span><span class="p">(</span><span class="ss">:address</span><span class="p">,</span> <span class="vi">@address</span><span class="p">)</span> <span class="o">%&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The cell method takes two arguments here, the first of which is a symbol and effectively tells the method where to look for the object that will be responsible for rendering our <code>@address</code> instance. And the second argument is the <code>@address</code> instance itself. The helper above is actually calling this method invocation under the hood:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">AddressCell</span><span class="o">.</span><span class="p">(</span><span class="vi">@address</span><span class="p">)</span><span class="o">.</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Things start to get <em>really</em> fancy when we start using the same cell to render a whole bunch of addresses. In fact, we can actually just pass off a whole collection of addresses to our cell, which then allows us to use our cell helper inside of our <code>UsersController</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">UsersController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">index</span>
+</span><span class='line'>      <span class="vi">@addresses</span> <span class="o">=</span> <span class="n">cell</span><span class="p">(</span><span class="ss">:address</span><span class="p">,</span> <span class="ss">collection</span><span class="p">:</span> <span class="n">current_user</span><span class="o">.</span><span class="n">addresses</span><span class="p">)</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This might seem kind of strange at first, but once we let go of the comfort that is Rails convention, we might realize something: this is just nothing more than object-oriented programming! We have an object that has a single reponsibility: rendering a view. In a way, this is pretty darn Ruby-eqsue, isn&rsquo;t it? If we can encapsulate a unit of work into a service, why not capture a piece of functionality into an object, especially if that functionality is going to be repeated in our application multiple times!</p>
+
+<p>Okay, so how exactly <em>does</em> this model somehow render a view? We need to know how this magic happens! It&rsquo;s time to put these cells under the microscope and compose a cell ourselves.</p>
+
+<h2>Cells Under A Microscope</h2>
+
+<iframe src="//giphy.com/embed/jBPP11Akl3vKE" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Getting set up with <code>cells</code> is pretty straightforward. First and foremost, we&rsquo;ll need to add <code>gem 'cells', "~&gt; 4.0.0"</code> to our <code>Gemfile</code>.</p>
+
+<p>One important thing to remember is that this gem supports various templating engines, but it&rsquo;s actually up to us to specify which one we plan on using. In our case, we&rsquo;ll stick to simple erb, which means we&rsquo;ll need to add <code>gem 'cells-erb'</code> before we can run <code>bundle</code>. Other templating options include Haml (<code>gem 'cells-haml'</code>) and Slim (<code>gem 'cells-slim'</code>). As long as we&rsquo;re using Rails, this is all we need to do. However, if we want to add cells to a Ruby project that <em>is not</em> using Rails, we&rsquo;ll need to specifically include the templating format in our Cell class (for example, <code>include Cell::Slim</code>).</p>
+
+<p>But we&rsquo;ll stick with our Rails cell for now. We can very quickly create a cell by using a handy generator and run a single command to create our address cell:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">rails</span> <span class="n">generate</span> <span class="n">cell</span> <span class="n">address</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This will create a few things for us. First, it will generate a cell model at the path <code>app/cells/address_cell.rb</code>. It will also create a view template at <code>app/cells/address/show.erb</code>. The structure of these files is crucial, since the call method will lookup the correct template from the correct cell model, and expects everything to be structured according the name of the cell we&rsquo;re specifying.</p>
+
+<p>Now we can get down to some cellular business. Let&rsquo;s take a closer look at our cell model, at <code>address_cell.rb</code>. Here&rsquo;s what it starts off as:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddressCell</span> <span class="o">&lt;</span> <span class="no">Cell</span><span class="o">::</span><span class="no">ViewModel</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">show</span>
+</span><span class='line'>      <span class="n">render</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The <code>show</code> method (our only method at the moment), maps to the <code>address/show.erb</code> file that is our actual view. This method calls <code>render</code>, which will invoke rendering for the <code>show.erb</code> view.</p>
+
+<p>This is a cell at its most basic level, and theoretically, it&rsquo;s all you really need for it to work. However, we can start to get fancy here and add properties, and private methods that we might want to use in our view:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddressCell</span> <span class="o">&lt;</span> <span class="no">Cell</span><span class="o">::</span><span class="no">ViewModel</span>
+</span><span class='line'>  <span class="n">property</span> <span class="ss">:user</span>
+</span><span class='line'>  <span class="n">property</span> <span class="ss">:address_1</span>
+</span><span class='line'>  <span class="n">property</span> <span class="ss">:address_2</span>
+</span><span class='line'>  <span class="n">property</span> <span class="ss">:locality</span>
+</span><span class='line'>  <span class="n">property</span> <span class="ss">:region</span>
+</span><span class='line'>  <span class="n">property</span> <span class="ss">:postal_code</span>
+</span><span class='line'>  <span class="n">property</span> <span class="ss">:country</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">show</span>
+</span><span class='line'>      <span class="n">render</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kp">private</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">email_link</span>
+</span><span class='line'>      <span class="n">link_to</span> <span class="n">user</span><span class="o">.</span><span class="n">email</span><span class="p">,</span> <span class="n">user</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We have access to the cell&rsquo;s model in this context via its attribute reader; we can read the value of the model&rsquo;s attributes by using <code>property</code>. This simply delegates to the attribute on the model itself, which means that <code>property :user</code> merely delegates to <code>model.user</code>. It&rsquo;s worth mentioning that our model is the very same instance that we passed to our cell helper &mdash; in this case, our <code>@address</code> instance.</p>
+
+<p>Now that we have our cell model ready to go, we can write our view. We can put any rendering logic into this single view, and render it accordingly. More importantly, if we want to change how all our addresses are rendered, we can just change the logic in one place:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='erb'><span class='line'><span class="x">&lt;div class=&quot;detailed-address-cell&quot;&gt;</span>
+</span><span class='line'><span class="x">  &lt;p&gt;</span><span class="cp">&lt;%=</span> <span class="n">address_1</span> <span class="cp">%&gt;</span><span class="x">&lt;/p&gt;</span>
+</span><span class='line'><span class="x">  </span><span class="cp">&lt;%</span> <span class="k">if</span> <span class="n">address_2</span><span class="o">.</span><span class="n">present?</span> <span class="cp">%&gt;</span><span class="x"></span>
+</span><span class='line'><span class="x">      &lt;p&gt;</span><span class="cp">&lt;%=</span> <span class="n">address_2</span> <span class="cp">%&gt;</span><span class="x">&lt;/p&gt;</span>
+</span><span class='line'><span class="x">  </span><span class="cp">&lt;%</span> <span class="k">end</span> <span class="cp">%&gt;</span><span class="x"></span>
+</span><span class='line'><span class="x">  &lt;p&gt;</span><span class="cp">&lt;%=</span> <span class="n">locality</span> <span class="cp">%&gt;</span><span class="x">, </span><span class="cp">&lt;%=</span> <span class="n">region</span> <span class="cp">%&gt;</span><span class="x"> </span><span class="cp">&lt;%=</span> <span class="n">postal_code</span> <span class="cp">%&gt;</span><span class="x">&lt;/p&gt;</span>
+</span><span class='line'><span class="x">  &lt;p&gt;</span><span class="cp">&lt;%=</span> <span class="n">country</span> <span class="cp">%&gt;</span><span class="x">&lt;/p&gt;</span>
+</span><span class='line'><span class="x">  </span><span class="cp">&lt;%</span> <span class="k">if</span> <span class="n">email_link</span><span class="o">.</span><span class="n">present?</span> <span class="cp">%&gt;</span><span class="x"></span>
+</span><span class='line'><span class="x">      &lt;p&gt;</span><span class="cp">&lt;%=</span> <span class="n">email_link</span> <span class="cp">%&gt;</span><span class="x">&lt;/p&gt;</span>
+</span><span class='line'><span class="x">  </span><span class="cp">&lt;%</span> <span class="k">end</span> <span class="cp">%&gt;</span><span class="x"></span>
+</span><span class='line'><span class="x">&lt;/div&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And what if we decided to have another cell template that was less detailed, perhaps one that would map to an <code>index</code> action in our <code>AddressCell</code> model? We would simply create a <code>app/cells/address/index.erb</code> template:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='erb'><span class='line'><span class="x">&lt;div class=&quot;address-cell&quot;&gt;</span>
+</span><span class='line'><span class="x">  &lt;p&gt;</span><span class="cp">&lt;%=</span> <span class="n">locality</span> <span class="cp">%&gt;</span><span class="x">, </span><span class="cp">&lt;%=</span> <span class="n">region</span> <span class="cp">%&gt;</span><span class="x"> </span><span class="cp">&lt;%=</span> <span class="n">postal_code</span> <span class="cp">%&gt;</span><span class="x">&lt;/p&gt;</span>
+</span><span class='line'><span class="x">&lt;/div&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And make sure that it mapped to an <code>index</code> action in our <code>AddressCell</code> model:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddressCell</span> <span class="o">&lt;</span> <span class="no">Cell</span><span class="o">::</span><span class="no">ViewModel</span>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">index</span>
+</span><span class='line'>      <span class="n">render</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Which would allow us to call it using the <em>call style</em>, where we could specify the action that we wanted to call:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">cell</span><span class="p">(</span><span class="ss">:address</span><span class="p">,</span> <span class="vi">@address</span><span class="p">)</span><span class="o">.</span><span class="p">(</span><span class="ss">:index</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In this case, because we&rsquo;re not using the default <code>AddressCell#show</code> action, we need to explicitly specify which action in our model we want to call. But we can still reuse our cell over and over again for different situations, which is super cool!</p>
+
+<h2>Cellular Tips And Tricks</h2>
+
+<p>It&rsquo;s hard to cover everything that the <code>cells</code> gem does without rewriting the documentation, but there are a few interesting tricks up this gem&rsquo;s sleeves that seem like they&rsquo;d be fun to play with.</p>
+
+<h3>Collections</h3>
+
+<p>So far, we&rsquo;ve been using the cell helper to render a single object instance at a time. But earlier, we had wanted to pass a collection of <code>Address</code> instances to a controller action. There&rsquo;s an easy way to do this by passing the <code>collection</code> option to the <code>cell</code> method. Rather than the second argument being an instance of <code>@address</code>, we can pass a collection of <code>Address</code> instances:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">cell</span><span class="p">(</span><span class="ss">:address</span><span class="p">,</span> <span class="ss">collection</span><span class="p">:</span> <span class="n">current_user</span><span class="o">.</span><span class="n">addresses</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This will by default call the <code>show</code> method for each of the addresses associated with the <code>current_user</code>. If we wanted to use our <code>index</code> action to instead render our <code>address/index.erb</code> per address instance, we can specify this by using the <code>method</code> option:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">cell</span><span class="p">(</span><span class="ss">:address</span><span class="p">,</span> <span class="ss">collection</span><span class="p">:</span> <span class="n">current_user</span><span class="o">.</span><span class="n">addresses</span><span class="p">,</span> <span class="nb">method</span><span class="p">:</span> <span class="ss">:index</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>HTML Escaping</h3>
+
+<p>One of the default behaviors of <code>cells</code> is to <em>not</em> escape any HTML, at any point. But, if we had a property that was actually going to return HTML that needed to be converted to escaped strings, we could simply include the <code>Escaped</code> module:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">class</span> <span class="nc">AddressCell</span> <span class="o">&lt;</span> <span class="no">Cell</span><span class="o">::</span><span class="no">ViewModel</span>
+</span><span class='line'>  <span class="kp">include</span> <span class="no">Escaped</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="nf">show</span>
+</span><span class='line'>      <span class="n">render</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>HTML escaping is fairly well-explained in the gem&rsquo;s <a href="http://trailblazer.to/gems/cells/api.html#html-escaping">documentation</a>.</p>
+
+<h3>Rendering Locals</h3>
+
+<p>The super awesome thing about the <code>render</code> method is that it&rsquo;s not complicated, at all. There are multiple ways of writing the same thing. If we&rsquo;re rendering the <code>show</code> method, we can simply call <code>render</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">def</span> <span class="nf">show</span>
+</span><span class='line'>  <span class="n">render</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And if we&rsquo;re rendering something <em>other than</em> <code>show</code>, like <code>index</code>, we can either tell the method the name of the template to render, or specify which view to render:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">render</span> <span class="ss">:index</span>
+</span><span class='line'><span class="n">render</span> <span class="ss">view</span><span class="p">:</span> <span class="ss">:index</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1"># both of these calls will do the same thing</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The only other piece of functionality we would need to pass to the <code>render</code> method is locals, which can be passed in as a hash to the method directly:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">render</span> <span class="ss">locals</span><span class="p">:</span> <span class="p">{</span> <span class="ss">style</span><span class="p">:</span> <span class="s2">&quot;background-color: yellow;&quot;</span> <span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So easy to write and remember!</p>
+
+<p>It&rsquo;s also worth noting that I only <em>just</em> learned about this gem, which means that I haven&rsquo;t played around with it a whole lot. There&rsquo;s probably many different ways to go about implementing it, some of which will be specific to a given application. But, it&rsquo;s worth exploring to see if it&rsquo;s a useful tool for replacing some ugly, repetitive view logic you might have polluting your codebase. And whether you decide to add <code>cells</code> to your application or not, it&rsquo;s still pretty cool to see how people in our community are taking concepts and techniques from other frameworks and languages and applying them in interesting ways to Rails. To me, it&rsquo;s a good reminder that we should never stop examining other ways of doing things &mdash; even if that means subjecting ourselves to more semicolons that we might like!</p>
+
+<iframe src="//giphy.com/embed/3oEduKhtBph2VeIXba" width="480" height="350" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>A cell is a Ruby object that can render a template, which becomes a powerful form of encapsulation. By default, its call to <code>render</code> will proxy to the object&rsquo;s <code>show</code> method, but can be overriden if necessary. Read more on the gem&rsquo;s <a href="https://github.com/apotonick/cells">Github page</a>.</li>
+<li>The <code>cells</code> gem is one the most well-documented ones I&rsquo;ve seen. The documentation <a href="http://trailblazer.to/gems/cells/">covers everything</a>, from the basics of its API, as well as how to test, cache, and troubleshoot the gem.</li>
+<li>Nick Sutterer, the author of <code>cells</code>, wrote a great blog post highlighting the best practices of the gem&rsquo;s implementation in Rails. Check it out <a href="http://nicksda.apotomo.de/2010/10/10-points-how-cells-improves-your-rails-architecture/">over here</a>!</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[You've Got a Friend in Friendly_Id]]></title>
@@ -5192,177 +5503,6 @@ backend (Sidekiq, Resque, etc).&rdquo;</p></blockquote>
 <li>The <code>redcarpet</code> gem is an awesome way to handle rendering Markdown in Rails. It creates a new instance of a Markdown object, which takes either a HTML or XHTML renderer object. You can also write your own, custom render! Check out the <a href="https://github.com/vmg/redcarpet">documentation</a> to learn more on how to do that.</li>
 <li>Want to see a step-by-step Rails tutorial on <code>redcarpet</code>? Check out <a href="http://railscasts.com/episodes/272-markdown-with-redcarpet">this Railscast</a>.</li>
 <li>Here&rsquo;s a super <a href="https://richonrails.com/articles/rendering-markdown-with-redcarpet">detailed blog post</a> on implementing <code>redcarpet</code>, with some great code snippets and examples.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Safely Storing Your Assets: Paperclip With AWS + Heroku]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/08/04/safely-storing-your-assets-paperclip-with-aws-plus-heroku/"/>
-    <updated>2015-08-04T08:15:32-04:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/08/04/safely-storing-your-assets-paperclip-with-aws-plus-heroku</id>
-    <content type="html"><![CDATA[<p>We all know how this scene plays out: you&rsquo;ve created the first iteration of your application and you&rsquo;re ready to test it out in production. You can&rsquo;t wait to see what it looks like live, and you want people to be able to start playing with it! Everything seems to go smoothly without any glitches while deploying until you go to your app on Heroku and see&hellip;<em>a broken image icon</em>. Tada!</p>
-
-<iframe src="//giphy.com/embed/EVJBgyC41ItfW" width="480" height="208" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>This happened to me recently, and boy was it disheartening. I was all excited because I had used <code>paperclip</code> to get some pretty cool <a href="http://vaidehijoshi.github.io/blog/2015/07/28/clipping-images-for-rails-using-paperclip/">image uploading functionality</a> on my application, but it didn&rsquo;t seem like it was working. It turns out, however, that an application in development is one thing; the same app in production is another game entirely.</p>
-
-<p>While developing an application, our environments are configured in a certain way. It&rsquo;s easy to forget that things will change once we deploy what we&rsquo;ve been working on. Being able to implement something like the <code>paperclip</code> gem in development doesn&rsquo;t easily carry over to your production environment &ndash; unless, of course, you know what tool to use. Luckily, there&rsquo;s a great gem that was created specifically to make the transition from development to production quick and easy: the <code>aws-sdk</code> gem, Amazon Web Services&#8217; Software Development Kit that was created to use with Rails applications for storing your static assets in your AWS Simple Storage bucket. And once you know how to set it up with your Heroku account, you can get rid of that pesky broken image icon once and for all!</p>
-
-<!--more-->
-
-
-<h2>Street Cred For The Web: S3 Credentials</h2>
-
-<p>Amazon Web Services&#8217; Simple Storage Service (S3) is a one of the most important platform services that a web developer can use. At its most basic level, it&rsquo;s a store that allows us to store important assets that we&rsquo;ll need for our application, including things like media files, pdfs, attachments, and anything that our users may upload.</p>
-
-<p>The <em>really</em> cool thing about AWS is that it allows us to store all those files offsite &ndash; that is to say, <em>not</em> on our Heroku application, and instead using a third-party service. Pretty amazing, right?</p>
-
-<iframe src="//giphy.com/embed/GHTwlFLITq7v2" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>This is particularly important as our application starts to grow, and we are forced to scale to size. It also makes our application super fast, since our files aren&rsquo;t being stored within our application itself, which means that we don&rsquo;t need to use our filesystem to retrieve all those assets.</p>
-
-<p>When it comes to integrating your application with AWS S3, however, the most important step is establishing your credentials. In fact, we can&rsquo;t even hook up our <code>paperclip</code> configurations &ndash; or really, <em>any</em> configurations, for that matter &ndash; without our S3 credentials. So, where can we find them?</p>
-
-<p>Well, first we need to know where to look. And in order to know where to look, we have to know how S3 is structured. Thankfully, S3&rsquo;s architecture is pretty simple to understand: everything is just contained in a bucket. We can name our bucket anything that we want, so long as it&rsquo;s a unique name across the Amazon system. A common convention is to name your bucket similarly to your application or repository&rsquo;s name (for example, <code>booklit-website</code>). Once we name our bucket, all of our files sent to S3 will be stored inside and belong to our bucket. An important thing to note is that <a href="http://stackoverflow.com/a/22173939">there are no directories</a> within a bucket; the S3 bucket itself is a top-level container.</p>
-
-<p>Now, how can we access this unique bucket of ours? Using our credentials, of course! In order for us to access the S3 API, we need two things: an <strong>AWS Access Key ID</strong> and an <strong>AWS Secret Access Key</strong>. The access key id identifies our S3 user account, while the secret access key is our &ldquo;password&rdquo; (at least we should think of it as a password, it&rsquo;s a bit more complicated than that) for our account.</p>
-
-<p>We can get these two pieces of information from the &ldquo;Security Credentials&rdquo; section of the AWS console menu when we log into our AWS account. But these keys aren&rsquo;t really helpful until we hook up our S3 bucket with our application. I suppose that&rsquo;s what we should do next!</p>
-
-<h2>Keeping Secrets With <code>.env</code></h2>
-
-<iframe src="//giphy.com/embed/12ROKMe0xvJilW" width="480" height="391" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>There&rsquo;s one golden rule when it comes to our credentials: we should <strong>never, <em>ever</em> store them in a file or commit them to source control</strong>. We never, ever want our credentials to be potentially exposed to anyone via our Github repository, and yet we definitely need our credentials to exist <em>somewhere</em> within our application, don&rsquo;t we? Otherwise we won&rsquo;t be able to tell <code>paperclip</code> where to upload our files and assets. Uh oh&hellip;what do?</p>
-
-<p>Enter <strong>environment variables</strong> to the rescue! There are a few different ways to use environment variables in a Rails application to store our credentials without actually committing them into a file. My favorite way to do this is by creating a <code>.env</code> file in the top-level directory of my application (in our case, <code>booklit-website/.env</code>). Because this file has a <code>.</code> at the beginning, it&rsquo;s actually a hidden file and won&rsquo;t be committed. To double check that this is the case, we can open up our <code>.gitignore</code> file, and make sure that our <code>.env</code> file is included as one of the files that Git should &ldquo;ignore&rdquo; while committing:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'># See https://help.github.com/articles/ignoring-files for more about ignoring files.
-</span><span class='line'>
-</span><span class='line'># Ignore Environment Configuration Files
-</span><span class='line'>config/database.yml
-</span><span class='line'>.env</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This means that we can safely put our important AWS credentials inside of our <code>.env</code> file:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>AWS_ACCESS_KEY_ID=our-id-goes-here
-</span><span class='line'>AWS_SECRET_ACCESS_KEY=our-access-key-goes-here
-</span><span class='line'>AWS_S3_REGION=us-east-1
-</span><span class='line'>AWS_S3_BUCKET=booklit-website-bucket</span></code></pre></td></tr></table></div></figure>
-
-
-<p>In addition to the Access Key Id and Secret Access Key that we grabbed from our account information page on the AWS S3 portal, we also put in our S3 Region (the US East Coast), and our S3 Bucket Name (don&rsquo;t try to hack it because it is very much <em>not a real thing</em>).</p>
-
-<p>Okay, this hidden file with our environment variables is cool and all, but how do we actually <em>retrieve</em> these variables? Well, it&rsquo;s actually pretty easy. We can treat the variables in our <code>.env</code> file like items in a hash; if we want to access the value of an item in a hash, we can just reference the value via its key, right? The same applies here. If we want to access our <code>AWS_S3_BUCKET</code> name, we can use <code>ENV['AWS_S3_BUCKET']</code> anywhere in our application in order to access it!</p>
-
-<p>Awesome! We have just one last step before we can finally hook up all of these variables with <code>paperclip</code> and Heroku: we need to create an <code>.env.example</code> file! This is a pretty neat convention that I really liked the first time I saw it, and have since adopted. You&rsquo;ll remember that our <code>.env</code> file is being ignored by our <code>.gitignore</code> file whenever we commit our repository or push it up to Github. This is great, obviously, since we don&rsquo;t want our private credentials to ever be public. There is one downside, however: if someone clones our repository, they&rsquo;ll never know that we even <em>have</em> a <code>.env</code> file, much less what environment variables we have defined inside of it, which means that when they try to run our application or worse, when they try to collaborate with us on it, they&rsquo;ll hit a huge roadblock, and ruby will break and not know where to look while trying to read something like <code>ENV['AWS_S3_BUCKET']</code> from within the application.</p>
-
-<p>There&rsquo;s a quick fix for this: create an &ldquo;example&rdquo; <code>.env</code> file called &ndash; you guessed it &ndash; <code>.env.example</code>. We should make sure that this does <em>not</em> get included in our <code>.gitignore</code> file. Instead, we want it to be committed with our repository. It&rsquo;s also important to note that we&rsquo;re still not going to include <em>our</em> credentials in here; instead, all we&rsquo;ll do is setup our <code>.env.example</code> file as an example of how someone else should create their <code>.env</code> file when they clone or fork our repository:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>AWS_ACCESS_KEY_ID=xxxxxx
-</span><span class='line'>AWS_SECRET_ACCESS_KEY=xxxxxx
-</span><span class='line'>AWS_S3_REGION=xxxxxx
-</span><span class='line'>AWS_S3_BUCKET=xxxxxx</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Now that we&rsquo;ve finally got all these variables right where we want them, we can finally get to the good stuff!</p>
-
-<h2>Configuring Paperclip And Heroku</h2>
-
-<p>It may seem like we spent a lot of time setting things up, but it&rsquo;s all about to come together! We initially started off planning to use the <code>aws-sdk</code> gem. Now it&rsquo;s time to implement it in the context of the <code>paperclip</code> gem and configure it to work with our Heroku deploy.</p>
-
-<p>First we&rsquo;ll add it to our <code>Gemfile</code> (<code>gem 'aws-sdk', '~&gt; 2'</code>) and then run <code>bundle install</code>. Now our <code>Gemfile</code> should have both <code>aws-sdk</code> and <code>paperclip</code>.</p>
-
-<p>Next, we&rsquo;ll want to head over to where all the configurations for our <em>production</em> environment are &ndash; namely, our <code>production.rb</code> file, which exists inside of our <code>config/environments</code> directory. It&rsquo;s important to make sure that we&rsquo;re not setting any Heroku configurations inside of our <code>development.rb</code> file, which only runs inside of our development environment. Since we know we&rsquo;ll be deploying only the production environment configurations to Heroku, all of our Heroku setup should always live inside of our production environment.</p>
-
-<p>Inside of our <code>production.rb</code> file, we&rsquo;ll want to add the following configurations:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">config</span><span class="o">.</span><span class="n">paperclip_defaults</span> <span class="o">=</span> <span class="p">{</span>
-</span><span class='line'>  <span class="ss">storage</span><span class="p">:</span> <span class="ss">:s3</span><span class="p">,</span>
-</span><span class='line'>  <span class="ss">s3_credentials</span><span class="p">:</span> <span class="p">{</span>
-</span><span class='line'>    <span class="ss">bucket</span><span class="p">:</span> <span class="no">ENV</span><span class="o">[</span><span class="s1">&#39;AWS_S3_BUCKET&#39;</span><span class="o">]</span><span class="p">,</span>
-</span><span class='line'>    <span class="ss">access_key_id</span><span class="p">:</span> <span class="no">ENV</span><span class="o">[</span><span class="s1">&#39;AWS_ACCESS_KEY_ID&#39;</span><span class="o">]</span><span class="p">,</span>
-</span><span class='line'>    <span class="ss">secret_access_key</span><span class="p">:</span> <span class="no">ENV</span><span class="o">[</span><span class="s1">&#39;AWS_SECRET_ACCESS_KEY&#39;</span><span class="o">]</span>
-</span><span class='line'>  <span class="p">}</span>
-</span><span class='line'><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>These lines are how we specify <a href="https://devcenter.heroku.com/articles/paperclip-s3">AWS configuration variables</a> for our production environment. If we wanted to test whether we had set all this up properly, we could copy these lines into our <code>development.rb</code> and test out our S3 uploads on our local server.</p>
-
-<p>Last, but certainly not least, we want to set these configurations up on Heroku. If we don&rsquo;t do this final step in the process, Heroku won&rsquo;t know where to look for our credentials, which means that it won&rsquo;t know where our images are being hosted when it looks inside of our <code>s3_credentials</code> hash!</p>
-
-<p>If we haven&rsquo;t already, we&rsquo;ll want to create an application container on Heroku by running this command in the terminal:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">$</span> <span class="n">heroku</span> <span class="n">create</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>And then we&rsquo;ll want to push our code to our Heroku container and run any pending migrations:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">$</span> <span class="n">git</span> <span class="n">push</span> <span class="n">heroku</span> <span class="n">master</span>
-</span><span class='line'><span class="err">$</span> <span class="n">heroku</span> <span class="n">rake</span> <span class="ss">db</span><span class="p">:</span><span class="n">migrate</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>These first two steps are only necessary if we&rsquo;ve never deployed to Heroku before. If we have, then all we really need to do is set our AWS S3 configuration variables:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">$</span> <span class="n">heroku</span> <span class="ss">config</span><span class="p">:</span><span class="n">set</span> <span class="no">S3_BUCKET_NAME</span><span class="o">=</span><span class="n">our_bucket_name</span>
-</span><span class='line'><span class="err">$</span> <span class="n">heroku</span> <span class="ss">config</span><span class="p">:</span><span class="n">set</span> <span class="no">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="n">our_access_key_id</span>
-</span><span class='line'><span class="err">$</span> <span class="n">heroku</span> <span class="ss">config</span><span class="p">:</span><span class="n">set</span> <span class="no">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="n">our_secret_access_key</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Now the moment of truth: we can run <code>heroku open</code> and see&hellip;all of our images live! Next time someone tells us we have to figure out how to safely store our assets, we&rsquo;ll know that it ain&rsquo;t no thing. We got this.</p>
-
-<iframe src="//giphy.com/embed/A4HCrFVdbxZpS" width="480" height="284" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>Environment variables are how we can store our secret credentials; they live inside of the <code>.env</code> file and should never be committed to source control! Want to read more about env variables in Rails? Check out this great <a href="http://bayendor.github.io/blog/2015/01/16/managing-rails-environment-variables/">blog post</a> and this super <a href="http://railsapps.github.io/rails-environment-variables.html">informative tutorial</a>.</li>
-<li>The <code>aws-sdk</code> gem is an easy way to integrate <code>paperclip</code> and AWS S3. You can dive into the gem&rsquo;s <a href="https://github.com/aws/aws-sdk-ruby">source code</a> to learn more!</li>
-<li>Heroku has some fantastic guides on how to <a href="https://devcenter.heroku.com/articles/s3#s3-setup">set up S3</a> and how to upload files to S3 <a href="https://devcenter.heroku.com/articles/paperclip-s3">using paperclip</a>.</li>
 </ul>
 
 ]]></content>

@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Ember | Words and Code]]></title>
+  <link href="http://vaidehijoshi.github.io/blog/categories/ember/atom.xml" rel="self"/>
+  <link href="http://vaidehijoshi.github.io/"/>
+  <updated>2015-12-22T08:47:58-05:00</updated>
+  <id>http://vaidehijoshi.github.io/</id>
+  <author>
+    <name><![CDATA[Vaidehi Joshi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Composing Microscopic Rails Views With Cells]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/12/22/composing-microscopic-rails-views-with-cells/"/>
+    <updated>2015-12-22T08:48:07-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/12/22/composing-microscopic-rails-views-with-cells</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/8OYw2Tm8gnrGw" width="480" height="384" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>I crossed over to the dark side awhile ago, and I can hide it no longer. And when I say &ldquo;the dark side&rdquo;, what I mean is JavaScript. Surprise, surprise &mdash; I am now haunted by semicolons everywhere I go! I&rsquo;ve been working a lot with Ember and a little bit with React over the past six months, and have both struggled and enjoyed integrating these frameworks with a Rails API. At first, coming back to Rails after a week or so of Ember was just like coming home: warm, comforting, and familiar. Yet the wild west of braces and semicolons called out to me. The more that I worked outside of Rails, the more comfortable I became with more functional programming concepts (read: concepts that are abstracted away such that you don&rsquo;t ever have to think about them in the Rails framework). After awhile, I noticed that coming back to Rails was less like coming back to something familiar, but instead something that often seemed limiting and constricting in its conventions.</p>
+
+<p>As much as I love the convention over configuration format that Rails brings to the table, there are times when I wish that there was a better way to do something. A lot of my desires lie at the crux of two forms of programming that I respect, and yet see both benefits and drawbacks in: functional programming and object-oriented programming. While JavaScript is an OOP language, Reflux/React emphasize more functional programming techniques like unidirectional data flow, for example. Ember is very much an object-oriented framework and, similar to Rails, is massive with a decent amount of abstraction hiding what&rsquo;s actually going on. Yet Ember is also heading in a more functional direction, embracing the unidirectional dataflow approach used in Reflux, which Ember <a href="http://www.samselikoff.com/blog/data-down-actions-up/">refers to</a> as &ldquo;data down, actions up&rdquo;.</p>
+
+<p>Without veering <em>too</em> far off topic here, what I&rsquo;m trying to get at here is this: we can learn a lot from observing how other frameworks (and even other languages!) handle their code when things get messy. I&rsquo;ve come to respect Ember a lot over the past few months, and one of the many reasons I do is because of how the framework handles encapsulation. Ember has a pretty fantastic way of packaging up view logic into a single, <a href="https://guides.emberjs.com/v1.10.0/components/">standalone piece of code</a> known as a <strong>component</strong>. Ember components are powerful because they can be rendered as many times as you need, and contain the logic for how something should appear. This means that we can iterate through an array of objects and render the same component, an encapsulation of how that object should appear, and only change the code in one place should we need to do so. I love how components work, and I&rsquo;ve wistfully longed for a way to do something similar in Rails views. It turns out that someone else also wanted the same thing I did, except that he actually built it &mdash; thank you, <a href="https://github.com/apotonick">Nick</a>! And now we get to play with his creation, which is aptly called the <code>cells</code> gem.</p>
+
+<!--more-->
+
+
+<h2>Components of A Cell</h2>
+
+<iframe src="//giphy.com/embed/xTiTnwpayDX55v8bsY" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>The <code>cells</code> gem is packed with a cornucopia of functionality. Seriously: it does so many things &mdash; all the things! But before we go down the path of all the bells and whistles that this gem provides us with, it&rsquo;s important to understand what it is meant to do at its most simplest level.</p>
+
+<p>So much of the time, our Rails views are the first files to devolve into a complete and utter mess, with <code>if</code> <code>else</code> conditional statements in slim or erb that make it hard to read and really shouldn&rsquo;t even belong there. But at the same time, we don&rsquo;t really want to put them in our controller either, and it seems strange to make a model responsible for knowing how to present itself (and effectively blur the lines between the Model and View in a MVC framework). As it stands, partials and helpers are the only good solution to this problem, but they&rsquo;re not really &ldquo;good&rdquo; solutions by any means.</p>
+
+<p>Rails views are meant to be dumb &mdash; that is to say, they shouldn&rsquo;t be responsible for determing the logic for <em>how</em> to render anything. Theoretically, you should just pass them some information, and they should spit it out in the correct format. But with partials, this can easily get out of control; we quickly end up with &ldquo;decider logic&rdquo;, or some sort of conditional statement that determines how the view should render itself. If we get a little queasy just thinking about this, that&rsquo;s a good thing: logic should live in a class, not a view of any kind!</p>
+
+<p>And that&rsquo;s where the <code>cells</code> gem comes in. At its core, it gives us an easy way to create a kind of Ruby object that has a single responsibility: rendering a template. Yup, you read that correctly: an <em>object</em> that renders a <em>view</em>. Or, as the documentation refers to them, <strong>view models</strong>:</p>
+
+<blockquote><p>&ldquo;Think of cells, or view models, as small Rails controllers, but without any HTTP coupling. Cells embrace all presentation and rendering logic to present a fragment of the UI. The scope of that fragment is up to you: it can embrace an entire page, a single comment container in a thread or just an avatar image link.&rdquo;</p></blockquote>
+
+<p>So far, this isn&rsquo;t anything <em>too</em> complicated, right? But what does this look like in practice? Let&rsquo;s take a quick peek.</p>
+
+<p>In our bookstore application, we have a navigation panel that the user sees when they log in. We&rsquo;ll probably have a button or tab that will reveal past addresses that are associated with the current user&rsquo;s account. The annoying thing about addresses is that we probably want to format them different, depending on whether they have two street addresses (think apartment number, suite, etc.), or if they have an international address, or maybe for some other edge case that we haven&rsquo;t even run into or considered quite yet. Ultimately, it would be pretty great if we could just take all the logic of how and whether to render an address and pass it off to an &ldquo;address component&rdquo; that would be responsible for handling this.</p>
+
+<p>Using the <code>cells</code> API, we can do exactly that. And this is what it would look like in a template, using a helper:</p>
+
+<pre><code class="ruby">&lt;%= cell(:address, @address) %&gt;
+</code></pre>
+
+<p>The cell method takes two arguments here, the first of which is a symbol and effectively tells the method where to look for the object that will be responsible for rendering our <code>@address</code> instance. And the second argument is the <code>@address</code> instance itself. The helper above is actually calling this method invocation under the hood:</p>
+
+<pre><code class="ruby">AddressCell.(@address).()
+</code></pre>
+
+<p>Things start to get <em>really</em> fancy when we start using the same cell to render a whole bunch of addresses. In fact, we can actually just pass off a whole collection of addresses to our cell, which then allows us to use our cell helper inside of our <code>UsersController</code>:</p>
+
+<pre><code class="ruby">class UsersController &lt; ApplicationController
+    def index
+        @addresses = cell(:address, collection: current_user.addresses)
+    end
+end
+</code></pre>
+
+<p>This might seem kind of strange at first, but once we let go of the comfort that is Rails convention, we might realize something: this is just nothing more than object-oriented programming! We have an object that has a single reponsibility: rendering a view. In a way, this is pretty darn Ruby-eqsue, isn&rsquo;t it? If we can encapsulate a unit of work into a service, why not capture a piece of functionality into an object, especially if that functionality is going to be repeated in our application multiple times!</p>
+
+<p>Okay, so how exactly <em>does</em> this model somehow render a view? We need to know how this magic happens! It&rsquo;s time to put these cells under the microscope and compose a cell ourselves.</p>
+
+<h2>Cells Under A Microscope</h2>
+
+<iframe src="//giphy.com/embed/jBPP11Akl3vKE" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>Getting set up with <code>cells</code> is pretty straightforward. First and foremost, we&rsquo;ll need to add <code>gem 'cells', "~&gt; 4.0.0"</code> to our <code>Gemfile</code>.</p>
+
+<p>One important thing to remember is that this gem supports various templating engines, but it&rsquo;s actually up to us to specify which one we plan on using. In our case, we&rsquo;ll stick to simple erb, which means we&rsquo;ll need to add <code>gem 'cells-erb'</code> before we can run <code>bundle</code>. Other templating options include Haml (<code>gem 'cells-haml'</code>) and Slim (<code>gem 'cells-slim'</code>). As long as we&rsquo;re using Rails, this is all we need to do. However, if we want to add cells to a Ruby project that <em>is not</em> using Rails, we&rsquo;ll need to specifically include the templating format in our Cell class (for example, <code>include Cell::Slim</code>).</p>
+
+<p>But we&rsquo;ll stick with our Rails cell for now. We can very quickly create a cell by using a handy generator and run a single command to create our address cell:</p>
+
+<pre><code class="ruby">rails generate cell address
+</code></pre>
+
+<p>This will create a few things for us. First, it will generate a cell model at the path <code>app/cells/address_cell.rb</code>. It will also create a view template at <code>app/cells/address/show.erb</code>. The structure of these files is crucial, since the call method will lookup the correct template from the correct cell model, and expects everything to be structured according the name of the cell we&rsquo;re specifying.</p>
+
+<p>Now we can get down to some cellular business. Let&rsquo;s take a closer look at our cell model, at <code>address_cell.rb</code>. Here&rsquo;s what it starts off as:</p>
+
+<pre><code class="ruby">class AddressCell &lt; Cell::ViewModel
+    def show
+        render
+    end
+end
+</code></pre>
+
+<p>The <code>show</code> method (our only method at the moment), maps to the <code>address/show.erb</code> file that is our actual view. This method calls <code>render</code>, which will invoke rendering for the <code>show.erb</code> view.</p>
+
+<p>This is a cell at its most basic level, and theoretically, it&rsquo;s all you really need for it to work. However, we can start to get fancy here and add properties, and private methods that we might want to use in our view:</p>
+
+<pre><code class="ruby">class AddressCell &lt; Cell::ViewModel
+    property :user
+    property :address_1
+    property :address_2
+    property :locality
+    property :region
+    property :postal_code
+    property :country
+
+    def show
+        render
+    end
+
+    private
+    def email_link
+        link_to user.email, user
+    end
+end
+</code></pre>
+
+<p>We have access to the cell&rsquo;s model in this context via its attribute reader; we can read the value of the model&rsquo;s attributes by using <code>property</code>. This simply delegates to the attribute on the model itself, which means that <code>property :user</code> merely delegates to <code>model.user</code>. It&rsquo;s worth mentioning that our model is the very same instance that we passed to our cell helper &mdash; in this case, our <code>@address</code> instance.</p>
+
+<p>Now that we have our cell model ready to go, we can write our view. We can put any rendering logic into this single view, and render it accordingly. More importantly, if we want to change how all our addresses are rendered, we can just change the logic in one place:</p>
+
+<p>&#8220;`erb</p>
+
+<div class="detailed-address-cell">
+    <p><%= address_1 %></p>
+    <% if address_2.present? %>
+        <p><%= address_2 %></p>
+    <% end %>
+    <p><%= locality %>, <%= region %> <%= postal_code %></p>
+    <p><%= country %></p>
+    <% if email_link.present? %>
+        <p><%= email_link %></p>
+    <% end %>
+</div>
+
+
+<pre><code>
+And what if we decided to have another cell template that was less detailed, perhaps one that would map to an `index` action in our `AddressCell` model? We would simply create a `app/cells/address/index.erb` template:
+</code></pre>
+
+<div class="address-cell">
+    <p><%= locality %>, <%= region %> <%= postal_code %></p>
+</div>
+
+
+<pre><code>
+And make sure that it mapped to an `index` action in our `AddressCell` model:
+</code></pre>
+
+<p>class AddressCell &lt; Cell::ViewModel
+    def index
+        render
+    end
+end
+&#8220;`</p>
+
+<p>Which would allow us to call it using the <em>call style</em>, where we could specify the action that we wanted to call:</p>
+
+<pre><code class="ruby">cell(:address, @address).(:index)
+</code></pre>
+
+<p>In this case, because we&rsquo;re not using the default <code>AddressCell#show</code> action, we need to explicitly specify which action in our model we want to call. But we can still reuse our cell over and over again for different situations, which is super cool!</p>
+
+<h2>Cellular Tips And Tricks</h2>
+
+<p>It&rsquo;s hard to cover everything that the <code>cells</code> gem does without rewriting the documentation, but there are a few interesting tricks up this gem&rsquo;s sleeves that seem like they&rsquo;d be fun to play with.</p>
+
+<h3>Collections</h3>
+
+<p>So far, we&rsquo;ve been using the cell helper to render a single object instance at a time. But earlier, we had wanted to pass a collection of <code>Address</code> instances to a controller action. There&rsquo;s an easy way to do this by passing the <code>collection</code> option to the <code>cell</code> method. Rather than the second argument being an instance of <code>@address</code>, we can pass a collection of <code>Address</code> instances:</p>
+
+<pre><code class="ruby">cell(:address, collection: current_user.addresses)
+</code></pre>
+
+<p>This will by default call the <code>show</code> method for each of the addresses associated with the <code>current_user</code>. If we wanted to use our <code>index</code> action to instead render our <code>address/index.erb</code> per address instance, we can specify this by using the <code>method</code> option:</p>
+
+<pre><code class="ruby">cell(:address, collection: current_user.addresses, method: :index)
+</code></pre>
+
+<h3>HTML Escaping</h3>
+
+<p>One of the default behaviors of <code>cells</code> is to <em>not</em> escape any HTML, at any point. But, if we had a property that was actually going to return HTML that needed to be converted to escaped strings, we could simply include the <code>Escaped</code> module:</p>
+
+<pre><code class="ruby">class AddressCell &lt; Cell::ViewModel
+    include Escaped
+
+    def show
+        render
+    end
+end
+</code></pre>
+
+<p>HTML escaping is fairly well-explained in the gem&rsquo;s <a href="http://trailblazer.to/gems/cells/api.html#html-escaping">documentation</a>.</p>
+
+<h3>Rendering Locals</h3>
+
+<p>The super awesome thing about the <code>render</code> method is that it&rsquo;s not complicated, at all. There are multiple ways of writing the same thing. If we&rsquo;re rendering the <code>show</code> method, we can simply call <code>render</code>:</p>
+
+<pre><code class="ruby">def show
+    render
+end
+</code></pre>
+
+<p>And if we&rsquo;re rendering something <em>other than</em> <code>show</code>, like <code>index</code>, we can either tell the method the name of the template to render, or specify which view to render:</p>
+
+<pre><code class="ruby">render :index
+render view: :index
+
+# both of these calls will do the same thing
+</code></pre>
+
+<p>The only other piece of functionality we would need to pass to the <code>render</code> method is locals, which can be passed in as a hash to the method directly:</p>
+
+<pre><code class="ruby">render locals: { style: "background-color: yellow;" }
+</code></pre>
+
+<p>So easy to write and remember!</p>
+
+<p>It&rsquo;s also worth noting that I only <em>just</em> learned about this gem, which means that I haven&rsquo;t played around with it a whole lot. There&rsquo;s probably many different ways to go about implementing it, some of which will be specific to a given application. But, it&rsquo;s worth exploring to see if it&rsquo;s a useful tool for replacing some ugly, repetitive view logic you might have polluting your codebase. And whether you decide to add <code>cells</code> to your application or not, it&rsquo;s still pretty cool to see how people in our community are taking concepts and techniques from other frameworks and languages and applying them in interesting ways to Rails. To me, it&rsquo;s a good reminder that we should never stop examining other ways of doing things &mdash; even if that means subjecting ourselves to more semicolons that we might like!</p>
+
+<iframe src="//giphy.com/embed/3oEduKhtBph2VeIXba" width="480" height="350" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<h2>tl;dr?</h2>
+
+<ul>
+<li>A cell is a Ruby object that can render a template, which becomes a powerful form of encapsulation. By default, its call to <code>render</code> will proxy to the object&rsquo;s <code>show</code> method, but can be overriden if necessary. Read more on the gem&rsquo;s <a href="https://github.com/apotonick/cells">Github page</a>.</li>
+<li>The <code>cells</code> gem is one the most well-documented ones I&rsquo;ve seen. The documentation <a href="http://trailblazer.to/gems/cells/">covers everything</a>, from the basics of its API, as well as how to test, cache, and troubleshoot the gem.</li>
+<li>Nick Sutterer, the author of <code>cells</code>, wrote a great blog post highlighting the best practices of the gem&rsquo;s implementation in Rails. Check it out <a href="http://nicksda.apotomo.de/2010/10/10-points-how-cells-improves-your-rails-architecture/">over here</a>!</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>
