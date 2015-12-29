@@ -9,7 +9,7 @@
   <meta name="author" content="Vaidehi Joshi">
 
   
-  <meta name="description" content="We all know how this scene plays out: you&rsquo;ve created the first iteration of your application and you&rsquo;re ready to test it out in &hellip;">
+  <meta name="description" content="Sometimes, it&rsquo;s the little things that matter the most. As cool and complex as your giant application might be, small details like a &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,55 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/08/11/rolling-out-the-redcarpet-for-rendering-markdown/">Rolling Out the Redcarpet for Rendering Markdown</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-08-11T08:47:54-04:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:47 am</span></time>
+        
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/markdown/'>markdown</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><img src="http://cdn.lolbrary.com/2013/12/6/lolbrary.com_45273_1386359887.jpg" style="display: block; margin-left: auto; margin-right: auto; max-width: 400px; max-height: 500px;"/></p>
+
+<p>Sometimes, it&rsquo;s the little things that matter the most. As cool and complex as your giant application might be, small details like a toggleable button, or beautiful-formatted and styled dropdown select can have the biggest impact on the look and feel of the rest of your application.</p>
+
+<p>Once you&rsquo;ve built out the skeleton of your application and filled in the backend functionality, the next step is to connect the all the logic with your frontend framework. And once you&rsquo;ve done that, you start to see all the gaping holes that you need to fix next. One of the applications that I have been working on recently got to that state. Once I ensured that the user-facing page corresponded to the admin panel, it was time to fix all the little things that I had been putting off until we got the application working!</p>
+
+<p>One of those minute details was rendering markdown. While building out the application, we were just using Ruby string primitives in our database to render text. But no one wants to see a long five-paragraph article rendered as a single, huge block of text, right? So, we had to make our text easily editable on the admin panel and renderable &mdash; that&rsquo;s word, right? &mdash; on the user-facing side. At first, I had no idea how to go about doing this. But it turns out that (no surprise here!) this problem has been solved before! All we had to do next was figure out how to implement someone else&rsquo;s solution on our own application. Luckily, the answer to our prayers is as simple as rolling out the <code>redcarpet</code> gem.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/08/11/rolling-out-the-redcarpet-for-rendering-markdown/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -524,58 +573,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/">Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-06-02T08:45:24-04:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>8:45 am</span></time>
-        
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/number-technicaltuesdays/'>#technicaltuesdays</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/refactoring/'>refactoring</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>
-  
-</span>
-
-
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><iframe src="//giphy.com/embed/918rCUjV2XWhi" width="480" height="360" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
-
-
-<p>There aren&rsquo;t too many things that bring me down when I&rsquo;m deep into programming. But there&rsquo;s always one thing that&rsquo;ll stop me dead in my tracks: a code smell. In the context of programming, a code smell is something that tells you that your code is&hellip;well, a bit <em>off</em>.</p>
-
-<p>Whether you&rsquo;ve been programming for months or for decades, you&rsquo;ll run into &ldquo;code that smells&rdquo; again and again. Except the better that you get, you&rsquo;ll anticipate your code smelling, or before you even write it, you&rsquo;ll know that it&rsquo;s going to stink. For me, a lot of my code that tends to smell are sections where I&rsquo;ve duplicated what I&rsquo;ve written, which is to say that I&rsquo;ve written something that&rsquo;s identical or at least very, very similar to another piece of code in my application. I&rsquo;ve noticed that I&rsquo;ve started catching myself as I write duplicated code, which is a sign that I&rsquo;m getting better as a developer &ndash; hooray!</p>
-
-<p>But, there are a lot of <a href="http://en.wikipedia.org/wiki/Code_smell#Common_code_smells">common code smells</a>, and I definitely still can&rsquo;t catch all of them in my own code. Generally, if any part of your program has a common code smell, it&rsquo;s a sign that you need to rethink how your system is structured on a deeper level, and that it&rsquo;s probably time to start refactoring.</p>
-
-<p>Recently, I&rsquo;ve noticed that I&rsquo;ve been sniffing out the same issue in my code: long methods. So I did a bit of investigating and found that there are some cool ways to shorten up your longer methods. Thanks to Ruby magic, we have easy access to methods like <code>to_proc</code> in the form of &ldquo;ampersand and object&rdquo;, or the <strong>&amp;:</strong> syntax. If you have no clue what those are, don&rsquo;t worry. I didn&rsquo;t either! Until I wrote this post, obvs.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/4">&larr; Older</a>
@@ -593,6 +590,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/12/29/a-year-of-tuesdays/">A Year of Tuesdays</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/12/22/composing-microscopic-rails-views-with-cells/">Composing Microscopic Rails Views With Cells</a>
       </li>
     
@@ -606,10 +607,6 @@
     
       <li class="post">
         <a href="/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks/">Functions to Call Upon: ActiveRecord Association Callbacks</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/11/24/peeking-under-the-hood-of-actioncontroller-parameters-part-2/">Peeking Under the Hood of ActionController Parameters, Part 2</a>
       </li>
     
   </ul>

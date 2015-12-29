@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Non-technical | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/non-technical/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-12-22T08:47:58-05:00</updated>
+  <updated>2015-12-29T08:56:39-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,57 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[A Year of Tuesdays]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/12/29/a-year-of-tuesdays/"/>
+    <updated>2015-12-29T08:57:11-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/12/29/a-year-of-tuesdays</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/XIqCQx02E1U9W" width="480" height="268" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>A year ago, I had this idea: I was going to write things down. To be clear, this wasn&rsquo;t a novel idea, and definitely not a new one by any stretch of the imagination. But it was something I wasn&rsquo;t exactly in the habit of doing, and the first day of a new year seemed like the perfect excuse to begin creating this new habit.</p>
+
+<p>So, I decided to start writing down all the things I didn&rsquo;t know, and make an effort to learn them. I honestly didn&rsquo;t know what I was going to be writing, and I didn&rsquo;t know if any of it would be well-written, much less worth reading. All I was sure of was that I was going commit to doing it wholeheartedly, just once a week &mdash; not for anyone else specifically, but really just for myself. Thus began a year-long adventure of researching, writing, and sharing all the things I would discover in my first year as a software engineer in my very first developer job.</p>
+
+<p>Today brings me to the end of the road on this journey of Technical Tuesday blog posts. And just like the first day of a new year, the last day of a soon-to-be-gone year is a seemingly perfect time to do some reflecting on a year of Tuesdays.</p>
+
+<!--more-->
+
+
+<p>A few months ago, I had the privilege of being a guest on a <a href="http://www.hardscrabble.net/metaphorloop/2/">podcast called Metaphorloop</a>. One of the topics that came up was the nature of learning, and how teaching and learning interweave together to form an intricate, and somewhat inherently complicated web. We also talked a bit about this blog, and the process of actually writing a technical blog post.</p>
+
+<p>Over the course of our conversation, I realized that my approach to technical writing is, highly likely, a rather unconventional one. There are plenty of blog posts out there that explain how to implement a technology, or break down a concept, and many of those posts are incredibly helpful, logical, and systematic in their approach. But I&rsquo;ve always written with a kind of stream of consciousness kind of flow, as though you and I were sitting together, trying to work through a new gem or tough computer science theoretical concept together.</p>
+
+<p>I was curious to see if there was a way to prove my approach to technical writing in some way or another, so I decided to take a look at the words I use when I talk about code. And boy, was that a revelation. The words I use when talking about code aren&rsquo;t neccessarily logical, or even rational. In fact, they&rsquo;re incredibly intuitive, and emotive. For example, I use the word <em>fear</em> in seven different posts. I also used the term <em>afraid</em> twice, and the word <em>scared</em> three times. Yet on the other hand, I used the word <em>love</em> ten times, and <em>easy</em> 46 times.</p>
+
+<p>Maybe this is a sign that I&rsquo;m not a great writer, or that I need to perhaps buy a thesaurus. But I also think that it&rsquo;s a great metaphor for what I&rsquo;ve learned over this whole year of writing these Technical Tuesday posts: even the most technical things aren&rsquo;t based wholly in logic, and that caring about our code, and our efforts to make it elegant, beautiful, and concise are rooted far more in intuition than in logic. Perhaps what makes for good code isn&rsquo;t that which we can explain or put our finger on as a better approach; instead, maybe it&rsquo;s what we can&rsquo;t quite rationlize, but what we feel to be right, beautiful, and a more elegant way of doing things. I never would have thought that this was the case unless I had spent a year of Tuesdays trying to teach myself, and by extension, a reader whom I don&rsquo;t know how to learn something completely new and unfamiliar.</p>
+
+<hr />
+
+
+<p><br></p>
+
+<p>Even though this year of Technical Tuesdays has finally come to a close, this blog will stay around, and I&rsquo;ll continue to write new posts here every once in awhile. After all, I&rsquo;m nowhere close to the end of my list of things to learn about! Who knows, maybe I&rsquo;ll come back to writing technical posts on a regular basis sometime in the future. But for now, it&rsquo;s time for me to try something new.</p>
+
+<p>I&rsquo;ve written about the <a href="http://blog.flatironschool.com/the-benefits-of-blogging-how-and-why-to-keep-a-technical-blog/">benefits of technical blogging</a> in the past, and how one of the greatest draws of maintaining a blog is the personal benefits that it provides. To be honest, I started Technical Tuesdays from a slightly selfish point of view, with the hope that I&rsquo;d keep a diary of sorts of my first year as a web developer, and all of the things I learned along the way. But it turns out that this blog evolved into something much larger than just that.</p>
+
+<p>I have connected with people from around the country and across the world because of it. I have learned new ways of doing things, and improved my own code and refined my own skills as a side-effect of writing to explain things to others. Over this past year, I&rsquo;ve received comments, tweets, and even pull requests(!!) with feedback on how to write and code better. I also recently learned that this blog has been read from Senegal to Kazakhstan, from Iran to Fiji. This little idea I had a year ago has proliferated into something that has been read by programmers in far corners of the world, and it has made me realize and feely deeply appreciative of how wonderful and widespread the Ruby and Rails community truly is. I am immensely grateful to be a part of it.</p>
+
+<p>So, to those of you have been reading from the beginning, and to those of you who might have just stumbled up on this little corner of the web:</p>
+
+<h3>Thank you, and happy coding.</h3>
+
+<p><br></p>
+
+<iframe src="//giphy.com/embed/1229mlttgo8aR2" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[The Fog Creek Fellowship: Lessons in Fearlessness and Fortitude]]></title>

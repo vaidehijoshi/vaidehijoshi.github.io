@@ -4,7 +4,7 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2015-12-22T08:47:58-05:00</updated>
+  <updated>2015-12-29T08:56:39-05:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
     <name><![CDATA[Vaidehi Joshi]]></name>
@@ -12,6 +12,57 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[A Year of Tuesdays]]></title>
+    <link href="http://vaidehijoshi.github.io/blog/2015/12/29/a-year-of-tuesdays/"/>
+    <updated>2015-12-29T08:57:11-05:00</updated>
+    <id>http://vaidehijoshi.github.io/blog/2015/12/29/a-year-of-tuesdays</id>
+    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/XIqCQx02E1U9W" width="480" height="268" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+
+<p>A year ago, I had this idea: I was going to write things down. To be clear, this wasn&rsquo;t a novel idea, and definitely not a new one by any stretch of the imagination. But it was something I wasn&rsquo;t exactly in the habit of doing, and the first day of a new year seemed like the perfect excuse to begin creating this new habit.</p>
+
+<p>So, I decided to start writing down all the things I didn&rsquo;t know, and make an effort to learn them. I honestly didn&rsquo;t know what I was going to be writing, and I didn&rsquo;t know if any of it would be well-written, much less worth reading. All I was sure of was that I was going commit to doing it wholeheartedly, just once a week &mdash; not for anyone else specifically, but really just for myself. Thus began a year-long adventure of researching, writing, and sharing all the things I would discover in my first year as a software engineer in my very first developer job.</p>
+
+<p>Today brings me to the end of the road on this journey of Technical Tuesday blog posts. And just like the first day of a new year, the last day of a soon-to-be-gone year is a seemingly perfect time to do some reflecting on a year of Tuesdays.</p>
+
+<!--more-->
+
+
+<p>A few months ago, I had the privilege of being a guest on a <a href="http://www.hardscrabble.net/metaphorloop/2/">podcast called Metaphorloop</a>. One of the topics that came up was the nature of learning, and how teaching and learning interweave together to form an intricate, and somewhat inherently complicated web. We also talked a bit about this blog, and the process of actually writing a technical blog post.</p>
+
+<p>Over the course of our conversation, I realized that my approach to technical writing is, highly likely, a rather unconventional one. There are plenty of blog posts out there that explain how to implement a technology, or break down a concept, and many of those posts are incredibly helpful, logical, and systematic in their approach. But I&rsquo;ve always written with a kind of stream of consciousness kind of flow, as though you and I were sitting together, trying to work through a new gem or tough computer science theoretical concept together.</p>
+
+<p>I was curious to see if there was a way to prove my approach to technical writing in some way or another, so I decided to take a look at the words I use when I talk about code. And boy, was that a revelation. The words I use when talking about code aren&rsquo;t neccessarily logical, or even rational. In fact, they&rsquo;re incredibly intuitive, and emotive. For example, I use the word <em>fear</em> in seven different posts. I also used the term <em>afraid</em> twice, and the word <em>scared</em> three times. Yet on the other hand, I used the word <em>love</em> ten times, and <em>easy</em> 46 times.</p>
+
+<p>Maybe this is a sign that I&rsquo;m not a great writer, or that I need to perhaps buy a thesaurus. But I also think that it&rsquo;s a great metaphor for what I&rsquo;ve learned over this whole year of writing these Technical Tuesday posts: even the most technical things aren&rsquo;t based wholly in logic, and that caring about our code, and our efforts to make it elegant, beautiful, and concise are rooted far more in intuition than in logic. Perhaps what makes for good code isn&rsquo;t that which we can explain or put our finger on as a better approach; instead, maybe it&rsquo;s what we can&rsquo;t quite rationlize, but what we feel to be right, beautiful, and a more elegant way of doing things. I never would have thought that this was the case unless I had spent a year of Tuesdays trying to teach myself, and by extension, a reader whom I don&rsquo;t know how to learn something completely new and unfamiliar.</p>
+
+<hr />
+
+
+<p><br></p>
+
+<p>Even though this year of Technical Tuesdays has finally come to a close, this blog will stay around, and I&rsquo;ll continue to write new posts here every once in awhile. After all, I&rsquo;m nowhere close to the end of my list of things to learn about! Who knows, maybe I&rsquo;ll come back to writing technical posts on a regular basis sometime in the future. But for now, it&rsquo;s time for me to try something new.</p>
+
+<p>I&rsquo;ve written about the <a href="http://blog.flatironschool.com/the-benefits-of-blogging-how-and-why-to-keep-a-technical-blog/">benefits of technical blogging</a> in the past, and how one of the greatest draws of maintaining a blog is the personal benefits that it provides. To be honest, I started Technical Tuesdays from a slightly selfish point of view, with the hope that I&rsquo;d keep a diary of sorts of my first year as a web developer, and all of the things I learned along the way. But it turns out that this blog evolved into something much larger than just that.</p>
+
+<p>I have connected with people from around the country and across the world because of it. I have learned new ways of doing things, and improved my own code and refined my own skills as a side-effect of writing to explain things to others. Over this past year, I&rsquo;ve received comments, tweets, and even pull requests(!!) with feedback on how to write and code better. I also recently learned that this blog has been read from Senegal to Kazakhstan, from Iran to Fiji. This little idea I had a year ago has proliferated into something that has been read by programmers in far corners of the world, and it has made me realize and feely deeply appreciative of how wonderful and widespread the Ruby and Rails community truly is. I am immensely grateful to be a part of it.</p>
+
+<p>So, to those of you have been reading from the beginning, and to those of you who might have just stumbled up on this little corner of the web:</p>
+
+<h3>Thank you, and happy coding.</h3>
+
+<p><br></p>
+
+<iframe src="//giphy.com/embed/1229mlttgo8aR2" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+
+
+<p><br></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Composing Microscopic Rails Views With Cells]]></title>
@@ -861,218 +912,6 @@ end
 <li>Association callbacks are similar to <code>ActiveRecord</code>&rsquo;s normal callbacks, except that they hook into the life cycle of a collection of objects (<code>has_many)</code>, rather than just a single object (<code>has_one</code>).</li>
 <li>Need to brush up on <code>ActiveRecord</code> associations? Head over to the <a href="http://api.rubyonrails.org/classes/ActiveRecord/Associations/ClassMethods.html">module documentation</a> for associations.</li>
 <li>Want to know exactly what&rsquo;s going on inside of the <code>destroy</code> and <code>delete</code> methods? Dive into the source code! Check out the <a href="https://github.com/rails/rails/blob/3f16a098452ee5d447142bd9a6f6045cb1fc83b4/activerecord/lib/active_record/associations/collection_association.rb#L267">delete</a> and <a href="https://github.com/rails/rails/blob/3f16a098452ee5d447142bd9a6f6045cb1fc83b4/activerecord/lib/active_record/associations/collection_association.rb#L281">destroy</a> method signatures.</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Peeking Under the Hood of ActionController Parameters, Part 2]]></title>
-    <link href="http://vaidehijoshi.github.io/blog/2015/11/24/peeking-under-the-hood-of-actioncontroller-parameters-part-2/"/>
-    <updated>2015-11-24T08:56:47-05:00</updated>
-    <id>http://vaidehijoshi.github.io/blog/2015/11/24/peeking-under-the-hood-of-actioncontroller-parameters-part-2</id>
-    <content type="html"><![CDATA[<iframe src="//giphy.com/embed/Hhu5dqPScjXRm" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p><em>This blog post is part of a series on strong parameters. Read Part 1 <a href="http://vaidehijoshi.github.io/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1/">here</a>.</em></p>
-
-<p>Rails often feels like a black box, with all of the complex logic abstracted away and hidden from view. This leaves behind a clean, convention-abiding framework where form follows function. But another, perhaps less-intentional side effect of all the &ldquo;metaprogramming away&rdquo; of this framework&rsquo;s complexities is a frequent lack on clarity of what&rsquo;s going on behind the scenes.</p>
-
-<p>In my year of working with Rails, I&rsquo;ve come to appreciate and respect so many things about it. In fact, I think that there&rsquo;s something incredibly approachable about Ruby as one&rsquo;s first programming language, with Rails as its corresponding framework. And of course, there&rsquo;s something truly unique and welcoming about the Ruby and Rails programming community. All of these factors combined make it so easy for beginners of such different backgrounds to start building applications very quickly.</p>
-
-<p>However, once you get past the intial stage of building applications with the basic CRUD operations, or if you&rsquo;re trying to build something a bit more complex  with added functionality, or trying to integrate with another framework, you eventually hit a wall where you realize that that you&rsquo;re not completely sure how something works. This can be a hard wall to climb over, especially given the fact that you can start building things very quickly with Rails. Some people have heavily critiqued this aspect of the framework, arguing that it&rsquo;s detrimential to abstract away so much of what&rsquo;s <em>actually</em> going on, which makes it difficult for people to understand what their code is truly doing under the hood. I&rsquo;ve peronally encountered this &ldquo;wall of abstraction&rdquo; a few different times, but each time I found some piece of logic that worked differently than I thought it would, it only lead me to learn something new about the framework. Most recently, that lead me down a wild goose chase into the source code for <code>ActionController::Parameters</code> &mdash; a class that I didn&rsquo;t even know existed!</p>
-
-<!--more-->
-
-
-<h2>Quack Like A Hash</h2>
-
-<p><img src="http://geekandpoke.typepad.com/.a/6a00d8341d3df553ef01053719d13a970b-pi" style="display: block; margin-left: auto; margin-right: auto;"/></p>
-
-<p>There&rsquo;s a well-known saying that Rubyists often attribute to duck typing: <em>if it looks like a duck, and quacks like a duck, it probably is a duck.</em> In other words, if an object behaves like another object, it doesn&rsquo;t matter that it&rsquo;s of a certain class or &ldquo;type&rdquo; (or species!) of another object, just so long as it can respond to the correct method calls to implement the behavior of that object.</p>
-
-<p>This saying actually comes from a concept referred to as the &ldquo;duck test&rdquo;, which is a form of abductive reasoning, which is based on the idea that one can identify an unknown object by observing its habitual characteristics. However, this can be a little bit tricky because <em>sometimes</em>, just because something quacks like a duck and waddles like a duck doesn&rsquo;t mean that we should stop questioning what it actually is and just assume that it&rsquo;s a duck!</p>
-
-<p>Let me explain with an example. Whenever we send or receive data from the server, it appears that everything is being sent as a <code>Hash</code>. If we look at our <code>GET</code> requests or <code>POST</code> and <code>PUT</code> requests using HTTP protocol, our data usually looks like some variation on a theme of something like the following:</p>
-
-<pre><code class="ruby">{ order: 
-    { 
-        total: 100.00, 
-        number: 'ABC123' 
-    } 
-}
-</code></pre>
-
-<p>If it acts like a hash, and quacks like a hash, it must be a hash, right? Well, not exactly. Last week we learned that <code>params</code> in our controllers are actually instances of <code>ActionController::Parameters</code>. But this data that we&rsquo;re sending back and forth still looks like its a plain old Ruby <code>Hash</code>. It also seems to behave like a hash, right? We can do something like this</p>
-
-<pre><code class="ruby">if params[:order].present?
-    @order.create(order_params)
-end
-</code></pre>
-
-<p>and access a key in this so-called &ldquo;hash&rdquo; the same way we would with any other <code>Hash</code> data structure. So, what&rsquo;s different about <code>ActionController::Parameters</code>?</p>
-
-<p>Well, let&rsquo;s find out. We&rsquo;ll start by opening up <a href="https://github.com/rails/rails/blob/9ab2d030209d9608a6c866d83210f5b3b7d2319e/actionpack/lib/action_controller/metal/strong_parameters.rb#L108">the source code</a> for this class, which lives inside of the <code>ActionController</code> module. The first thing we&rsquo;ll notice is this:</p>
-
-<pre><code class="ruby">module ActionController
-    class Parameters &lt; ActiveSupport::HashWithIndifferentAccess
-    end
-end
-</code></pre>
-
-<p>Interesting! The <code>Parameters</code> class subclasses from <code>ActiveSupport::HashWithIndifferentAccess</code>. If we were really curious about what type of object <em>this</em> class inherits from, we could trace that back to see that <code>HashWithIndifferentAccess</code> simply <a href="https://github.com/rails/rails/blob/df6048407faefdc6774a8b5a02344fd4b1a734b1/activesupport/lib/active_support/hash_with_indifferent_access.rb#L43">inherits from</a> the class <code>Hash</code>. So, what makes <code>HashWithIndifferentAccess</code> different from plain old Ruby hashes?</p>
-
-<p>Well, the <a href="http://api.rubyonrails.org/classes/ActiveSupport/HashWithIndifferentAccess.html
-">Rails guides</a> answers this question pretty well:</p>
-
-<blockquote><p><code>HashWithIndifferentAccess</code> implements a hash where keys <code>:foo</code> and <code>"foo"</code> are considered to be the same. Internally symbols are mapped to strings when used as keys in the entire writing interface. You are  guaranteed that the key is returned as a string. This class is intended for use cases where strings or symbols are the expected keys and it is convenient to understand both as the same. For example the <code>params</code> hash in Ruby on Rails.</p></blockquote>
-
-<p>Awesome, this answers our question and more! This subclass gives us the flexibility to access the keys in a <code>params</code> &ldquo;hash&rdquo; by either a string or a symbol. The <code>HashWithIndifferentAccess</code> class still responds to the majority of the same methods that a Ruby <code>Hash</code> instance does, but with some added functionality, which can be especially handy if we&rsquo;re dealing with JSON responses.</p>
-
-<p><em>Protip:</em> we can easily create <code>HashWithIndifferentAccess</code> instances by creating a Ruby <code>Hash</code> instance and calling <code>with_indifferent_access</code> on it. This method is available to us since core extensions has the <code>with_indifferent_access</code> method defined on the <code>Hash</code> class by default:</p>
-
-<pre><code class="ruby">♥ rails c
-Loading development environment (Rails 4.1.4)
-irb(main):001:0&gt; h = {a: 'hi', b: 'hello'}
-.with_indifferent_access
-=&gt; {"a"=&gt;"hi", "b"=&gt;"hello"}
-irb(main):002:0&gt; h.class
-=&gt; ActiveSupport::HashWithIndifferentAccess
-</code></pre>
-
-<p>So, parameters aren&rsquo;t quite a hash, but they quack pretty much exactly like how a hash would quack. But there must be a good reason why they are different classes, right? Let&rsquo;s investigate further.</p>
-
-<h2>Waddle Like A Param</h2>
-
-<iframe src="//giphy.com/embed/jgIDKTrvTssDK" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<p>On a very basic level, <code>ActionController::Parameters</code> could be simplified to hashes with some serious restrictions and permissions. Because <code>ActionController::Parameters</code> inherits from <code>ActiveSupport::HashWithIndifferentAccess</code>, we can fetch values from our params &ldquo;hash&rdquo; using a symbol <code>:key</code> or a string <code>"key"</code>. But there are a few things that we can&rsquo;t do so easily, and that&rsquo;s where the functionality of <code>ActionController::Parameters</code> really starts to come into play and begins to make a lot more sense.</p>
-
-<p>We can easily create a new instance of <code>ActionController::Parameters</code>. In fact, we do it within the context of our controllers all the time!</p>
-
-<pre><code class="ruby">permitted_params = params.require(:order).permit(:total)
-
-permitted_params
-# =&gt; {"total"=&gt;"100.00"}
-
-permitted_params.class
-# =&gt; ActionController::Parameters
-</code></pre>
-
-<p>Except usually we wrap it in a <code>_params</code> suffixed method like this:</p>
-
-<pre><code class="ruby">def order_params
-    params.require(:order).permit(:total)
-end
-</code></pre>
-
-<p>Here is one example of the added functionality of this class. When we create a new instance of a <code>ActionController::Parameters</code> class, it is by default, not permitted.</p>
-
-<pre><code class="ruby">params = ActionController::Parameters.new
-
-params.permitted? 
-# =&gt; false
-</code></pre>
-
-<p>The <code>permitted?</code> method actually doesn&rsquo;t do anything more than return an attribute on an instance of a <code>ActionController::Parameters</code> object, called <code>@permitted</code>:</p>
-
-<pre><code class="ruby">def permitted?
-    @permitted
-end
-</code></pre>
-
-<p>So the question is, where does this attribute get set? Well, there are two places that can set this attribute to <code>true</code>. The first place is a method that we&rsquo;re already familiar with: the <code>permit</code> method! As we learned last week, this method calls <code>params.permit!</code> as its last line, after it filters out any paramters that aren&rsquo;t permitted scalar values (think <code>Symbol</code>, <code>String</code>, or <code>Hash</code>). However, we can also just call <code>permit!</code> on an instance of <code>ActionController::Parameters</code> ourselves.</p>
-
-<pre><code class="ruby">params = ActionController::Parameters.new
-params.permitted?
-# =&gt; false
-
-params.permit!
-params.permitted?
-# =&gt; true
-</code></pre>
-
-<p>The <code>permit!</code> method sets the <code>@permitted</code> attribute to <code>true</code>, and returns <code>self</code>, which in this case is just the instance of the params class. This method <a href="https://github.com/rails/rails/blob/9ab2d030209d9608a6c866d83210f5b3b7d2319e/actionpack/lib/action_controller/metal/strong_parameters.rb#L223">is quite useful</a> for mass assignment, since it effectively removes the need to list all the permitted values. It can be handy in a controller that is used only by admins that should have control over &mdash; and can be trusted with &mdash; updating all attributes of an object:</p>
-
-<pre><code class="ruby"># def blog_params
-    # params.require(:blog).permit(:title, 
-        # :author, :published_at, :tags, 
-        # :excerpt, :image, :image_caption, :external_url)
-# end
-
-def blog_params
-    params.require(:blog).permit!
-end
-</code></pre>
-
-<p>However, this doesn&rsquo;t really make sense to use unless you are <em>sure</em> that you want to allow all the values to the params hash to be whitelisted. Proceed with caution!</p>
-
-<h2>Heavy Metal Controllers</h2>
-
-<p>Now that we know a little bit more about <code>ActionController::Parameters</code> and what kinds of ducks &mdash; oops, I mean <em>objects</em> &mdash; they really are, there&rsquo;s one question that we probably still have floating around in our heads: where on earth does our params come from during the request-response cycle&hellip;and <em>how</em> does it get set on a controller?</p>
-
-<p>To answer this question, we must trace back how a parameter comes in from a request, and then how it is set on a controller. It isn&rsquo;t magic (even though it seems like that&rsquo;s the case!). In reality, it&rsquo;s actually happening in a cool place called <code>ActionController::Metal</code>. Yes, that&rsquo;s a thing, and it happens to be the very class that <code>ActionController::Base</code> <a href="https://github.com/rails/rails/blob/7978ec722172b45e72ee78baefc23ab907a91131/actionpack/lib/action_controller/base.rb#L164">inherits</a> from. By default, we should always inherit from <code>ActionController::Base</code>, because it gives us a ton of functionality and modules that help speed things up.</p>
-
-<p>But even <code>ActionController::Base</code> has to come from <em>somewhere</em>, right? And that somewhere happens to be <code>ActionController::Metal</code>, which is the simplest possible controller that we can create in Rails, which provides little more than a Rack interface. Here&rsquo;s a very, <em>very</em> simplified version of what that class looks like in the Rails source code:</p>
-
-<pre><code class="ruby">class Metal &lt; AbstractController::Base
-    # Very truncated from the Rails source code!
-
-    attr_internal :headers, :response, :request
-
-    def initialize
-        @_headers = {"Content-Type" =&gt; "text/html"}
-        @_status = 200
-        @_request = nil
-        @_response = nil
-        @_routes = nil
-        super
-    end
-end
-</code></pre>
-
-<p>As a request goes out or a response comes in, these values are set as instances on the controller itself! So if there was any doubt in your mind, everything in Ruby is an object &mdash; even controllers are just objects with instance variables and attr_readers and attr_accessors.</p>
-
-<p>So, where do our parameters get set? Well, they also live in an instance attribute called <code>@_params</code>, which is set by a <a href="https://github.com/rails/rails/blob/2910956fc9006d3c26f56992dab630fa97b7f7bc/actionpack/lib/action_controller/metal.rb#L140">params method</a>. The parameters come in from a request, and are beautifully memoized in a method that looks like this:</p>
-
-<pre><code class="ruby">def params
-    @_params ||= request.parameters
-end
-</code></pre>
-
-<p>Pretty amazing, right? That black box of <code>ActionController</code> and strong parameters doesn&rsquo;t seem so intimiating any more, does it?
-It&rsquo;s a little strange that we always talk about and use <code>params.require</code> and the <code>permit</code> method so often in Rails, particularly when we are first starting out, but we don&rsquo;t necessarily question where it comes from! Or how it is set or being used, for that matter! But now we know. And we&rsquo;ll never mistake our strong params for a simple Ruby hash again.</p>
-
-<p>Or a duck, for that matter.</p>
-
-<iframe src="//giphy.com/embed/NTSMCNXQQ1xiE" width="480" height="346" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
-
-
-<p><br></p>
-
-<h2>Rails 5 Update</h2>
-
-<p>I recently learned that there&rsquo;s a significant change coming to <code>ActionController::Parameters</code> with the soon-to-be-released Rails 5! Namely, another Rubyist brought this to my attention over the interwebz:</p>
-
-<blockquote class="twitter-tweet" data-conversation="none" lang="en"><p lang="en" dir="ltr"><a href="https://twitter.com/ThePracticalDev">@ThePracticalDev</a> Nice post! Just a friendly change advisory, AC::Parameters composes an object and no longer inherits from HWIA in Rails 5.</p>&mdash; Jon Atack (@jonatack) <a href="https://twitter.com/jonatack/status/671804828562169856">December 1, 2015</a></blockquote>
-
-
-<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
-
-
-<p>It turns out that <code>ActionController::Parameters</code> will soon return an object, rather than a <code>Hash</code> instance, which also means that it will no longer Hash will no longer inherit from <code>ActiveSupport::HashWithIndifferentAccess</code> as this post explains. Check out this great <a href="http://eileencodes.com/posts/actioncontroller-parameters-now-returns-an-object-instead-of-a-hash/">blog post</a> by Eileen Uchitelle, a developer at Basecamp, to learn more about how <code>ActionController::Parameters</code> will be changing with the next release of Rails.</p>
-
-<h2>tl;dr?</h2>
-
-<ul>
-<li>An instance of <code>ActionController::Parameters</code> behaves a lot like a hash that can be accessed with either symbol or string keys. This class has some added methods like <code>permitted?</code> and <code>permit!</code> which check and set the <code>@permitted</code> instance attribute on a params object.</li>
-<li>Curious to learn more about how strong params handles nested attributes? Check out this great <a href="http://patshaughnessy.net/2014/6/16/a-rule-of-thumb-for-strong-parameters">blog post</a> by Pat Shaughnessy.</li>
-<li>New to <code>ActionController::Metal</code>? Head over to the Rails docs <a href="http://api.rubyonrails.org/classes/ActionController/Metal.html">to learn more</a> and read this helpful <a href="http://stackoverflow.com/a/18189580">StackOverflow post</a>.</li>
 </ul>
 
 ]]></content>
