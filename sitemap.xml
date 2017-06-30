@@ -2,67 +2,67 @@
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/12/29/a-year-of-tuesdays/</loc>
-    <lastmod>2015-12-29T08:57:11-05:00</lastmod>
+    <lastmod>2015-12-29T05:57:11-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/12/22/composing-microscopic-rails-views-with-cells/</loc>
-    <lastmod>2015-12-22T08:48:07-05:00</lastmod>
+    <lastmod>2015-12-22T05:48:07-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/12/15/youve-got-a-friend-in-friendly-id/</loc>
-    <lastmod>2015-12-15T08:11:15-05:00</lastmod>
+    <lastmod>2015-12-15T05:11:15-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/12/08/breaking-the-news-wisper-plus-pub-sub/</loc>
-    <lastmod>2015-12-08T08:50:17-05:00</lastmod>
+    <lastmod>2015-12-08T05:50:17-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks/</loc>
-    <lastmod>2015-12-01T08:53:17-05:00</lastmod>
+    <lastmod>2015-12-01T05:53:17-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/11/24/peeking-under-the-hood-of-actioncontroller-parameters-part-2/</loc>
-    <lastmod>2015-11-24T08:56:47-05:00</lastmod>
+    <lastmod>2015-11-24T05:56:47-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1/</loc>
-    <lastmod>2015-11-17T08:39:52-05:00</lastmod>
+    <lastmod>2015-11-17T05:39:52-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/</loc>
-    <lastmod>2015-11-10T09:03:09-05:00</lastmod>
+    <lastmod>2015-11-10T06:03:09-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/11/03/hunting-down-the-scoop-on-activerecord-scopes/</loc>
-    <lastmod>2015-11-03T08:43:46-05:00</lastmod>
+    <lastmod>2015-11-03T05:43:46-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/10/27/digging-into-the-finder-object-pattern/</loc>
-    <lastmod>2015-10-27T08:58:31-04:00</lastmod>
+    <lastmod>2015-10-27T05:58:31-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/</loc>
-    <lastmod>2015-10-20T08:17:21-04:00</lastmod>
+    <lastmod>2015-10-20T05:17:21-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns/</loc>
-    <lastmod>2015-10-13T09:22:16-04:00</lastmod>
+    <lastmod>2015-10-13T06:22:16-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/10/06/fleeting-filing-with-ruby-tempfile/</loc>
-    <lastmod>2015-10-06T08:46:30-04:00</lastmod>
+    <lastmod>2015-10-06T05:46:30-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/</loc>
-    <lastmod>2015-09-29T08:57:21-04:00</lastmod>
+    <lastmod>2015-09-29T05:57:21-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/</loc>
-    <lastmod>2015-09-22T08:59:45-04:00</lastmod>
+    <lastmod>2015-09-22T05:59:45-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/</loc>
-    <lastmod>2015-09-15T08:53:51-04:00</lastmod>
+    <lastmod>2015-09-15T05:53:51-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/09/08/youve-got-mail-action-mailer-plus-letter-opener/</loc>
@@ -70,171 +70,175 @@
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/</loc>
-    <lastmod>2015-09-01T08:45:22-04:00</lastmod>
+    <lastmod>2015-09-01T05:45:22-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/</loc>
-    <lastmod>2015-08-25T08:40:04-04:00</lastmod>
+    <lastmod>2015-08-25T05:40:04-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions/</loc>
-    <lastmod>2015-08-18T08:11:32-04:00</lastmod>
+    <lastmod>2015-08-18T05:11:32-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/08/11/rolling-out-the-redcarpet-for-rendering-markdown/</loc>
-    <lastmod>2015-08-11T08:47:54-04:00</lastmod>
+    <lastmod>2015-08-11T05:47:54-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/08/04/safely-storing-your-assets-paperclip-with-aws-plus-heroku/</loc>
-    <lastmod>2015-08-04T08:15:32-04:00</lastmod>
+    <lastmod>2015-08-04T05:15:32-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/07/28/clipping-images-for-rails-using-paperclip/</loc>
-    <lastmod>2015-07-28T08:42:36-04:00</lastmod>
+    <lastmod>2015-07-28T05:42:36-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing/</loc>
-    <lastmod>2015-07-21T08:02:04-04:00</lastmod>
+    <lastmod>2015-07-21T05:02:04-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/</loc>
-    <lastmod>2015-07-14T08:47:19-04:00</lastmod>
+    <lastmod>2015-07-14T05:47:19-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/07/07/taskmanaging-your-app-part-2-service-objects/</loc>
-    <lastmod>2015-07-07T08:28:40-04:00</lastmod>
+    <lastmod>2015-07-07T05:28:40-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/06/30/taskmanaging-your-app-part-1-using-rake/</loc>
-    <lastmod>2015-06-30T08:49:58-04:00</lastmod>
+    <lastmod>2015-06-30T05:49:58-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/06/23/to-serialize-or-not-to-serialize-activemodel-serializers/</loc>
-    <lastmod>2015-06-23T08:10:05-04:00</lastmod>
+    <lastmod>2015-06-23T05:10:05-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/06/16/babys-first-conference-recapping-reddotrubyconf/</loc>
-    <lastmod>2015-06-16T08:29:28-04:00</lastmod>
+    <lastmod>2015-06-16T05:29:28-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/06/09/refactoring-to-reveal-rails-group-by/</loc>
-    <lastmod>2015-06-09T08:43:24-04:00</lastmod>
+    <lastmod>2015-06-09T05:43:24-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/</loc>
-    <lastmod>2015-06-02T08:45:24-04:00</lastmod>
+    <lastmod>2015-06-02T05:45:24-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/</loc>
-    <lastmod>2015-05-26T08:02:30-04:00</lastmod>
+    <lastmod>2015-05-26T05:02:30-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/05/19/the-secret-life-of-your-database-part-1-migrations/</loc>
-    <lastmod>2015-05-19T08:51:11-04:00</lastmod>
+    <lastmod>2015-05-19T05:51:11-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/05/12/investigating-rubys-global-functions-plus-kernel-module-with-puts/</loc>
-    <lastmod>2015-05-12T08:09:27-04:00</lastmod>
+    <lastmod>2015-05-12T05:09:27-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/</loc>
-    <lastmod>2015-05-05T08:38:29-04:00</lastmod>
+    <lastmod>2015-05-05T05:38:29-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems/</loc>
-    <lastmod>2015-04-28T08:50:59-04:00</lastmod>
+    <lastmod>2015-04-28T05:50:59-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/</loc>
-    <lastmod>2015-04-21T08:34:19-04:00</lastmod>
+    <lastmod>2015-04-21T05:34:19-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/</loc>
-    <lastmod>2015-04-14T08:17:03-04:00</lastmod>
+    <lastmod>2015-04-14T05:17:03-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/04/07/querying-at-warp-drive-using-activerecord-includes/</loc>
-    <lastmod>2015-04-07T08:36:54-04:00</lastmod>
+    <lastmod>2015-04-07T05:36:54-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable/</loc>
-    <lastmod>2015-03-31T08:35:27-04:00</lastmod>
+    <lastmod>2015-03-31T05:35:27-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/03/24/a-machine-state-of-mind-part-2-implementing-state-machines/</loc>
-    <lastmod>2015-03-24T08:03:14-04:00</lastmod>
+    <lastmod>2015-03-24T05:03:14-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/03/17/a-machine-state-of-mind-part-1-understanding-state-machines/</loc>
-    <lastmod>2015-03-17T08:11:22-04:00</lastmod>
+    <lastmod>2015-03-17T05:11:22-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/03/10/its-all-in-the-family-using-acts-as-tree/</loc>
-    <lastmod>2015-03-10T08:27:54-04:00</lastmod>
+    <lastmod>2015-03-10T05:27:54-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/03/03/bundle-up-and-let-your-objects-do-the-freezing-frozen-hashes/</loc>
-    <lastmod>2015-03-03T08:43:04-05:00</lastmod>
+    <lastmod>2015-03-03T05:43:04-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/02/24/class-inheritance-part-2-singletons-and-eigens-oh-my/</loc>
-    <lastmod>2015-02-24T08:13:49-05:00</lastmod>
+    <lastmod>2015-02-24T05:13:49-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/02/17/time-the-black-sheep-of-the-programming-family/</loc>
-    <lastmod>2015-02-17T08:30:24-05:00</lastmod>
+    <lastmod>2015-02-17T05:30:24-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/02/10/money-makes-the-world-go-round-using-money-rails-and-bigdecimal/</loc>
-    <lastmod>2015-02-10T08:07:09-05:00</lastmod>
+    <lastmod>2015-02-10T05:07:09-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/02/03/when-enough-is-enough-how-to-know-when-to-use-enums/</loc>
-    <lastmod>2015-02-03T08:32:19-05:00</lastmod>
+    <lastmod>2015-02-03T05:32:19-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/01/27/embrace-your-inner-paranoia-use-acts-as-paranoid/</loc>
-    <lastmod>2015-01-27T19:36:16-05:00</lastmod>
+    <lastmod>2015-01-27T16:36:16-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/01/23/the-fog-creek-fellowship-lessons-in-fearlessness-and-fortitude/</loc>
-    <lastmod>2015-01-23T14:04:16-05:00</lastmod>
+    <lastmod>2015-01-23T11:04:16-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/01/20/implementing-rem-in-css-or-how-to-be-a-shiny-happy-developer/</loc>
-    <lastmod>2015-01-20T17:39:10-05:00</lastmod>
+    <lastmod>2015-01-20T14:39:10-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/01/13/tidying-up-those-views-using-decorators-in-rails/</loc>
-    <lastmod>2015-01-13T22:53:10-05:00</lastmod>
+    <lastmod>2015-01-13T19:53:10-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2015/01/06/the-final-countdown-using-javascripts-setinterval-plus-clearinterval-methods/</loc>
-    <lastmod>2015-01-06T16:30:53-05:00</lastmod>
+    <lastmod>2015-01-06T13:30:53-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2014/12/14/to-understand-recursion-you-must-first-understand-recursion/</loc>
-    <lastmod>2014-12-14T22:32:29-05:00</lastmod>
+    <lastmod>2014-12-14T19:32:29-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2014/11/30/so-you-wanna-ship-some-software-eh/</loc>
-    <lastmod>2014-11-30T18:05:55-05:00</lastmod>
+    <lastmod>2014-11-30T15:05:55-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2014/11/19/how-programming-makes-you-a-better-writer/</loc>
-    <lastmod>2014-11-19T08:08:47-05:00</lastmod>
+    <lastmod>2014-11-19T05:08:47-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2014/11/16/the-asset-whutline-revisiting-the-asset-pipeline-after-javascript/</loc>
-    <lastmod>2014-11-16T23:14:13-05:00</lastmod>
+    <lastmod>2014-11-16T20:14:13-08:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2014/10/30/have-you-met-your-controller-yet/</loc>
-    <lastmod>2014-10-30T23:28:43-04:00</lastmod>
+    <lastmod>2014-10-30T20:28:43-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance-part-1/</loc>
-    <lastmod>2014-10-16T21:00:34-04:00</lastmod>
+    <lastmod>2014-10-16T18:00:34-07:00</lastmod>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/blog/2014/10/16/class-inheritance/</loc>
+    <lastmod>2014-10-16T18:00:34-07:00</lastmod>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/archives/</loc>
@@ -247,6 +251,9 @@
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/categories/flatiron/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/blog/categories/school/</loc>
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/categories/non-technical/</loc>
@@ -301,5 +308,20 @@
   </url>
   <url>
     <loc>http://vaidehijoshi.github.io/blog/categories/ember/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/posts/2/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/posts/3/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/posts/4/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/posts/5/</loc>
+  </url>
+  <url>
+    <loc>http://vaidehijoshi.github.io/posts/6/</loc>
   </url>
 </urlset>

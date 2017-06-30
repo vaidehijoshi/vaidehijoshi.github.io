@@ -4,10 +4,10 @@
   <title><![CDATA[Category: Refactoring | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/refactoring/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2016-05-09T23:12:06-04:00</updated>
+  <updated>2017-06-29T19:27:17-07:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
-    <name><![CDATA[Vaidehi Joshi]]></name>
+    <name><![CDATA[Your Name]]></name>
     
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
@@ -16,7 +16,7 @@
   <entry>
     <title type="html"><![CDATA[Refactoring to Reveal Rails Group_by]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/06/09/refactoring-to-reveal-rails-group-by/"/>
-    <updated>2015-06-09T08:43:24-04:00</updated>
+    <updated>2015-06-09T05:43:24-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/06/09/refactoring-to-reveal-rails-group-by</id>
     <content type="html"><![CDATA[<p><img src="http://img.pandawhale.com/post-10513-Code-Refactoring-Cat-in-Bathtu-U295.gif" style="display: block; margin-left: auto; margin-right: auto;"/></p>
 
@@ -200,7 +200,7 @@ end
   <entry>
     <title type="html"><![CDATA[Code Smells and Ruby Shorthand: Unpacking Ampersand + To_proc]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc/"/>
-    <updated>2015-06-02T08:45:24-04:00</updated>
+    <updated>2015-06-02T05:45:24-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/06/02/code-smells-and-ruby-shorthand-unpacking-ampersand-plus-to-proc</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/918rCUjV2XWhi" width="480" height="360" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -351,7 +351,7 @@ Order.pluck(:amount).map &amp;half_off_sale
   <entry>
     <title type="html"><![CDATA[Metaprogramming Dynamic Methods: Using Public_send]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send/"/>
-    <updated>2015-05-05T08:38:29-04:00</updated>
+    <updated>2015-05-05T05:38:29-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/05/05/metaprogramming-dynamic-methods-using-public-send</id>
     <content type="html"><![CDATA[<p><img src="http://imgs.xkcd.com/comics/hofstadter.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -516,7 +516,7 @@ end
   <entry>
     <title type="html"><![CDATA[Querying at Warp Drive: Using ActiveRecord Includes]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/04/07/querying-at-warp-drive-using-activerecord-includes/"/>
-    <updated>2015-04-07T08:36:54-04:00</updated>
+    <updated>2015-04-07T05:36:54-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/04/07/querying-at-warp-drive-using-activerecord-includes</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/Wkym7gz6fu1Nu" width="480" height="271" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -714,7 +714,7 @@ User Load (1.1ms)  SELECT "users".* FROM "users"
   <entry>
     <title type="html"><![CDATA[Delegating All of the Things With Ruby Forwardable]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable/"/>
-    <updated>2015-03-31T08:35:27-04:00</updated>
+    <updated>2015-03-31T05:35:27-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/03/31/delegating-all-of-the-things-with-ruby-forwardable</id>
     <content type="html"><![CDATA[<p><img src="http://assets.amuniversal.com/77c6dce06d5c01301d80001dd8b71c47" style="display: block; margin-left: auto; margin-right: auto;"></p>
 

@@ -4,10 +4,10 @@
   <title><![CDATA[Category: #technicaltuesdays | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/number-technicaltuesdays/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2016-05-09T23:12:06-04:00</updated>
+  <updated>2017-06-29T19:27:17-07:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
-    <name><![CDATA[Vaidehi Joshi]]></name>
+    <name><![CDATA[Your Name]]></name>
     
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
@@ -16,7 +16,7 @@
   <entry>
     <title type="html"><![CDATA[A Year of Tuesdays]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/12/29/a-year-of-tuesdays/"/>
-    <updated>2015-12-29T08:57:11-05:00</updated>
+    <updated>2015-12-29T05:57:11-08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/12/29/a-year-of-tuesdays</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/XIqCQx02E1U9W" width="480" height="268" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -67,7 +67,7 @@
   <entry>
     <title type="html"><![CDATA[Composing Microscopic Rails Views With Cells]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/12/22/composing-microscopic-rails-views-with-cells/"/>
-    <updated>2015-12-22T08:48:07-05:00</updated>
+    <updated>2015-12-22T05:48:07-08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/12/22/composing-microscopic-rails-views-with-cells</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/8OYw2Tm8gnrGw" width="480" height="384" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -300,7 +300,7 @@ render view: :index
   <entry>
     <title type="html"><![CDATA[You've Got a Friend in Friendly_Id]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/12/15/youve-got-a-friend-in-friendly-id/"/>
-    <updated>2015-12-15T08:11:15-05:00</updated>
+    <updated>2015-12-15T05:11:15-08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/12/15/youve-got-a-friend-in-friendly-id</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/13pT5ZMDTKiKJO" width="480" height="241" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -543,7 +543,7 @@ end
   <entry>
     <title type="html"><![CDATA[Breaking the News: Wisper + Pub-Sub]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/12/08/breaking-the-news-wisper-plus-pub-sub/"/>
-    <updated>2015-12-08T08:50:17-05:00</updated>
+    <updated>2015-12-08T05:50:17-08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/12/08/breaking-the-news-wisper-plus-pub-sub</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/3oEduPlMkw4LZE7624" width="480" height="300" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -751,7 +751,7 @@ end
   <entry>
     <title type="html"><![CDATA[Functions to Call Upon: ActiveRecord Association Callbacks]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks/"/>
-    <updated>2015-12-01T08:53:17-05:00</updated>
+    <updated>2015-12-01T05:53:17-08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/ajgpGefucxTH2" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 

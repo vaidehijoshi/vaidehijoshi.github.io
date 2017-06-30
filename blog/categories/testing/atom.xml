@@ -4,10 +4,10 @@
   <title><![CDATA[Category: Testing | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/testing/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2016-05-09T23:12:06-04:00</updated>
+  <updated>2017-06-29T19:27:17-07:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
-    <name><![CDATA[Vaidehi Joshi]]></name>
+    <name><![CDATA[Your Name]]></name>
     
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
@@ -16,7 +16,7 @@
   <entry>
     <title type="html"><![CDATA[Tackling Those Tests, Part 3: Testing Made Easy With Gems]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems/"/>
-    <updated>2015-04-28T08:50:59-04:00</updated>
+    <updated>2015-04-28T05:50:59-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/04/28/tackling-those-tests-part-3-testing-made-easy-with-gems</id>
     <content type="html"><![CDATA[<p><img src="https://imgs.xkcd.com/comics/shouldnt_be_hard.png" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -156,7 +156,7 @@ end
   <entry>
     <title type="html"><![CDATA[Tackling Those Tests, Part 2: Getting Fun and Functional With FactoryGirl]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl/"/>
-    <updated>2015-04-21T08:34:19-04:00</updated>
+    <updated>2015-04-21T05:34:19-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/04/21/tackling-those-tests-part-2-getting-fun-and-functional-with-factorygirl</id>
     <content type="html"><![CDATA[<p><img src="https://33.media.tumblr.com/0b9992ca5a259a54c16199c2de69c903/tumblr_mtjab8Yo0U1rlp47to1_500.gif" style="display: block; margin-left: auto; margin-right: auto;"></p>
 
@@ -375,7 +375,7 @@ end
   <entry>
     <title type="html"><![CDATA[Tackling Those Tests, Part 1: The How, When, and What of Rspec Testing]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing/"/>
-    <updated>2015-04-14T08:17:03-04:00</updated>
+    <updated>2015-04-14T05:17:03-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/04/14/tackling-those-tests-part-1-the-how-when-and-what-of-rspec-testing</id>
     <content type="html"><![CDATA[<p><img src="http://www.datamation.com/imagesvr_ce/306/philosophy-geeks.jpg" style="display: block; margin-left: auto; margin-right: auto; width: 50%; height: 50%;"></p>
 

@@ -4,10 +4,10 @@
   <title><![CDATA[Category: Postgresql | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/postgresql/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2016-05-09T23:12:06-04:00</updated>
+  <updated>2017-06-29T19:27:17-07:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
-    <name><![CDATA[Vaidehi Joshi]]></name>
+    <name><![CDATA[Your Name]]></name>
     
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
@@ -16,7 +16,7 @@
   <entry>
     <title type="html"><![CDATA[All the Columns Fit to Index: Unique + Compound Indexing]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing/"/>
-    <updated>2015-07-21T08:02:04-04:00</updated>
+    <updated>2015-07-21T05:02:04-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/MMEfo9QQgKInK" width="480" height="269" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 

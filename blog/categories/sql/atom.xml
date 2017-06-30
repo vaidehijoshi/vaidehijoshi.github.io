@@ -4,10 +4,10 @@
   <title><![CDATA[Category: Sql | Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/blog/categories/sql/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2016-05-09T23:12:06-04:00</updated>
+  <updated>2017-06-29T19:27:17-07:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
-    <name><![CDATA[Vaidehi Joshi]]></name>
+    <name><![CDATA[Your Name]]></name>
     
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
@@ -16,7 +16,7 @@
   <entry>
     <title type="html"><![CDATA[Safer SQL: Using ActiveRecord Transactions]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions/"/>
-    <updated>2015-08-18T08:11:32-04:00</updated>
+    <updated>2015-08-18T05:11:32-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/Djnfk5gnoNXqM" width="480" height="356" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -230,7 +230,7 @@ end
   <entry>
     <title type="html"><![CDATA[All the Columns Fit to Index: Unique + Compound Indexing]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing/"/>
-    <updated>2015-07-21T08:02:04-04:00</updated>
+    <updated>2015-07-21T05:02:04-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/07/21/all-the-columns-fit-to-index-unique-plus-compound-indexing</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/MMEfo9QQgKInK" width="480" height="269" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -410,7 +410,7 @@ end
   <entry>
     <title type="html"><![CDATA[Writing Smart Migrations: References, Reversible, and Indexes]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes/"/>
-    <updated>2015-07-14T08:47:19-04:00</updated>
+    <updated>2015-07-14T05:47:19-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/07/14/writing-smart-migrations-references-reversible-and-indexes</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/SUtPZfyDenHoY" width="480" height="270" frameBorder="0" style="max-width: 100%" class="giphy-embed" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
 
@@ -576,7 +576,7 @@ end
   <entry>
     <title type="html"><![CDATA[The Secret Life of Your Database, Part 2: Join Tables]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables/"/>
-    <updated>2015-05-26T08:02:30-04:00</updated>
+    <updated>2015-05-26T05:02:30-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/05/26/the-secret-life-of-your-database-part-2-join-tables</id>
     <content type="html"><![CDATA[<p><img src="http://daviddickball.uk/wp-content/uploads/2015/03/sql-join.gif" style="display: block; margin-left: auto; margin-right: auto;"><br></p>
 

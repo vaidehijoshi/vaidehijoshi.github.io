@@ -4,10 +4,10 @@
   <title><![CDATA[Words and Code]]></title>
   <link href="http://vaidehijoshi.github.io/atom.xml" rel="self"/>
   <link href="http://vaidehijoshi.github.io/"/>
-  <updated>2016-05-09T23:12:06-04:00</updated>
+  <updated>2017-06-29T19:27:17-07:00</updated>
   <id>http://vaidehijoshi.github.io/</id>
   <author>
-    <name><![CDATA[Vaidehi Joshi]]></name>
+    <name><![CDATA[Your Name]]></name>
     
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
@@ -16,7 +16,7 @@
   <entry>
     <title type="html"><![CDATA[A Year of Tuesdays]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/12/29/a-year-of-tuesdays/"/>
-    <updated>2015-12-29T08:57:11-05:00</updated>
+    <updated>2015-12-29T05:57:11-08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/12/29/a-year-of-tuesdays</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/XIqCQx02E1U9W" width="480" height="268" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -67,7 +67,7 @@
   <entry>
     <title type="html"><![CDATA[Composing Microscopic Rails Views With Cells]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/12/22/composing-microscopic-rails-views-with-cells/"/>
-    <updated>2015-12-22T08:48:07-05:00</updated>
+    <updated>2015-12-22T05:48:07-08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/12/22/composing-microscopic-rails-views-with-cells</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/8OYw2Tm8gnrGw" width="480" height="384" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -378,7 +378,7 @@
   <entry>
     <title type="html"><![CDATA[You've Got a Friend in Friendly_Id]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/12/15/youve-got-a-friend-in-friendly-id/"/>
-    <updated>2015-12-15T08:11:15-05:00</updated>
+    <updated>2015-12-15T05:11:15-08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/12/15/youve-got-a-friend-in-friendly-id</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/13pT5ZMDTKiKJO" width="480" height="241" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -721,7 +721,7 @@
   <entry>
     <title type="html"><![CDATA[Breaking the News: Wisper + Pub-Sub]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/12/08/breaking-the-news-wisper-plus-pub-sub/"/>
-    <updated>2015-12-08T08:50:17-05:00</updated>
+    <updated>2015-12-08T05:50:17-08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/12/08/breaking-the-news-wisper-plus-pub-sub</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/3oEduPlMkw4LZE7624" width="480" height="300" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -1032,7 +1032,7 @@
   <entry>
     <title type="html"><![CDATA[Functions to Call Upon: ActiveRecord Association Callbacks]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks/"/>
-    <updated>2015-12-01T08:53:17-05:00</updated>
+    <updated>2015-12-01T05:53:17-08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/12/01/functions-to-call-upon-activerecord-association-callbacks</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/ajgpGefucxTH2" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -1261,7 +1261,7 @@
   <entry>
     <title type="html"><![CDATA[Peeking Under the Hood of ActionController Parameters, Part 2]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/11/24/peeking-under-the-hood-of-actioncontroller-parameters-part-2/"/>
-    <updated>2015-11-24T08:56:47-05:00</updated>
+    <updated>2015-11-24T05:56:47-08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/11/24/peeking-under-the-hood-of-actioncontroller-parameters-part-2</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/Hhu5dqPScjXRm" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -1555,7 +1555,7 @@ It&rsquo;s a little strange that we always talk about and use <code>params.requi
   <entry>
     <title type="html"><![CDATA[Peeking Under the Hood of ActionController Parameters, Part 1]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1/"/>
-    <updated>2015-11-17T08:39:52-05:00</updated>
+    <updated>2015-11-17T05:39:52-08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/11/17/peeking-under-the-hood-of-actioncontroller-parameters-part-1</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/iKufnbkSIcliM" width="480" height="360" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -1881,7 +1881,7 @@ It&rsquo;s a little strange that we always talk about and use <code>params.requi
   <entry>
     <title type="html"><![CDATA[Methods to Remember Things by: Ruby Memoization]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization/"/>
-    <updated>2015-11-10T09:03:09-05:00</updated>
+    <updated>2015-11-10T06:03:09-08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/11/10/methods-to-remember-things-by-ruby-memoization</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/xUrmE6PJBEbni" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -2179,7 +2179,7 @@ It&rsquo;s a little strange that we always talk about and use <code>params.requi
   <entry>
     <title type="html"><![CDATA[Hunting Down the Scoop on ActiveRecord Scopes]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/11/03/hunting-down-the-scoop-on-activerecord-scopes/"/>
-    <updated>2015-11-03T08:43:46-05:00</updated>
+    <updated>2015-11-03T05:43:46-08:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/11/03/hunting-down-the-scoop-on-activerecord-scopes</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/PzrPi0UVzgYHm" width="480" height="254" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -2596,7 +2596,7 @@ It&rsquo;s a little strange that we always talk about and use <code>params.requi
   <entry>
     <title type="html"><![CDATA[Digging Into the Finder Object Pattern]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/10/27/digging-into-the-finder-object-pattern/"/>
-    <updated>2015-10-27T08:58:31-04:00</updated>
+    <updated>2015-10-27T05:58:31-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/10/27/digging-into-the-finder-object-pattern</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/y5A0PlFbGIk4o" width="480" height="280" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -2925,7 +2925,7 @@ It&rsquo;s a little strange that we always talk about and use <code>params.requi
   <entry>
     <title type="html"><![CDATA[Solutions for Slugs of All Sizes: Acts_as_url + To_param]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param/"/>
-    <updated>2015-10-20T08:17:21-04:00</updated>
+    <updated>2015-10-20T05:17:21-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/10/20/solutions-for-slugs-of-all-sizes-acts-as-url-plus-to-param</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/g5FB33d3GVUkg" width="480" height="288" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -3118,7 +3118,7 @@ the <code>find_by_url</code> method, but we could also use the <code>find_by</co
   <entry>
     <title type="html"><![CDATA[Stop Worrying and Start Being Concerned: ActiveSupport Concerns]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns/"/>
-    <updated>2015-10-13T09:22:16-04:00</updated>
+    <updated>2015-10-13T06:22:16-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/10/13/stop-worrying-and-start-being-concerned-activesupport-concerns</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/iQA2hMPX88icM" width="480" height="270" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -3353,7 +3353,7 @@ the <code>find_by_url</code> method, but we could also use the <code>find_by</co
   <entry>
     <title type="html"><![CDATA[Fleeting Filing With Ruby Tempfile]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/10/06/fleeting-filing-with-ruby-tempfile/"/>
-    <updated>2015-10-06T08:46:30-04:00</updated>
+    <updated>2015-10-06T05:46:30-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/10/06/fleeting-filing-with-ruby-tempfile</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/3ViDyv13D9HQQ" width="480" height="269" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -3579,7 +3579,7 @@ the <code>find_by_url</code> method, but we could also use the <code>find_by</co
   <entry>
     <title type="html"><![CDATA[Using Pundit, the Cool Kid of Authorization]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization/"/>
-    <updated>2015-09-29T08:57:21-04:00</updated>
+    <updated>2015-09-29T05:57:21-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/09/29/using-pundit-the-cool-kid-of-authorization</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/OdVug9ZRk8sqA" width="480" height="192" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -3997,7 +3997,7 @@ the <code>find_by_url</code> method, but we could also use the <code>find_by</co
   <entry>
     <title type="html"><![CDATA[Working Hard or Hardly Working, Part 2: Custom Jobs]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs/"/>
-    <updated>2015-09-22T08:59:45-04:00</updated>
+    <updated>2015-09-22T05:59:45-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/09/22/working-hard-or-hardly-working-part-2-custom-jobs</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/XgE4LlECZjw6k" width="480" height="218" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -4264,7 +4264,7 @@ the <code>find_by_url</code> method, but we could also use the <code>find_by</co
   <entry>
     <title type="html"><![CDATA[Working Hard or Hardly Working, Part 1: Active Job]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job/"/>
-    <updated>2015-09-15T08:53:51-04:00</updated>
+    <updated>2015-09-15T05:53:51-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/09/15/working-hard-or-hardly-working-part-1-active-job</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/79JlUHyiSzYBi" width="480" height="249" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -4615,7 +4615,7 @@ backend (Sidekiq, Resque, etc).&rdquo;</p></blockquote>
   <entry>
     <title type="html"><![CDATA[Inflections Everywhere: Using ActiveSupport Inflector]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector/"/>
-    <updated>2015-09-01T08:45:22-04:00</updated>
+    <updated>2015-09-01T05:45:22-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/09/01/inflections-everywhere-using-activesupport-inflector</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/JEIRAmTTfUgYE" width="480" height="264" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -4808,7 +4808,7 @@ backend (Sidekiq, Resque, etc).&rdquo;</p></blockquote>
   <entry>
     <title type="html"><![CDATA[Unlocking Ruby Keywords: Begin, End, Ensure, Rescue]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue/"/>
-    <updated>2015-08-25T08:40:04-04:00</updated>
+    <updated>2015-08-25T05:40:04-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/08/25/unlocking-ruby-keywords-begin-end-ensure-rescue</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/VAG0Ct1MbUCju" width="480" height="268" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
@@ -5009,7 +5009,7 @@ backend (Sidekiq, Resque, etc).&rdquo;</p></blockquote>
   <entry>
     <title type="html"><![CDATA[Safer SQL: Using ActiveRecord Transactions]]></title>
     <link href="http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions/"/>
-    <updated>2015-08-18T08:11:32-04:00</updated>
+    <updated>2015-08-18T05:11:32-07:00</updated>
     <id>http://vaidehijoshi.github.io/blog/2015/08/18/safer-sql-using-activerecord-transactions</id>
     <content type="html"><![CDATA[<iframe src="//giphy.com/embed/Djnfk5gnoNXqM" width="480" height="356" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
